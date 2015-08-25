@@ -140,7 +140,7 @@ pub struct DM {
 
 impl DM {
     /// Create a new context for communicating with DM.
-    pub fn new() -> Result<Self> {
+    pub fn new() -> Result<DM> {
         Ok(DM {
             file: try!(File::open(DM_CTL_PATH)),
         })
@@ -165,7 +165,7 @@ impl DM {
     }
 
     /// Devicemapper version information: Major, Minor, and patchlevel versions.
-    pub fn get_version(&self) -> Result<(u32, u32, u32)> {
+    pub fn version(&self) -> Result<(u32, u32, u32)> {
 
         let mut hdr: dmi::Struct_dm_ioctl = Default::default();
         hdr.version[0] = DM_VERSION_MAJOR;
@@ -181,6 +181,21 @@ impl DM {
         };
 
         Ok((hdr.version[0], hdr.version[1], hdr.version[2]))
+    }
+
+    /// Remove all DM devices.
+    pub fn remove_all(&self) -> Result<()> {
+        let mut hdr: dmi::Struct_dm_ioctl = Default::default();
+
+        Self::initialize_hdr(&mut hdr);
+
+        let op = ioctl::op_read_write(DM_IOCTL, dmi::DM_REMOVE_ALL_CMD as u8,
+                                      mem::size_of::<dmi::Struct_dm_ioctl>());
+
+        match unsafe { ioctl::read_into(self.file.as_raw_fd(), op, &mut hdr) } {
+            Err(_) => return Err((Error::last_os_error())),
+            _ => Ok(())
+        }
     }
 
     /// Returns a list of tuples containing DM device names and their
@@ -219,62 +234,8 @@ impl DM {
         Ok(devs)
     }
 
-    /// Query DM for which devices depend on this device.
-    pub fn list_deps(&self, dev: Device) -> Result<Vec<Device>> {
-        let mut buf = [0u8; 16 * 1024];
-        let mut hdr: &mut dmi::Struct_dm_ioctl = unsafe {mem::transmute(&mut buf)};
-
-        Self::initialize_hdr(&mut hdr);
-        hdr.data_size = buf.len() as u32;
-        hdr.dev = dev.into();
-
-        let op = ioctl::op_read_write(DM_IOCTL, dmi::DM_TABLE_DEPS_CMD as u8, buf.len());
-
-        match unsafe { ioctl::read_into(self.file.as_raw_fd(), op, &mut buf) } {
-            Err(_) => return Err((Error::last_os_error())),
-            _ => {},
-        };
-
-        // TODO: Check DM_BUFFER_FULL_FLAG for:
-        // DM_DEVICE_LIST_VERSIONS, DM_DEVICE_LIST, DM_DEVICE_DEPS,
-        // DM_DEVICE_STATUS, DM_DEVICE_TABLE, DM_DEVICE_WAITEVENT,
-        // DM_DEVICE_TARGET_MSG
-
-        let mut devs = Vec::new();
-        if (hdr.data_size - hdr.data_start as u32) != 0 {
-            let result = &buf[hdr.data_start as usize..];
-            let entries = NativeEndian::read_u32(&result[..4]) as usize;
-
-            for entry in 0..entries {
-                let dev = &result[(8*entry)+8..(8*entry)+16];
-                devs.push(Device::from(NativeEndian::read_u64(&dev)));
-            }
-        }
-
-        Ok(devs)
-    }
-
-    /// Recursively walk DM deps to see if `dev` might be its own dependency.
-    pub fn depends_on(&self, dev: Device, dm_majors: &BTreeSet<u32>) -> bool {
-        if !dm_majors.contains(&dev.major) {
-            return false;
-        }
-
-        if let Ok(dep_list) = self.list_deps(dev) {
-            for d in dep_list {
-                if d == dev {
-                    return true;
-                } else if self.depends_on(d, dm_majors) {
-                    return true;
-                }
-            }
-        }
-
-        false
-    }
-
     /// Create a DM device.
-    pub fn create_device(&self, name: &str, id: &str) -> Result<Device> {
+    pub fn device_create(&self, name: &str, id: &str) -> Result<Device> {
         let mut hdr: dmi::Struct_dm_ioctl = Default::default();
 
         Self::initialize_hdr(&mut hdr);
@@ -293,7 +254,7 @@ impl DM {
     }
 
     /// Remove a DM device.
-    pub fn remove_device(&self, name: &str) -> Result<()> {
+    pub fn device_remove(&self, name: &str) -> Result<()> {
         let mut hdr: dmi::Struct_dm_ioctl = Default::default();
 
         Self::initialize_hdr(&mut hdr);
@@ -308,9 +269,89 @@ impl DM {
         }
     }
 
+    /// Rename a DM device.
+    pub fn device_rename(&self, old_name: &str, new_name: &str) -> Result<()> {
+        let mut buf = [0u8; DM_IOCTL_STRUCT_LEN + DM_NAME_LEN];
+        let mut hdr: &mut dmi::Struct_dm_ioctl = unsafe {mem::transmute(&mut buf)};
+
+        if new_name.as_bytes().len() > (DM_NAME_LEN - 1) {
+            return Err(
+                Error::new(Other, format!("New name {} too long", new_name)));
+        }
+
+        Self::initialize_hdr(&mut hdr);
+        hdr.data_size = buf.len() as u32;
+        Self::hdr_set_name(&mut hdr, old_name);
+
+        copy_memory(new_name.as_bytes(), &mut buf[DM_IOCTL_STRUCT_LEN..]);
+
+        let op = ioctl::op_read_write(DM_IOCTL, dmi::DM_DEV_RENAME_CMD as u8,
+                                      mem::size_of::<dmi::Struct_dm_ioctl>());
+
+        match unsafe { ioctl::read_into(self.file.as_raw_fd(), op, &mut hdr) } {
+            Err(_) => return Err((Error::last_os_error())),
+            _ => Ok(())
+        }
+    }
+
+    /// Suspend a DM device.
+    pub fn device_suspend(&self, name: &str) -> Result<()> {
+        let mut hdr: dmi::Struct_dm_ioctl = Default::default();
+
+        Self::initialize_hdr(&mut hdr);
+        Self::hdr_set_name(&mut hdr, name);
+        hdr.flags = DM_SUSPEND_FLAG;
+
+        let op = ioctl::op_read_write(DM_IOCTL, dmi::DM_DEV_SUSPEND_CMD as u8,
+                                      mem::size_of::<dmi::Struct_dm_ioctl>());
+
+        match unsafe { ioctl::read_into(self.file.as_raw_fd(), op, &mut hdr) } {
+            Err(_) => return Err((Error::last_os_error())),
+            _ => Ok(())
+        }
+    }
+
+    /// Resume a DM device.
+    pub fn device_resume(&self, name: &str) -> Result<()> {
+        let mut hdr: dmi::Struct_dm_ioctl = Default::default();
+
+        Self::initialize_hdr(&mut hdr);
+        Self::hdr_set_name(&mut hdr, name);
+        // DM_SUSPEND_FLAG not set = resume
+
+        let op = ioctl::op_read_write(DM_IOCTL, dmi::DM_DEV_SUSPEND_CMD as u8,
+                                      mem::size_of::<dmi::Struct_dm_ioctl>());
+
+        match unsafe { ioctl::read_into(self.file.as_raw_fd(), op, &mut hdr) } {
+            Err(_) => return Err((Error::last_os_error())),
+            _ => Ok(())
+        }
+    }
+
+    /// Get device status.
+    pub fn device_status(&self, name: &str) -> Result<dmi::Struct_dm_ioctl> {
+        let mut hdr: dmi::Struct_dm_ioctl = Default::default();
+
+        Self::initialize_hdr(&mut hdr);
+        Self::hdr_set_name(&mut hdr, name);
+        // DM_SUSPEND_FLAG not set = resume
+
+        let op = ioctl::op_read_write(DM_IOCTL, dmi::DM_DEV_SUSPEND_CMD as u8,
+                                      mem::size_of::<dmi::Struct_dm_ioctl>());
+
+        match unsafe { ioctl::read_into(self.file.as_raw_fd(), op, &mut hdr) } {
+            Err(_) => return Err((Error::last_os_error())),
+            _ => Ok(hdr)
+        }
+    }
+
+    pub fn device_wait(&self, _name: &str) -> Result<()> {
+        unimplemented!()
+    }
+
     /// Load targets for a device.
     /// `targets` is a Vec of (sector_start, sector_length, type, params)
-    pub fn load_device(&self, name: &str, targets: &Vec<(u64, u64, &str, &str)>) -> Result<()> {
+    pub fn table_load(&self, name: &str, targets: &Vec<(u64, u64, &str, &str)>) -> Result<()> {
         let mut targs = Vec::new();
 
         // Construct targets first, since we need to know how many & size
@@ -376,15 +417,14 @@ impl DM {
         }
     }
 
-    /// Suspend a DM device.
-    pub fn suspend_device(&self, name: &str) -> Result<()> {
+    /// Clear the table for a device.
+    pub fn table_clear(&self, name: &str) -> Result<()> {
         let mut hdr: dmi::Struct_dm_ioctl = Default::default();
 
         Self::initialize_hdr(&mut hdr);
         Self::hdr_set_name(&mut hdr, name);
-        hdr.flags = DM_SUSPEND_FLAG;
 
-        let op = ioctl::op_read_write(DM_IOCTL, dmi::DM_DEV_SUSPEND_CMD as u8,
+        let op = ioctl::op_read_write(DM_IOCTL, dmi::DM_TABLE_CLEAR_CMD as u8,
                                       mem::size_of::<dmi::Struct_dm_ioctl>());
 
         match unsafe { ioctl::read_into(self.file.as_raw_fd(), op, &mut hdr) } {
@@ -393,46 +433,121 @@ impl DM {
         }
     }
 
-    /// Resume a DM device.
-    pub fn resume_device(&self, name: &str) -> Result<()> {
-        let mut hdr: dmi::Struct_dm_ioctl = Default::default();
-
-        Self::initialize_hdr(&mut hdr);
-        Self::hdr_set_name(&mut hdr, name);
-        // DM_SUSPEND_FLAG not set = resume
-
-        let op = ioctl::op_read_write(DM_IOCTL, dmi::DM_DEV_SUSPEND_CMD as u8,
-                                      mem::size_of::<dmi::Struct_dm_ioctl>());
-
-        match unsafe { ioctl::read_into(self.file.as_raw_fd(), op, &mut hdr) } {
-            Err(_) => return Err((Error::last_os_error())),
-            _ => Ok(())
-        }
-    }
-
-    /// Rename a DM device.
-    pub fn rename_device(&self, old_name: &str, new_name: &str) -> Result<()> {
-        let mut buf = [0u8; DM_IOCTL_STRUCT_LEN + DM_NAME_LEN];
+    /// Query DM for which devices depend on this device.
+    pub fn table_deps(&self, dev: Device) -> Result<Vec<Device>> {
+        let mut buf = [0u8; 16 * 1024];
         let mut hdr: &mut dmi::Struct_dm_ioctl = unsafe {mem::transmute(&mut buf)};
-
-        if new_name.as_bytes().len() > (DM_NAME_LEN - 1) {
-            return Err(
-                Error::new(Other, format!("New name {} too long", new_name)));
-        }
 
         Self::initialize_hdr(&mut hdr);
         hdr.data_size = buf.len() as u32;
-        Self::hdr_set_name(&mut hdr, old_name);
+        hdr.dev = dev.into();
 
-        copy_memory(new_name.as_bytes(), &mut buf[DM_IOCTL_STRUCT_LEN..]);
+        let op = ioctl::op_read_write(DM_IOCTL, dmi::DM_TABLE_DEPS_CMD as u8, buf.len());
 
-        let op = ioctl::op_read_write(DM_IOCTL, dmi::DM_DEV_RENAME_CMD as u8,
-                                      mem::size_of::<dmi::Struct_dm_ioctl>());
-
-        match unsafe { ioctl::read_into(self.file.as_raw_fd(), op, &mut hdr) } {
+        match unsafe { ioctl::read_into(self.file.as_raw_fd(), op, &mut buf) } {
             Err(_) => return Err((Error::last_os_error())),
-            _ => Ok(())
+            _ => {},
+        };
+
+        // TODO: Check DM_BUFFER_FULL_FLAG for:
+        // DM_DEVICE_LIST_VERSIONS, DM_DEVICE_LIST, DM_DEVICE_DEPS,
+        // DM_DEVICE_STATUS, DM_DEVICE_TABLE, DM_DEVICE_WAITEVENT,
+        // DM_DEVICE_TARGET_MSG
+
+        let mut devs = Vec::new();
+        if (hdr.data_size - hdr.data_start as u32) != 0 {
+            let result = &buf[hdr.data_start as usize..];
+            let entries = NativeEndian::read_u32(&result[..4]) as usize;
+
+            for entry in 0..entries {
+                let dev = &result[(8*entry)+8..(8*entry)+16];
+                devs.push(Device::from(NativeEndian::read_u64(&dev)));
+            }
         }
+
+        Ok(devs)
+    }
+
+    /// Return the status of all targets for a device.
+    pub fn table_status(&self, name: &str) -> Result<Vec<String>> {
+        let mut buf = [0u8; 16 * 1024];
+        let mut hdr: &mut dmi::Struct_dm_ioctl = unsafe {mem::transmute(&mut buf)};
+
+        Self::initialize_hdr(&mut hdr);
+        Self::hdr_set_name(&mut hdr, name);
+        hdr.data_size = buf.len() as u32;
+
+        let op = ioctl::op_read_write(DM_IOCTL, dmi::DM_TABLE_STATUS_CMD as u8, buf.len());
+
+        match unsafe { ioctl::read_into(self.file.as_raw_fd(), op, &mut buf) } {
+            Err(_) => return Err((Error::last_os_error())),
+            _ => {},
+        };
+
+        let mut targets = Vec::new();
+        if (hdr.data_size - hdr.data_start as u32) != 0 {
+            let mut result = &buf[hdr.data_start as usize..];
+
+            loop {
+                let targ: &dmi::Struct_dm_target_spec = unsafe {
+                    mem::transmute(result.as_ptr())
+                };
+
+                let start = targ.sector_start;
+                let length = targ.length;
+                let _status = targ.status;
+                let target_type = unsafe {
+                    let cast: &[u8; 16] = mem::transmute(&targ.target_type);
+                    let s = slice_to_null(cast).expect("bad data from ioctl");
+                    String::from_utf8_lossy(s)
+                };
+                let param_slc = slice_to_null(
+                    &result[mem::size_of::<dmi::Struct_dm_target_spec>()..])
+                    .expect("bad data from ioctl");
+                let params = String::from_utf8_lossy(param_slc);
+                targets.push(
+                    format!("{} {} {} {}",
+                            start, length, target_type, params));
+
+                let next = NativeEndian::read_u32(&result[8..12]);
+                if next == 0 { break }
+
+                result = &result[next as usize..];
+            }
+        }
+
+        Ok(targets)
+    }
+
+    pub fn list_versions(&self) {
+        unimplemented!()
+    }
+
+    pub fn target_msg(&self) -> Result<()> {
+        unimplemented!()
+    }
+
+    pub fn device_set_geometry(&self) {
+        unimplemented!()
+    }
+
+    /// Recursively walk DM deps to see if `dev` might be its own dependency.
+    pub fn depends_on(&self, dev: Device, dm_majors: &BTreeSet<u32>) -> bool {
+        if !dm_majors.contains(&dev.major) {
+            return false;
+        }
+
+        if let Ok(dep_list) = self.table_deps(dev) {
+            for d in dep_list {
+                if d == dev {
+                    return true;
+                } else if self.depends_on(d, dm_majors) {
+                    return true;
+                }
+            }
+        }
+
+        false
     }
 }
 
