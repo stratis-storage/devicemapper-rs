@@ -47,6 +47,7 @@ const DM_SUSPEND_FLAG: u32 = 2;
 //const DM_PERSISTENT_DEV_FLAG: u32 = 8;
 
 const DM_STATUS_TABLE_FLAG: u32 = (1 << 4);
+const DM_DATA_OUT_FLAG: u32 = (1 << 16);
 
 #[derive(Debug, Clone, Copy)]
 pub enum StatusType {
@@ -580,8 +581,43 @@ impl DM {
         Ok(targets)
     }
 
-    pub fn target_msg(&self) -> Result<()> {
-        unimplemented!()
+    /// Send a message to the target at a given sector. If sector is not needed use 0.
+    /// DM-wide messages start with '@', and may return a string; targets do not.
+    pub fn target_msg(&self, name: &str, sector: u64, msg: &str) -> Result<Option<String>> {
+        let mut buf = [0u8; 16 * 1024];
+        let mut hdr: &mut dmi::Struct_dm_ioctl = unsafe {mem::transmute(&mut buf)};
+
+        Self::initialize_hdr(&mut hdr);
+        Self::hdr_set_name(&mut hdr, name);
+
+        hdr.data_size = hdr.data_start
+            + mem::size_of::<dmi::Struct_dm_target_msg>() as u32
+            + msg.as_bytes().len() as u32 + 1;
+
+        {
+            let mut data_in = &mut buf[hdr.data_start as usize..];
+            let mut msg_struct: &mut dmi::Struct_dm_target_msg = unsafe {
+                mem::transmute(data_in.as_ptr())
+            };
+            msg_struct.sector = sector;
+
+            let mut data_in = &mut data_in[mem::size_of::<dmi::Struct_dm_target_msg>()..];
+            copy_memory(msg.as_bytes(), &mut data_in);
+        }
+
+        let op = ioctl::op_read_write(DM_IOCTL, dmi::DM_TARGET_MSG_CMD as u8,
+                                      mem::size_of::<dmi::Struct_dm_ioctl>());
+
+        match unsafe { ioctl::read_into(self.file.as_raw_fd(), op, &mut hdr) } {
+            Err(_) => return Err((Error::last_os_error())),
+            _ => { }
+        };
+
+        match (hdr.flags & DM_DATA_OUT_FLAG) > 0 {
+            true => Ok(Some(String::from_utf8_lossy(
+                &buf[hdr.data_start as usize..hdr.data_size as usize]).into_owned())),
+            false => Ok(None)
+        }
     }
 
     pub fn device_set_geometry(&self) {
