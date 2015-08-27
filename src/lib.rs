@@ -49,6 +49,14 @@ const DM_UUID_LEN: usize = 129;
 const DM_SUSPEND_FLAG: u32 = 2;
 //const DM_PERSISTENT_DEV_FLAG: u32 = 8;
 
+const DM_STATUS_TABLE_FLAG: u32 = (1 << 4);
+
+#[derive(Debug, Clone, Copy)]
+pub enum StatusType {
+    Info,
+    Table,
+}
+
 /// A struct containing the device's major and minor numbers
 ///
 /// Also allows conversion to/from a single 64bit value.
@@ -469,13 +477,18 @@ impl DM {
     }
 
     /// Return the status of all targets for a device.
-    pub fn table_status(&self, name: &str) -> Result<Vec<String>> {
+    pub fn table_status(&self, name: &str, statustype: StatusType)
+                        -> Result<Vec<String>> {
         let mut buf = [0u8; 16 * 1024];
         let mut hdr: &mut dmi::Struct_dm_ioctl = unsafe {mem::transmute(&mut buf)};
 
         Self::initialize_hdr(&mut hdr);
         Self::hdr_set_name(&mut hdr, name);
         hdr.data_size = buf.len() as u32;
+        hdr.flags = match statustype {
+            StatusType::Info => 0,
+            StatusType::Table => DM_STATUS_TABLE_FLAG,
+        };
 
         let op = ioctl::op_read_write(DM_IOCTL, dmi::DM_TABLE_STATUS_CMD as u8, buf.len());
 
@@ -488,19 +501,19 @@ impl DM {
         if (hdr.data_size - hdr.data_start as u32) != 0 {
             let mut result = &buf[hdr.data_start as usize..];
 
-            loop {
+            for _ in 0..hdr.target_count {
                 let targ: &dmi::Struct_dm_target_spec = unsafe {
                     mem::transmute(result.as_ptr())
                 };
 
                 let start = targ.sector_start;
                 let length = targ.length;
-                let _status = targ.status;
                 let target_type = unsafe {
                     let cast: &[u8; 16] = mem::transmute(&targ.target_type);
                     let s = slice_to_null(cast).expect("bad data from ioctl");
                     String::from_utf8_lossy(s)
                 };
+
                 let param_slc = slice_to_null(
                     &result[mem::size_of::<dmi::Struct_dm_target_spec>()..])
                     .expect("bad data from ioctl");
@@ -509,10 +522,7 @@ impl DM {
                     format!("{} {} {} {}",
                             start, length, target_type, params));
 
-                let next = NativeEndian::read_u32(&result[8..12]);
-                if next == 0 { break }
-
-                result = &result[next as usize..];
+                result = &result[targ.next as usize..];
             }
         }
 
