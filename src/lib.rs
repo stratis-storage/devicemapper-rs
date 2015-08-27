@@ -156,7 +156,7 @@ impl DM {
 
     fn hdr_set_name(hdr: &mut dmi::Struct_dm_ioctl, name: &str) -> () {
         let name_dest: &mut [u8; DM_NAME_LEN] = unsafe { mem::transmute(&mut hdr.name) };
-        copy_memory(name.replace("-", "--").as_bytes(), &mut name_dest[..]);
+        copy_memory(name.as_bytes(), &mut name_dest[..]);
     }
 
     fn hdr_set_uuid(hdr: &mut dmi::Struct_dm_ioctl, uuid: &str) -> () {
@@ -222,7 +222,7 @@ impl DM {
                 let slc = slice_to_null(&result[12..]).expect("Bad data from ioctl");
                 let devno = NativeEndian::read_u64(&result[..8]);
                 let dm_name = String::from_utf8_lossy(slc);
-                devs.push((dm_name.replace("--", "-"), devno.into()));
+                devs.push((dm_name.into_owned(), devno.into()));
 
                 let next = NativeEndian::read_u32(&result[8..12]);
                 if next == 0 { break }
