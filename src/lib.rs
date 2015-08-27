@@ -215,7 +215,8 @@ impl DM {
         Self::initialize_hdr(&mut hdr);
         hdr.data_size = buf.len() as u32;
 
-        let op = ioctl::op_read_write(DM_IOCTL, dmi::DM_LIST_DEVICES_CMD as u8, buf.len());
+        let op = ioctl::op_read_write(DM_IOCTL, dmi::DM_LIST_DEVICES_CMD as u8,
+                                      mem::size_of::<dmi::Struct_dm_ioctl>());
 
         match unsafe { ioctl::read_into(self.file.as_raw_fd(), op, &mut buf) } {
             Err(_) => return Err((Error::last_os_error())),
@@ -417,7 +418,8 @@ impl DM {
             buf.extend(param.as_bytes());
         }
 
-        let op = ioctl::op_read_write(DM_IOCTL, dmi::DM_TABLE_LOAD_CMD as u8, buf.len());
+        let op = ioctl::op_read_write(DM_IOCTL, dmi::DM_TABLE_LOAD_CMD as u8,
+                                      mem::size_of::<dmi::Struct_dm_ioctl>());
 
         match unsafe { ioctl::read_into_ptr(self.file.as_raw_fd(), op, buf.as_mut_ptr()) } {
             Err(_) => return Err((Error::last_os_error())),
@@ -450,7 +452,8 @@ impl DM {
         hdr.data_size = buf.len() as u32;
         hdr.dev = dev.into();
 
-        let op = ioctl::op_read_write(DM_IOCTL, dmi::DM_TABLE_DEPS_CMD as u8, buf.len());
+        let op = ioctl::op_read_write(DM_IOCTL, dmi::DM_TABLE_DEPS_CMD as u8,
+                                      mem::size_of::<dmi::Struct_dm_ioctl>());
 
         match unsafe { ioctl::read_into(self.file.as_raw_fd(), op, &mut buf) } {
             Err(_) => return Err((Error::last_os_error())),
@@ -490,7 +493,8 @@ impl DM {
             StatusType::Table => DM_STATUS_TABLE_FLAG,
         };
 
-        let op = ioctl::op_read_write(DM_IOCTL, dmi::DM_TABLE_STATUS_CMD as u8, buf.len());
+        let op = ioctl::op_read_write(DM_IOCTL, dmi::DM_TABLE_STATUS_CMD as u8,
+                                      mem::size_of::<dmi::Struct_dm_ioctl>());
 
         match unsafe { ioctl::read_into(self.file.as_raw_fd(), op, &mut buf) } {
             Err(_) => return Err((Error::last_os_error())),
