@@ -228,15 +228,19 @@ impl DM {
             let mut result = &buf[hdr.data_start as usize..];
 
             loop {
-                let slc = slice_to_null(&result[12..]).expect("Bad data from ioctl");
-                let devno = NativeEndian::read_u64(&result[..8]);
-                let dm_name = String::from_utf8_lossy(slc);
-                devs.push((dm_name.into_owned(), devno.into()));
+                let device: &dmi::Struct_dm_name_list = unsafe {
+                    mem::transmute(result.as_ptr())
+                };
 
-                let next = NativeEndian::read_u32(&result[8..12]);
-                if next == 0 { break }
+                let slc = slice_to_null(
+                    &result[mem::size_of::<dmi::Struct_dm_name_list>()..])
+                    .expect("Bad data from ioctl");
+                let dm_name = String::from_utf8_lossy(slc).into_owned();
+                devs.push((dm_name, device.dev.into()));
 
-                result = &result[next as usize..];
+                if device.next == 0 { break }
+
+                result = &result[device.next as usize..];
             }
         }
 
