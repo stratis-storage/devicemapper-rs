@@ -480,8 +480,9 @@ impl DM {
     }
 
     /// Return the status of all targets for a device.
+    /// Returned is a Vec of (sector_start, sector_length, type, params).
     pub fn table_status(&self, name: &str, statustype: StatusType)
-                        -> Result<Vec<String>> {
+                        -> Result<Vec<(u64, u64, String, String)>> {
         let mut buf = [0u8; 16 * 1024];
         let mut hdr: &mut dmi::Struct_dm_ioctl = unsafe {mem::transmute(&mut buf)};
 
@@ -510,21 +511,20 @@ impl DM {
                     mem::transmute(result.as_ptr())
                 };
 
-                let start = targ.sector_start;
-                let length = targ.length;
                 let target_type = unsafe {
                     let cast: &[u8; 16] = mem::transmute(&targ.target_type);
-                    let s = slice_to_null(cast).expect("bad data from ioctl");
-                    String::from_utf8_lossy(s)
+                    let slc = slice_to_null(cast).expect("bad data from ioctl");
+                    String::from_utf8_lossy(slc).into_owned()
                 };
 
-                let param_slc = slice_to_null(
-                    &result[mem::size_of::<dmi::Struct_dm_target_spec>()..])
-                    .expect("bad data from ioctl");
-                let params = String::from_utf8_lossy(param_slc);
-                targets.push(
-                    format!("{} {} {} {}",
-                            start, length, target_type, params));
+                let params = {
+                    let slc = slice_to_null(
+                        &result[mem::size_of::<dmi::Struct_dm_target_spec>()..])
+                        .expect("bad data from ioctl");
+                    String::from_utf8_lossy(slc).into_owned()
+                };
+
+                targets.push((targ.sector_start, targ.length, target_type, params));
 
                 result = &result[targ.next as usize..];
             }
