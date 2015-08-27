@@ -537,8 +537,42 @@ impl DM {
         Ok(targets)
     }
 
-    pub fn list_versions(&self) {
-        unimplemented!()
+    pub fn list_versions(&self) -> Result<Vec<(String, u32, u32, u32)>> {
+        let mut buf = [0u8; 16 * 1024];
+        let mut hdr: &mut dmi::Struct_dm_ioctl = unsafe {mem::transmute(&mut buf)};
+
+        Self::initialize_hdr(&mut hdr);
+        hdr.data_size = buf.len() as u32;
+        let op = ioctl::op_read_write(DM_IOCTL, dmi::DM_LIST_VERSIONS_CMD as u8,
+                                      mem::size_of::<dmi::Struct_dm_ioctl>());
+
+        match unsafe { ioctl::read_into(self.file.as_raw_fd(), op, &mut buf) } {
+            Err(_) => return Err((Error::last_os_error())),
+            _ => {},
+        };
+
+        let mut targets = Vec::new();
+        if (hdr.data_size - hdr.data_start as u32) != 0 {
+            let mut result = &buf[hdr.data_start as usize..];
+
+            loop {
+                let tver: &dmi::Struct_dm_target_versions = unsafe {
+                    mem::transmute(result.as_ptr())
+                };
+
+                let name_slc = slice_to_null(
+                    &result[mem::size_of::<dmi::Struct_dm_target_versions>()..])
+                    .expect("bad data from ioctl");
+                let name = String::from_utf8_lossy(name_slc).into_owned();
+                targets.push((name, tver.version[0], tver.version[1], tver.version[2]));
+
+                if tver.next == 0 { break }
+
+                result = &result[tver.next as usize..];
+            }
+        }
+
+        Ok(targets)
     }
 
     pub fn target_msg(&self) -> Result<()> {
