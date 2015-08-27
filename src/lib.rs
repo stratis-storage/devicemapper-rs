@@ -5,7 +5,6 @@
 #![feature(slice_bytes, path_ext, iter_arith)]
 
 extern crate libc;
-extern crate byteorder;
 extern crate nix;
 
 /// Low-level devicemapper configuration of the running kernel.
@@ -25,8 +24,6 @@ use std::slice;
 use std::slice::bytes::copy_memory;
 use std::collections::BTreeSet;
 use std::os::unix::fs::MetadataExt;
-
-use byteorder::{NativeEndian, ByteOrder};
 
 use nix::sys::ioctl;
 
@@ -472,11 +469,19 @@ impl DM {
         let mut devs = Vec::new();
         if (hdr.data_size - hdr.data_start as u32) != 0 {
             let result = &buf[hdr.data_start as usize..];
-            let entries = NativeEndian::read_u32(&result[..4]) as usize;
+            let deps: &dmi::Struct_dm_target_deps = unsafe {
+                mem::transmute(result.as_ptr())
+            };
 
-            for entry in 0..entries {
-                let dev = &result[(8*entry)+8..(8*entry)+16];
-                devs.push(Device::from(NativeEndian::read_u64(&dev)));
+            let dev_slc = unsafe {
+                slice::from_raw_parts(
+                    result[mem::size_of::<dmi::Struct_dm_target_deps>()..]
+                        .as_ptr() as *const u64,
+                    deps.count as usize)
+            };
+
+            for dev in dev_slc {
+                devs.push(Device::from(*dev));
             }
         }
 
