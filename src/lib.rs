@@ -2,12 +2,44 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
+//! Low-level devicemapper configuration of the running kernel.
+//!
+//! # Overview
+//!
+//! Linux's devicemapper allows the creation of block devices whose
+//! storage is mapped to other block devices in useful ways, either by
+//! changing the location of its data blocks, or performing some
+//! operation on the data itself. This is a low-level facility that is
+//! used by higher-level volume managers such as LVM2. Uses may
+//! include:
+//!
+//! * Dividing a large block device into smaller logical volumes (dm-linear)
+//! * Combining several separate block devices into a single block
+//!   device with better performance and/or redundancy (dm-raid)
+//! * Encrypting a block device (dm-crypt)
+//! * Performing Copy-on-Write (COW) allocation of a volume's blocks
+//!   enabling fast volume cloning and snapshots (dm-thin)
+//! * Configuring a smaller, faster block device to act as a cache for a
+//!   larger, slower one (dm-cache)
+//! * Verifying the contents of a read-only volume (dm-verity)
+//!
+//! # Usage
+//!
+//! Before they can be used, DM devices must be created using
+//! `DM::device_create()`, have a mapping table loaded using
+//! `DM::table_load()`, and then activated with
+//! `DM::device_resume()`. Once activated, they can be used as a
+//! regular block device, including having other DM devices map to
+//! them.
+//!
+//! Devices have "active" and "inactive" mapping tables. See function
+//! descriptions for which table they affect.
+
 #![feature(slice_bytes, path_ext, iter_arith)]
+#![warn(missing_docs)]
 
 extern crate libc;
 extern crate nix;
-
-/// Low-level devicemapper configuration of the running kernel.
 
 #[allow(dead_code, non_camel_case_types)]
 mod dm_ioctl;
@@ -49,9 +81,14 @@ const DM_SUSPEND_FLAG: u32 = 2;
 const DM_STATUS_TABLE_FLAG: u32 = (1 << 4);
 const DM_DATA_OUT_FLAG: u32 = (1 << 16);
 
+/// Used with `DM::table_status()` to choose either return of info or
+/// tables for a target. The contents of each of these strings is
+/// target-specific.
 #[derive(Debug, Clone, Copy)]
 pub enum StatusType {
+    /// Return a target's `STATUSTYPE_INFO`.
     Info,
+    /// Return a target's `STATUSTYPE_TABLE`.
     Table,
 }
 
@@ -67,7 +104,7 @@ pub struct Device {
 }
 
 impl Device {
-    /// Returns the path in `/dev` that corresponds with the device number
+    /// Returns the path in `/dev` that corresponds with the device number.
     pub fn path(&self) -> Option<PathBuf> {
         let f = File::open("/proc/partitions")
             .ok().expect("Could not open /proc/partitions");
@@ -189,7 +226,8 @@ impl DM {
         Ok((hdr.version[0], hdr.version[1], hdr.version[2]))
     }
 
-    /// Remove all DM devices.
+    /// Remove all DM devices and tables. Use discouraged other than
+    /// for debugging.
     pub fn remove_all(&self) -> Result<()> {
         let mut hdr: dmi::Struct_dm_ioctl = Default::default();
 
@@ -204,8 +242,8 @@ impl DM {
         }
     }
 
-    /// Returns a list of tuples containing DM device names and their
-    /// major/minor device numbers.
+    /// Returns a list of tuples containing DM device names and a
+    /// Device, which holds their major and minor device numbers.
     pub fn list_devices(&self) -> Result<Vec<(String, Device)>> {
         let mut buf = [0u8; 16 * 1024];
         let mut hdr: &mut dmi::Struct_dm_ioctl = unsafe {mem::transmute(&mut buf)};
@@ -245,13 +283,25 @@ impl DM {
         Ok(devs)
     }
 
-    /// Create a DM device.
-    pub fn device_create(&self, name: &str, id: &str) -> Result<Device> {
+    /// Create a DM device. It starts out in a "suspended" state.
+    ///
+    /// # Example
+    ///
+    /// ```no_run
+    /// let dm = devicemapper::DM::new().unwrap();
+    ///
+    /// // Setting a uuid is optional
+    /// let dev = dm.device_create("example-dev", None).unwrap();
+    /// ```
+    ///
+    pub fn device_create(&self, name: &str, uuid: Option<&str>) -> Result<Device> {
         let mut hdr: dmi::Struct_dm_ioctl = Default::default();
 
         Self::initialize_hdr(&mut hdr);
         Self::hdr_set_name(&mut hdr, name);
-        Self::hdr_set_uuid(&mut hdr, id);
+        if let Some(uuid) = uuid {
+            Self::hdr_set_uuid(&mut hdr, uuid);
+        }
 
         let op = ioctl::op_read_write(DM_IOCTL, dmi::DM_DEV_CREATE_CMD as u8,
                                       mem::size_of::<dmi::Struct_dm_ioctl>());
@@ -264,7 +314,7 @@ impl DM {
         Ok(Device::from(hdr.dev))
     }
 
-    /// Remove a DM device.
+    /// Remove a DM device and its mapping tables.
     pub fn device_remove(&self, name: &str) -> Result<()> {
         let mut hdr: dmi::Struct_dm_ioctl = Default::default();
 
@@ -305,7 +355,9 @@ impl DM {
         }
     }
 
-    /// Suspend a DM device.
+    /// Suspend a DM device. Will block until pending I/O is
+    /// completed.  Additional I/O to a suspended device will be held
+    /// until it is resumed.
     pub fn device_suspend(&self, name: &str) -> Result<()> {
         let mut hdr: dmi::Struct_dm_ioctl = Default::default();
 
@@ -322,7 +374,17 @@ impl DM {
         }
     }
 
-    /// Resume a DM device.
+    /// Resume a DM device. This moves a table loaded into the "inactive" slot by
+    /// `table_load()` into the "active" slot.
+    ///
+    /// # Example
+    ///
+    /// ```no_run
+    /// let dm = devicemapper::DM::new().unwrap();
+    ///
+    /// dm.device_resume("example-dev").unwrap();
+    /// ```
+    ///
     pub fn device_resume(&self, name: &str) -> Result<()> {
         let mut hdr: dmi::Struct_dm_ioctl = Default::default();
 
@@ -339,15 +401,14 @@ impl DM {
         }
     }
 
-    /// Get device status.
+    /// Get device status for the "active" table.
     pub fn device_status(&self, name: &str) -> Result<dmi::Struct_dm_ioctl> {
         let mut hdr: dmi::Struct_dm_ioctl = Default::default();
 
         Self::initialize_hdr(&mut hdr);
         Self::hdr_set_name(&mut hdr, name);
-        // DM_SUSPEND_FLAG not set = resume
 
-        let op = ioctl::op_read_write(DM_IOCTL, dmi::DM_DEV_SUSPEND_CMD as u8,
+        let op = ioctl::op_read_write(DM_IOCTL, dmi::DM_DEV_STATUS_CMD as u8,
                                       mem::size_of::<dmi::Struct_dm_ioctl>());
 
         match unsafe { ioctl::read_into(self.file.as_raw_fd(), op, &mut hdr) } {
@@ -356,12 +417,28 @@ impl DM {
         }
     }
 
+    /// Unimplemented.
     pub fn device_wait(&self, _name: &str) -> Result<()> {
         unimplemented!()
     }
 
     /// Load targets for a device.
-    /// `targets` is a Vec of (sector_start, sector_length, type, params)
+    /// `targets` is a Vec of (sector_start, sector_length, type, params).
+    ///
+    /// `params` are target-specific, please see [Linux kernel documentation](https://git.kernel.org/cgit/linux/kernel/git/torvalds/linux.git/tree/Documentation/device-mapper) for more.
+    ///
+    /// # Example
+    ///
+    /// ```no_run
+    /// let dm = devicemapper::DM::new().unwrap();
+    ///
+    /// // Create a 16MiB device (32768 512-byte sectors) that maps to /dev/sdb1
+    /// // starting 1MiB into sdb1
+    /// let table = vec![(0, 32768, "linear", "/dev/sdb1 2048")];
+    ///
+    /// dm.table_load("example-dev", &table).unwrap();
+    /// ```
+    ///
     pub fn table_load(&self, name: &str, targets: &Vec<(u64, u64, &str, &str)>) -> Result<()> {
         let mut targs = Vec::new();
 
@@ -429,7 +506,7 @@ impl DM {
         }
     }
 
-    /// Clear the table for a device.
+    /// Clear the "inactive" table for a device.
     pub fn table_clear(&self, name: &str) -> Result<()> {
         let mut hdr: dmi::Struct_dm_ioctl = Default::default();
 
@@ -445,7 +522,8 @@ impl DM {
         }
     }
 
-    /// Query DM for which devices depend on this device.
+    /// Query DM for which devices are referenced by the "active"
+    /// table for this device.
     pub fn table_deps(&self, dev: Device) -> Result<Vec<Device>> {
         let mut buf = [0u8; 16 * 1024];
         let mut hdr: &mut dmi::Struct_dm_ioctl = unsafe {mem::transmute(&mut buf)};
@@ -489,8 +567,11 @@ impl DM {
         Ok(devs)
     }
 
-    /// Return the status of all targets for a device.
-    /// Returned is a Vec of (sector_start, sector_length, type, params).
+    /// Return the status of all targets for a device's "active"
+    /// table.
+    ///
+    /// Returns is a Vec of (sector_start, sector_length,
+    /// type, params).
     pub fn table_status(&self, name: &str, statustype: StatusType)
                         -> Result<Vec<(u64, u64, String, String)>> {
         let mut buf = [0u8; 16 * 1024];
@@ -543,6 +624,8 @@ impl DM {
         Ok(targets)
     }
 
+    /// Returns a list of each loaded target with its name, and version
+    /// broken into major, minor, and patchlevel.
     pub fn list_versions(&self) -> Result<Vec<(String, u32, u32, u32)>> {
         let mut buf = [0u8; 16 * 1024];
         let mut hdr: &mut dmi::Struct_dm_ioctl = unsafe {mem::transmute(&mut buf)};
@@ -620,6 +703,7 @@ impl DM {
         }
     }
 
+    /// Unimplemented.
     pub fn device_set_geometry(&self) {
         unimplemented!()
     }
