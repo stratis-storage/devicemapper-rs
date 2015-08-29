@@ -113,7 +113,7 @@ bitflags!(
         const DM_DATA_OUT_FLAG             = (1 << 16),
         /// In: Do not remove in-use devices.
         /// Out: Device scheduled to be removed when closed.
-        const DM_DEFERRED_REMOVE           = (1 << 17),
+        const DM_DEFERRED_REMOVE_FLAG      = (1 << 17),
         /// Out: Device is suspended internally.
         const DM_INTERNAL_SUSPEND_FLAG     = (1 << 18),
     }
@@ -254,7 +254,13 @@ impl DeviceInfo {
         let slc = slice_to_null(uuid).unwrap();
         String::from_utf8_lossy(slc).into_owned()
     }
+
+    /// The flags returned from the device.
+    pub fn flags(&self) -> DmFlags {
+        DmFlags::from_bits_truncate(self.hdr.flags)
+    }
 }
+
 
 /// Context needed for communicating with devicemapper.
 pub struct DM {
@@ -269,10 +275,12 @@ impl DM {
         })
     }
 
-    fn initialize_hdr(hdr: &mut dmi::Struct_dm_ioctl) -> () {
+    fn initialize_hdr(hdr: &mut dmi::Struct_dm_ioctl, flags: DmFlags) -> () {
         hdr.version[0] = DM_VERSION_MAJOR;
         hdr.version[1] = DM_VERSION_MINOR;
         hdr.version[2] = DM_VERSION_PATCHLEVEL;
+
+        hdr.flags = flags.bits;
 
         hdr.data_start = mem::size_of::<dmi::Struct_dm_ioctl>() as u32;
     }
@@ -308,10 +316,10 @@ impl DM {
 
     /// Remove all DM devices and tables. Use discouraged other than
     /// for debugging.
-    pub fn remove_all(&self) -> Result<()> {
+    pub fn remove_all(&self, flags: DmFlags) -> Result<()> {
         let mut hdr: dmi::Struct_dm_ioctl = Default::default();
 
-        Self::initialize_hdr(&mut hdr);
+        Self::initialize_hdr(&mut hdr, flags);
 
         let op = ioctl::op_read_write(DM_IOCTL, dmi::DM_REMOVE_ALL_CMD as u8,
                                       mem::size_of::<dmi::Struct_dm_ioctl>());
@@ -324,11 +332,11 @@ impl DM {
 
     /// Returns a list of tuples containing DM device names and a
     /// Device, which holds their major and minor device numbers.
-    pub fn list_devices(&self) -> Result<Vec<(String, Device)>> {
+    pub fn list_devices(&self, flags: DmFlags) -> Result<Vec<(String, Device)>> {
         let mut buf = [0u8; 16 * 1024];
         let mut hdr: &mut dmi::Struct_dm_ioctl = unsafe {mem::transmute(&mut buf)};
 
-        Self::initialize_hdr(&mut hdr);
+        Self::initialize_hdr(&mut hdr, flags);
         hdr.data_size = buf.len() as u32;
 
         let op = ioctl::op_read_write(DM_IOCTL, dmi::DM_LIST_DEVICES_CMD as u8,
@@ -374,10 +382,10 @@ impl DM {
     /// let dev = dm.device_create("example-dev", None).unwrap();
     /// ```
     ///
-    pub fn device_create(&self, name: &str, uuid: Option<&str>) -> Result<Device> {
+    pub fn device_create(&self, name: &str, uuid: Option<&str>, flags: DmFlags) -> Result<Device> {
         let mut hdr: dmi::Struct_dm_ioctl = Default::default();
 
-        Self::initialize_hdr(&mut hdr);
+        Self::initialize_hdr(&mut hdr, flags);
         Self::hdr_set_name(&mut hdr, name);
         if let Some(uuid) = uuid {
             Self::hdr_set_uuid(&mut hdr, uuid);
@@ -395,10 +403,10 @@ impl DM {
     }
 
     /// Remove a DM device and its mapping tables.
-    pub fn device_remove(&self, name: &str) -> Result<()> {
+    pub fn device_remove(&self, name: &str, flags: DmFlags) -> Result<()> {
         let mut hdr: dmi::Struct_dm_ioctl = Default::default();
 
-        Self::initialize_hdr(&mut hdr);
+        Self::initialize_hdr(&mut hdr, flags);
         Self::hdr_set_name(&mut hdr, name);
 
         let op = ioctl::op_read_write(DM_IOCTL, dmi::DM_DEV_REMOVE_CMD as u8,
@@ -411,7 +419,7 @@ impl DM {
     }
 
     /// Rename a DM device.
-    pub fn device_rename(&self, old_name: &str, new_name: &str) -> Result<()> {
+    pub fn device_rename(&self, old_name: &str, new_name: &str, flags: DmFlags) -> Result<()> {
         let mut buf = [0u8; DM_IOCTL_STRUCT_LEN + DM_NAME_LEN];
         let mut hdr: &mut dmi::Struct_dm_ioctl = unsafe {mem::transmute(&mut buf)};
 
@@ -420,7 +428,7 @@ impl DM {
                 Error::new(Other, format!("New name {} too long", new_name)));
         }
 
-        Self::initialize_hdr(&mut hdr);
+        Self::initialize_hdr(&mut hdr, flags);
         hdr.data_size = buf.len() as u32;
         Self::hdr_set_name(&mut hdr, old_name);
 
@@ -438,10 +446,10 @@ impl DM {
     /// Suspend a DM device. Will block until pending I/O is
     /// completed.  Additional I/O to a suspended device will be held
     /// until it is resumed.
-    pub fn device_suspend(&self, name: &str) -> Result<()> {
+    pub fn device_suspend(&self, name: &str, flags: DmFlags) -> Result<()> {
         let mut hdr: dmi::Struct_dm_ioctl = Default::default();
 
-        Self::initialize_hdr(&mut hdr);
+        Self::initialize_hdr(&mut hdr, flags);
         Self::hdr_set_name(&mut hdr, name);
         hdr.flags = DM_SUSPEND_FLAG.bits;
 
@@ -465,10 +473,10 @@ impl DM {
     /// dm.device_resume("example-dev").unwrap();
     /// ```
     ///
-    pub fn device_resume(&self, name: &str) -> Result<()> {
+    pub fn device_resume(&self, name: &str, flags: DmFlags) -> Result<()> {
         let mut hdr: dmi::Struct_dm_ioctl = Default::default();
 
-        Self::initialize_hdr(&mut hdr);
+        Self::initialize_hdr(&mut hdr, flags);
         Self::hdr_set_name(&mut hdr, name);
         // DM_SUSPEND_FLAG not set = resume
 
@@ -482,10 +490,10 @@ impl DM {
     }
 
     /// Get device status for the "active" table.
-    pub fn device_status(&self, name: &str) -> Result<DeviceInfo> {
+    pub fn device_status(&self, name: &str, flags: DmFlags) -> Result<DeviceInfo> {
         let mut hdr: dmi::Struct_dm_ioctl = Default::default();
 
-        Self::initialize_hdr(&mut hdr);
+        Self::initialize_hdr(&mut hdr, flags);
         Self::hdr_set_name(&mut hdr, name);
 
         let op = ioctl::op_read_write(DM_IOCTL, dmi::DM_DEV_STATUS_CMD as u8,
@@ -519,7 +527,7 @@ impl DM {
     /// dm.table_load("example-dev", &table).unwrap();
     /// ```
     ///
-    pub fn table_load(&self, name: &str, targets: &Vec<(u64, u64, &str, &str)>) -> Result<()> {
+    pub fn table_load(&self, name: &str, targets: &Vec<(u64, u64, &str, &str)>, flags: DmFlags) -> Result<()> {
         let mut targs = Vec::new();
 
         // Construct targets first, since we need to know how many & size
@@ -549,7 +557,7 @@ impl DM {
 
         let mut hdr: dmi::Struct_dm_ioctl = Default::default();
 
-        Self::initialize_hdr(&mut hdr);
+        Self::initialize_hdr(&mut hdr, flags);
         Self::hdr_set_name(&mut hdr, name);
 
         hdr.data_start = mem::size_of::<dmi::Struct_dm_ioctl>() as u32;
@@ -587,10 +595,10 @@ impl DM {
     }
 
     /// Clear the "inactive" table for a device.
-    pub fn table_clear(&self, name: &str) -> Result<()> {
+    pub fn table_clear(&self, name: &str, flags: DmFlags) -> Result<()> {
         let mut hdr: dmi::Struct_dm_ioctl = Default::default();
 
-        Self::initialize_hdr(&mut hdr);
+        Self::initialize_hdr(&mut hdr, flags);
         Self::hdr_set_name(&mut hdr, name);
 
         let op = ioctl::op_read_write(DM_IOCTL, dmi::DM_TABLE_CLEAR_CMD as u8,
@@ -604,11 +612,11 @@ impl DM {
 
     /// Query DM for which devices are referenced by the "active"
     /// table for this device.
-    pub fn table_deps(&self, dev: Device) -> Result<Vec<Device>> {
+    pub fn table_deps(&self, dev: Device, flags: DmFlags) -> Result<Vec<Device>> {
         let mut buf = [0u8; 16 * 1024];
         let mut hdr: &mut dmi::Struct_dm_ioctl = unsafe {mem::transmute(&mut buf)};
 
-        Self::initialize_hdr(&mut hdr);
+        Self::initialize_hdr(&mut hdr, flags);
         hdr.data_size = buf.len() as u32;
         hdr.dev = dev.into();
 
@@ -652,18 +660,14 @@ impl DM {
     ///
     /// Returns is a Vec of (sector_start, sector_length,
     /// type, params).
-    pub fn table_status(&self, name: &str, statustype: StatusType)
+    pub fn table_status(&self, name: &str, flags: DmFlags)
                         -> Result<Vec<(u64, u64, String, String)>> {
         let mut buf = [0u8; 16 * 1024];
         let mut hdr: &mut dmi::Struct_dm_ioctl = unsafe {mem::transmute(&mut buf)};
 
-        Self::initialize_hdr(&mut hdr);
+        Self::initialize_hdr(&mut hdr, flags);
         Self::hdr_set_name(&mut hdr, name);
         hdr.data_size = buf.len() as u32;
-        hdr.flags = match statustype {
-            StatusType::Info => 0,
-            StatusType::Table => DM_STATUS_TABLE_FLAG.bits,
-        };
 
         let op = ioctl::op_read_write(DM_IOCTL, dmi::DM_TABLE_STATUS_CMD as u8,
                                       mem::size_of::<dmi::Struct_dm_ioctl>());
@@ -706,11 +710,11 @@ impl DM {
 
     /// Returns a list of each loaded target with its name, and version
     /// broken into major, minor, and patchlevel.
-    pub fn list_versions(&self) -> Result<Vec<(String, u32, u32, u32)>> {
+    pub fn list_versions(&self, flags: DmFlags) -> Result<Vec<(String, u32, u32, u32)>> {
         let mut buf = [0u8; 16 * 1024];
         let mut hdr: &mut dmi::Struct_dm_ioctl = unsafe {mem::transmute(&mut buf)};
 
-        Self::initialize_hdr(&mut hdr);
+        Self::initialize_hdr(&mut hdr, flags);
         hdr.data_size = buf.len() as u32;
         let op = ioctl::op_read_write(DM_IOCTL, dmi::DM_LIST_VERSIONS_CMD as u8,
                                       mem::size_of::<dmi::Struct_dm_ioctl>());
@@ -746,11 +750,11 @@ impl DM {
 
     /// Send a message to the target at a given sector. If sector is not needed use 0.
     /// DM-wide messages start with '@', and may return a string; targets do not.
-    pub fn target_msg(&self, name: &str, sector: u64, msg: &str) -> Result<Option<String>> {
+    pub fn target_msg(&self, name: &str, sector: u64, msg: &str, flags: DmFlags) -> Result<Option<String>> {
         let mut buf = [0u8; 16 * 1024];
         let mut hdr: &mut dmi::Struct_dm_ioctl = unsafe {mem::transmute(&mut buf)};
 
-        Self::initialize_hdr(&mut hdr);
+        Self::initialize_hdr(&mut hdr, flags);
         Self::hdr_set_name(&mut hdr, name);
 
         hdr.data_size = hdr.data_start
@@ -784,7 +788,7 @@ impl DM {
     }
 
     /// Unimplemented.
-    pub fn device_set_geometry(&self) {
+    pub fn device_set_geometry(&self, _flags: DmFlags) {
         unimplemented!()
     }
 
@@ -794,7 +798,7 @@ impl DM {
             return false;
         }
 
-        if let Ok(dep_list) = self.table_deps(dev) {
+        if let Ok(dep_list) = self.table_deps(dev, DmFlags::empty()) {
             for d in dep_list {
                 if d == dev {
                     return true;
