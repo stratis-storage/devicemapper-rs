@@ -41,6 +41,9 @@
 extern crate libc;
 extern crate nix;
 
+#[macro_use]
+extern crate bitflags;
+
 #[allow(dead_code, non_camel_case_types)]
 mod dm_ioctl;
 mod util;
@@ -73,13 +76,49 @@ const DM_IOCTL_STRUCT_LEN: usize = 312;
 const DM_NAME_LEN: usize = 128;
 const DM_UUID_LEN: usize = 129;
 
-// Status bits
-//const DM_READONLY_FLAG: u32 = 1;
-const DM_SUSPEND_FLAG: u32 = 2;
-//const DM_PERSISTENT_DEV_FLAG: u32 = 8;
+bitflags!(
+    /// Flags used by devicemapper.
+    flags DmFlags: dmi::__u32 {
+        /// In: Device should be read-only.
+        /// Out: Device is read-only.
+        const DM_READONLY_FLAG             = (1 << 0),
+        /// In: Device should be suspended.
+        /// Out: Device is suspended.
+        const DM_SUSPEND_FLAG              = (1 << 1),
+        /// In: Use passed-in minor number.
+        const DM_PERSISTENT_DEV_FLAG       = (1 << 3),
+        /// In: STATUS command returns table info instead of status.
+        const DM_STATUS_TABLE_FLAG         = (1 << 4),
+        /// Out: Active table is present.
+        const DM_ACTIVE_PRESENT_FLAG       = (1 << 5),
+        /// Out: Inactive table is present.
+        const DM_INACTIVE_PRESENT_FLAG     = (1 << 6),
+        /// Out: Passed-in buffer was too small.
+        const DM_BUFFER_FULL_FLAG          = (1 << 8),
+        /// Obsolete.
+        const DM_SKIP_BDGET_FLAG           = (1 << 9),
+        /// In: Avoid freezing filesystem when suspending.
+        const DM_SKIP_LOCKFS_FLAG          = (1 << 10),
+        /// In: Suspend without flushing queued I/Os.
+        const DM_NOFLUSH_FLAG              = (1 << 11),
+        /// In: Query inactive table instead of active.
+        const DM_QUERY_INACTIVE_TABLE_FLAG = (1 << 12),
+        /// Out: A uevent was generated, the caller may need to wait for it.
+        const DM_UEVENT_GENERATED_FLAG     = (1 << 13),
+        /// In: Rename affects UUID field, not name field.
+        const DM_UUID_FLAG                 = (1 << 14),
+        /// In: All buffers are wiped after use. Use when handling crypto keys.
+        const DM_SECURE_DATA_FLAG          = (1 << 15),
+        /// Out: A message generated output data.
+        const DM_DATA_OUT_FLAG             = (1 << 16),
+        /// In: Do not remove in-use devices.
+        /// Out: Device scheduled to be removed when closed.
+        const DM_DEFERRED_REMOVE           = (1 << 17),
+        /// Out: Device is suspended internally.
+        const DM_INTERNAL_SUSPEND_FLAG     = (1 << 18),
+    }
+);
 
-const DM_STATUS_TABLE_FLAG: u32 = (1 << 4);
-const DM_DATA_OUT_FLAG: u32 = (1 << 16);
 
 /// Used with `DM::table_status()` to choose either return of info or
 /// tables for a target. The contents of each of these strings is
@@ -363,7 +402,7 @@ impl DM {
 
         Self::initialize_hdr(&mut hdr);
         Self::hdr_set_name(&mut hdr, name);
-        hdr.flags = DM_SUSPEND_FLAG;
+        hdr.flags = DM_SUSPEND_FLAG.bits;
 
         let op = ioctl::op_read_write(DM_IOCTL, dmi::DM_DEV_SUSPEND_CMD as u8,
                                       mem::size_of::<dmi::Struct_dm_ioctl>());
@@ -582,7 +621,7 @@ impl DM {
         hdr.data_size = buf.len() as u32;
         hdr.flags = match statustype {
             StatusType::Info => 0,
-            StatusType::Table => DM_STATUS_TABLE_FLAG,
+            StatusType::Table => DM_STATUS_TABLE_FLAG.bits,
         };
 
         let op = ioctl::op_read_write(DM_IOCTL, dmi::DM_TABLE_STATUS_CMD as u8,
@@ -696,7 +735,7 @@ impl DM {
             _ => { }
         };
 
-        match (hdr.flags & DM_DATA_OUT_FLAG) > 0 {
+        match (hdr.flags & DM_DATA_OUT_FLAG.bits) > 0 {
             true => Ok(Some(String::from_utf8_lossy(
                 &buf[hdr.data_start as usize..hdr.data_size as usize]).into_owned())),
             false => Ok(None)
