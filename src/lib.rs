@@ -215,6 +215,47 @@ pub fn dev_majors() -> BTreeSet<u32> {
     set
 }
 
+/// Contains information about the device.
+pub struct DeviceInfo {
+    hdr: dmi::Struct_dm_ioctl,
+}
+
+impl DeviceInfo {
+    /// The major, minor, and patchlevel versions of devicemapper.
+    pub fn version(&self) -> (u32, u32, u32) {
+        (self.hdr.version[0], self.hdr.version[1], self.hdr.version[2])
+    }
+
+    /// The number of times the device is currently open.
+    pub fn open_count(&self) -> i32 {
+        self.hdr.open_count
+    }
+
+    /// The last event number for the device.
+    pub fn event_nr(&self) -> u32 {
+        self.hdr.event_nr
+    }
+
+    /// The device's major and minor device numbers, as a Device.
+    pub fn device(&self) -> Device {
+        self.hdr.dev.into()
+    }
+
+    /// The device's name.
+    pub fn name(&self) -> String {
+        let name: &[u8; DM_NAME_LEN] = unsafe { mem::transmute(&self.hdr.name) };
+        let slc = slice_to_null(name).unwrap();
+        String::from_utf8_lossy(slc).into_owned()
+    }
+
+    /// The device's UUID.
+    pub fn uuid(&self) -> String {
+        let uuid: &[u8; DM_UUID_LEN] = unsafe { mem::transmute(&self.hdr.uuid) };
+        let slc = slice_to_null(uuid).unwrap();
+        String::from_utf8_lossy(slc).into_owned()
+    }
+}
+
 /// Context needed for communicating with devicemapper.
 pub struct DM {
     file: File,
@@ -441,7 +482,7 @@ impl DM {
     }
 
     /// Get device status for the "active" table.
-    pub fn device_status(&self, name: &str) -> Result<dmi::Struct_dm_ioctl> {
+    pub fn device_status(&self, name: &str) -> Result<DeviceInfo> {
         let mut hdr: dmi::Struct_dm_ioctl = Default::default();
 
         Self::initialize_hdr(&mut hdr);
@@ -452,7 +493,7 @@ impl DM {
 
         match unsafe { ioctl::read_into(self.file.as_raw_fd(), op, &mut hdr) } {
             Err(_) => return Err((Error::last_os_error())),
-            _ => Ok(hdr)
+            _ => Ok(DeviceInfo {hdr: hdr})
         }
     }
 
