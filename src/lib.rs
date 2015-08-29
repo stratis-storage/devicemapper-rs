@@ -376,10 +376,11 @@ impl DM {
     /// # Example
     ///
     /// ```no_run
-    /// let dm = devicemapper::DM::new().unwrap();
+    /// use devicemapper::{DM, DmFlags};
+    /// let dm = DM::new().unwrap();
     ///
     /// // Setting a uuid is optional
-    /// let dev = dm.device_create("example-dev", None).unwrap();
+    /// let dev = dm.device_create("example-dev", None, DmFlags::empty()).unwrap();
     /// ```
     ///
     pub fn device_create(&self, name: &str, uuid: Option<&str>, flags: DmFlags) -> Result<DeviceInfo> {
@@ -468,9 +469,10 @@ impl DM {
     /// # Example
     ///
     /// ```no_run
-    /// let dm = devicemapper::DM::new().unwrap();
+    /// use devicemapper::{DM, DmFlags};
+    /// let dm = DM::new().unwrap();
     ///
-    /// dm.device_resume("example-dev").unwrap();
+    /// dm.device_resume("example-dev", DmFlags::empty()).unwrap();
     /// ```
     ///
     pub fn device_resume(&self, name: &str, flags: DmFlags) -> Result<DeviceInfo> {
@@ -518,13 +520,14 @@ impl DM {
     /// # Example
     ///
     /// ```no_run
-    /// let dm = devicemapper::DM::new().unwrap();
+    /// use devicemapper::{DM, DmFlags};
+    /// let dm = DM::new().unwrap();
     ///
     /// // Create a 16MiB device (32768 512-byte sectors) that maps to /dev/sdb1
     /// // starting 1MiB into sdb1
     /// let table = vec![(0, 32768, "linear", "/dev/sdb1 2048")];
     ///
-    /// dm.table_load("example-dev", &table).unwrap();
+    /// dm.table_load("example-dev", &table, DmFlags::empty()).unwrap();
     /// ```
     ///
     pub fn table_load(&self, name: &str, targets: &Vec<(u64, u64, &str, &str)>, flags: DmFlags) -> Result<DeviceInfo> {
