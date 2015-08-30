@@ -216,6 +216,7 @@ pub fn dev_majors() -> BTreeSet<u32> {
 }
 
 /// Contains information about the device.
+#[derive(Clone, Copy)]
 pub struct DeviceInfo {
     hdr: dmi::Struct_dm_ioctl,
 }
