@@ -51,7 +51,7 @@ mod util;
 use std::fs::{File, PathExt};
 use std::io::{Result, Error, BufReader, BufRead};
 use std::path::{Path, PathBuf};
-use std::str::FromStr;
+use std::str::{FromStr, from_utf8};
 use std::io::ErrorKind::Other;
 use std::os::unix::io::AsRawFd;
 use std::mem;
@@ -242,17 +242,21 @@ impl DeviceInfo {
     }
 
     /// The device's name.
-    pub fn name(&self) -> String {
+    pub fn name(&self) -> &str {
         let name: &[u8; DM_NAME_LEN] = unsafe { mem::transmute(&self.hdr.name) };
+        // no chance not null-terminated
         let slc = slice_to_null(name).unwrap();
-        String::from_utf8_lossy(slc).into_owned()
+        // no chance this isn't utf8 (ascii, really)
+        from_utf8(slc).unwrap()
     }
 
     /// The device's UUID.
-    pub fn uuid(&self) -> String {
+    pub fn uuid(&self) -> &str {
         let uuid: &[u8; DM_UUID_LEN] = unsafe { mem::transmute(&self.hdr.uuid) };
+        // no chance not null-terminated
         let slc = slice_to_null(uuid).unwrap();
-        String::from_utf8_lossy(slc).into_owned()
+        // no chance this isn't utf8 (ascii, really)
+        from_utf8(slc).unwrap()
     }
 
     /// The flags returned from the device.
