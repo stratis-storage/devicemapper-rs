@@ -665,8 +665,10 @@ impl DM {
         let mut targets = Vec::new();
         if data_out.len() > 0 {
             let mut result = data_out.as_slice();
+            let mut next_off = 0;
 
             for _ in 0..hdr.target_count {
+                result = &result[next_off..];
                 let targ: &dmi::Struct_dm_target_spec = unsafe {
                     transmute(result.as_ptr())
                 };
@@ -686,7 +688,7 @@ impl DM {
 
                 targets.push((targ.sector_start, targ.length, target_type, params));
 
-                result = &result[targ.next as usize..];
+                next_off = targ.next as usize;
             }
         }
 
