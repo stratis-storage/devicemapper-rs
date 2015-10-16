@@ -54,7 +54,7 @@ use std::path::{Path, PathBuf};
 use std::str::{FromStr, from_utf8};
 use std::io::ErrorKind::Other;
 use std::os::unix::io::AsRawFd;
-use std::mem;
+use std::mem::{size_of, transmute};
 use std::slice;
 use std::slice::bytes::copy_memory;
 use std::collections::BTreeSet;
@@ -243,7 +243,7 @@ impl DeviceInfo {
 
     /// The device's name.
     pub fn name(&self) -> &str {
-        let name: &[u8; DM_NAME_LEN] = unsafe { mem::transmute(&self.hdr.name) };
+        let name: &[u8; DM_NAME_LEN] = unsafe { transmute(&self.hdr.name) };
         // no chance not null-terminated
         let slc = slice_to_null(name).unwrap();
         // no chance this isn't utf8 (ascii, really)
@@ -252,7 +252,7 @@ impl DeviceInfo {
 
     /// The device's UUID.
     pub fn uuid(&self) -> &str {
-        let uuid: &[u8; DM_UUID_LEN] = unsafe { mem::transmute(&self.hdr.uuid) };
+        let uuid: &[u8; DM_UUID_LEN] = unsafe { transmute(&self.hdr.uuid) };
         // no chance not null-terminated
         let slc = slice_to_null(uuid).unwrap();
         // no chance this isn't utf8 (ascii, really)
@@ -286,16 +286,16 @@ impl DM {
 
         hdr.flags = flags.bits;
 
-        hdr.data_start = mem::size_of::<dmi::Struct_dm_ioctl>() as u32;
+        hdr.data_start = size_of::<dmi::Struct_dm_ioctl>() as u32;
     }
 
     fn hdr_set_name(hdr: &mut dmi::Struct_dm_ioctl, name: &str) -> () {
-        let name_dest: &mut [u8; DM_NAME_LEN] = unsafe { mem::transmute(&mut hdr.name) };
+        let name_dest: &mut [u8; DM_NAME_LEN] = unsafe { transmute(&mut hdr.name) };
         copy_memory(name.as_bytes(), &mut name_dest[..]);
     }
 
     fn hdr_set_uuid(hdr: &mut dmi::Struct_dm_ioctl, uuid: &str) -> () {
-        let uuid_dest: &mut [u8; DM_UUID_LEN] = unsafe { mem::transmute(&mut hdr.uuid) };
+        let uuid_dest: &mut [u8; DM_UUID_LEN] = unsafe { transmute(&mut hdr.uuid) };
         copy_memory(uuid.as_bytes(), &mut uuid_dest[..]);
     }
 
@@ -306,8 +306,7 @@ impl DM {
     fn do_ioctl(&self, ioctl: u8, hdr: &mut dmi::Struct_dm_ioctl, in_data: Option<&[u8]>)
                 -> Result<Vec<u8>> {
 
-        let op = ioctl::op_read_write(DM_IOCTL, ioctl,
-                                      mem::size_of::<dmi::Struct_dm_ioctl>());
+        let op = ioctl::op_read_write(DM_IOCTL, ioctl, size_of::<dmi::Struct_dm_ioctl>());
 
         // Create in-buf by copying hdr and any in-data into a linear Vec v.
         // 'slc' also aliases hdr as a &[u8], used later to copy the possibly-
@@ -336,7 +335,7 @@ impl DM {
             };
 
             let hdr: &mut dmi::Struct_dm_ioctl = unsafe {
-                mem::transmute(v.as_ptr())
+                transmute(v.as_ptr())
             };
 
             if (hdr.flags & DM_BUFFER_FULL_FLAG.bits) == 0 {
@@ -391,11 +390,11 @@ impl DM {
 
             loop {
                 let device: &dmi::Struct_dm_name_list = unsafe {
-                    mem::transmute(result.as_ptr())
+                    transmute(result.as_ptr())
                 };
 
                 let slc = slice_to_null(
-                    &result[mem::size_of::<dmi::Struct_dm_name_list>()..])
+                    &result[size_of::<dmi::Struct_dm_name_list>()..])
                     .expect("Bad data from ioctl");
                 let dm_name = String::from_utf8_lossy(slc).into_owned();
                 devs.push((dm_name, device.dev.into()));
@@ -549,7 +548,7 @@ impl DM {
             targ.status = 0;
 
             let mut dst: &mut [u8] = unsafe {
-                mem::transmute(&mut targ.target_type[..])
+                transmute(&mut targ.target_type[..])
             };
             copy_memory(t.2.as_bytes(), &mut dst);
 
@@ -559,7 +558,7 @@ impl DM {
                 params.len() + 1usize, 8usize) - params.len();
             params.extend(vec!["\0"; pad_bytes]);
 
-            targ.next = (mem::size_of::<dmi::Struct_dm_target_spec>()
+            targ.next = (size_of::<dmi::Struct_dm_target_spec>()
                          + params.len()) as u32;
 
             targs.push((targ, params));
@@ -581,9 +580,9 @@ impl DM {
 
         for (targ, param) in targs {
             unsafe {
-                let ptr: *mut u8 = mem::transmute(&targ);
+                let ptr: *mut u8 = transmute(&targ);
                 let slc = slice::from_raw_parts(
-                    ptr, mem::size_of::<dmi::Struct_dm_target_spec>());
+                    ptr, size_of::<dmi::Struct_dm_target_spec>());
                 data_in.extend(slc);
             }
 
@@ -621,12 +620,12 @@ impl DM {
         if data_out.len() > 0 {
             let result = data_out.as_slice();
             let deps: &dmi::Struct_dm_target_deps = unsafe {
-                mem::transmute(result.as_ptr())
+                transmute(result.as_ptr())
             };
 
             let dev_slc = unsafe {
                 slice::from_raw_parts(
-                    result[mem::size_of::<dmi::Struct_dm_target_deps>()..]
+                    result[size_of::<dmi::Struct_dm_target_deps>()..]
                         .as_ptr() as *const u64,
                     deps.count as usize)
             };
@@ -660,18 +659,18 @@ impl DM {
 
             for _ in 0..hdr.target_count {
                 let targ: &dmi::Struct_dm_target_spec = unsafe {
-                    mem::transmute(result.as_ptr())
+                    transmute(result.as_ptr())
                 };
 
                 let target_type = unsafe {
-                    let cast: &[u8; 16] = mem::transmute(&targ.target_type);
+                    let cast: &[u8; 16] = transmute(&targ.target_type);
                     let slc = slice_to_null(cast).expect("bad data from ioctl");
                     String::from_utf8_lossy(slc).into_owned()
                 };
 
                 let params = {
                     let slc = slice_to_null(
-                        &result[mem::size_of::<dmi::Struct_dm_target_spec>()..])
+                        &result[size_of::<dmi::Struct_dm_target_spec>()..])
                         .expect("bad data from ioctl");
                     String::from_utf8_lossy(slc).into_owned()
                 };
@@ -700,11 +699,11 @@ impl DM {
 
             loop {
                 let tver: &dmi::Struct_dm_target_versions = unsafe {
-                    mem::transmute(result.as_ptr())
+                    transmute(result.as_ptr())
                 };
 
                 let name_slc = slice_to_null(
-                    &result[mem::size_of::<dmi::Struct_dm_target_versions>()..])
+                    &result[size_of::<dmi::Struct_dm_target_versions>()..])
                     .expect("bad data from ioctl");
                 let name = String::from_utf8_lossy(name_slc).into_owned();
                 targets.push((name, tver.version[0], tver.version[1], tver.version[2]));
@@ -729,8 +728,8 @@ impl DM {
         let mut msg_struct: dmi::Struct_dm_target_msg = Default::default();
         msg_struct.sector = sector;
         let mut data_in = unsafe {
-            let ptr: *mut u8 = mem::transmute(&msg_struct);
-            let slc = slice::from_raw_parts(ptr, mem::size_of::<dmi::Struct_dm_target_msg>());
+            let ptr: *mut u8 = transmute(&msg_struct);
+            let slc = slice::from_raw_parts(ptr, size_of::<dmi::Struct_dm_target_msg>());
             slc.to_vec()
         };
 
