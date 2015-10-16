@@ -658,7 +658,6 @@ impl DM {
 
         Self::initialize_hdr(&mut hdr, flags);
         Self::hdr_set_name(&mut hdr, name);
-//        Self::hdr_set_uuid(&mut hdr, "  abc  ");
 
         let data_out = try!(self.do_ioctl(dmi::DM_TABLE_STATUS_CMD as u8, &mut hdr, None));
 
