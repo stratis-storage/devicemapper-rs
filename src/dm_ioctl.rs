@@ -8,7 +8,7 @@ pub type __s32 = ::libc::c_int;
 pub type __u32 = ::libc::c_uint;
 pub type __s64 = ::libc::c_longlong;
 pub type __u64 = ::libc::c_ulonglong;
-#[repr(C)]
+#[repr(C, packed)]
 #[derive(Copy)]
 pub struct Struct_Unnamed1 {
     pub fds_bits: [::libc::c_ulong; 16usize],
@@ -42,7 +42,7 @@ pub type __kernel_gid32_t = ::libc::c_uint;
 pub type __kernel_size_t = __kernel_ulong_t;
 pub type __kernel_ssize_t = __kernel_long_t;
 pub type __kernel_ptrdiff_t = __kernel_long_t;
-#[repr(C)]
+#[repr(C, packed)]
 #[derive(Copy)]
 pub struct Struct_Unnamed2 {
     pub val: [::libc::c_int; 2usize],
@@ -108,7 +108,7 @@ impl ::std::clone::Clone for Struct_dm_target_spec {
 impl ::std::default::Default for Struct_dm_target_spec {
     fn default() -> Self { unsafe { ::std::mem::zeroed() } }
 }
-#[repr(C)]
+#[repr(C, packed)]
 #[derive(Copy)]
 pub struct Struct_dm_target_deps {
     pub count: __u32,
@@ -121,7 +121,7 @@ impl ::std::clone::Clone for Struct_dm_target_deps {
 impl ::std::default::Default for Struct_dm_target_deps {
     fn default() -> Self { unsafe { ::std::mem::zeroed() } }
 }
-#[repr(C)]
+#[repr(C, packed)]
 #[derive(Copy)]
 pub struct Struct_dm_name_list {
     pub dev: __u64,
@@ -134,7 +134,7 @@ impl ::std::clone::Clone for Struct_dm_name_list {
 impl ::std::default::Default for Struct_dm_name_list {
     fn default() -> Self { unsafe { ::std::mem::zeroed() } }
 }
-#[repr(C)]
+#[repr(C, packed)]
 #[derive(Copy)]
 pub struct Struct_dm_target_versions {
     pub next: __u32,
@@ -147,7 +147,7 @@ impl ::std::clone::Clone for Struct_dm_target_versions {
 impl ::std::default::Default for Struct_dm_target_versions {
     fn default() -> Self { unsafe { ::std::mem::zeroed() } }
 }
-#[repr(C)]
+#[repr(C, packed)]
 #[derive(Copy)]
 pub struct Struct_dm_target_msg {
     pub sector: __u64,
