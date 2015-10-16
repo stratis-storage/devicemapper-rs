@@ -59,6 +59,7 @@ use std::slice;
 use std::slice::bytes::copy_memory;
 use std::collections::BTreeSet;
 use std::os::unix::fs::MetadataExt;
+use std::cmp;
 
 use nix::sys::ioctl;
 
@@ -74,6 +75,8 @@ const DM_VERSION_PATCHLEVEL: u32 = 0;
 
 const DM_NAME_LEN: usize = 128;
 const DM_UUID_LEN: usize = 129;
+
+const MIN_BUF_SIZE: usize = 16 * 1024;
 
 bitflags!(
     /// Flags used by devicemapper.
@@ -311,20 +314,23 @@ impl DM {
         // Create in-buf by copying hdr and any in-data into a linear Vec v.
         // 'slc' also aliases hdr as a &[u8], used later to copy the possibly-
         // modified hdr back.
-        hdr.data_size = hdr.data_start;
-        if let Some(in_data) = in_data {
-            hdr.data_size += in_data.len() as u32;
-        }
-        let data_start = hdr.data_start;
-        let data_size;
-        let slc = unsafe {
-            let ptr: *mut u8 = mem::transmute(hdr);
-            slice::from_raw_parts_mut(ptr, data_start as usize)
+
+        hdr.data_size = cmp::max(
+            MIN_BUF_SIZE,
+            size_of::<dmi::Struct_dm_ioctl>() + in_data.map_or(0, |x| x.len())) as u32;
+        let mut v: Vec<u8> = Vec::with_capacity(hdr.data_size as usize);
+
+        let hdr_slc = unsafe {
+            let len = hdr.data_start as usize;
+            let ptr: *mut u8 = transmute(hdr);
+            slice::from_raw_parts_mut(ptr, len)
         };
-        let mut v = slc.to_vec();
+        v.extend(&hdr_slc[..]);
         if let Some(in_data) = in_data {
             v.extend(in_data.iter().cloned());
         }
+        let cap = v.capacity();
+        v.resize(cap, 0);
 
         loop {
             match unsafe {
@@ -339,7 +345,6 @@ impl DM {
             };
 
             if (hdr.flags & DM_BUFFER_FULL_FLAG.bits) == 0 {
-                data_size = hdr.data_size;
                 break
             }
 
@@ -348,11 +353,15 @@ impl DM {
             hdr.data_size = v.len() as u32;
         }
 
+        let hdr: &mut dmi::Struct_dm_ioctl = unsafe {
+            transmute(v.as_ptr())
+        };
+
         // hdr possibly modified so copy back
-        copy_memory(&mut v[..data_start as usize], slc);
+        copy_memory(&mut v[..hdr.data_start as usize], hdr_slc);
 
         // Maybe we got some add'l data back?
-        Ok(v[data_start as usize..data_size as usize].to_vec())
+        Ok(v[hdr.data_start as usize..hdr.data_size as usize].to_vec())
     }
 
     /// Devicemapper version information: Major, Minor, and patchlevel versions.
