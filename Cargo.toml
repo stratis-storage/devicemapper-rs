@@ -10,6 +10,9 @@ readme = "README.md"
 keywords = ["Linux", "device", "mapper", "libdm"]
 license = "MPL-2.0"
 
+[[bin]]
+name = "dmtest"
+path = "src/bin/dmtest.rs"
 
 [dependencies]
 libc = "*"
