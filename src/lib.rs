@@ -28,7 +28,8 @@
 //! Before they can be used, DM devices must be created using
 //! `DM::device_create()`, have a mapping table loaded using
 //! `DM::table_load()`, and then activated with
-//! `DM::device_resume()`. Once activated, they can be used as a
+//! `DM::device_suspend()`. (This function is used for both suspending
+//! and activating a device.) Once activated, they can be used as a
 //! regular block device, including having other DM devices map to
 //! them.
 //!
