@@ -766,6 +766,16 @@ impl DM {
     /// inactive table.
     ///
     /// Valid flags: DM_NOFLUSH, DM_STATUS_TABLE, DM_QUERY_INACTIVE_TABLE
+    ///
+    /// # Example
+    ///
+    /// ```no_run
+    /// use devicemapper::{DM, DmFlags, DM_STATUS_TABLE};
+    /// let dm = DM::new().unwrap();
+    ///
+    /// let res = dm.table_status("example-dev", DM_STATUS_TABLE).unwrap();
+    /// println!("{} {:?}", res.0.name(), res.1);
+    /// ```
     pub fn table_status(&self, name: &str, flags: DmFlags)
                         -> Result<(DeviceInfo, Vec<(u64, u64, String, String)>)> {
         let mut hdr: dmi::Struct_dm_ioctl = Default::default();
