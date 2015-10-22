@@ -10,12 +10,12 @@ fn main() {
     println!("{:?}", x);
 
     println!("Calling list_devices()");
-    let x = dmi.list_devices(dm::DmFlags::empty()).unwrap();
+    let x = dmi.list_devices().unwrap();
     println!("{:?}", x);
     let (first_name, first_dev) = x[0].clone();
 
     println!("Calling list_versions()");
-    let x = dmi.list_versions(dm::DmFlags::empty()).unwrap();
+    let x = dmi.list_versions().unwrap();
     println!("{:?}", x);
 
     println!("Calling table_deps()");
@@ -24,6 +24,6 @@ fn main() {
 
     println!("Calling table_status()");
     let x = dmi.table_status(&first_name, dm::DmFlags::empty()).unwrap();
-    println!("{:?}", x);
+    println!("{:?}", x.1);
 
 }

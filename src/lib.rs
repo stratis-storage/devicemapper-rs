@@ -35,7 +35,7 @@
 //! Devices have "active" and "inactive" mapping tables. See function
 //! descriptions for which table they affect.
 
-#![feature(slice_bytes, path_ext, iter_arith, vec_resize, convert)]
+#![feature(slice_bytes, path_ext, vec_resize, convert)]
 #![warn(missing_docs)]
 
 extern crate libc;
@@ -83,41 +83,41 @@ bitflags!(
     flags DmFlags: dmi::__u32 {
         /// In: Device should be read-only.
         /// Out: Device is read-only.
-        const DM_READONLY_FLAG             = (1 << 0),
+        const DM_READONLY             = (1 << 0),
         /// In: Device should be suspended.
         /// Out: Device is suspended.
-        const DM_SUSPEND_FLAG              = (1 << 1),
+        const DM_SUSPEND              = (1 << 1),
         /// In: Use passed-in minor number.
-        const DM_PERSISTENT_DEV_FLAG       = (1 << 3),
+        const DM_PERSISTENT_DEV       = (1 << 3),
         /// In: STATUS command returns table info instead of status.
-        const DM_STATUS_TABLE_FLAG         = (1 << 4),
+        const DM_STATUS_TABLE         = (1 << 4),
         /// Out: Active table is present.
-        const DM_ACTIVE_PRESENT_FLAG       = (1 << 5),
+        const DM_ACTIVE_PRESENT       = (1 << 5),
         /// Out: Inactive table is present.
-        const DM_INACTIVE_PRESENT_FLAG     = (1 << 6),
+        const DM_INACTIVE_PRESENT     = (1 << 6),
         /// Out: Passed-in buffer was too small.
-        const DM_BUFFER_FULL_FLAG          = (1 << 8),
+        const DM_BUFFER_FULL          = (1 << 8),
         /// Obsolete.
-        const DM_SKIP_BDGET_FLAG           = (1 << 9),
+        const DM_SKIP_BDGET           = (1 << 9),
         /// In: Avoid freezing filesystem when suspending.
-        const DM_SKIP_LOCKFS_FLAG          = (1 << 10),
+        const DM_SKIP_LOCKFS          = (1 << 10),
         /// In: Suspend without flushing queued I/Os.
-        const DM_NOFLUSH_FLAG              = (1 << 11),
+        const DM_NOFLUSH              = (1 << 11),
         /// In: Query inactive table instead of active.
-        const DM_QUERY_INACTIVE_TABLE_FLAG = (1 << 12),
+        const DM_QUERY_INACTIVE_TABLE = (1 << 12),
         /// Out: A uevent was generated, the caller may need to wait for it.
-        const DM_UEVENT_GENERATED_FLAG     = (1 << 13),
+        const DM_UEVENT_GENERATED     = (1 << 13),
         /// In: Rename affects UUID field, not name field.
-        const DM_UUID_FLAG                 = (1 << 14),
+        const DM_UUID                 = (1 << 14),
         /// In: All buffers are wiped after use. Use when handling crypto keys.
-        const DM_SECURE_DATA_FLAG          = (1 << 15),
+        const DM_SECURE_DATA          = (1 << 15),
         /// Out: A message generated output data.
-        const DM_DATA_OUT_FLAG             = (1 << 16),
+        const DM_DATA_OUT             = (1 << 16),
         /// In: Do not remove in-use devices.
         /// Out: Device scheduled to be removed when closed.
-        const DM_DEFERRED_REMOVE_FLAG      = (1 << 17),
+        const DM_DEFERRED_REMOVE      = (1 << 17),
         /// Out: Device is suspended internally.
-        const DM_INTERNAL_SUSPEND_FLAG     = (1 << 18),
+        const DM_INTERNAL_SUSPEND     = (1 << 18),
     }
 );
 
@@ -344,7 +344,7 @@ impl DM {
                 transmute(v.as_ptr())
             };
 
-            if (hdr.flags & DM_BUFFER_FULL_FLAG.bits) == 0 {
+            if (hdr.flags & DM_BUFFER_FULL.bits) == 0 {
                 break
             }
 
@@ -367,6 +367,8 @@ impl DM {
     /// Devicemapper version information: Major, Minor, and patchlevel versions.
     pub fn version(&self) -> Result<(u32, u32, u32)> {
         let mut hdr: dmi::Struct_dm_ioctl = Default::default();
+
+        // No flags checked so don't pass any
         Self::initialize_hdr(&mut hdr, DmFlags::empty());
 
         try!(self.do_ioctl(dmi::DM_VERSION_CMD as u8, &mut hdr, None));
@@ -376,9 +378,17 @@ impl DM {
 
     /// Remove all DM devices and tables. Use discouraged other than
     /// for debugging.
+    ///
+    /// If DM_DEFERRED_REMOVE is set, the request will succeed for
+    /// in-use devices, and they will be removed when released.
+    ///
+    /// Valid flags: DM_DEFERRED_REMOVE
     pub fn remove_all(&self, flags: DmFlags) -> Result<()> {
         let mut hdr: dmi::Struct_dm_ioctl = Default::default();
-        Self::initialize_hdr(&mut hdr, flags);
+
+        let clean_flags = DM_DEFERRED_REMOVE & flags;
+
+        Self::initialize_hdr(&mut hdr, clean_flags);
 
         try!(self.do_ioctl(dmi::DM_REMOVE_ALL_CMD as u8, &mut hdr, None));
 
@@ -387,11 +397,14 @@ impl DM {
 
     /// Returns a list of tuples containing DM device names and a
     /// Device, which holds their major and minor device numbers.
-    pub fn list_devices(&self, flags: DmFlags) -> Result<Vec<(String, Device)>> {
+    pub fn list_devices(&self) -> Result<Vec<(String, Device)>> {
         let mut hdr: dmi::Struct_dm_ioctl = Default::default();
-        Self::initialize_hdr(&mut hdr, flags);
 
-        let data_out = try!(self.do_ioctl(dmi::DM_LIST_DEVICES_CMD as u8, &mut hdr, None));
+        // No flags checked so don't pass any
+        Self::initialize_hdr(&mut hdr, DmFlags::empty());
+
+        let data_out = try!(self.do_ioctl(dmi::DM_LIST_DEVICES_CMD as u8,
+                                          &mut hdr, None));
 
         let mut devs = Vec::new();
         if data_out.len() > 0 {
@@ -419,6 +432,8 @@ impl DM {
 
     /// Create a DM device. It starts out in a "suspended" state.
     ///
+    /// Valid flags: DM_READONLY, DM_PERSISTENT_DEV
+    ///
     /// # Example
     ///
     /// ```no_run
@@ -428,10 +443,12 @@ impl DM {
     /// // Setting a uuid is optional
     /// let dev = dm.device_create("example-dev", None, DmFlags::empty()).unwrap();
     /// ```
-    ///
     pub fn device_create(&self, name: &str, uuid: Option<&str>, flags: DmFlags) -> Result<DeviceInfo> {
         let mut hdr: dmi::Struct_dm_ioctl = Default::default();
-        Self::initialize_hdr(&mut hdr, flags);
+
+        let clean_flags = (DM_READONLY | DM_PERSISTENT_DEV) & flags;
+
+        Self::initialize_hdr(&mut hdr, clean_flags);
 
         Self::hdr_set_name(&mut hdr, name);
         if let Some(uuid) = uuid {
@@ -444,10 +461,18 @@ impl DM {
     }
 
     /// Remove a DM device and its mapping tables.
+    ///
+    /// If DM_DEFERRED_REMOVE is set, the request for an in-use
+    /// devices will succeed, and it will be removed when no longer
+    /// used.
+    ///
+    /// Valid flags: DM_DEFERRED_REMOVE
     pub fn device_remove(&self, name: &str, flags: DmFlags) -> Result<DeviceInfo> {
         let mut hdr: dmi::Struct_dm_ioctl = Default::default();
-        Self::initialize_hdr(&mut hdr, flags);
 
+        let clean_flags = DM_DEFERRED_REMOVE & flags;
+
+        Self::initialize_hdr(&mut hdr, clean_flags);
         Self::hdr_set_name(&mut hdr, name);
 
         try!(self.do_ioctl(dmi::DM_DEV_REMOVE_CMD as u8, &mut hdr, None));
@@ -455,13 +480,30 @@ impl DM {
         Ok(DeviceInfo {hdr: hdr})
     }
 
-    /// Rename a DM device.
+    /// Change a DM device's name.
+    ///
+    /// If DM_UUID is set, change the UUID instead.
+    ///
+    /// Valid flags: DM_UUID
     pub fn device_rename(&self, old_name: &str, new_name: &str, flags: DmFlags) -> Result<DeviceInfo> {
         let mut hdr: dmi::Struct_dm_ioctl = Default::default();
-        Self::initialize_hdr(&mut hdr, flags);
-        Self::hdr_set_name(&mut hdr, old_name);
 
-        if new_name.as_bytes().len() > (DM_NAME_LEN - 1) {
+        let clean_flags = DM_UUID & flags;
+
+        Self::initialize_hdr(&mut hdr, clean_flags);
+
+        let max_len = match clean_flags.contains(DM_UUID) {
+            true => {
+                Self::hdr_set_uuid(&mut hdr, old_name);
+                DM_UUID_LEN - 1
+            },
+            false => {
+                Self::hdr_set_name(&mut hdr, old_name);
+                DM_NAME_LEN - 1
+            },
+        };
+
+        if new_name.as_bytes().len() > max_len {
             return Err(
                 Error::new(Other, format!("New name {} too long", new_name)));
         }
@@ -474,47 +516,48 @@ impl DM {
         Ok(DeviceInfo {hdr: hdr})
     }
 
-    /// Suspend a DM device. Will block until pending I/O is
-    /// completed.  Additional I/O to a suspended device will be held
-    /// until it is resumed.
-    pub fn device_suspend(&self, name: &str, flags: DmFlags) -> Result<DeviceInfo> {
-        let mut hdr: dmi::Struct_dm_ioctl = Default::default();
-        Self::initialize_hdr(&mut hdr, flags);
-        Self::hdr_set_name(&mut hdr, name);
-        hdr.flags |= DM_SUSPEND_FLAG.bits;
-
-        try!(self.do_ioctl(dmi::DM_DEV_SUSPEND_CMD as u8, &mut hdr, None));
-
-        Ok(DeviceInfo {hdr: hdr})
-    }
-
-    /// Resume a DM device. This moves a table loaded into the "inactive" slot by
-    /// `table_load()` into the "active" slot.
+    /// Suspend or resume a DM device, depending on if DM_SUSPEND flag
+    /// is set or not.
+    ///
+    /// Resuming a DM device moves a table loaded into the "inactive"
+    /// slot by `table_load()` into the "active" slot.
+    ///
+    /// Will block until pending I/O is completed unless DM_NOFLUSH
+    /// flag is given. Will freeze filesystem unless DM_SKIP_LOCKFS
+    /// flags is given. Additional I/O to a suspended device will be
+    /// held until it is resumed.
+    ///
+    /// Valid flags: DM_SUSPEND, DM_NOFLUSH, DM_SKIP_LOCKFS
     ///
     /// # Example
     ///
     /// ```no_run
-    /// use devicemapper::{DM, DmFlags};
+    /// use devicemapper::{DM, DmFlags, DM_SUSPEND};
     /// let dm = DM::new().unwrap();
     ///
-    /// dm.device_resume("example-dev", DmFlags::empty()).unwrap();
+    /// dm.device_suspend("example-dev", DM_SUSPEND).unwrap();
     /// ```
-    ///
-    pub fn device_resume(&self, name: &str, flags: DmFlags) -> Result<DeviceInfo> {
+    pub fn device_suspend(&self, name: &str, flags: DmFlags) -> Result<DeviceInfo> {
         let mut hdr: dmi::Struct_dm_ioctl = Default::default();
-        Self::initialize_hdr(&mut hdr, flags);
+
+        let clean_flags = (DM_SUSPEND | DM_NOFLUSH | DM_SKIP_LOCKFS) & flags;
+
+        Self::initialize_hdr(&mut hdr, clean_flags);
         Self::hdr_set_name(&mut hdr, name);
-        // DM_SUSPEND_FLAG not set means 'resume'
 
         try!(self.do_ioctl(dmi::DM_DEV_SUSPEND_CMD as u8, &mut hdr, None));
 
         Ok(DeviceInfo {hdr: hdr})
     }
 
-    /// Get device status for the "active" table.
-    pub fn device_status(&self, name: &str, flags: DmFlags) -> Result<DeviceInfo> {
+    /// Get DeviceInfo for a device. This is also returned by other
+    /// methods, but if just the DeviceInfo is desired then this just
+    /// gets it.
+    pub fn device_status(&self, name: &str) -> Result<DeviceInfo> {
         let mut hdr: dmi::Struct_dm_ioctl = Default::default();
-        Self::initialize_hdr(&mut hdr, flags);
+
+        // No flags checked so don't pass any
+        Self::initialize_hdr(&mut hdr, DmFlags::empty());
         Self::hdr_set_name(&mut hdr, name);
 
         try!(self.do_ioctl(dmi::DM_DEV_STATUS_CMD as u8, &mut hdr, None));
@@ -522,12 +565,29 @@ impl DM {
         Ok(DeviceInfo {hdr: hdr})
     }
 
-    /// Unimplemented.
-    pub fn device_wait(&self, _name: &str) -> Result<()> {
-        unimplemented!()
+    /// Wait for a device to report an event.
+    ///
+    /// Once an event occurs, this function behaves just like
+    /// `table_status`, see that function for more details.
+    pub fn device_wait(&self, name: &str, flags: DmFlags)
+                        -> Result<(DeviceInfo, Vec<(u64, u64, String, String)>)> {
+        let mut hdr: dmi::Struct_dm_ioctl = Default::default();
+
+        let clean_flags = DM_QUERY_INACTIVE_TABLE & flags;
+
+        Self::initialize_hdr(&mut hdr, clean_flags);
+        Self::hdr_set_name(&mut hdr, name);
+
+        let data_out = try!(self.do_ioctl(dmi::DM_DEV_WAIT_CMD as u8, &mut hdr, None));
+
+        let status = try!(Self::parse_table_status(hdr.target_count, &data_out));
+
+        Ok((DeviceInfo {hdr: hdr}, status))
+
     }
 
-    /// Load targets for a device.
+    /// Load targets for a device into its inactive table slot.
+    ///
     /// `targets` is a Vec of (sector_start, sector_length, type, params).
     ///
     /// `params` are target-specific, please see [Linux kernel documentation](https://git.kernel.org/cgit/linux/kernel/git/torvalds/linux.git/tree/Documentation/device-mapper) for more.
@@ -542,10 +602,10 @@ impl DM {
     /// // starting 1MiB into sdb1
     /// let table = vec![(0, 32768, "linear", "/dev/sdb1 2048")];
     ///
-    /// dm.table_load("example-dev", &table, DmFlags::empty()).unwrap();
+    /// dm.table_load("example-dev", &table).unwrap();
     /// ```
-    ///
-    pub fn table_load(&self, name: &str, targets: &Vec<(u64, u64, &str, &str)>, flags: DmFlags) -> Result<DeviceInfo> {
+    pub fn table_load(&self, name: &str, targets: &Vec<(u64, u64, &str, &str)>)
+                      -> Result<DeviceInfo> {
         let mut targs = Vec::new();
 
         // Construct targets first, since we need to know how many & size
@@ -575,17 +635,15 @@ impl DM {
 
         let mut hdr: dmi::Struct_dm_ioctl = Default::default();
 
-        Self::initialize_hdr(&mut hdr, flags);
+        // No flags checked so don't pass any
+        Self::initialize_hdr(&mut hdr, DmFlags::empty());
         Self::hdr_set_name(&mut hdr, name);
 
-        let data_size = targs.iter()
-            .map(|&(t, _)| t.next)
-            .sum::<u32>();
-        hdr.data_size = hdr.data_start + data_size;
+        // io_ioctl() will set hdr.data_size but we must set target_count
         hdr.target_count = targs.len() as u32;
 
         // Flatten targets into a buf
-        let mut data_in = Vec::with_capacity(data_size as usize);
+        let mut data_in = Vec::new();
 
         for (targ, param) in targs {
             unsafe {
@@ -604,10 +662,11 @@ impl DM {
     }
 
     /// Clear the "inactive" table for a device.
-    pub fn table_clear(&self, name: &str, flags: DmFlags) -> Result<DeviceInfo> {
+    pub fn table_clear(&self, name: &str) -> Result<DeviceInfo> {
         let mut hdr: dmi::Struct_dm_ioctl = Default::default();
 
-        Self::initialize_hdr(&mut hdr, flags);
+        // No flags checked so don't pass any
+        Self::initialize_hdr(&mut hdr, DmFlags::empty());
         Self::hdr_set_name(&mut hdr, name);
 
         try!(self.do_ioctl(dmi::DM_TABLE_CLEAR_CMD as u8, &mut hdr, None));
@@ -617,13 +676,21 @@ impl DM {
 
     /// Query DM for which devices are referenced by the "active"
     /// table for this device.
+    ///
+    /// If DM_QUERY_INACTIVE_TABLE is set, instead return for the
+    /// inactive table.
+    ///
+    /// Valid flags: DM_QUERY_INACTIVE_TABLE
     pub fn table_deps(&self, dev: Device, flags: DmFlags) -> Result<Vec<Device>> {
         let mut hdr: dmi::Struct_dm_ioctl = Default::default();
 
-        Self::initialize_hdr(&mut hdr, flags);
+        let clean_flags = DM_QUERY_INACTIVE_TABLE & flags;
+
+        Self::initialize_hdr(&mut hdr, clean_flags);
         hdr.dev = dev.into();
 
-        let data_out = try!(self.do_ioctl(dmi::DM_TABLE_DEPS_CMD as u8, &mut hdr, None));
+        let data_out = try!(self.do_ioctl(dmi::DM_TABLE_DEPS_CMD as u8,
+                                          &mut hdr, None));
 
         let mut devs = Vec::new();
         if data_out.len() > 0 {
@@ -647,26 +714,16 @@ impl DM {
         Ok(devs)
     }
 
-    /// Return the status of all targets for a device's "active"
-    /// table.
-    ///
-    /// Returns is a Vec of (sector_start, sector_length,
-    /// type, params).
-    pub fn table_status(&self, name: &str, flags: DmFlags)
-                        -> Result<Vec<(u64, u64, String, String)>> {
-        let mut hdr: dmi::Struct_dm_ioctl = Default::default();
-
-        Self::initialize_hdr(&mut hdr, flags);
-        Self::hdr_set_name(&mut hdr, name);
-
-        let data_out = try!(self.do_ioctl(dmi::DM_TABLE_STATUS_CMD as u8, &mut hdr, None));
-
+    // Both table_status and dev_wait return table status, so
+    // unify table status parsing.
+    fn parse_table_status(count: u32, buf: &[u8])
+                          -> Result<Vec<(u64, u64, String, String)>> {
         let mut targets = Vec::new();
-        if data_out.len() > 0 {
-            let mut result = data_out.as_slice();
+        if buf.len() > 0 {
             let mut next_off = 0;
+            let mut result = &buf[..];
 
-            for _ in 0..hdr.target_count {
+            for _ in 0..count {
                 result = &result[next_off..];
                 let targ: &dmi::Struct_dm_target_spec = unsafe {
                     transmute(result.as_ptr())
@@ -680,7 +737,7 @@ impl DM {
 
                 let params = {
                     let slc = slice_to_null(
-                        &result[size_of::<dmi::Struct_dm_target_spec>()..])
+                        &buf[size_of::<dmi::Struct_dm_target_spec>()..])
                         .expect("bad data from ioctl");
                     String::from_utf8_lossy(slc).into_owned()
                 };
@@ -690,18 +747,52 @@ impl DM {
                 next_off = targ.next as usize;
             }
         }
-
         Ok(targets)
     }
 
-    /// Returns a list of each loaded target with its name, and version
-    /// broken into major, minor, and patchlevel.
-    pub fn list_versions(&self, flags: DmFlags) -> Result<Vec<(String, u32, u32, u32)>> {
+    /// Return the status of all targets for a device's "active"
+    /// table.
+    ///
+    /// Returns DeviceInfo and a Vec of (sector_start, sector_length, type, params).
+    ///
+    /// If DM_STATUS_TABLE flag is set, returns the current table value. Otherwise
+    /// returns target-specific status information.
+    ///
+    /// If DM_NOFLUSH is set, retrieving the target-specific status information for
+    /// targets with metadata will not cause a metadata write.
+    ///
+    /// If DM_QUERY_INACTIVE_TABLE is set, instead return the status of the
+    /// inactive table.
+    ///
+    /// Valid flags: DM_NOFLUSH, DM_STATUS_TABLE, DM_QUERY_INACTIVE_TABLE
+    pub fn table_status(&self, name: &str, flags: DmFlags)
+                        -> Result<(DeviceInfo, Vec<(u64, u64, String, String)>)> {
         let mut hdr: dmi::Struct_dm_ioctl = Default::default();
 
-        Self::initialize_hdr(&mut hdr, flags);
+        let clean_flags =
+            (DM_NOFLUSH | DM_STATUS_TABLE | DM_QUERY_INACTIVE_TABLE) & flags;
 
-        let data_out = try!(self.do_ioctl(dmi::DM_LIST_VERSIONS_CMD as u8, &mut hdr, None));
+        Self::initialize_hdr(&mut hdr, clean_flags);
+        Self::hdr_set_name(&mut hdr, name);
+
+        let data_out = try!(self.do_ioctl(dmi::DM_TABLE_STATUS_CMD as u8,
+                                          &mut hdr, None));
+
+        let status = try!(Self::parse_table_status(hdr.target_count, &data_out));
+
+        Ok((DeviceInfo {hdr: hdr}, status))
+    }
+
+    /// Returns a list of each loaded target type with its name, and
+    /// version broken into major, minor, and patchlevel.
+    pub fn list_versions(&self) -> Result<Vec<(String, u32, u32, u32)>> {
+        let mut hdr: dmi::Struct_dm_ioctl = Default::default();
+
+        // No flags checked so don't pass any
+        Self::initialize_hdr(&mut hdr, DmFlags::empty());
+
+        let data_out = try!(self.do_ioctl(dmi::DM_LIST_VERSIONS_CMD as u8,
+                                          &mut hdr, None));
 
         let mut targets = Vec::new();
         if data_out.len() > 0 {
@@ -727,12 +818,15 @@ impl DM {
         Ok(targets)
     }
 
-    /// Send a message to the target at a given sector. If sector is not needed use 0.
-    /// DM-wide messages start with '@', and may return a string; targets do not.
-    pub fn target_msg(&self, name: &str, sector: u64, msg: &str, flags: DmFlags) -> Result<(DeviceInfo, Option<String>)> {
+    /// Send a message to the target at a given sector. If sector is
+    /// not needed use 0.  DM-wide messages start with '@', and may
+    /// return a string; targets do not.
+    pub fn target_msg(&self, name: &str, sector: u64, msg: &str)
+                      -> Result<(DeviceInfo, Option<String>)> {
         let mut hdr: dmi::Struct_dm_ioctl = Default::default();
 
-        Self::initialize_hdr(&mut hdr, flags);
+        // No flags checked so don't pass any
+        Self::initialize_hdr(&mut hdr, DmFlags::empty());
         Self::hdr_set_name(&mut hdr, name);
 
         let mut msg_struct: dmi::Struct_dm_target_msg = Default::default();
@@ -746,11 +840,14 @@ impl DM {
         data_in.extend(msg.as_bytes());
         data_in.push(b'\0');
 
-        let data_out = try!(self.do_ioctl(dmi::DM_TARGET_MSG_CMD as u8, &mut hdr, Some(&data_in)));
+        let data_out = try!(self.do_ioctl(dmi::DM_TARGET_MSG_CMD as u8,
+                                          &mut hdr, Some(&data_in)));
 
         Ok((DeviceInfo {hdr: hdr},
-           match (hdr.flags & DM_DATA_OUT_FLAG.bits) > 0 {
-               true => Some(String::from_utf8_lossy(&data_out[..data_out.len()-1]).into_owned()),
+           match (hdr.flags & DM_DATA_OUT.bits) > 0 {
+               true =>
+                   Some(String::from_utf8_lossy(
+                       &data_out[..data_out.len()-1]).into_owned()),
                false => None
            }))
     }
