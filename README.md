@@ -8,7 +8,7 @@
 
 ### Development status
 
-#### ALPHA, not yet feature complete.
+#### BETA, feature complete but needs testing.
 
 ### Documentation
 
@@ -16,7 +16,7 @@
 
 ### How to contribute
 
-GitHub used for pull requests and issue tracking
+GitHub used for pull requests and issue tracking.
 
 ### License
 
