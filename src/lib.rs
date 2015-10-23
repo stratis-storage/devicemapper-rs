@@ -592,7 +592,7 @@ impl DM {
 
     /// Load targets for a device into its inactive table slot.
     ///
-    /// `targets` is a Vec of (sector_start, sector_length, type, params).
+    /// `targets` is an array of (sector_start, sector_length, type, params).
     ///
     /// `params` are target-specific, please see [Linux kernel documentation](https://git.kernel.org/cgit/linux/kernel/git/torvalds/linux.git/tree/Documentation/device-mapper) for more.
     ///
@@ -608,7 +608,7 @@ impl DM {
     ///
     /// dm.table_load("example-dev", &table).unwrap();
     /// ```
-    pub fn table_load(&self, name: &str, targets: &Vec<(u64, u64, &str, &str)>)
+    pub fn table_load(&self, name: &str, targets: &[(u64, u64, &str, &str)])
                       -> io::Result<DeviceInfo> {
         let mut targs = Vec::new();
 
