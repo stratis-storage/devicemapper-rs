@@ -296,12 +296,12 @@ impl DM {
 
     fn hdr_set_name(hdr: &mut dmi::Struct_dm_ioctl, name: &str) -> () {
         let name_dest: &mut [u8; DM_NAME_LEN] = unsafe { transmute(&mut hdr.name) };
-        copy_memory(name.as_bytes(), &mut name_dest[..]);
+        copy_memory(name.as_bytes(), name_dest);
     }
 
     fn hdr_set_uuid(hdr: &mut dmi::Struct_dm_ioctl, uuid: &str) -> () {
         let uuid_dest: &mut [u8; DM_UUID_LEN] = unsafe { transmute(&mut hdr.uuid) };
-        copy_memory(uuid.as_bytes(), &mut uuid_dest[..]);
+        copy_memory(uuid.as_bytes(), uuid_dest);
     }
 
     //
