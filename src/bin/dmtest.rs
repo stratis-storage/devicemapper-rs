@@ -22,8 +22,11 @@ fn main() {
     let x = dmi.table_deps(first_dev, dm::DmFlags::empty()).unwrap();
     println!("{:?}", x);
 
-    println!("Calling table_status()");
+    println!("Calling table_status() INFO");
     let x = dmi.table_status(&first_name, dm::DmFlags::empty()).unwrap();
     println!("{:?}", x.1);
 
+    println!("Calling table_status() TABLE");
+    let x = dmi.table_status(&first_name, dm::DM_STATUS_TABLE).unwrap();
+    println!("{:?}", x.1);
 }
