@@ -36,7 +36,7 @@
 //! Devices have "active" and "inactive" mapping tables. See function
 //! descriptions for which table they affect.
 
-#![feature(slice_bytes, path_ext, vec_resize, convert)]
+#![feature(slice_bytes, convert)]
 #![warn(missing_docs)]
 
 extern crate libc;
@@ -49,8 +49,9 @@ extern crate bitflags;
 mod dm_ioctl;
 mod util;
 
-use std::fs::{File, PathExt};
-use std::io::{Result, Error, BufReader, BufRead};
+use std::fs::File;
+use std::io;
+use std::io::{Error, BufReader, BufRead};
 use std::path::{Path, PathBuf};
 use std::str::{FromStr, from_utf8};
 use std::io::ErrorKind::Other;
@@ -169,7 +170,7 @@ impl Device {
 
 impl FromStr for Device {
     type Err = Error;
-    fn from_str(s: &str) -> Result<Device> {
+    fn from_str(s: &str) -> io::Result<Device> {
         match s.parse::<i64>() {
             Ok(x) => Ok(Device::from(x as u64)),
             Err(_) => {
@@ -277,7 +278,7 @@ pub struct DM {
 
 impl DM {
     /// Create a new context for communicating with DM.
-    pub fn new() -> Result<DM> {
+    pub fn new() -> io::Result<DM> {
         Ok(DM {
             file: try!(File::open(DM_CTL_PATH)),
         })
@@ -308,7 +309,7 @@ impl DM {
     // Does the ioctl and maybe returns stuff. Handles BUFFER_FULL flag.
     //
     fn do_ioctl(&self, ioctl: u8, hdr: &mut dmi::Struct_dm_ioctl, in_data: Option<&[u8]>)
-                -> Result<Vec<u8>> {
+                -> io::Result<Vec<u8>> {
 
         let op = ioctl::op_read_write(DM_IOCTL, ioctl, size_of::<dmi::Struct_dm_ioctl>());
 
@@ -366,7 +367,7 @@ impl DM {
     }
 
     /// Devicemapper version information: Major, Minor, and patchlevel versions.
-    pub fn version(&self) -> Result<(u32, u32, u32)> {
+    pub fn version(&self) -> io::Result<(u32, u32, u32)> {
         let mut hdr: dmi::Struct_dm_ioctl = Default::default();
 
         // No flags checked so don't pass any
@@ -384,7 +385,7 @@ impl DM {
     /// in-use devices, and they will be removed when released.
     ///
     /// Valid flags: DM_DEFERRED_REMOVE
-    pub fn remove_all(&self, flags: DmFlags) -> Result<()> {
+    pub fn remove_all(&self, flags: DmFlags) -> io::Result<()> {
         let mut hdr: dmi::Struct_dm_ioctl = Default::default();
 
         let clean_flags = DM_DEFERRED_REMOVE & flags;
@@ -398,7 +399,7 @@ impl DM {
 
     /// Returns a list of tuples containing DM device names and a
     /// Device, which holds their major and minor device numbers.
-    pub fn list_devices(&self) -> Result<Vec<(String, Device)>> {
+    pub fn list_devices(&self) -> io::Result<Vec<(String, Device)>> {
         let mut hdr: dmi::Struct_dm_ioctl = Default::default();
 
         // No flags checked so don't pass any
@@ -444,7 +445,8 @@ impl DM {
     /// // Setting a uuid is optional
     /// let dev = dm.device_create("example-dev", None, DmFlags::empty()).unwrap();
     /// ```
-    pub fn device_create(&self, name: &str, uuid: Option<&str>, flags: DmFlags) -> Result<DeviceInfo> {
+    pub fn device_create(&self, name: &str, uuid: Option<&str>, flags: DmFlags)
+                         -> io::Result<DeviceInfo> {
         let mut hdr: dmi::Struct_dm_ioctl = Default::default();
 
         let clean_flags = (DM_READONLY | DM_PERSISTENT_DEV) & flags;
@@ -468,7 +470,7 @@ impl DM {
     /// used.
     ///
     /// Valid flags: DM_DEFERRED_REMOVE
-    pub fn device_remove(&self, name: &str, flags: DmFlags) -> Result<DeviceInfo> {
+    pub fn device_remove(&self, name: &str, flags: DmFlags) -> io::Result<DeviceInfo> {
         let mut hdr: dmi::Struct_dm_ioctl = Default::default();
 
         let clean_flags = DM_DEFERRED_REMOVE & flags;
@@ -486,7 +488,8 @@ impl DM {
     /// If DM_UUID is set, change the UUID instead.
     ///
     /// Valid flags: DM_UUID
-    pub fn device_rename(&self, old_name: &str, new_name: &str, flags: DmFlags) -> Result<DeviceInfo> {
+    pub fn device_rename(&self, old_name: &str, new_name: &str, flags: DmFlags)
+                         -> io::Result<DeviceInfo> {
         let mut hdr: dmi::Struct_dm_ioctl = Default::default();
 
         let clean_flags = DM_UUID & flags;
@@ -538,7 +541,7 @@ impl DM {
     ///
     /// dm.device_suspend("example-dev", DM_SUSPEND).unwrap();
     /// ```
-    pub fn device_suspend(&self, name: &str, flags: DmFlags) -> Result<DeviceInfo> {
+    pub fn device_suspend(&self, name: &str, flags: DmFlags) -> io::Result<DeviceInfo> {
         let mut hdr: dmi::Struct_dm_ioctl = Default::default();
 
         let clean_flags = (DM_SUSPEND | DM_NOFLUSH | DM_SKIP_LOCKFS) & flags;
@@ -554,7 +557,7 @@ impl DM {
     /// Get DeviceInfo for a device. This is also returned by other
     /// methods, but if just the DeviceInfo is desired then this just
     /// gets it.
-    pub fn device_status(&self, name: &str) -> Result<DeviceInfo> {
+    pub fn device_status(&self, name: &str) -> io::Result<DeviceInfo> {
         let mut hdr: dmi::Struct_dm_ioctl = Default::default();
 
         // No flags checked so don't pass any
@@ -571,7 +574,7 @@ impl DM {
     /// Once an event occurs, this function behaves just like
     /// `table_status`, see that function for more details.
     pub fn device_wait(&self, name: &str, flags: DmFlags)
-                        -> Result<(DeviceInfo, Vec<(u64, u64, String, String)>)> {
+                        -> io::Result<(DeviceInfo, Vec<(u64, u64, String, String)>)> {
         let mut hdr: dmi::Struct_dm_ioctl = Default::default();
 
         let clean_flags = DM_QUERY_INACTIVE_TABLE & flags;
@@ -606,7 +609,7 @@ impl DM {
     /// dm.table_load("example-dev", &table).unwrap();
     /// ```
     pub fn table_load(&self, name: &str, targets: &Vec<(u64, u64, &str, &str)>)
-                      -> Result<DeviceInfo> {
+                      -> io::Result<DeviceInfo> {
         let mut targs = Vec::new();
 
         // Construct targets first, since we need to know how many & size
@@ -663,7 +666,7 @@ impl DM {
     }
 
     /// Clear the "inactive" table for a device.
-    pub fn table_clear(&self, name: &str) -> Result<DeviceInfo> {
+    pub fn table_clear(&self, name: &str) -> io::Result<DeviceInfo> {
         let mut hdr: dmi::Struct_dm_ioctl = Default::default();
 
         // No flags checked so don't pass any
@@ -682,7 +685,7 @@ impl DM {
     /// inactive table.
     ///
     /// Valid flags: DM_QUERY_INACTIVE_TABLE
-    pub fn table_deps(&self, dev: Device, flags: DmFlags) -> Result<Vec<Device>> {
+    pub fn table_deps(&self, dev: Device, flags: DmFlags) -> io::Result<Vec<Device>> {
         let mut hdr: dmi::Struct_dm_ioctl = Default::default();
 
         let clean_flags = DM_QUERY_INACTIVE_TABLE & flags;
@@ -718,7 +721,7 @@ impl DM {
     // Both table_status and dev_wait return table status, so
     // unify table status parsing.
     fn parse_table_status(count: u32, buf: &[u8])
-                          -> Result<Vec<(u64, u64, String, String)>> {
+                          -> io::Result<Vec<(u64, u64, String, String)>> {
         let mut targets = Vec::new();
         if buf.len() > 0 {
             let mut next_off = 0;
@@ -777,7 +780,7 @@ impl DM {
     /// println!("{} {:?}", res.0.name(), res.1);
     /// ```
     pub fn table_status(&self, name: &str, flags: DmFlags)
-                        -> Result<(DeviceInfo, Vec<(u64, u64, String, String)>)> {
+                        -> io::Result<(DeviceInfo, Vec<(u64, u64, String, String)>)> {
         let mut hdr: dmi::Struct_dm_ioctl = Default::default();
 
         let clean_flags =
@@ -796,7 +799,7 @@ impl DM {
 
     /// Returns a list of each loaded target type with its name, and
     /// version broken into major, minor, and patchlevel.
-    pub fn list_versions(&self) -> Result<Vec<(String, u32, u32, u32)>> {
+    pub fn list_versions(&self) -> io::Result<Vec<(String, u32, u32, u32)>> {
         let mut hdr: dmi::Struct_dm_ioctl = Default::default();
 
         // No flags checked so don't pass any
@@ -833,7 +836,7 @@ impl DM {
     /// not needed use 0.  DM-wide messages start with '@', and may
     /// return a string; targets do not.
     pub fn target_msg(&self, name: &str, sector: u64, msg: &str)
-                      -> Result<(DeviceInfo, Option<String>)> {
+                      -> io::Result<(DeviceInfo, Option<String>)> {
         let mut hdr: dmi::Struct_dm_ioctl = Default::default();
 
         // No flags checked so don't pass any
