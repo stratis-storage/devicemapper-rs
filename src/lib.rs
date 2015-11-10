@@ -36,13 +36,11 @@
 //! Devices have "active" and "inactive" mapping tables. See function
 //! descriptions for which table they affect.
 
-#![feature(slice_bytes, convert, custom_derive, plugin)]
-#![plugin(serde_macros)]
+#![feature(slice_bytes, convert)]
 #![warn(missing_docs)]
 
 extern crate libc;
 extern crate nix;
-extern crate serde;
 
 #[macro_use]
 extern crate bitflags;
@@ -140,7 +138,7 @@ pub enum StatusType {
 /// A struct containing the device's major and minor numbers
 ///
 /// Also allows conversion to/from a single 64bit value.
-#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Serialize, Deserialize)]
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone, Copy)]
 pub struct Device {
     /// Device major number
     pub major: u32,
