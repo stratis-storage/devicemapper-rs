@@ -36,7 +36,7 @@
 //! Devices have "active" and "inactive" mapping tables. See function
 //! descriptions for which table they affect.
 
-#![feature(slice_bytes, convert, custom_derive, plugin)]
+#![feature(clone_from_slice, convert, custom_derive, plugin)]
 #![plugin(serde_macros)]
 #![warn(missing_docs)]
 
@@ -60,7 +60,6 @@ use std::io::ErrorKind::Other;
 use std::os::unix::io::AsRawFd;
 use std::mem::{size_of, transmute};
 use std::slice;
-use std::slice::bytes::copy_memory;
 use std::collections::BTreeSet;
 use std::os::unix::fs::MetadataExt;
 use std::cmp;
@@ -298,12 +297,12 @@ impl DM {
 
     fn hdr_set_name(hdr: &mut dmi::Struct_dm_ioctl, name: &str) -> () {
         let name_dest: &mut [u8; DM_NAME_LEN] = unsafe { transmute(&mut hdr.name) };
-        copy_memory(name.as_bytes(), name_dest);
+        name_dest.clone_from_slice(name.as_bytes());
     }
 
     fn hdr_set_uuid(hdr: &mut dmi::Struct_dm_ioctl, uuid: &str) -> () {
         let uuid_dest: &mut [u8; DM_UUID_LEN] = unsafe { transmute(&mut hdr.uuid) };
-        copy_memory(uuid.as_bytes(), uuid_dest);
+        uuid_dest.clone_from_slice(uuid.as_bytes());
     }
 
     //
@@ -362,7 +361,7 @@ impl DM {
         };
 
         // hdr possibly modified so copy back
-        copy_memory(&mut v[..hdr.data_start as usize], hdr_slc);
+        hdr_slc.clone_from_slice(&v[..hdr.data_start as usize]);
 
         // Maybe we got some add'l data back?
         Ok(v[hdr.data_start as usize..hdr.data_size as usize].to_vec())
@@ -625,7 +624,7 @@ impl DM {
             let mut dst: &mut [u8] = unsafe {
                 transmute(&mut targ.target_type[..])
             };
-            copy_memory(t.2.as_bytes(), &mut dst);
+            dst.clone_from_slice(t.2.as_bytes());
 
             let mut params = t.3.to_string();
 
