@@ -56,7 +56,7 @@ use std::io;
 use std::io::{Error, BufReader, BufRead};
 use std::path::{Path, PathBuf};
 use std::str::{FromStr, from_utf8};
-use std::io::ErrorKind::Other;
+use std::io::ErrorKind::{Other, InvalidInput};
 use std::os::unix::io::AsRawFd;
 use std::mem::{size_of, transmute};
 use std::slice;
@@ -176,7 +176,13 @@ impl FromStr for Device {
             Ok(x) => Ok(Device::from(x as u64)),
             Err(_) => {
                 match Path::new(s).metadata() {
-                    Ok(x) => Ok(Device::from(x.rdev())),
+                    Ok(x) => {
+                        match x.mode() & 0x6000 == 0x6000 { // S_IFBLK
+                            true => Ok(Device::from(x.rdev())),
+                            false => Err(Error::new(
+                                InvalidInput, format!("{} not block device", s))),
+                        }
+                    },
                     Err(x) => Err(x)
                 }
             }
