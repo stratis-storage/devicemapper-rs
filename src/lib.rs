@@ -63,6 +63,7 @@ use std::slice;
 use std::collections::BTreeSet;
 use std::os::unix::fs::MetadataExt;
 use std::cmp;
+use std::borrow::Borrow;
 
 use nix::sys::ioctl;
 
@@ -615,8 +616,11 @@ impl DM {
     ///
     /// dm.table_load("example-dev", &table).unwrap();
     /// ```
-    pub fn table_load(&self, name: &str, targets: &[(u64, u64, &str, &str)])
-                      -> io::Result<DeviceInfo> {
+    pub fn table_load<T1, T2>(&self, name: &str, targets: &[(u64, u64, T1, T2)])
+                      -> io::Result<DeviceInfo>
+        where T1: Borrow<str>,
+              T2: Borrow<str>,
+    {
         let mut targs = Vec::new();
 
         // Construct targets first, since we need to know how many & size
@@ -630,9 +634,9 @@ impl DM {
             let mut dst: &mut [u8] = unsafe {
                 transmute(&mut targ.target_type[..])
             };
-            dst.clone_from_slice(t.2.as_bytes());
+            dst.clone_from_slice(t.2.borrow().as_bytes());
 
-            let mut params = t.3.to_string();
+            let mut params = t.3.borrow().to_string();
 
             let pad_bytes = align_to(
                 params.len() + 1usize, 8usize) - params.len();
