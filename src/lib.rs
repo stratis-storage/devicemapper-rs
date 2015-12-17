@@ -126,17 +126,6 @@ bitflags!(
 );
 
 
-/// Used with `DM::table_status()` to choose either return of info or
-/// tables for a target. The contents of each of these strings is
-/// target-specific.
-#[derive(Debug, Clone, Copy)]
-pub enum StatusType {
-    /// Return a target's `STATUSTYPE_INFO`.
-    Info,
-    /// Return a target's `STATUSTYPE_TABLE`.
-    Table,
-}
-
 /// A struct containing the device's major and minor numbers
 ///
 /// Also allows conversion to/from a single 64bit value.
