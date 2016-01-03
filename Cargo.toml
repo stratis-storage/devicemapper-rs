@@ -15,8 +15,8 @@ name = "dmtest"
 path = "src/bin/dmtest.rs"
 
 [dependencies]
-libc = "*"
+libc = "0.2"
 nix = "=0.3.9"
-bitflags = "*"
-serde = "*"
-serde_macros = "*"
+bitflags = "0.3"
+serde = "0.6"
+serde_macros = "0.6"
