@@ -544,10 +544,10 @@ impl DM {
     /// # Example
     ///
     /// ```no_run
-    /// use devicemapper::{DM, DmFlags, DM_SUSPEND};
+    /// use devicemapper::{DM, DmFlags, DM_SUSPEND, DevId};
     /// let dm = DM::new().unwrap();
     ///
-    /// dm.device_suspend("example-dev", DM_SUSPEND).unwrap();
+    /// dm.device_suspend(&DevId::Name("example-dev"), DM_SUSPEND).unwrap();
     /// ```
     pub fn device_suspend(&self, name: &DevId, flags: DmFlags) -> io::Result<DeviceInfo> {
         let mut hdr: dmi::Struct_dm_ioctl = Default::default();
@@ -616,14 +616,14 @@ impl DM {
     /// # Example
     ///
     /// ```no_run
-    /// use devicemapper::{DM, DmFlags};
+    /// use devicemapper::{DM, DmFlags, DevId};
     /// let dm = DM::new().unwrap();
     ///
     /// // Create a 16MiB device (32768 512-byte sectors) that maps to /dev/sdb1
     /// // starting 1MiB into sdb1
     /// let table = vec![(0, 32768, "linear", "/dev/sdb1 2048")];
     ///
-    /// dm.table_load("example-dev", &table).unwrap();
+    /// dm.table_load(&DevId::Name("example-dev"), &table).unwrap();
     /// ```
     pub fn table_load<T1, T2>(&self, name: &DevId, targets: &[(u64, u64, T1, T2)])
                       -> io::Result<DeviceInfo>
@@ -799,10 +799,10 @@ impl DM {
     /// # Example
     ///
     /// ```no_run
-    /// use devicemapper::{DM, DmFlags, DM_STATUS_TABLE};
+    /// use devicemapper::{DM, DmFlags, DM_STATUS_TABLE, DevId};
     /// let dm = DM::new().unwrap();
     ///
-    /// let res = dm.table_status("example-dev", DM_STATUS_TABLE).unwrap();
+    /// let res = dm.table_status(&DevId::Name("example-dev"), DM_STATUS_TABLE).unwrap();
     /// println!("{} {:?}", res.0.name(), res.1);
     /// ```
     pub fn table_status(&self, name: &DevId, flags: DmFlags)
