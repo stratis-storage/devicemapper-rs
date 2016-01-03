@@ -23,10 +23,10 @@ fn main() {
     println!("{:?}", x);
 
     println!("Calling table_status() INFO");
-    let x = dmi.table_status(&first_name, dm::DmFlags::empty()).unwrap();
+    let x = dmi.table_status(&dm::DevId::Name(&first_name), dm::DmFlags::empty()).unwrap();
     println!("{:?}", x.1);
 
     println!("Calling table_status() TABLE");
-    let x = dmi.table_status(&first_name, dm::DM_STATUS_TABLE).unwrap();
+    let x = dmi.table_status(&dm::DevId::Name(&first_name), dm::DM_STATUS_TABLE).unwrap();
     println!("{:?}", x.1);
 }
