@@ -36,8 +36,9 @@
 //! Devices have "active" and "inactive" mapping tables. See function
 //! descriptions for which table they affect.
 
-#![feature(clone_from_slice, convert, custom_derive, plugin)]
+#![feature(custom_derive, plugin)]
 #![plugin(serde_macros)]
+#![plugin(clippy)]
 #![warn(missing_docs)]
 
 extern crate libc;
@@ -141,7 +142,7 @@ impl Device {
     /// Returns the path in `/dev` that corresponds with the device number.
     pub fn path(&self) -> Option<PathBuf> {
         let f = File::open("/proc/partitions")
-            .ok().expect("Could not open /proc/partitions");
+            .expect("Could not open /proc/partitions");
 
         let reader = BufReader::new(f);
 
@@ -167,10 +168,11 @@ impl FromStr for Device {
             Err(_) => {
                 match Path::new(s).metadata() {
                     Ok(x) => {
-                        match x.mode() & 0x6000 == 0x6000 { // S_IFBLK
-                            true => Ok(Device::from(x.rdev())),
-                            false => Err(Error::new(
-                                InvalidInput, format!("{} not block device", s))),
+                        if x.mode() & 0x6000 == 0x6000 { // S_IFBLK
+                            Ok(Device::from(x.rdev()))
+                        } else {
+                            Err(Error::new(
+                                InvalidInput, format!("{} not block device", s)))
                         }
                     },
                     Err(x) => Err(x)
@@ -198,7 +200,7 @@ pub fn dev_majors() -> BTreeSet<u32> {
     let mut set = BTreeSet::new();
 
     let f = File::open("/proc/devices")
-        .ok().expect("Could not open /proc/devices");
+        .expect("Could not open /proc/devices");
 
     let reader = BufReader::new(f);
 
@@ -276,6 +278,12 @@ pub enum DevId<'a> {
     Uuid(&'a str),
 }
 
+/// This 4-tuple consists of starting offset (sectors), length
+/// (sectors), target type (string, e.g. "linear"), and
+/// params(string). See target documentation for the format of each
+/// target type's params field.
+pub type TargetLine = (u64, u64, String, String);
+
 /// Context needed for communicating with devicemapper.
 pub struct DM {
     file: File,
@@ -340,11 +348,10 @@ impl DM {
         v.resize(cap, 0);
 
         loop {
-            match unsafe {
+            if let Err(_) = unsafe {
                 ioctl::read_into_ptr(self.file.as_raw_fd(), op, v.as_mut_ptr())
             } {
-                Err(_) => return Err((Error::last_os_error())),
-                _ => {},
+                return Err((Error::last_os_error()));
             };
 
             let hdr: &mut dmi::Struct_dm_ioctl = unsafe {
@@ -414,8 +421,8 @@ impl DM {
                                           &mut hdr, None));
 
         let mut devs = Vec::new();
-        if data_out.len() > 0 {
-            let mut result = data_out.as_slice();
+        if !data_out.is_empty() {
+            let mut result = &data_out[..];
 
             loop {
                 let device: &dmi::Struct_dm_name_list = unsafe {
@@ -481,9 +488,9 @@ impl DM {
         let clean_flags = DM_DEFERRED_REMOVE & flags;
 
         Self::initialize_hdr(&mut hdr, clean_flags);
-        match name {
-            &DevId::Name(name) => Self::hdr_set_name(&mut hdr, name),
-            &DevId::Uuid(uuid) => Self::hdr_set_uuid(&mut hdr, uuid),
+        match *name {
+            DevId::Name(name) => Self::hdr_set_name(&mut hdr, name),
+            DevId::Uuid(uuid) => Self::hdr_set_uuid(&mut hdr, uuid),
         };
 
         try!(self.do_ioctl(dmi::DM_DEV_REMOVE_CMD as u8, &mut hdr, None));
@@ -504,15 +511,12 @@ impl DM {
 
         Self::initialize_hdr(&mut hdr, clean_flags);
 
-        let max_len = match clean_flags.contains(DM_UUID) {
-            true => {
-                Self::hdr_set_uuid(&mut hdr, old_name);
-                DM_UUID_LEN - 1
-            },
-            false => {
-                Self::hdr_set_name(&mut hdr, old_name);
-                DM_NAME_LEN - 1
-            },
+        let max_len = if clean_flags.contains(DM_UUID) {
+            Self::hdr_set_uuid(&mut hdr, old_name);
+            DM_UUID_LEN - 1
+        } else {
+            Self::hdr_set_name(&mut hdr, old_name);
+            DM_NAME_LEN - 1
         };
 
         if new_name.as_bytes().len() > max_len {
@@ -555,9 +559,9 @@ impl DM {
         let clean_flags = (DM_SUSPEND | DM_NOFLUSH | DM_SKIP_LOCKFS) & flags;
 
         Self::initialize_hdr(&mut hdr, clean_flags);
-        match name {
-            &DevId::Name(name) => Self::hdr_set_name(&mut hdr, name),
-            &DevId::Uuid(uuid) => Self::hdr_set_uuid(&mut hdr, uuid),
+        match *name {
+            DevId::Name(name) => Self::hdr_set_name(&mut hdr, name),
+            DevId::Uuid(uuid) => Self::hdr_set_uuid(&mut hdr, uuid),
         };
 
         try!(self.do_ioctl(dmi::DM_DEV_SUSPEND_CMD as u8, &mut hdr, None));
@@ -573,9 +577,9 @@ impl DM {
 
         // No flags checked so don't pass any
         Self::initialize_hdr(&mut hdr, DmFlags::empty());
-        match name {
-            &DevId::Name(name) => Self::hdr_set_name(&mut hdr, name),
-            &DevId::Uuid(uuid) => Self::hdr_set_uuid(&mut hdr, uuid),
+        match *name {
+            DevId::Name(name) => Self::hdr_set_name(&mut hdr, name),
+            DevId::Uuid(uuid) => Self::hdr_set_uuid(&mut hdr, uuid),
         };
 
         try!(self.do_ioctl(dmi::DM_DEV_STATUS_CMD as u8, &mut hdr, None));
@@ -587,16 +591,19 @@ impl DM {
     ///
     /// Once an event occurs, this function behaves just like
     /// `table_status`, see that function for more details.
+    ///
+    /// This interface is not very friendly to monitoring multiple devices.
+    /// Events are also exported via uevents, that method may be preferable.
     pub fn device_wait(&self, name: &DevId, flags: DmFlags)
-                        -> io::Result<(DeviceInfo, Vec<(u64, u64, String, String)>)> {
+                        -> io::Result<(DeviceInfo, Vec<TargetLine>)> {
         let mut hdr: dmi::Struct_dm_ioctl = Default::default();
 
         let clean_flags = DM_QUERY_INACTIVE_TABLE & flags;
 
         Self::initialize_hdr(&mut hdr, clean_flags);
-        match name {
-            &DevId::Name(name) => Self::hdr_set_name(&mut hdr, name),
-            &DevId::Uuid(uuid) => Self::hdr_set_uuid(&mut hdr, uuid),
+        match *name {
+            DevId::Name(name) => Self::hdr_set_name(&mut hdr, name),
+            DevId::Uuid(uuid) => Self::hdr_set_uuid(&mut hdr, uuid),
         };
 
         let data_out = try!(self.do_ioctl(dmi::DM_DEV_WAIT_CMD as u8, &mut hdr, None));
@@ -645,7 +652,7 @@ impl DM {
             };
             dst.clone_from_slice(t.2.borrow().as_bytes());
 
-            let mut params = t.3.borrow().to_string();
+            let mut params = t.3.borrow().to_owned();
 
             let pad_bytes = align_to(
                 params.len() + 1usize, 8usize) - params.len();
@@ -661,9 +668,9 @@ impl DM {
 
         // No flags checked so don't pass any
         Self::initialize_hdr(&mut hdr, DmFlags::empty());
-        match name {
-            &DevId::Name(name) => Self::hdr_set_name(&mut hdr, name),
-            &DevId::Uuid(uuid) => Self::hdr_set_uuid(&mut hdr, uuid),
+        match *name {
+            DevId::Name(name) => Self::hdr_set_name(&mut hdr, name),
+            DevId::Uuid(uuid) => Self::hdr_set_uuid(&mut hdr, uuid),
         };
 
         // io_ioctl() will set hdr.data_size but we must set target_count
@@ -694,9 +701,9 @@ impl DM {
 
         // No flags checked so don't pass any
         Self::initialize_hdr(&mut hdr, DmFlags::empty());
-        match name {
-            &DevId::Name(name) => Self::hdr_set_name(&mut hdr, name),
-            &DevId::Uuid(uuid) => Self::hdr_set_uuid(&mut hdr, uuid),
+        match *name {
+            DevId::Name(name) => Self::hdr_set_name(&mut hdr, name),
+            DevId::Uuid(uuid) => Self::hdr_set_uuid(&mut hdr, uuid),
         };
 
         try!(self.do_ioctl(dmi::DM_TABLE_CLEAR_CMD as u8, &mut hdr, None));
@@ -723,8 +730,8 @@ impl DM {
                                           &mut hdr, None));
 
         let mut devs = Vec::new();
-        if data_out.len() > 0 {
-            let result = data_out.as_slice();
+        if !data_out.is_empty() {
+            let result = &data_out[..];
             let deps: &dmi::Struct_dm_target_deps = unsafe {
                 transmute(result.as_ptr())
             };
@@ -806,16 +813,16 @@ impl DM {
     /// println!("{} {:?}", res.0.name(), res.1);
     /// ```
     pub fn table_status(&self, name: &DevId, flags: DmFlags)
-                        -> io::Result<(DeviceInfo, Vec<(u64, u64, String, String)>)> {
+                        -> io::Result<(DeviceInfo, Vec<TargetLine>)> {
         let mut hdr: dmi::Struct_dm_ioctl = Default::default();
 
         let clean_flags =
             (DM_NOFLUSH | DM_STATUS_TABLE | DM_QUERY_INACTIVE_TABLE) & flags;
 
         Self::initialize_hdr(&mut hdr, clean_flags);
-        match name {
-            &DevId::Name(name) => Self::hdr_set_name(&mut hdr, name),
-            &DevId::Uuid(uuid) => Self::hdr_set_uuid(&mut hdr, uuid),
+        match *name {
+            DevId::Name(name) => Self::hdr_set_name(&mut hdr, name),
+            DevId::Uuid(uuid) => Self::hdr_set_uuid(&mut hdr, uuid),
         };
 
         let data_out = try!(self.do_ioctl(dmi::DM_TABLE_STATUS_CMD as u8,
@@ -838,8 +845,8 @@ impl DM {
                                           &mut hdr, None));
 
         let mut targets = Vec::new();
-        if data_out.len() > 0 {
-            let mut result = data_out.as_slice();
+        if !data_out.is_empty() {
+            let mut result = &data_out[..];
 
             loop {
                 let tver: &dmi::Struct_dm_target_versions = unsafe {
@@ -870,9 +877,9 @@ impl DM {
 
         // No flags checked so don't pass any
         Self::initialize_hdr(&mut hdr, DmFlags::empty());
-        match name {
-            &DevId::Name(name) => Self::hdr_set_name(&mut hdr, name),
-            &DevId::Uuid(uuid) => Self::hdr_set_uuid(&mut hdr, uuid),
+        match *name {
+            DevId::Name(name) => Self::hdr_set_name(&mut hdr, name),
+            DevId::Uuid(uuid) => Self::hdr_set_uuid(&mut hdr, uuid),
         };
 
         let mut msg_struct: dmi::Struct_dm_target_msg = Default::default();
@@ -890,12 +897,12 @@ impl DM {
                                           &mut hdr, Some(&data_in)));
 
         Ok((DeviceInfo {hdr: hdr},
-           match (hdr.flags & DM_DATA_OUT.bits) > 0 {
-               true =>
-                   Some(String::from_utf8_lossy(
-                       &data_out[..data_out.len()-1]).into_owned()),
-               false => None
-           }))
+            if (hdr.flags & DM_DATA_OUT.bits) > 0 {
+                Some(String::from_utf8_lossy(
+                    &data_out[..data_out.len()-1]).into_owned())
+            } else {
+                None
+            }))
     }
 
     /// Unimplemented.
