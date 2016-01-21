@@ -309,12 +309,14 @@ impl DM {
 
     fn hdr_set_name(hdr: &mut dmi::Struct_dm_ioctl, name: &str) -> () {
         let name_dest: &mut [u8; DM_NAME_LEN] = unsafe { transmute(&mut hdr.name) };
-        name_dest.clone_from_slice(name.as_bytes());
+        let len = name.as_bytes().len();
+        name_dest[..len].clone_from_slice(name.as_bytes());
     }
 
     fn hdr_set_uuid(hdr: &mut dmi::Struct_dm_ioctl, uuid: &str) -> () {
         let uuid_dest: &mut [u8; DM_UUID_LEN] = unsafe { transmute(&mut hdr.uuid) };
-        uuid_dest.clone_from_slice(uuid.as_bytes());
+        let len = uuid.as_bytes().len();
+        uuid_dest[..len].clone_from_slice(uuid.as_bytes());
     }
 
     //
@@ -650,7 +652,14 @@ impl DM {
             let mut dst: &mut [u8] = unsafe {
                 transmute(&mut targ.target_type[..])
             };
-            dst.clone_from_slice(t.2.borrow().as_bytes());
+
+            let ttyp_len = if t.2.borrow().len() > dst.len() {
+                return Err(Error::new(Other, "target type too long"));
+            } else {
+                t.2.borrow().len()
+            };
+
+            dst[..ttyp_len].clone_from_slice(t.2.borrow().as_bytes());
 
             let mut params = t.3.borrow().to_owned();
 
