@@ -328,10 +328,13 @@ impl DM {
 
         let op = ioctl::op_read_write(DM_IOCTL, ioctl, size_of::<dmi::Struct_dm_ioctl>());
 
-        // Create in-buf by copying hdr and any in-data into a linear Vec v.
-        // 'slc' also aliases hdr as a &[u8], used later to copy the possibly-
-        // modified hdr back.
+        // Create in-buf by copying hdr and any in-data into a linear
+        // Vec v.  'hdr_slc' also aliases hdr as a &[u8], used first
+        // to copy the hdr into v, and later to update the
+        // possibly-modified hdr.
 
+        // Start with a large buffer to make BUFFER_FULL rare. Libdm
+        // does this too.
         hdr.data_size = cmp::max(
             MIN_BUF_SIZE,
             size_of::<dmi::Struct_dm_ioctl>() + in_data.map_or(0, |x| x.len())) as u32;
@@ -342,10 +345,13 @@ impl DM {
             let ptr: *mut u8 = transmute(hdr);
             slice::from_raw_parts_mut(ptr, len)
         };
+
         v.extend(&hdr_slc[..]);
         if let Some(in_data) = in_data {
             v.extend(in_data.iter().cloned());
         }
+
+        // zero out the rest
         let cap = v.capacity();
         v.resize(cap, 0);
 
