@@ -9,12 +9,9 @@ pub type __u32 = ::libc::c_uint;
 pub type __s64 = ::libc::c_longlong;
 pub type __u64 = ::libc::c_ulonglong;
 #[repr(C, packed)]
-#[derive(Copy)]
+#[derive(Copy, Clone)]
 pub struct Struct_Unnamed1 {
     pub fds_bits: [::libc::c_ulong; 16usize],
-}
-impl ::std::clone::Clone for Struct_Unnamed1 {
-    fn clone(&self) -> Self { *self }
 }
 impl ::std::default::Default for Struct_Unnamed1 {
     fn default() -> Self { unsafe { ::std::mem::zeroed() } }
@@ -43,12 +40,9 @@ pub type __kernel_size_t = __kernel_ulong_t;
 pub type __kernel_ssize_t = __kernel_long_t;
 pub type __kernel_ptrdiff_t = __kernel_long_t;
 #[repr(C, packed)]
-#[derive(Copy)]
+#[derive(Copy, Clone)]
 pub struct Struct_Unnamed2 {
     pub val: [::libc::c_int; 2usize],
-}
-impl ::std::clone::Clone for Struct_Unnamed2 {
-    fn clone(&self) -> Self { *self }
 }
 impl ::std::default::Default for Struct_Unnamed2 {
     fn default() -> Self { unsafe { ::std::mem::zeroed() } }
@@ -94,7 +88,7 @@ impl ::std::default::Default for Struct_dm_ioctl {
     fn default() -> Self { unsafe { ::std::mem::zeroed() } }
 }
 #[repr(C)]
-#[derive(Copy)]
+#[derive(Copy, Clone)]
 pub struct Struct_dm_target_spec {
     pub sector_start: __u64,
     pub length: __u64,
@@ -102,59 +96,44 @@ pub struct Struct_dm_target_spec {
     pub next: __u32,
     pub target_type: [::libc::c_char; 16usize],
 }
-impl ::std::clone::Clone for Struct_dm_target_spec {
-    fn clone(&self) -> Self { *self }
-}
 impl ::std::default::Default for Struct_dm_target_spec {
     fn default() -> Self { unsafe { ::std::mem::zeroed() } }
 }
 #[repr(C, packed)]
-#[derive(Copy)]
+#[derive(Copy, Clone)]
 pub struct Struct_dm_target_deps {
     pub count: __u32,
     pub padding: __u32,
     pub dev: [__u64; 0usize],
 }
-impl ::std::clone::Clone for Struct_dm_target_deps {
-    fn clone(&self) -> Self { *self }
-}
 impl ::std::default::Default for Struct_dm_target_deps {
     fn default() -> Self { unsafe { ::std::mem::zeroed() } }
 }
 #[repr(C, packed)]
-#[derive(Copy)]
+#[derive(Copy, Clone)]
 pub struct Struct_dm_name_list {
     pub dev: __u64,
     pub next: __u32,
     pub name: [::libc::c_char; 0usize],
 }
-impl ::std::clone::Clone for Struct_dm_name_list {
-    fn clone(&self) -> Self { *self }
-}
 impl ::std::default::Default for Struct_dm_name_list {
     fn default() -> Self { unsafe { ::std::mem::zeroed() } }
 }
 #[repr(C, packed)]
-#[derive(Copy)]
+#[derive(Copy, Clone)]
 pub struct Struct_dm_target_versions {
     pub next: __u32,
     pub version: [__u32; 3usize],
     pub name: [::libc::c_char; 0usize],
 }
-impl ::std::clone::Clone for Struct_dm_target_versions {
-    fn clone(&self) -> Self { *self }
-}
 impl ::std::default::Default for Struct_dm_target_versions {
     fn default() -> Self { unsafe { ::std::mem::zeroed() } }
 }
 #[repr(C, packed)]
-#[derive(Copy)]
+#[derive(Copy, Clone)]
 pub struct Struct_dm_target_msg {
     pub sector: __u64,
     pub message: [::libc::c_char; 0usize],
-}
-impl ::std::clone::Clone for Struct_dm_target_msg {
-    fn clone(&self) -> Self { *self }
 }
 impl ::std::default::Default for Struct_dm_target_msg {
     fn default() -> Self { unsafe { ::std::mem::zeroed() } }

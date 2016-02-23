@@ -346,7 +346,7 @@ impl DM {
             slice::from_raw_parts_mut(ptr, len)
         };
 
-        v.extend(&hdr_slc[..]);
+        v.extend_from_slice(&hdr_slc[..]);
         if let Some(in_data) = in_data {
             v.extend(in_data.iter().cloned());
         }
@@ -699,7 +699,7 @@ impl DM {
                 let ptr: *mut u8 = transmute(&targ);
                 let slc = slice::from_raw_parts(
                     ptr, size_of::<dmi::Struct_dm_target_spec>());
-                data_in.extend(slc);
+                data_in.extend_from_slice(slc);
             }
 
             data_in.extend(param.as_bytes());
@@ -933,9 +933,7 @@ impl DM {
 
         if let Ok(dep_list) = self.table_deps(dev, DmFlags::empty()) {
             for d in dep_list {
-                if d == dev {
-                    return true;
-                } else if self.depends_on(d, dm_majors) {
+                if d == dev || self.depends_on(d, dm_majors) {
                     return true;
                 }
             }
