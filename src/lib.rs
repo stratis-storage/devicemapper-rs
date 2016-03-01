@@ -346,7 +346,7 @@ impl DM {
             slice::from_raw_parts_mut(ptr, len)
         };
 
-        v.extend_from_slice(&hdr_slc[..]);
+        v.extend_from_slice(hdr_slc);
         if let Some(in_data) = in_data {
             v.extend(in_data.iter().cloned());
         }
