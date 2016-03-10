@@ -42,6 +42,7 @@
 #![warn(missing_docs)]
 
 extern crate libc;
+#[macro_use]
 extern crate nix;
 extern crate serde;
 
@@ -66,7 +67,8 @@ use std::os::unix::fs::MetadataExt;
 use std::cmp;
 use std::borrow::Borrow;
 
-use nix::sys::ioctl;
+use nix::sys::ioctl::ioctl as nix_ioctl;
+use nix::sys::ioctl::libc::c_ulong;
 
 use dm_ioctl as dmi;
 use util::align_to;
@@ -325,9 +327,6 @@ impl DM {
     //
     fn do_ioctl(&self, ioctl: u8, hdr: &mut dmi::Struct_dm_ioctl, in_data: Option<&[u8]>)
                 -> io::Result<Vec<u8>> {
-
-        let op = ioctl::op_read_write(DM_IOCTL, ioctl, size_of::<dmi::Struct_dm_ioctl>());
-
         // Create in-buf by copying hdr and any in-data into a linear
         // Vec v.  'hdr_slc' also aliases hdr as a &[u8], used first
         // to copy the hdr into v, and later to update the
@@ -355,12 +354,14 @@ impl DM {
         let cap = v.capacity();
         v.resize(cap, 0);
 
+        let op = iorw!(DM_IOCTL, ioctl,
+                       size_of::<dmi::Struct_dm_ioctl>()) as c_ulong;
         loop {
             if let Err(_) = unsafe {
-                ioctl::read_into_ptr(self.file.as_raw_fd(), op, v.as_mut_ptr())
+                convert_ioctl_res!(nix_ioctl(self.file.as_raw_fd(), op, v.as_mut_ptr()))
             } {
                 return Err((Error::last_os_error()));
-            };
+            }
 
             let hdr: &mut dmi::Struct_dm_ioctl = unsafe {
                 transmute(v.as_ptr())
