@@ -41,6 +41,9 @@
 #![plugin(clippy)]
 #![warn(missing_docs)]
 
+#![allow(used_underscore_binding)]
+#![allow(if_not_else)]
+
 extern crate libc;
 #[macro_use]
 extern crate nix;
@@ -369,8 +372,8 @@ impl DM {
                 return Err((Error::last_os_error()));
             }
 
-            let hdr: &mut dmi::Struct_dm_ioctl = unsafe {
-                transmute(v.as_ptr())
+            let hdr = unsafe {
+                (v.as_mut_ptr() as *mut dmi::Struct_dm_ioctl).as_mut().unwrap()
             };
 
             if (hdr.flags & DM_BUFFER_FULL.bits) == 0 {
@@ -382,8 +385,8 @@ impl DM {
             hdr.data_size = v.len() as u32;
         }
 
-        let hdr: &mut dmi::Struct_dm_ioctl = unsafe {
-            transmute(v.as_ptr())
+        let hdr = unsafe {
+            (v.as_mut_ptr() as *mut dmi::Struct_dm_ioctl).as_mut().unwrap()
         };
 
         // hdr possibly modified so copy back
@@ -440,8 +443,8 @@ impl DM {
             let mut result = &data_out[..];
 
             loop {
-                let device: &dmi::Struct_dm_name_list = unsafe {
-                    transmute(result.as_ptr())
+                let device = unsafe {
+                    (result.as_ptr() as *const dmi::Struct_dm_name_list).as_ref().unwrap()
                 };
 
                 let slc = slice_to_null(
@@ -754,8 +757,8 @@ impl DM {
         let mut devs = Vec::new();
         if !data_out.is_empty() {
             let result = &data_out[..];
-            let target_deps: &dmi::Struct_dm_target_deps = unsafe {
-                transmute(result.as_ptr())
+            let target_deps = unsafe {
+                (result.as_ptr() as *const dmi::Struct_dm_target_deps).as_ref().unwrap()
             };
 
             let dev_slc = unsafe {
@@ -784,8 +787,8 @@ impl DM {
 
             for _ in 0..count {
                 result = &result[next_off..];
-                let targ: &dmi::Struct_dm_target_spec = unsafe {
-                    transmute(result.as_ptr())
+                let targ = unsafe {
+                    (result.as_ptr() as *const dmi::Struct_dm_target_spec).as_ref().unwrap()
                 };
 
                 let target_type = unsafe {
@@ -871,8 +874,9 @@ impl DM {
             let mut result = &data_out[..];
 
             loop {
-                let tver: &dmi::Struct_dm_target_versions = unsafe {
-                    transmute(result.as_ptr())
+                let tver = unsafe {
+                    (result.as_ptr() as *const dmi::Struct_dm_target_versions)
+                        .as_ref().unwrap()
                 };
 
                 let name_slc = slice_to_null(
