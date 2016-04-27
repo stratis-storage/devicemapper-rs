@@ -754,7 +754,7 @@ impl DM {
         let mut devs = Vec::new();
         if !data_out.is_empty() {
             let result = &data_out[..];
-            let deps: &dmi::Struct_dm_target_deps = unsafe {
+            let target_deps: &dmi::Struct_dm_target_deps = unsafe {
                 transmute(result.as_ptr())
             };
 
@@ -762,7 +762,7 @@ impl DM {
                 slice::from_raw_parts(
                     result[size_of::<dmi::Struct_dm_target_deps>()..]
                         .as_ptr() as *const u64,
-                    deps.count as usize)
+                    target_deps.count as usize)
             };
 
             for dev in dev_slc {
