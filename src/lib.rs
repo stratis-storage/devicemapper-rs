@@ -160,6 +160,12 @@ impl Device {
         }
         None
     }
+
+    /// Get a string with the Device's major and minor numbers in
+    /// "<major>:<minor>" format.
+    pub fn dstr(&self) -> String {
+        format!("{}:{}", self.major, self.minor)
+    }
 }
 
 impl FromStr for Device {
