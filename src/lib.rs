@@ -36,9 +36,13 @@
 //! Devices have "active" and "inactive" mapping tables. See function
 //! descriptions for which table they affect.
 
-#![feature(custom_derive, plugin)]
-#![plugin(serde_macros)]
-#![plugin(clippy)]
+#![cfg_attr(feature = "serde_macros", feature(custom_derive, plugin))]
+#![cfg_attr(feature = "serde_macros", plugin(serde_macros))]
+
+#![cfg_attr(feature = "clippy", feature(plugin))]
+#![cfg_attr(feature = "clippy", plugin(clippy))]
+#![cfg_attr(not(feature = "clippy"), allow(unknown_lints))]
+
 #![warn(missing_docs)]
 
 #![allow(used_underscore_binding)]
@@ -132,16 +136,14 @@ bitflags!(
 );
 
 
-/// A struct containing the device's major and minor numbers
-///
-/// Also allows conversion to/from a single 64bit value.
-#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Serialize, Deserialize)]
-pub struct Device {
-    /// Device major number
-    pub major: u32,
-    /// Device minor number
-    pub minor: u8,
+mod device {
+    #[cfg(feature = "serde_macros")]
+    include!("device.rs.in");
+
+    #[cfg(not(feature = "serde_macros"))]
+    include!(concat!(env!("OUT_DIR"), "/device.rs"));
 }
+pub use device::Device;
 
 impl Device {
     /// Returns the path in `/dev` that corresponds with the device number.

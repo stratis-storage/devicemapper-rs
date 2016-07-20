@@ -1,0 +1,10 @@
+/// A struct containing the device's major and minor numbers
+///
+/// Also allows conversion to/from a single 64bit value.
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Serialize, Deserialize)]
+pub struct Device {
+    /// Device major number
+    pub major: u32,
+    /// Device minor number
+    pub minor: u8,
+}
