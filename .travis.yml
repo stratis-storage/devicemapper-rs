@@ -1,2 +1,11 @@
 language: rust
-rust: nightly
+rust:
+  - stable
+  - beta
+  - nightly
+script:
+  - cargo build --verbose && cargo test --verbose
+  - |
+    [ $TRAVIS_RUST_VERSION != nightly ] ||
+    ( cargo build --verbose --features clippy &&
+      cargo test --verbose --features clippy )

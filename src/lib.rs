@@ -36,9 +36,10 @@
 //! Devices have "active" and "inactive" mapping tables. See function
 //! descriptions for which table they affect.
 
-#![feature(custom_derive, plugin)]
-#![plugin(serde_macros)]
-#![plugin(clippy)]
+#![cfg_attr(feature = "clippy", feature(plugin))]
+#![cfg_attr(feature = "clippy", plugin(clippy))]
+#![cfg_attr(not(feature = "clippy"), allow(unknown_lints))]
+
 #![warn(missing_docs)]
 
 #![allow(used_underscore_binding)]
@@ -47,7 +48,6 @@
 extern crate libc;
 #[macro_use]
 extern crate nix;
-extern crate serde;
 
 #[macro_use]
 extern crate bitflags;
@@ -135,7 +135,7 @@ bitflags!(
 /// A struct containing the device's major and minor numbers
 ///
 /// Also allows conversion to/from a single 64bit value.
-#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Serialize, Deserialize)]
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone, Copy)]
 pub struct Device {
     /// Device major number
     pub major: u32,
