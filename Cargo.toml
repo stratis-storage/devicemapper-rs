@@ -1,6 +1,6 @@
 [package]
 name = "devicemapper"
-version = "0.4.0"
+version = "0.4.1"
 authors = ["Andy Grover <agrover@redhat.com>"]
 description = "A library for using Linux device mapper"
 documentation = "http://agrover.github.io/devicemapper-rs/doc/devicemapper/index.html"
@@ -19,3 +19,6 @@ libc = "0.2"
 nix = "0.5"
 bitflags = "0.4"
 clippy = { version = "0", optional = true }
+newtype_derive = "0.1"
+custom_derive = "0.1"
+serde = "0"

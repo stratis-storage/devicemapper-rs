@@ -45,16 +45,25 @@
 #![allow(used_underscore_binding)]
 #![allow(if_not_else)]
 
+#[macro_use]
+extern crate custom_derive;
+#[macro_use]
+extern crate newtype_derive;
+
 extern crate libc;
 #[macro_use]
 extern crate nix;
-
+extern crate serde;
 #[macro_use]
 extern crate bitflags;
 
 #[allow(dead_code, non_camel_case_types)]
 mod dm_ioctl;
 mod util;
+/// Module for basic types (Bytes, Sectors, DataBlocks)
+pub mod types;
+/// Module for shared constants
+pub mod consts;
 
 use std::fs::File;
 use std::io;
