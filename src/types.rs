@@ -50,13 +50,13 @@ macro_rules! unsigned_rem {
     }
 }
 
-// A type for Data Blocks as used by the thin pool.
 custom_derive! {
     #[derive(NewtypeAdd, NewtypeAddAssign,
              NewtypeDeref,
              NewtypeFrom,
              NewtypeSub,
              Debug, Clone, Copy, Eq, PartialEq, PartialOrd, Ord)]
+    /// A type for Data Blocks as used by the thin pool.
     pub struct DataBlocks(pub u64);
 }
 
@@ -112,6 +112,8 @@ custom_derive! {
              NewtypeFrom,
              NewtypeSub,
              Debug, Clone, Copy, Eq, PartialEq, PartialOrd, Ord)]
+    /// A separate type to store counts and offsets expressed in
+    /// 512-byte sectors.
     pub struct Sectors(pub u64);
 }
 
