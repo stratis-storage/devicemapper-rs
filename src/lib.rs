@@ -45,16 +45,25 @@
 #![allow(used_underscore_binding)]
 #![allow(if_not_else)]
 
+#[macro_use]
+extern crate custom_derive;
+#[macro_use]
+extern crate newtype_derive;
+
 extern crate libc;
 #[macro_use]
 extern crate nix;
-
+extern crate serde;
 #[macro_use]
 extern crate bitflags;
 
 #[allow(dead_code, non_camel_case_types)]
 mod dm_ioctl;
 mod util;
+/// Module for basic types (Bytes, Sectors, DataBlocks)
+pub mod types;
+/// Module for shared constants
+pub mod consts;
 
 use std::fs::File;
 use std::io;
@@ -77,7 +86,7 @@ use dm_ioctl as dmi;
 use util::align_to;
 
 const DM_IOCTL: u8 = 0xfd;
-const DM_CTL_PATH: &'static str= "/dev/mapper/control";
+const DM_CTL_PATH: &'static str = "/dev/mapper/control";
 
 const DM_VERSION_MAJOR: u32 = 4;
 const DM_VERSION_MINOR: u32 = 30;
@@ -146,8 +155,7 @@ pub struct Device {
 impl Device {
     /// Returns the path in `/dev` that corresponds with the device number.
     pub fn path(&self) -> Option<PathBuf> {
-        let f = File::open("/proc/partitions")
-            .expect("Could not open /proc/partitions");
+        let f = File::open("/proc/partitions").expect("Could not open /proc/partitions");
 
         let reader = BufReader::new(f);
 
@@ -155,10 +163,10 @@ impl Device {
             if let Ok(line) = line {
                 let spl: Vec<_> = line.split_whitespace().collect();
 
-                if spl[0].parse::<u32>().unwrap() == self.major
-                    && spl[1].parse::<u8>().unwrap() == self.minor {
-                        return Some(PathBuf::from(format!("/dev/{}", spl[3])));
-                    }
+                if spl[0].parse::<u32>().unwrap() == self.major &&
+                   spl[1].parse::<u8>().unwrap() == self.minor {
+                    return Some(PathBuf::from(format!("/dev/{}", spl[3])));
+                }
             }
         }
         None
@@ -179,14 +187,14 @@ impl FromStr for Device {
             Err(_) => {
                 match Path::new(s).metadata() {
                     Ok(x) => {
-                        if x.mode() & 0x6000 == 0x6000 { // S_IFBLK
+                        if x.mode() & 0x6000 == 0x6000 {
+                            // S_IFBLK
                             Ok(Device::from(x.rdev()))
                         } else {
-                            Err(Error::new(
-                                InvalidInput, format!("{} not block device", s)))
+                            Err(Error::new(InvalidInput, format!("{} not block device", s)))
                         }
-                    },
-                    Err(x) => Err(x)
+                    }
+                    Err(x) => Err(x),
                 }
             }
         }
@@ -195,7 +203,10 @@ impl FromStr for Device {
 
 impl From<u64> for Device {
     fn from(val: u64) -> Device {
-        Device { major: (val >> 8) as u32, minor: (val & 0xff) as u8 }
+        Device {
+            major: (val >> 8) as u32,
+            minor: (val & 0xff) as u8,
+        }
     }
 }
 
@@ -210,8 +221,7 @@ impl From<Device> for u64 {
 pub fn dev_majors() -> BTreeSet<u32> {
     let mut set = BTreeSet::new();
 
-    let f = File::open("/proc/devices")
-        .expect("Could not open /proc/devices");
+    let f = File::open("/proc/devices").expect("Could not open /proc/devices");
 
     let reader = BufReader::new(f);
 
@@ -219,12 +229,12 @@ pub fn dev_majors() -> BTreeSet<u32> {
         .filter_map(|x| x.ok())
         .skip_while(|x| x != "Block devices:")
         .skip(1) {
-            let spl: Vec<_> = line.split_whitespace().collect();
+        let spl: Vec<_> = line.split_whitespace().collect();
 
-            if spl[1] == "device-mapper" {
-                set.insert(spl[0].parse::<u32>().unwrap());
-            }
+        if spl[1] == "device-mapper" {
+            set.insert(spl[0].parse::<u32>().unwrap());
         }
+    }
 
     set
 }
@@ -303,9 +313,7 @@ pub struct DM {
 impl DM {
     /// Create a new context for communicating with DM.
     pub fn new() -> io::Result<DM> {
-        Ok(DM {
-            file: try!(File::open(DM_CTL_PATH)),
-        })
+        Ok(DM { file: try!(File::open(DM_CTL_PATH)) })
     }
 
     fn initialize_hdr(hdr: &mut dmi::Struct_dm_ioctl, flags: DmFlags) -> () {
@@ -330,11 +338,13 @@ impl DM {
         uuid_dest[..len].clone_from_slice(uuid.as_bytes());
     }
 
-    //
     // Give this a filled-in header and optionally add'l stuff.
     // Does the ioctl and maybe returns stuff. Handles BUFFER_FULL flag.
     //
-    fn do_ioctl(&self, ioctl: u8, hdr: &mut dmi::Struct_dm_ioctl, in_data: Option<&[u8]>)
+    fn do_ioctl(&self,
+                ioctl: u8,
+                hdr: &mut dmi::Struct_dm_ioctl,
+                in_data: Option<&[u8]>)
                 -> io::Result<Vec<u8>> {
         // Create in-buf by copying hdr and any in-data into a linear
         // Vec v.  'hdr_slc' also aliases hdr as a &[u8], used first
@@ -343,9 +353,9 @@ impl DM {
 
         // Start with a large buffer to make BUFFER_FULL rare. Libdm
         // does this too.
-        hdr.data_size = cmp::max(
-            MIN_BUF_SIZE,
-            size_of::<dmi::Struct_dm_ioctl>() + in_data.map_or(0, |x| x.len())) as u32;
+        hdr.data_size = cmp::max(MIN_BUF_SIZE,
+                                 size_of::<dmi::Struct_dm_ioctl>() +
+                                 in_data.map_or(0, |x| x.len())) as u32;
         let mut v: Vec<u8> = Vec::with_capacity(hdr.data_size as usize);
 
         let hdr_slc = unsafe {
@@ -363,8 +373,7 @@ impl DM {
         let cap = v.capacity();
         v.resize(cap, 0);
 
-        let op = iorw!(DM_IOCTL, ioctl,
-                       size_of::<dmi::Struct_dm_ioctl>()) as c_ulong;
+        let op = iorw!(DM_IOCTL, ioctl, size_of::<dmi::Struct_dm_ioctl>()) as c_ulong;
         loop {
             if let Err(_) = unsafe {
                 convert_ioctl_res!(nix_ioctl(self.file.as_raw_fd(), op, v.as_mut_ptr()))
@@ -372,12 +381,10 @@ impl DM {
                 return Err((Error::last_os_error()));
             }
 
-            let hdr = unsafe {
-                (v.as_mut_ptr() as *mut dmi::Struct_dm_ioctl).as_mut().unwrap()
-            };
+            let hdr = unsafe { (v.as_mut_ptr() as *mut dmi::Struct_dm_ioctl).as_mut().unwrap() };
 
             if (hdr.flags & DM_BUFFER_FULL.bits) == 0 {
-                break
+                break;
             }
 
             let len = v.len();
@@ -385,9 +392,7 @@ impl DM {
             hdr.data_size = v.len() as u32;
         }
 
-        let hdr = unsafe {
-            (v.as_mut_ptr() as *mut dmi::Struct_dm_ioctl).as_mut().unwrap()
-        };
+        let hdr = unsafe { (v.as_mut_ptr() as *mut dmi::Struct_dm_ioctl).as_mut().unwrap() };
 
         // hdr possibly modified so copy back
         hdr_slc.clone_from_slice(&v[..hdr.data_start as usize]);
@@ -435,8 +440,7 @@ impl DM {
         // No flags checked so don't pass any
         Self::initialize_hdr(&mut hdr, DmFlags::empty());
 
-        let data_out = try!(self.do_ioctl(dmi::DM_LIST_DEVICES_CMD as u8,
-                                          &mut hdr, None));
+        let data_out = try!(self.do_ioctl(dmi::DM_LIST_DEVICES_CMD as u8, &mut hdr, None));
 
         let mut devs = Vec::new();
         if !data_out.is_empty() {
@@ -447,13 +451,14 @@ impl DM {
                     (result.as_ptr() as *const dmi::Struct_dm_name_list).as_ref().unwrap()
                 };
 
-                let slc = slice_to_null(
-                    &result[size_of::<dmi::Struct_dm_name_list>()..])
+                let slc = slice_to_null(&result[size_of::<dmi::Struct_dm_name_list>()..])
                     .expect("Bad data from ioctl");
                 let dm_name = String::from_utf8_lossy(slc).into_owned();
                 devs.push((dm_name, device.dev.into()));
 
-                if device.next == 0 { break }
+                if device.next == 0 {
+                    break;
+                }
 
                 result = &result[device.next as usize..];
             }
@@ -475,7 +480,10 @@ impl DM {
     /// // Setting a uuid is optional
     /// let dev = dm.device_create("example-dev", None, DmFlags::empty()).unwrap();
     /// ```
-    pub fn device_create(&self, name: &str, uuid: Option<&str>, flags: DmFlags)
+    pub fn device_create(&self,
+                         name: &str,
+                         uuid: Option<&str>,
+                         flags: DmFlags)
                          -> io::Result<DeviceInfo> {
         let mut hdr: dmi::Struct_dm_ioctl = Default::default();
 
@@ -490,7 +498,7 @@ impl DM {
 
         try!(self.do_ioctl(dmi::DM_DEV_CREATE_CMD as u8, &mut hdr, None));
 
-        Ok(DeviceInfo {hdr: hdr})
+        Ok(DeviceInfo { hdr: hdr })
     }
 
     /// Remove a DM device and its mapping tables.
@@ -513,7 +521,7 @@ impl DM {
 
         try!(self.do_ioctl(dmi::DM_DEV_REMOVE_CMD as u8, &mut hdr, None));
 
-        Ok(DeviceInfo {hdr: hdr})
+        Ok(DeviceInfo { hdr: hdr })
     }
 
     /// Change a DM device's name.
@@ -521,7 +529,10 @@ impl DM {
     /// If DM_UUID is set, change the UUID instead.
     ///
     /// Valid flags: DM_UUID
-    pub fn device_rename(&self, old_name: &str, new_name: &str, flags: DmFlags)
+    pub fn device_rename(&self,
+                         old_name: &str,
+                         new_name: &str,
+                         flags: DmFlags)
                          -> io::Result<DeviceInfo> {
         let mut hdr: dmi::Struct_dm_ioctl = Default::default();
 
@@ -538,8 +549,7 @@ impl DM {
         };
 
         if new_name.as_bytes().len() > max_len {
-            return Err(
-                Error::new(Other, format!("New name {} too long", new_name)));
+            return Err(Error::new(Other, format!("New name {} too long", new_name)));
         }
 
         let mut data_in = new_name.as_bytes().to_vec();
@@ -547,7 +557,7 @@ impl DM {
 
         try!(self.do_ioctl(dmi::DM_DEV_RENAME_CMD as u8, &mut hdr, Some(&data_in)));
 
-        Ok(DeviceInfo {hdr: hdr})
+        Ok(DeviceInfo { hdr: hdr })
     }
 
     /// Suspend or resume a DM device, depending on if DM_SUSPEND flag
@@ -584,7 +594,7 @@ impl DM {
 
         try!(self.do_ioctl(dmi::DM_DEV_SUSPEND_CMD as u8, &mut hdr, None));
 
-        Ok(DeviceInfo {hdr: hdr})
+        Ok(DeviceInfo { hdr: hdr })
     }
 
     /// Get DeviceInfo for a device. This is also returned by other
@@ -602,7 +612,7 @@ impl DM {
 
         try!(self.do_ioctl(dmi::DM_DEV_STATUS_CMD as u8, &mut hdr, None));
 
-        Ok(DeviceInfo {hdr: hdr})
+        Ok(DeviceInfo { hdr: hdr })
     }
 
     /// Wait for a device to report an event.
@@ -612,8 +622,10 @@ impl DM {
     ///
     /// This interface is not very friendly to monitoring multiple devices.
     /// Events are also exported via uevents, that method may be preferable.
-    pub fn device_wait(&self, name: &DevId, flags: DmFlags)
-                        -> io::Result<(DeviceInfo, Vec<TargetLine>)> {
+    pub fn device_wait(&self,
+                       name: &DevId,
+                       flags: DmFlags)
+                       -> io::Result<(DeviceInfo, Vec<TargetLine>)> {
         let mut hdr: dmi::Struct_dm_ioctl = Default::default();
 
         let clean_flags = DM_QUERY_INACTIVE_TABLE & flags;
@@ -628,7 +640,7 @@ impl DM {
 
         let status = try!(Self::parse_table_status(hdr.target_count, &data_out));
 
-        Ok((DeviceInfo {hdr: hdr}, status))
+        Ok((DeviceInfo { hdr: hdr }, status))
 
     }
 
@@ -650,10 +662,12 @@ impl DM {
     ///
     /// dm.table_load(&DevId::Name("example-dev"), &table).unwrap();
     /// ```
-    pub fn table_load<T1, T2>(&self, name: &DevId, targets: &[(u64, u64, T1, T2)])
-                      -> io::Result<DeviceInfo>
+    pub fn table_load<T1, T2>(&self,
+                              name: &DevId,
+                              targets: &[(u64, u64, T1, T2)])
+                              -> io::Result<DeviceInfo>
         where T1: Borrow<str>,
-              T2: Borrow<str>,
+              T2: Borrow<str>
     {
         let mut targs = Vec::new();
 
@@ -665,9 +679,7 @@ impl DM {
             targ.length = t.1;
             targ.status = 0;
 
-            let mut dst: &mut [u8] = unsafe {
-                transmute(&mut targ.target_type[..])
-            };
+            let mut dst: &mut [u8] = unsafe { transmute(&mut targ.target_type[..]) };
 
             let ttyp_len = if t.2.borrow().len() > dst.len() {
                 return Err(Error::new(Other, "target type too long"));
@@ -679,12 +691,10 @@ impl DM {
 
             let mut params = t.3.borrow().to_owned();
 
-            let pad_bytes = align_to(
-                params.len() + 1usize, 8usize) - params.len();
+            let pad_bytes = align_to(params.len() + 1usize, 8usize) - params.len();
             params.extend(vec!["\0"; pad_bytes]);
 
-            targ.next = (size_of::<dmi::Struct_dm_target_spec>()
-                         + params.len()) as u32;
+            targ.next = (size_of::<dmi::Struct_dm_target_spec>() + params.len()) as u32;
 
             targs.push((targ, params));
         }
@@ -707,8 +717,7 @@ impl DM {
         for (targ, param) in targs {
             unsafe {
                 let ptr: *mut u8 = transmute(&targ);
-                let slc = slice::from_raw_parts(
-                    ptr, size_of::<dmi::Struct_dm_target_spec>());
+                let slc = slice::from_raw_parts(ptr, size_of::<dmi::Struct_dm_target_spec>());
                 data_in.extend_from_slice(slc);
             }
 
@@ -717,7 +726,7 @@ impl DM {
 
         try!(self.do_ioctl(dmi::DM_TABLE_LOAD_CMD as u8, &mut hdr, Some(&data_in)));
 
-        Ok(DeviceInfo {hdr: hdr})
+        Ok(DeviceInfo { hdr: hdr })
     }
 
     /// Clear the "inactive" table for a device.
@@ -733,7 +742,7 @@ impl DM {
 
         try!(self.do_ioctl(dmi::DM_TABLE_CLEAR_CMD as u8, &mut hdr, None));
 
-        Ok(DeviceInfo {hdr: hdr})
+        Ok(DeviceInfo { hdr: hdr })
     }
 
     /// Query DM for which devices are referenced by the "active"
@@ -751,15 +760,13 @@ impl DM {
         Self::initialize_hdr(&mut hdr, clean_flags);
         hdr.dev = dev.into();
 
-        let data_out = try!(self.do_ioctl(dmi::DM_TABLE_DEPS_CMD as u8,
-                                          &mut hdr, None));
+        let data_out = try!(self.do_ioctl(dmi::DM_TABLE_DEPS_CMD as u8, &mut hdr, None));
 
         let mut devs = Vec::new();
         if !data_out.is_empty() {
             let result = &data_out[..];
-            let target_deps = unsafe {
-                (result.as_ptr() as *const dmi::Struct_dm_target_deps).as_ref().unwrap()
-            };
+            let target_deps =
+                unsafe { (result.as_ptr() as *const dmi::Struct_dm_target_deps).as_ref().unwrap() };
 
             let dev_slc = unsafe {
                 slice::from_raw_parts(
@@ -778,8 +785,7 @@ impl DM {
 
     // Both table_status and dev_wait return table status, so
     // unify table status parsing.
-    fn parse_table_status(count: u32, buf: &[u8])
-                          -> io::Result<Vec<(u64, u64, String, String)>> {
+    fn parse_table_status(count: u32, buf: &[u8]) -> io::Result<Vec<(u64, u64, String, String)>> {
         let mut targets = Vec::new();
         if buf.len() > 0 {
             let mut next_off = 0;
@@ -798,8 +804,7 @@ impl DM {
                 };
 
                 let params = {
-                    let slc = slice_to_null(
-                        &buf[size_of::<dmi::Struct_dm_target_spec>()..])
+                    let slc = slice_to_null(&buf[size_of::<dmi::Struct_dm_target_spec>()..])
                         .expect("bad data from ioctl");
                     String::from_utf8_lossy(slc).into_owned()
                 };
@@ -837,12 +842,13 @@ impl DM {
     /// let res = dm.table_status(&DevId::Name("example-dev"), DM_STATUS_TABLE).unwrap();
     /// println!("{} {:?}", res.0.name(), res.1);
     /// ```
-    pub fn table_status(&self, name: &DevId, flags: DmFlags)
+    pub fn table_status(&self,
+                        name: &DevId,
+                        flags: DmFlags)
                         -> io::Result<(DeviceInfo, Vec<TargetLine>)> {
         let mut hdr: dmi::Struct_dm_ioctl = Default::default();
 
-        let clean_flags =
-            (DM_NOFLUSH | DM_STATUS_TABLE | DM_QUERY_INACTIVE_TABLE) & flags;
+        let clean_flags = (DM_NOFLUSH | DM_STATUS_TABLE | DM_QUERY_INACTIVE_TABLE) & flags;
 
         Self::initialize_hdr(&mut hdr, clean_flags);
         match *name {
@@ -850,12 +856,11 @@ impl DM {
             DevId::Uuid(uuid) => Self::hdr_set_uuid(&mut hdr, uuid),
         };
 
-        let data_out = try!(self.do_ioctl(dmi::DM_TABLE_STATUS_CMD as u8,
-                                          &mut hdr, None));
+        let data_out = try!(self.do_ioctl(dmi::DM_TABLE_STATUS_CMD as u8, &mut hdr, None));
 
         let status = try!(Self::parse_table_status(hdr.target_count, &data_out));
 
-        Ok((DeviceInfo {hdr: hdr}, status))
+        Ok((DeviceInfo { hdr: hdr }, status))
     }
 
     /// Returns a list of each loaded target type with its name, and
@@ -866,8 +871,7 @@ impl DM {
         // No flags checked so don't pass any
         Self::initialize_hdr(&mut hdr, DmFlags::empty());
 
-        let data_out = try!(self.do_ioctl(dmi::DM_LIST_VERSIONS_CMD as u8,
-                                          &mut hdr, None));
+        let data_out = try!(self.do_ioctl(dmi::DM_LIST_VERSIONS_CMD as u8, &mut hdr, None));
 
         let mut targets = Vec::new();
         if !data_out.is_empty() {
@@ -876,16 +880,19 @@ impl DM {
             loop {
                 let tver = unsafe {
                     (result.as_ptr() as *const dmi::Struct_dm_target_versions)
-                        .as_ref().unwrap()
+                        .as_ref()
+                        .unwrap()
                 };
 
-                let name_slc = slice_to_null(
-                    &result[size_of::<dmi::Struct_dm_target_versions>()..])
-                    .expect("bad data from ioctl");
+                let name_slc =
+                    slice_to_null(&result[size_of::<dmi::Struct_dm_target_versions>()..])
+                        .expect("bad data from ioctl");
                 let name = String::from_utf8_lossy(name_slc).into_owned();
                 targets.push((name, tver.version[0], tver.version[1], tver.version[2]));
 
-                if tver.next == 0 { break }
+                if tver.next == 0 {
+                    break;
+                }
 
                 result = &result[tver.next as usize..];
             }
@@ -897,7 +904,10 @@ impl DM {
     /// Send a message to the target at a given sector. If sector is
     /// not needed use 0.  DM-wide messages start with '@', and may
     /// return a string; targets do not.
-    pub fn target_msg(&self, name: &DevId, sector: u64, msg: &str)
+    pub fn target_msg(&self,
+                      name: &DevId,
+                      sector: u64,
+                      msg: &str)
                       -> io::Result<(DeviceInfo, Option<String>)> {
         let mut hdr: dmi::Struct_dm_ioctl = Default::default();
 
@@ -919,13 +929,11 @@ impl DM {
         data_in.extend(msg.as_bytes());
         data_in.push(b'\0');
 
-        let data_out = try!(self.do_ioctl(dmi::DM_TARGET_MSG_CMD as u8,
-                                          &mut hdr, Some(&data_in)));
+        let data_out = try!(self.do_ioctl(dmi::DM_TARGET_MSG_CMD as u8, &mut hdr, Some(&data_in)));
 
-        Ok((DeviceInfo {hdr: hdr},
+        Ok((DeviceInfo { hdr: hdr },
             if (hdr.flags & DM_DATA_OUT.bits) > 0 {
-                Some(String::from_utf8_lossy(
-                    &data_out[..data_out.len()-1]).into_owned())
+                Some(String::from_utf8_lossy(&data_out[..data_out.len() - 1]).into_owned())
             } else {
                 None
             }))
@@ -954,12 +962,13 @@ impl DM {
     }
 }
 
-//
 // Return up to the first \0, or None
 //
 fn slice_to_null(slc: &[u8]) -> Option<&[u8]> {
     for (i, c) in slc.iter().enumerate() {
-        if *c == b'\0' { return Some(&slc[..i]) };
+        if *c == b'\0' {
+            return Some(&slc[..i]);
+        };
     }
     None
 }
