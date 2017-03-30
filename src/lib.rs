@@ -70,6 +70,10 @@ pub mod types;
 pub mod consts;
 /// functions to create continuous linear space given device segments
 pub mod lineardev;
+/// allocate a device from a pool
+pub mod thindev;
+/// thinpooldev is shared space for  other thin provisioned devices to use
+pub mod thinpooldev;
 /// struct to represent a location, offset and size of a set of disk sectors
 pub mod segment;
 /// return results container

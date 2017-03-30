@@ -14,8 +14,6 @@ use types::{Bytes, Sectors};
 
 /// A DM construct of combined Segments
 pub struct LinearDev {
-    /// Device mapper file name - /dev/mapper/<name>
-    name: String,
     /// Data about the device
     dev_info: DeviceInfo,
 }
@@ -41,10 +39,7 @@ impl LinearDev {
         try!(dm.device_suspend(id, DmFlags::empty()));
 
         DM::wait_for_dm();
-        Ok(LinearDev {
-               name: name.to_owned(),
-               dev_info: dev_info,
-           })
+        Ok(LinearDev { dev_info: dev_info })
     }
 
     /// Generate a Vec<> to be passed to DM.  The format of the Vec entries is:
@@ -79,7 +74,7 @@ impl LinearDev {
         blkdev_size(&f)
     }
 
-    /// path of the device
+    /// path of the device node
     pub fn devnode(&self) -> DmResult<PathBuf> {
         self.dev_info
             .device()
@@ -89,7 +84,7 @@ impl LinearDev {
 
     /// Remove the device from DM
     pub fn teardown(&self, dm: &DM) -> DmResult<()> {
-        try!(dm.device_remove(&DevId::Name(&self.name), DmFlags::empty()));
+        try!(dm.device_remove(&DevId::Name(&self.name()), DmFlags::empty()));
         Ok(())
     }
 }
