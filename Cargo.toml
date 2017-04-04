@@ -1,6 +1,6 @@
 [package]
 name = "devicemapper"
-version = "0.4.1"
+version = "0.4.2"
 authors = ["Andy Grover <agrover@redhat.com>"]
 description = "A library for using Linux device mapper"
 documentation = "https://docs.rs/devicemapper/"
