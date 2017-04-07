@@ -2,15 +2,15 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-use {DM, DevId, DeviceInfo, DmFlags};
-use segment::Segment;
 use std::fmt;
 use std::fs::File;
 use std::path::PathBuf;
 
-use util::blkdev_size;
+use {DM, DevId, DeviceInfo, DmFlags};
 use result::{DmResult, DmError, InternalError};
+use segment::Segment;
 use types::{Bytes, Sectors};
+use util::blkdev_size;
 
 /// A DM construct of combined Segments
 pub struct LinearDev {

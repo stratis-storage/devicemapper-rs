@@ -2,14 +2,14 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-use {DM, DevId, DeviceInfo, DmFlags};
-use result::{DmResult, DmError, InternalError};
-use thinpooldev::ThinPoolDev;
-
 use std::fmt;
 use std::path::Path;
 use std::path::PathBuf;
 use std::process::Command;
+
+use {DM, DevId, DeviceInfo, DmFlags};
+use result::{DmResult, DmError, InternalError};
+use thinpooldev::ThinPoolDev;
 
 use types::Sectors;
 
