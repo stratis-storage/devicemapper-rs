@@ -57,13 +57,24 @@ extern crate serde;
 #[macro_use]
 extern crate bitflags;
 
+#[macro_use]
+extern crate log;
+
 #[allow(dead_code, non_camel_case_types)]
 mod dm_ioctl;
-mod util;
-/// Module for basic types (Bytes, Sectors, DataBlocks)
+/// public utilities
+pub mod util;
+/// basic types (Bytes, Sectors, DataBlocks)
 pub mod types;
-/// Module for shared constants
+/// shared constants
 pub mod consts;
+/// functions to create continuous linear space given device segments
+pub mod lineardev;
+/// struct to represent a location, offset and size of a set of disk sectors
+pub mod segment;
+/// return results container
+pub mod result;
+
 
 use std::fs::File;
 use std::io;
@@ -78,6 +89,8 @@ use std::collections::BTreeSet;
 use std::os::unix::fs::MetadataExt;
 use std::cmp;
 use std::borrow::Borrow;
+use std::thread;
+use std::time::Duration;
 
 use nix::sys::ioctl::ioctl as nix_ioctl;
 use nix::sys::ioctl::libc::c_ulong;
@@ -153,8 +166,8 @@ pub struct Device {
 }
 
 impl Device {
-    /// Returns the path in `/dev` that corresponds with the device number.
-    pub fn path(&self) -> Option<PathBuf> {
+    /// Returns the path in `/dev` that corresponds with the device number/devnode.
+    pub fn devnode(&self) -> Option<PathBuf> {
         let f = File::open("/proc/partitions").expect("Could not open /proc/partitions");
 
         let reader = BufReader::new(f);
@@ -225,10 +238,11 @@ pub fn dev_majors() -> BTreeSet<u32> {
 
     let reader = BufReader::new(f);
 
-    for line in reader.lines()
-        .filter_map(|x| x.ok())
-        .skip_while(|x| x != "Block devices:")
-        .skip(1) {
+    for line in reader
+            .lines()
+            .filter_map(|x| x.ok())
+            .skip_while(|x| x != "Block devices:")
+            .skip(1) {
         let spl: Vec<_> = line.split_whitespace().collect();
 
         if spl[1] == "device-mapper" {
@@ -316,6 +330,12 @@ impl DM {
         Ok(DM { file: try!(File::open(DM_CTL_PATH)) })
     }
 
+    /// The /dev/mapper/<name> device is not immediately available for use.
+    /// TODO: Implement wait for event or poll.
+    pub fn wait_for_dm() {
+        thread::sleep(Duration::from_millis(500))
+    }
+
     fn initialize_hdr(hdr: &mut dmi::Struct_dm_ioctl, flags: DmFlags) -> () {
         hdr.version[0] = DM_VERSION_MAJOR;
         hdr.version[1] = DM_VERSION_MINOR;
@@ -376,12 +396,16 @@ impl DM {
         let op = iorw!(DM_IOCTL, ioctl, size_of::<dmi::Struct_dm_ioctl>()) as c_ulong;
         loop {
             if let Err(_) = unsafe {
-                convert_ioctl_res!(nix_ioctl(self.file.as_raw_fd(), op, v.as_mut_ptr()))
-            } {
+                   convert_ioctl_res!(nix_ioctl(self.file.as_raw_fd(), op, v.as_mut_ptr()))
+               } {
                 return Err((Error::last_os_error()));
             }
 
-            let hdr = unsafe { (v.as_mut_ptr() as *mut dmi::Struct_dm_ioctl).as_mut().unwrap() };
+            let hdr = unsafe {
+                (v.as_mut_ptr() as *mut dmi::Struct_dm_ioctl)
+                    .as_mut()
+                    .unwrap()
+            };
 
             if (hdr.flags & DM_BUFFER_FULL.bits) == 0 {
                 break;
@@ -392,7 +416,11 @@ impl DM {
             hdr.data_size = v.len() as u32;
         }
 
-        let hdr = unsafe { (v.as_mut_ptr() as *mut dmi::Struct_dm_ioctl).as_mut().unwrap() };
+        let hdr = unsafe {
+            (v.as_mut_ptr() as *mut dmi::Struct_dm_ioctl)
+                .as_mut()
+                .unwrap()
+        };
 
         // hdr possibly modified so copy back
         hdr_slc.clone_from_slice(&v[..hdr.data_start as usize]);
@@ -448,7 +476,9 @@ impl DM {
 
             loop {
                 let device = unsafe {
-                    (result.as_ptr() as *const dmi::Struct_dm_name_list).as_ref().unwrap()
+                    (result.as_ptr() as *const dmi::Struct_dm_name_list)
+                        .as_ref()
+                        .unwrap()
                 };
 
                 let slc = slice_to_null(&result[size_of::<dmi::Struct_dm_name_list>()..])
@@ -765,14 +795,16 @@ impl DM {
         let mut devs = Vec::new();
         if !data_out.is_empty() {
             let result = &data_out[..];
-            let target_deps =
-                unsafe { (result.as_ptr() as *const dmi::Struct_dm_target_deps).as_ref().unwrap() };
+            let target_deps = unsafe {
+                (result.as_ptr() as *const dmi::Struct_dm_target_deps)
+                    .as_ref()
+                    .unwrap()
+            };
 
             let dev_slc = unsafe {
-                slice::from_raw_parts(
-                    result[size_of::<dmi::Struct_dm_target_deps>()..]
-                        .as_ptr() as *const u64,
-                    target_deps.count as usize)
+                slice::from_raw_parts(result[size_of::<dmi::Struct_dm_target_deps>()..].as_ptr() as
+                                      *const u64,
+                                      target_deps.count as usize)
             };
 
             for dev in dev_slc {
@@ -794,7 +826,9 @@ impl DM {
             for _ in 0..count {
                 result = &result[next_off..];
                 let targ = unsafe {
-                    (result.as_ptr() as *const dmi::Struct_dm_target_spec).as_ref().unwrap()
+                    (result.as_ptr() as *const dmi::Struct_dm_target_spec)
+                        .as_ref()
+                        .unwrap()
                 };
 
                 let target_type = unsafe {
@@ -884,8 +918,8 @@ impl DM {
                         .unwrap()
                 };
 
-                let name_slc =
-                    slice_to_null(&result[size_of::<dmi::Struct_dm_target_versions>()..])
+                let name_slc = slice_to_null(&result
+                                                  [size_of::<dmi::Struct_dm_target_versions>()..])
                         .expect("bad data from ioctl");
                 let name = String::from_utf8_lossy(name_slc).into_owned();
                 targets.push((name, tver.version[0], tver.version[1], tver.version[2]));
