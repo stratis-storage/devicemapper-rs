@@ -166,8 +166,8 @@ pub struct Device {
 }
 
 impl Device {
-    /// Returns the path in `/dev` that corresponds with the device number.
-    pub fn path(&self) -> Option<PathBuf> {
+    /// Returns the path in `/dev` that corresponds with the device number/devnode.
+    pub fn devnode(&self) -> Option<PathBuf> {
         let f = File::open("/proc/partitions").expect("Could not open /proc/partitions");
 
         let reader = BufReader::new(f);
