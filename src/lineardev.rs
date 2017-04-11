@@ -83,7 +83,7 @@ impl LinearDev {
     }
 
     /// Remove the device from DM
-    pub fn teardown(&self, dm: &DM) -> DmResult<()> {
+    pub fn teardown(self, dm: &DM) -> DmResult<()> {
         try!(dm.device_remove(&DevId::Name(&self.name()), DmFlags::empty()));
         Ok(())
     }

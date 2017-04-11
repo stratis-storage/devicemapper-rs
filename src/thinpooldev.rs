@@ -100,7 +100,7 @@ impl ThinPoolDev {
     }
 
     /// Remove the device from DM
-    pub fn teardown(&self, dm: &DM) -> DmResult<()> {
+    pub fn teardown(self, dm: &DM) -> DmResult<()> {
         try!(dm.device_remove(&DevId::Name(&self.name()), DmFlags::empty()));
         try!(self.data_dev.teardown(dm));
         try!(self.meta_dev.teardown(dm));
