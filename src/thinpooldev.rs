@@ -42,7 +42,7 @@ impl ThinPoolDev {
                meta: LinearDev,
                data: LinearDev)
                -> DmResult<ThinPoolDev> {
-        try!(dm.device_create(&name, None, DmFlags::empty()));
+        try!(dm.device_create(name, None, DmFlags::empty()));
 
         let meta_dev_path = try!(meta.devnode());
         let data_dev_path = try!(data.devnode());
@@ -51,7 +51,7 @@ impl ThinPoolDev {
                                           low_water_mark,
                                           &meta_dev_path,
                                           &data_dev_path);
-        let id = &DevId::Name(&name);
+        let id = &DevId::Name(name);
         let di = try!(dm.table_load(id, &table));
         try!(dm.device_suspend(id, DmFlags::empty()));
 
@@ -101,7 +101,7 @@ impl ThinPoolDev {
 
     /// Remove the device from DM
     pub fn teardown(self, dm: &DM) -> DmResult<()> {
-        try!(dm.device_remove(&DevId::Name(&self.name()), DmFlags::empty()));
+        try!(dm.device_remove(&DevId::Name(self.name()), DmFlags::empty()));
         try!(self.data_dev.teardown(dm));
         try!(self.meta_dev.teardown(dm));
         Ok(())

@@ -32,9 +32,9 @@ impl LinearDev {
     /// metadata on each DmDev.
     pub fn new(name: &str, dm: &DM, block_devs: &[&Segment]) -> DmResult<LinearDev> {
 
-        try!(dm.device_create(&name, None, DmFlags::empty()));
+        try!(dm.device_create(name, None, DmFlags::empty()));
         let table = LinearDev::dm_table(block_devs);
-        let id = &DevId::Name(&name);
+        let id = &DevId::Name(name);
         let dev_info = try!(dm.table_load(id, &table));
         try!(dm.device_suspend(id, DmFlags::empty()));
 
@@ -84,7 +84,7 @@ impl LinearDev {
 
     /// Remove the device from DM
     pub fn teardown(self, dm: &DM) -> DmResult<()> {
-        try!(dm.device_remove(&DevId::Name(&self.name()), DmFlags::empty()));
+        try!(dm.device_remove(&DevId::Name(self.name()), DmFlags::empty()));
         Ok(())
     }
 }
