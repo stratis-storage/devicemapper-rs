@@ -2,20 +2,18 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-use {DM, DevId, DeviceInfo, DmFlags};
-use segment::Segment;
 use std::fmt;
 use std::fs::File;
 use std::path::PathBuf;
 
-use util::blkdev_size;
+use {DM, DevId, DeviceInfo, DmFlags};
 use result::{DmResult, DmError, InternalError};
+use segment::Segment;
 use types::{Bytes, Sectors};
+use util::blkdev_size;
 
 /// A DM construct of combined Segments
 pub struct LinearDev {
-    /// Device mapper file name - /dev/mapper/<name>
-    name: String,
     /// Data about the device
     dev_info: DeviceInfo,
 }
@@ -34,17 +32,14 @@ impl LinearDev {
     /// metadata on each DmDev.
     pub fn new(name: &str, dm: &DM, block_devs: &[&Segment]) -> DmResult<LinearDev> {
 
-        try!(dm.device_create(&name, None, DmFlags::empty()));
+        try!(dm.device_create(name, None, DmFlags::empty()));
         let table = LinearDev::dm_table(block_devs);
-        let id = &DevId::Name(&name);
+        let id = &DevId::Name(name);
         let dev_info = try!(dm.table_load(id, &table));
         try!(dm.device_suspend(id, DmFlags::empty()));
 
         DM::wait_for_dm();
-        Ok(LinearDev {
-               name: name.to_owned(),
-               dev_info: dev_info,
-           })
+        Ok(LinearDev { dev_info: dev_info })
     }
 
     /// Generate a Vec<> to be passed to DM.  The format of the Vec entries is:
@@ -79,7 +74,7 @@ impl LinearDev {
         blkdev_size(&f)
     }
 
-    /// path of the device
+    /// path of the device node
     pub fn devnode(&self) -> DmResult<PathBuf> {
         self.dev_info
             .device()
@@ -88,8 +83,8 @@ impl LinearDev {
     }
 
     /// Remove the device from DM
-    pub fn teardown(&self, dm: &DM) -> DmResult<()> {
-        try!(dm.device_remove(&DevId::Name(&self.name), DmFlags::empty()));
+    pub fn teardown(self, dm: &DM) -> DmResult<()> {
+        try!(dm.device_remove(&DevId::Name(self.name()), DmFlags::empty()));
         Ok(())
     }
 }
