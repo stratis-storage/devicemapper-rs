@@ -12,10 +12,11 @@ use thinpooldev::ThinPoolDev;
 use types::Sectors;
 
 /// DM construct for a thin block device
-#[derive(Clone)]
 pub struct ThinDev {
     dev_info: DeviceInfo,
+    #[allow(dead_code)]
     thin_id: u32,
+    #[allow(dead_code)]
     size: Sectors,
 }
 
