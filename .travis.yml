@@ -2,9 +2,5 @@ language: rust
 rust:
   - stable
   - beta
-script:
-  - cargo build --verbose && cargo test --verbose
-  - |
-    [ $TRAVIS_RUST_VERSION != nightly ] ||
-    ( cargo build --verbose --features clippy &&
-      cargo test --verbose --features clippy )
+
+script: make check

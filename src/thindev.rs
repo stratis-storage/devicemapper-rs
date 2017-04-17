@@ -3,9 +3,7 @@
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 use std::fmt;
-use std::path::Path;
 use std::path::PathBuf;
-use std::process::Command;
 
 use {DM, DevId, DeviceInfo, DmFlags};
 use result::{DmResult, DmError, InternalError};
@@ -14,10 +12,11 @@ use thinpooldev::ThinPoolDev;
 use types::Sectors;
 
 /// DM construct for a thin block device
-#[derive(Clone)]
 pub struct ThinDev {
     dev_info: DeviceInfo,
+    #[allow(dead_code)]
     thin_id: u32,
+    #[allow(dead_code)]
     size: Sectors,
 }
 
