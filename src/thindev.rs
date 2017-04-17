@@ -5,7 +5,7 @@
 use std::fmt;
 use std::path::PathBuf;
 
-use consts::DmFlags;
+use consts::{DmFlags, DM_SUSPEND};
 use deviceinfo::DeviceInfo;
 use dm::{DM, DevId};
 use result::{DmResult, DmError, InternalError};
@@ -17,10 +17,9 @@ use types::{Bytes, Sectors};
 /// DM construct for a thin block device
 pub struct ThinDev {
     dev_info: DeviceInfo,
-    #[allow(dead_code)]
     thin_id: u32,
-    #[allow(dead_code)]
     size: Sectors,
+    thinpool_dstr: String,
 }
 
 impl fmt::Debug for ThinDev {
@@ -53,21 +52,23 @@ impl ThinDev {
         try!(thin_pool.message(dm, &format!("create_thin {}", thin_id)));
         try!(dm.device_create(name, None, DmFlags::empty()));
         let id = &DevId::Name(name);
-        let di = try!(dm.table_load(&id, &ThinDev::dm_table(&thin_pool, thin_id, length)));
+        let thin_pool_dstr = thin_pool.dstr();
+        let di = try!(dm.table_load(&id, &ThinDev::dm_table(&thin_pool_dstr, thin_id, length)));
         try!(dm.device_suspend(id, DmFlags::empty()));
         DM::wait_for_dm();
         Ok(ThinDev {
                dev_info: di,
                thin_id: thin_id,
                size: length,
+               thinpool_dstr: thin_pool_dstr,
            })
     }
 
     /// Generate a Vec<> to be passed to DM. The format of the Vec
     /// entries are: "<start> <length> thin <thinpool maj:min>
     /// <thin_id>"
-    fn dm_table(thin_pool: &ThinPoolDev, thin_id: u32, length: Sectors) -> Vec<TargetLine> {
-        let params = format!("{} {}", thin_pool.dstr(), thin_id);
+    fn dm_table(thin_pool_dstr: &str, thin_id: u32, length: Sectors) -> Vec<TargetLine> {
+        let params = format!("{} {}", thin_pool_dstr, thin_id);
         vec![(0u64, *length, "thin".to_owned(), params)]
     }
 
@@ -118,6 +119,22 @@ impl ThinDev {
                              Sectors(status_vals[1]
                                          .parse::<u64>()
                                          .expect("highest mapped sector value must be valid")))))
+    }
+
+    /// Extend the thin device's (virtual) size by the number of
+    /// sectors given.
+    pub fn extend(&mut self, dm: &DM, sectors: Sectors) -> DmResult<()> {
+
+        self.size = self.size + sectors;
+
+        let id = &DevId::Name(&self.dev_info.name());
+
+        try!(dm.table_load(id,
+                           &ThinDev::dm_table(&self.thinpool_dstr, self.thin_id, self.size)));
+        try!(dm.device_suspend(id, DM_SUSPEND));
+        try!(dm.device_suspend(id, DmFlags::empty()));
+
+        Ok(())
     }
 
     /// Remove the device from DM
