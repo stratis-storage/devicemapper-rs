@@ -3,7 +3,6 @@
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 use std::fmt;
-use std::path::Path;
 use std::path::PathBuf;
 
 use {DM, DevId, DeviceInfo, DmFlags};
@@ -11,6 +10,7 @@ use lineardev::LinearDev;
 use result::{DmResult, DmError, InternalError};
 use types::DataBlocks;
 use types::Sectors;
+use TargetLine;
 
 /// DM construct to contain thin provisioned devices
 pub struct ThinPoolDev {
@@ -44,15 +44,13 @@ impl ThinPoolDev {
                -> DmResult<ThinPoolDev> {
         try!(dm.device_create(name, None, DmFlags::empty()));
 
-        let meta_dev_path = try!(meta.devnode());
-        let data_dev_path = try!(data.devnode());
-        let table = ThinPoolDev::dm_table(length,
-                                          data_block_size,
-                                          low_water_mark,
-                                          &meta_dev_path,
-                                          &data_dev_path);
         let id = &DevId::Name(name);
-        let di = try!(dm.table_load(id, &table));
+        let di = try!(dm.table_load(id,
+                                    &ThinPoolDev::dm_table(length,
+                                                           data_block_size,
+                                                           low_water_mark,
+                                                           &meta,
+                                                           &data)));
         try!(dm.device_suspend(id, DmFlags::empty()));
 
         DM::wait_for_dm();
@@ -63,17 +61,18 @@ impl ThinPoolDev {
            })
     }
 
-    /// Generate a Vec<> to be passed to DM.  The format of the Vec entries is:
-    /// <start sec> <length> "thin-pool" /dev/meta /dev/data <block size> <low water mark>
+    /// Generate a Vec<> to be passed to DM. The format of the Vec
+    /// entries is: <start sec> <length> "thin-pool" <meta maj:min>
+    /// <data maj:min> <block size> <low water mark>
     fn dm_table(length: Sectors,
                 data_block_size: Sectors,
                 low_water_mark: DataBlocks,
-                meta_dev: &Path,
-                data_dev: &Path)
-                -> Vec<(u64, u64, String, String)> {
+                meta: &LinearDev,
+                data: &LinearDev)
+                -> Vec<TargetLine> {
         let params = format!("{} {} {} {} 1 skip_block_zeroing",
-                             meta_dev.to_string_lossy(),
-                             data_dev.to_string_lossy(),
+                             meta.dstr(),
+                             data.dstr(),
                              *data_block_size,
                              *low_water_mark);
         vec![(0u64, *length, "thin-pool".to_owned(), params)]
@@ -88,6 +87,11 @@ impl ThinPoolDev {
     /// name of the thin pool device
     pub fn name(&self) -> &str {
         self.dev_info.name()
+    }
+
+    /// Get the "x:y" device string for this LinearDev
+    pub fn dstr(&self) -> String {
+        self.dev_info.device().dstr()
     }
 
     /// path of the device node

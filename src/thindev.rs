@@ -3,13 +3,12 @@
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 use std::fmt;
-use std::path::Path;
 use std::path::PathBuf;
-use std::process::Command;
 
 use {DM, DevId, DeviceInfo, DmFlags};
 use result::{DmResult, DmError, InternalError};
 use thinpooldev::ThinPoolDev;
+use TargetLine;
 
 use types::Sectors;
 
@@ -38,12 +37,10 @@ impl ThinDev {
                length: Sectors)
                -> DmResult<ThinDev> {
 
-        let thin_dev_path = format!("{}", try!(thin_pool.devnode()).to_string_lossy());
         try!(thin_pool.message(dm, &format!("create_thin {}", thin_id)));
         try!(dm.device_create(name, None, DmFlags::empty()));
-        let table = ThinDev::dm_table(&thin_dev_path, thin_id, length);
         let id = &DevId::Name(name);
-        let di = try!(dm.table_load(id, &table));
+        let di = try!(dm.table_load(&id, &ThinDev::dm_table(&thin_pool, thin_id, length)));
         try!(dm.device_suspend(id, DmFlags::empty()));
         DM::wait_for_dm();
         Ok(ThinDev {
@@ -53,19 +50,22 @@ impl ThinDev {
            })
     }
 
-    /// Generate a Vec<> to be passed to DM.  The format of the Vec entries are:
-    /// "<start> <length> thin </dev/mapper/poolname> <thin_id>"
-    fn dm_table(pool_dev_str: &String,
-                thin_id: u32,
-                length: Sectors)
-                -> Vec<(u64, u64, String, String)> {
-        let params = format!("{} {}", pool_dev_str, thin_id);
+    /// Generate a Vec<> to be passed to DM. The format of the Vec
+    /// entries are: "<start> <length> thin <thinpool maj:min>
+    /// <thin_id>"
+    fn dm_table(thin_pool: &ThinPoolDev, thin_id: u32, length: Sectors) -> Vec<TargetLine> {
+        let params = format!("{} {}", thin_pool.dstr(), thin_id);
         vec![(0u64, *length, "thin".to_owned(), params)]
     }
 
     /// name of the thin device
     pub fn name(&self) -> &str {
         self.dev_info.name()
+    }
+
+    /// Get the "x:y" device string for this LinearDev
+    pub fn dstr(&self) -> String {
+        self.dev_info.device().dstr()
     }
 
     /// path of the device node
