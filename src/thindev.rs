@@ -27,6 +27,16 @@ impl fmt::Debug for ThinDev {
     }
 }
 
+#[derive(Debug, Clone, Copy)]
+/// Thin device status.
+pub enum ThinStatus {
+    /// Thin device is good. Includes number of mapped sectors, and
+    /// highest mapped sector.
+    Good((Sectors, Sectors)),
+    /// Thin device is failed.
+    Fail,
+}
+
 /// support use of DM for thin provisioned devices over pools
 impl ThinDev {
     /// Use the given ThinPoolDev as backing space for a newly constructed
@@ -76,6 +86,31 @@ impl ThinDev {
             .devnode()
             .ok_or(DmError::Dm(InternalError("No path associated with dev_info".into())))
 
+    }
+
+    /// Get the current status of the thin device.
+    pub fn status(&self, dm: &DM) -> DmResult<ThinStatus> {
+        let (_, mut status) = try!(dm.table_status(&DevId::Name(&self.dev_info.name()),
+                                                   DmFlags::empty()));
+
+        assert!(status.len() == 1,
+                "Kernel must return 1 line from thin status");
+
+        let status_line = status.pop().expect("assertion above holds").3;
+        if status_line.starts_with("Fail") {
+            return Ok(ThinStatus::Fail);
+        }
+
+        let status_vals = status_line.split(' ').collect::<Vec<_>>();
+        assert!(status_vals.len() >= 2,
+                "Kernel must return at least 2 values from thin pool status");
+
+        Ok(ThinStatus::Good((Sectors(status_vals[0]
+                                         .parse::<u64>()
+                                         .expect("mapped sector count value must be valid")),
+                             Sectors(status_vals[1]
+                                         .parse::<u64>()
+                                         .expect("highest mapped sector value must be valid")))))
     }
 
     /// Remove the device from DM
