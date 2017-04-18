@@ -25,6 +25,42 @@ impl fmt::Debug for ThinPoolDev {
     }
 }
 
+#[derive(Debug, Clone, Copy)]
+/// Contains values indicating the thinpool's used vs total
+/// allocations for metadata and data blocks.
+pub struct ThinPoolBlockUsage {
+    /// The number of metadata blocks that are in use.
+    pub used_meta: u64,
+    /// The total number of metadata blocks available to the thinpool.
+    pub total_meta: u64,
+    /// The number of data blocks that are in use.
+    pub used_data: DataBlocks,
+    /// The total number of data blocks available to the thinpool.
+    pub total_data: DataBlocks,
+}
+
+#[derive(Debug, Clone, Copy)]
+/// Top-level thinpool status that indicates if it is working or failed.
+pub enum ThinPoolStatus {
+    /// The thinpool is working.
+    Good((ThinPoolWorkingStatus, ThinPoolBlockUsage)),
+    /// The thinpool is in a failed condition.
+    Fail,
+}
+
+#[derive(Debug, Clone, Copy)]
+/// Indicates if a working thinpool is working optimally, or is
+/// experiencing a non-fatal error condition.
+pub enum ThinPoolWorkingStatus {
+    /// The pool is working normally.
+    Good,
+    /// The pool has been forced to transition to read-only mode.
+    ReadOnly,
+    /// The pool is out of space.
+    OutOfSpace,
+    /// The pool needs checking.
+    NeedsCheck,
+}
 
 /// Use DM to create a "thin-pool".  A "thin-pool" is shared space for
 /// other thin provisioned devices to use.
@@ -102,6 +138,62 @@ impl ThinPoolDev {
             .ok_or(DmError::Dm(InternalError("No path associated with dev_info".into())))
 
     }
+
+    /// Get the current status of the thinpool.
+    pub fn status(&self, dm: &DM) -> DmResult<ThinPoolStatus> {
+        let (_, mut status) = try!(dm.table_status(&DevId::Name(self.dev_info.name()),
+                                                   DmFlags::empty()));
+
+        assert_eq!(status.len(),
+                   1,
+                   "Kernel must return 1 line from thin pool status");
+
+        let status_line = status.pop().expect("assertion above holds").3;
+        if status_line.starts_with("Fail") {
+            return Ok(ThinPoolStatus::Fail);
+        }
+
+        let status_vals = status_line.split(' ').collect::<Vec<_>>();
+        assert!(status_vals.len() >= 8,
+                "Kernel must return at least 8 values from thin pool status");
+
+        let usage = {
+            let meta_vals = status_vals[1].split('/').collect::<Vec<_>>();
+            let data_vals = status_vals[2].split('/').collect::<Vec<_>>();
+            ThinPoolBlockUsage {
+                used_meta: meta_vals[0]
+                    .parse::<u64>()
+                    .expect("used_meta value must be valid"),
+                total_meta: meta_vals[1]
+                    .parse::<u64>()
+                    .expect("total_meta value must be valid"),
+                used_data: DataBlocks(data_vals[0]
+                                          .parse::<u64>()
+                                          .expect("used_data value must be valid")),
+                total_data: DataBlocks(data_vals[1]
+                                           .parse::<u64>()
+                                           .expect("total_data value must be valid")),
+            }
+        };
+
+        match status_vals[7] {
+            "-" => {}
+            "needs_check" => {
+                return Ok(ThinPoolStatus::Good((ThinPoolWorkingStatus::NeedsCheck, usage)))
+            }
+            _ => panic!("Kernel returned unexpected 8th value in thin pool status"),
+        }
+
+        match status_vals[4] {
+            "rw" => Ok(ThinPoolStatus::Good((ThinPoolWorkingStatus::Good, usage))),
+            "ro" => Ok(ThinPoolStatus::Good((ThinPoolWorkingStatus::ReadOnly, usage))),
+            "out_of_data_space" => {
+                Ok(ThinPoolStatus::Good((ThinPoolWorkingStatus::OutOfSpace, usage)))
+            }
+            _ => panic!("Kernel returned unexpected 5th value in thin pool status"),
+        }
+    }
+
 
     /// Remove the device from DM
     pub fn teardown(self, dm: &DM) -> DmResult<()> {
