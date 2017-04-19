@@ -33,7 +33,7 @@ impl ThinDev {
     /// thin provisioned ThinDev returned by new().
     pub fn new(name: &str,
                dm: &DM,
-               thin_pool: ThinPoolDev,
+               thin_pool: &ThinPoolDev,
                thin_id: u32,
                length: Sectors)
                -> DmResult<ThinDev> {
