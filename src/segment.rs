@@ -17,11 +17,11 @@ pub struct Segment {
 
 impl Segment {
     /// Create a new Segment with given attributes
-    pub fn new(device: Device, start: u64, length: u64) -> Segment {
+    pub fn new(device: Device, start: Sectors, length: Sectors) -> Segment {
         Segment {
             device: device,
-            start: Sectors(start),
-            length: Sectors(length),
+            start: start,
+            length: length,
         }
     }
 
