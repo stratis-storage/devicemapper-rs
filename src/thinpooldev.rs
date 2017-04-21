@@ -43,7 +43,7 @@ pub struct ThinPoolBlockUsage {
 /// Top-level thinpool status that indicates if it is working or failed.
 pub enum ThinPoolStatus {
     /// The thinpool is working.
-    Good((ThinPoolWorkingStatus, ThinPoolBlockUsage)),
+    Good(ThinPoolWorkingStatus, ThinPoolBlockUsage),
     /// The thinpool is in a failed condition.
     Fail,
 }
@@ -179,16 +179,16 @@ impl ThinPoolDev {
         match status_vals[7] {
             "-" => {}
             "needs_check" => {
-                return Ok(ThinPoolStatus::Good((ThinPoolWorkingStatus::NeedsCheck, usage)))
+                return Ok(ThinPoolStatus::Good(ThinPoolWorkingStatus::NeedsCheck, usage))
             }
             _ => panic!("Kernel returned unexpected 8th value in thin pool status"),
         }
 
         match status_vals[4] {
-            "rw" => Ok(ThinPoolStatus::Good((ThinPoolWorkingStatus::Good, usage))),
-            "ro" => Ok(ThinPoolStatus::Good((ThinPoolWorkingStatus::ReadOnly, usage))),
+            "rw" => Ok(ThinPoolStatus::Good(ThinPoolWorkingStatus::Good, usage)),
+            "ro" => Ok(ThinPoolStatus::Good(ThinPoolWorkingStatus::ReadOnly, usage)),
             "out_of_data_space" => {
-                Ok(ThinPoolStatus::Good((ThinPoolWorkingStatus::OutOfSpace, usage)))
+                Ok(ThinPoolStatus::Good(ThinPoolWorkingStatus::OutOfSpace, usage))
             }
             _ => panic!("Kernel returned unexpected 5th value in thin pool status"),
         }
