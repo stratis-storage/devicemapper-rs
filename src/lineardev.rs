@@ -6,12 +6,13 @@ use std::fmt;
 use std::fs::File;
 use std::path::PathBuf;
 
-use {DM, DevId, DeviceInfo, DmFlags};
+use consts::DmFlags;
+use deviceinfo::DeviceInfo;
+use dm::{DM, DevId};
 use result::{DmResult, DmError, InternalError};
 use segment::Segment;
-use types::{Bytes, Sectors};
+use types::{Bytes, Sectors, TargetLine};
 use util::blkdev_size;
-use TargetLine;
 
 /// A DM construct of combined Segments
 pub struct LinearDev {

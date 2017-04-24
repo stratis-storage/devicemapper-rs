@@ -5,12 +5,12 @@
 use std::fmt;
 use std::path::PathBuf;
 
-use {DM, DevId, DeviceInfo, DmFlags};
+use consts::DmFlags;
+use deviceinfo::DeviceInfo;
+use dm::{DM, DevId};
 use lineardev::LinearDev;
 use result::{DmResult, DmError, InternalError};
-use types::DataBlocks;
-use types::Sectors;
-use TargetLine;
+use types::{DataBlocks, Sectors, TargetLine};
 
 /// DM construct to contain thin provisioned devices
 pub struct ThinPoolDev {
@@ -91,10 +91,10 @@ impl ThinPoolDev {
 
         DM::wait_for_dm();
         Ok(ThinPoolDev {
-               dev_info: di,
-               meta_dev: meta,
-               data_dev: data,
-           })
+            dev_info: di,
+            meta_dev: meta,
+            data_dev: data,
+        })
     }
 
     /// Generate a Vec<> to be passed to DM. The format of the Vec

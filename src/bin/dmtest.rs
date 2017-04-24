@@ -1,9 +1,10 @@
 extern crate devicemapper;
 
-use devicemapper as dm;
+use devicemapper::dm::{DM, DevId};
+use devicemapper::consts::{DmFlags, DM_STATUS_TABLE};
 
 fn main() {
-    let dmi = dm::DM::new().unwrap();
+    let dmi = DM::new().unwrap();
 
     println!("Calling version()");
     let x = dmi.version().unwrap();
@@ -19,14 +20,14 @@ fn main() {
     println!("{:?}", x);
 
     println!("Calling table_deps()");
-    let x = dmi.table_deps(first_dev, dm::DmFlags::empty()).unwrap();
+    let x = dmi.table_deps(first_dev, DmFlags::empty()).unwrap();
     println!("{:?}", x);
 
     println!("Calling table_status() INFO");
-    let x = dmi.table_status(&dm::DevId::Name(&first_name), dm::DmFlags::empty()).unwrap();
+    let x = dmi.table_status(&DevId::Name(&first_name), DmFlags::empty()).unwrap();
     println!("{:?}", x.1);
 
     println!("Calling table_status() TABLE");
-    let x = dmi.table_status(&dm::DevId::Name(&first_name), dm::DM_STATUS_TABLE).unwrap();
+    let x = dmi.table_status(&DevId::Name(&first_name), DM_STATUS_TABLE).unwrap();
     println!("{:?}", x.1);
 }
