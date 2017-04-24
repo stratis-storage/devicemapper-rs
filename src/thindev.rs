@@ -5,7 +5,9 @@
 use std::fmt;
 use std::path::PathBuf;
 
-use {DM, DevId, DeviceInfo, DmFlags};
+use consts::DmFlags;
+use deviceinfo::DeviceInfo;
+use dm::{DM, DevId};
 use result::{DmResult, DmError, InternalError};
 use thinpooldev::ThinPoolDev;
 use types::TargetLine;
@@ -55,10 +57,10 @@ impl ThinDev {
         try!(dm.device_suspend(id, DmFlags::empty()));
         DM::wait_for_dm();
         Ok(ThinDev {
-               dev_info: di,
-               thin_id: thin_id,
-               size: length,
-           })
+            dev_info: di,
+            thin_id: thin_id,
+            size: length,
+        })
     }
 
     /// Generate a Vec<> to be passed to DM. The format of the Vec
