@@ -8,9 +8,7 @@ use std::path::PathBuf;
 use {DM, DevId, DeviceInfo, DmFlags};
 use lineardev::LinearDev;
 use result::{DmResult, DmError, InternalError};
-use types::DataBlocks;
-use types::Sectors;
-use TargetLine;
+use types::{DataBlocks, Sectors, TargetLine};
 
 /// DM construct to contain thin provisioned devices
 pub struct ThinPoolDev {

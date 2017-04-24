@@ -8,7 +8,7 @@ use std::path::PathBuf;
 use {DM, DevId, DeviceInfo, DmFlags};
 use result::{DmResult, DmError, InternalError};
 use thinpooldev::ThinPoolDev;
-use TargetLine;
+use types::TargetLine;
 
 use types::Sectors;
 

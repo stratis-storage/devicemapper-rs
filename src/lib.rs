@@ -317,11 +317,6 @@ pub enum DevId<'a> {
     Uuid(&'a str),
 }
 
-/// This 4-tuple consists of starting offset (sectors), length
-/// (sectors), target type (string, e.g. "linear"), and
-/// params(string). See target documentation for the format of each
-/// target type's params field.
-pub type TargetLine = (u64, u64, String, String);
 
 /// Context needed for communicating with devicemapper.
 pub struct DM {
