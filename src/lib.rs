@@ -994,14 +994,3 @@ impl DM {
         false
     }
 }
-
-// Return up to the first \0, or None
-//
-fn slice_to_null(slc: &[u8]) -> Option<&[u8]> {
-    for (i, c) in slc.iter().enumerate() {
-        if *c == b'\0' {
-            return Some(&slc[..i]);
-        };
-    }
-    None
-}
