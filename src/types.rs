@@ -6,7 +6,8 @@ use consts::SECTOR_SIZE;
 
 use std::fmt;
 use std::fmt::Display;
-use std::ops::{Div, Mul, Rem};
+use std::iter::Sum;
+use std::ops::{Div, Mul, Rem, Add};
 
 use serde;
 // macros for unsigned operations on Sectors and Bytes
@@ -94,6 +95,12 @@ impl Bytes {
     }
 }
 
+impl Sum for Bytes {
+    fn sum<I: Iterator<Item = Bytes>>(iter: I) -> Bytes {
+        iter.fold(Bytes(0), Add::add)
+    }
+}
+
 unsigned_mul!(u64, Bytes);
 unsigned_mul!(u32, Bytes);
 unsigned_mul!(u16, Bytes);
@@ -138,6 +145,12 @@ impl serde::Deserialize for Sectors {
     {
         let val = try!(serde::Deserialize::deserialize(deserializer));
         Ok(Sectors(val))
+    }
+}
+
+impl Sum for Sectors {
+    fn sum<I: Iterator<Item = Sectors>>(iter: I) -> Sectors {
+        iter.fold(Sectors(0), Add::add)
     }
 }
 
