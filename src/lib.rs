@@ -84,3 +84,6 @@ pub mod deviceinfo;
 pub mod device;
 ///
 pub mod dm;
+
+pub use dm::DM;
+pub use device::Device;
