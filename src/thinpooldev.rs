@@ -4,6 +4,7 @@
 
 use std::fmt;
 use std::path::PathBuf;
+use std::process::Command;
 
 use consts::DmFlags;
 use deviceinfo::DeviceInfo;
@@ -95,6 +96,36 @@ impl ThinPoolDev {
             meta_dev: meta,
             data_dev: data,
         })
+    }
+
+    /// Set up an existing ThinPoolDev.
+    pub fn setup(name: &str,
+                 dm: &DM,
+                 length: Sectors,
+                 data_block_size: Sectors,
+                 low_water_mark: DataBlocks,
+                 meta: LinearDev,
+                 data: LinearDev)
+                 -> DmResult<ThinPoolDev> {
+        let meta_devnode = meta.dev_info
+            .device()
+            .devnode()
+            .expect("meta device must have a devnode");
+        if try!(Command::new("thin_check")
+                .arg("-q")
+                .arg(&meta_devnode)
+                .status())
+            .success() == false {
+            return Err(DmError::Dm(InternalError("thin_check failed, run thin_repair".into())));
+        }
+
+        ThinPoolDev::new(name,
+                         dm,
+                         length,
+                         data_block_size,
+                         low_water_mark,
+                         meta,
+                         data)
     }
 
     /// Generate a Vec<> to be passed to DM. The format of the Vec

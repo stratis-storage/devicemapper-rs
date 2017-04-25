@@ -17,7 +17,7 @@ use util::blkdev_size;
 /// A DM construct of combined Segments
 pub struct LinearDev {
     /// Data about the device
-    dev_info: DeviceInfo,
+    pub dev_info: DeviceInfo,
 }
 
 impl fmt::Debug for LinearDev {
