@@ -78,11 +78,11 @@ mod thinpooldev;
 mod segment;
 /// return results container
 mod result;
-///
+/// wrapper for C interface for DM
 mod deviceinfo;
-///
+/// contains device major/minor and associated functions
 mod device;
-///
+/// core lower level API
 mod dm;
 
 pub use dm::{DM, DevId};
