@@ -29,30 +29,6 @@ use result::{DmError, DmResult, InternalError};
 use types::TargetLine;
 use util::slice_to_null;
 
-/// Major numbers used by DM.
-pub fn dev_majors() -> BTreeSet<u32> {
-    let mut set = BTreeSet::new();
-
-    let f = File::open("/proc/devices").expect("Could not open /proc/devices");
-
-    let reader = BufReader::new(f);
-
-    for line in reader.lines()
-        .filter_map(|x| x.ok())
-        .skip_while(|x| x != "Block devices:")
-        .skip(1) {
-        let spl: Vec<_> = line.split_whitespace().collect();
-
-        if spl[1] == "device-mapper" {
-            set.insert(spl[0].parse::<u32>().unwrap());
-        }
-    }
-
-    set
-}
-
-
-
 /// Used as a parameter for functions that take either a Device name
 /// or a Device UUID.
 pub enum DevId<'a> {
@@ -61,7 +37,6 @@ pub enum DevId<'a> {
     /// The parameter is the device's UUID
     Uuid(&'a str),
 }
-
 
 /// Context needed for communicating with devicemapper.
 pub struct DM {
