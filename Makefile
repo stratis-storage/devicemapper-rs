@@ -4,7 +4,7 @@ build:
 	RUSTFLAGS='-D warnings' cargo build --verbose
 
 test:
-	RUSTFLAGS='-D warnings' RUST_BACKTRACE=1 cargo test --verbose
+	sudo env "PATH=${PATH}" RUSTFLAGS='-D warnings' RUST_BACKTRACE=1 cargo test --verbose
 
 .PHONY:
 	build
