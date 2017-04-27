@@ -63,27 +63,33 @@ extern crate log;
 #[allow(dead_code, non_camel_case_types)]
 mod dm_ioctl;
 /// public utilities
-pub mod util;
+mod util;
 /// basic types (Bytes, Sectors, DataBlocks)
-pub mod types;
+mod types;
 /// shared constants
 pub mod consts;
 /// functions to create continuous linear space given device segments
-pub mod lineardev;
+mod lineardev;
 /// allocate a device from a pool
-pub mod thindev;
+mod thindev;
 /// thinpooldev is shared space for  other thin provisioned devices to use
-pub mod thinpooldev;
+mod thinpooldev;
 /// struct to represent a location, offset and size of a set of disk sectors
-pub mod segment;
+mod segment;
 /// return results container
-pub mod result;
-///
-pub mod deviceinfo;
-///
-pub mod device;
-///
-pub mod dm;
+mod result;
+/// wrapper for C interface for DM
+mod deviceinfo;
+/// contains device major/minor and associated functions
+mod device;
+/// core lower level API
+mod dm;
 
-pub use dm::DM;
+pub use dm::{DM, DevId};
 pub use device::Device;
+pub use lineardev::LinearDev;
+pub use result::{DmResult, DmError, ErrorEnum};
+pub use segment::Segment;
+pub use thinpooldev::{ThinPoolBlockUsage, ThinPoolDev, ThinPoolStatus, ThinPoolWorkingStatus};
+pub use thindev::{ThinDev, ThinStatus};
+pub use types::{Bytes, DataBlocks, Sectors};

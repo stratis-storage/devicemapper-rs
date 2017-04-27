@@ -2,8 +2,7 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 use std::fs::File;
-use std::io;
-use std::io::{Error, BufReader, BufRead};
+use std::io::Error;
 use std::io::ErrorKind::Other;
 use std::os::unix::io::AsRawFd;
 use std::mem::{size_of, transmute};
@@ -26,32 +25,9 @@ use consts::{DM_NAME_LEN, DM_UUID_LEN, MIN_BUF_SIZE, DM_IOCTL, DmFlags, DM_CTL_P
              DM_QUERY_INACTIVE_TABLE, DM_UUID, DM_DATA_OUT, DM_DEFERRED_REMOVE};
 use device::Device;
 use deviceinfo::DeviceInfo;
+use result::{DmError, DmResult, InternalError};
 use types::TargetLine;
 use util::slice_to_null;
-
-/// Major numbers used by DM.
-pub fn dev_majors() -> BTreeSet<u32> {
-    let mut set = BTreeSet::new();
-
-    let f = File::open("/proc/devices").expect("Could not open /proc/devices");
-
-    let reader = BufReader::new(f);
-
-    for line in reader.lines()
-        .filter_map(|x| x.ok())
-        .skip_while(|x| x != "Block devices:")
-        .skip(1) {
-        let spl: Vec<_> = line.split_whitespace().collect();
-
-        if spl[1] == "device-mapper" {
-            set.insert(spl[0].parse::<u32>().unwrap());
-        }
-    }
-
-    set
-}
-
-
 
 /// Used as a parameter for functions that take either a Device name
 /// or a Device UUID.
@@ -62,7 +38,6 @@ pub enum DevId<'a> {
     Uuid(&'a str),
 }
 
-
 /// Context needed for communicating with devicemapper.
 pub struct DM {
     file: File,
@@ -70,7 +45,7 @@ pub struct DM {
 
 impl DM {
     /// Create a new context for communicating with DM.
-    pub fn new() -> io::Result<DM> {
+    pub fn new() -> DmResult<DM> {
         Ok(DM { file: try!(File::open(DM_CTL_PATH)) })
     }
 
@@ -109,7 +84,7 @@ impl DM {
                 ioctl: u8,
                 hdr: &mut dmi::Struct_dm_ioctl,
                 in_data: Option<&[u8]>)
-                -> io::Result<Vec<u8>> {
+                -> DmResult<Vec<u8>> {
         // Create in-buf by copying hdr and any in-data into a linear
         // Vec v.  'hdr_slc' also aliases hdr as a &[u8], used first
         // to copy the hdr into v, and later to update the
@@ -142,7 +117,7 @@ impl DM {
             if let Err(_) = unsafe {
                 convert_ioctl_res!(nix_ioctl(self.file.as_raw_fd(), op, v.as_mut_ptr()))
             } {
-                return Err((Error::last_os_error()));
+                return Err((DmError::Io(Error::last_os_error())));
             }
 
             let hdr = unsafe {
@@ -174,7 +149,7 @@ impl DM {
     }
 
     /// Devicemapper version information: Major, Minor, and patchlevel versions.
-    pub fn version(&self) -> io::Result<(u32, u32, u32)> {
+    pub fn version(&self) -> DmResult<(u32, u32, u32)> {
         let mut hdr: dmi::Struct_dm_ioctl = Default::default();
 
         // No flags checked so don't pass any
@@ -192,7 +167,7 @@ impl DM {
     /// in-use devices, and they will be removed when released.
     ///
     /// Valid flags: DM_DEFERRED_REMOVE
-    pub fn remove_all(&self, flags: DmFlags) -> io::Result<()> {
+    pub fn remove_all(&self, flags: DmFlags) -> DmResult<()> {
         let mut hdr: dmi::Struct_dm_ioctl = Default::default();
 
         let clean_flags = DM_DEFERRED_REMOVE & flags;
@@ -206,7 +181,7 @@ impl DM {
 
     /// Returns a list of tuples containing DM device names and a
     /// Device, which holds their major and minor device numbers.
-    pub fn list_devices(&self) -> io::Result<Vec<(String, Device)>> {
+    pub fn list_devices(&self) -> DmResult<Vec<(String, Device)>> {
         let mut hdr: dmi::Struct_dm_ioctl = Default::default();
 
         // No flags checked so don't pass any
@@ -248,7 +223,7 @@ impl DM {
     /// # Example
     ///
     /// ```no_run
-    /// use devicemapper::dm::DM;
+    /// use devicemapper::DM;
     /// use devicemapper::consts::DmFlags;
     /// let dm = DM::new().unwrap();
     ///
@@ -259,7 +234,7 @@ impl DM {
                          name: &str,
                          uuid: Option<&str>,
                          flags: DmFlags)
-                         -> io::Result<DeviceInfo> {
+                         -> DmResult<DeviceInfo> {
         let mut hdr: dmi::Struct_dm_ioctl = Default::default();
 
         let clean_flags = (DM_READONLY | DM_PERSISTENT_DEV) & flags;
@@ -283,7 +258,7 @@ impl DM {
     /// used.
     ///
     /// Valid flags: DM_DEFERRED_REMOVE
-    pub fn device_remove(&self, name: &DevId, flags: DmFlags) -> io::Result<DeviceInfo> {
+    pub fn device_remove(&self, name: &DevId, flags: DmFlags) -> DmResult<DeviceInfo> {
         let mut hdr: dmi::Struct_dm_ioctl = Default::default();
 
         let clean_flags = DM_DEFERRED_REMOVE & flags;
@@ -308,7 +283,7 @@ impl DM {
                          old_name: &str,
                          new_name: &str,
                          flags: DmFlags)
-                         -> io::Result<DeviceInfo> {
+                         -> DmResult<DeviceInfo> {
         let mut hdr: dmi::Struct_dm_ioctl = Default::default();
 
         let clean_flags = DM_UUID & flags;
@@ -324,7 +299,8 @@ impl DM {
         };
 
         if new_name.as_bytes().len() > max_len {
-            return Err(Error::new(Other, format!("New name {} too long", new_name)));
+            return Err(DmError::Dm(InternalError(format!("New name {} too long", new_name)
+                .into())));
         }
 
         let mut data_in = new_name.as_bytes().to_vec();
@@ -351,14 +327,14 @@ impl DM {
     /// # Example
     ///
     /// ```no_run
-    /// use devicemapper::dm::{DM, DevId};
+    /// use devicemapper::{DM, DevId};
     /// use devicemapper::consts::{DmFlags, DM_SUSPEND};
 
     /// let dm = DM::new().unwrap();
     ///
     /// dm.device_suspend(&DevId::Name("example-dev"), DM_SUSPEND).unwrap();
     /// ```
-    pub fn device_suspend(&self, name: &DevId, flags: DmFlags) -> io::Result<DeviceInfo> {
+    pub fn device_suspend(&self, name: &DevId, flags: DmFlags) -> DmResult<DeviceInfo> {
         let mut hdr: dmi::Struct_dm_ioctl = Default::default();
 
         let clean_flags = (DM_SUSPEND | DM_NOFLUSH | DM_SKIP_LOCKFS) & flags;
@@ -377,7 +353,7 @@ impl DM {
     /// Get DeviceInfo for a device. This is also returned by other
     /// methods, but if just the DeviceInfo is desired then this just
     /// gets it.
-    pub fn device_status(&self, name: &DevId) -> io::Result<DeviceInfo> {
+    pub fn device_status(&self, name: &DevId) -> DmResult<DeviceInfo> {
         let mut hdr: dmi::Struct_dm_ioctl = Default::default();
 
         // No flags checked so don't pass any
@@ -402,7 +378,7 @@ impl DM {
     pub fn device_wait(&self,
                        name: &DevId,
                        flags: DmFlags)
-                       -> io::Result<(DeviceInfo, Vec<TargetLine>)> {
+                       -> DmResult<(DeviceInfo, Vec<TargetLine>)> {
         let mut hdr: dmi::Struct_dm_ioctl = Default::default();
 
         let clean_flags = DM_QUERY_INACTIVE_TABLE & flags;
@@ -430,7 +406,7 @@ impl DM {
     /// # Example
     ///
     /// ```no_run
-    /// use devicemapper::dm::{DM, DevId};
+    /// use devicemapper::{DM, DevId};
     /// use devicemapper::consts::DmFlags;
     /// let dm = DM::new().unwrap();
     ///
@@ -443,7 +419,7 @@ impl DM {
     pub fn table_load<T1, T2>(&self,
                               name: &DevId,
                               targets: &[(u64, u64, T1, T2)])
-                              -> io::Result<DeviceInfo>
+                              -> DmResult<DeviceInfo>
         where T1: Borrow<str>,
               T2: Borrow<str>
     {
@@ -460,7 +436,7 @@ impl DM {
             let mut dst: &mut [u8] = unsafe { transmute(&mut targ.target_type[..]) };
 
             let ttyp_len = if t.2.borrow().len() > dst.len() {
-                return Err(Error::new(Other, "target type too long"));
+                return Err(DmError::Io(Error::new(Other, "target type too long")));
             } else {
                 t.2.borrow().len()
             };
@@ -508,7 +484,7 @@ impl DM {
     }
 
     /// Clear the "inactive" table for a device.
-    pub fn table_clear(&self, name: &DevId) -> io::Result<DeviceInfo> {
+    pub fn table_clear(&self, name: &DevId) -> DmResult<DeviceInfo> {
         let mut hdr: dmi::Struct_dm_ioctl = Default::default();
 
         // No flags checked so don't pass any
@@ -530,7 +506,7 @@ impl DM {
     /// inactive table.
     ///
     /// Valid flags: DM_QUERY_INACTIVE_TABLE
-    pub fn table_deps(&self, dev: Device, flags: DmFlags) -> io::Result<Vec<Device>> {
+    pub fn table_deps(&self, dev: Device, flags: DmFlags) -> DmResult<Vec<Device>> {
         let mut hdr: dmi::Struct_dm_ioctl = Default::default();
 
         let clean_flags = DM_QUERY_INACTIVE_TABLE & flags;
@@ -565,7 +541,7 @@ impl DM {
 
     // Both table_status and dev_wait return table status, so
     // unify table status parsing.
-    fn parse_table_status(count: u32, buf: &[u8]) -> io::Result<Vec<(u64, u64, String, String)>> {
+    fn parse_table_status(count: u32, buf: &[u8]) -> DmResult<Vec<(u64, u64, String, String)>> {
         let mut targets = Vec::new();
         if buf.len() > 0 {
             let mut next_off = 0;
@@ -618,7 +594,7 @@ impl DM {
     /// # Example
     ///
     /// ```no_run
-    /// use devicemapper::dm::{DM, DevId};
+    /// use devicemapper::{DM, DevId};
     /// use devicemapper::consts::{DM_STATUS_TABLE, DmFlags};
     /// let dm = DM::new().unwrap();
     ///
@@ -628,7 +604,7 @@ impl DM {
     pub fn table_status(&self,
                         name: &DevId,
                         flags: DmFlags)
-                        -> io::Result<(DeviceInfo, Vec<TargetLine>)> {
+                        -> DmResult<(DeviceInfo, Vec<TargetLine>)> {
         let mut hdr: dmi::Struct_dm_ioctl = Default::default();
 
         let clean_flags = (DM_NOFLUSH | DM_STATUS_TABLE | DM_QUERY_INACTIVE_TABLE) & flags;
@@ -648,7 +624,7 @@ impl DM {
 
     /// Returns a list of each loaded target type with its name, and
     /// version broken into major, minor, and patchlevel.
-    pub fn list_versions(&self) -> io::Result<Vec<(String, u32, u32, u32)>> {
+    pub fn list_versions(&self) -> DmResult<Vec<(String, u32, u32, u32)>> {
         let mut hdr: dmi::Struct_dm_ioctl = Default::default();
 
         // No flags checked so don't pass any
@@ -691,7 +667,7 @@ impl DM {
                       name: &DevId,
                       sector: u64,
                       msg: &str)
-                      -> io::Result<(DeviceInfo, Option<String>)> {
+                      -> DmResult<(DeviceInfo, Option<String>)> {
         let mut hdr: dmi::Struct_dm_ioctl = Default::default();
 
         // No flags checked so don't pass any
@@ -742,5 +718,55 @@ impl DM {
         }
 
         false
+    }
+}
+
+#[cfg(test)]
+mod tests {
+
+    use {DevId, DM};
+    use consts::{DmFlags, DM_STATUS_TABLE};
+
+    #[test]
+    fn test_basics() {
+        let dmi = DM::new().unwrap();
+
+        println!("Calling version()");
+        let version = dmi.version().unwrap();
+        println!("{:?}", version);
+        let dev = match dmi.device_create("example-dev", None, DmFlags::empty()) {
+            Ok(di) => di,
+            _ => {
+                println!("failed to create example-dev");
+                assert!(false);
+                return;
+            }
+        };
+
+        let x = dmi.list_devices().unwrap();
+        println!("{:?}", x);
+
+        let name = dev.name();
+        let device = dev.device();
+
+        println!("Calling list_versions()");
+        let versions = dmi.list_versions().unwrap();
+        println!("{:?}", versions);
+
+        println!("Calling table_deps()");
+        let deps = dmi.table_deps(device, DmFlags::empty()).unwrap();
+        println!("{:?}", deps);
+
+        println!("Calling table_status() INFO");
+        let status_info = dmi.table_status(&DevId::Name(&name), DmFlags::empty()).unwrap();
+        println!("{:?}", status_info.1);
+
+        println!("Calling table_status() TABLE");
+        let status = dmi.table_status(&DevId::Name(&name), DM_STATUS_TABLE)
+            .unwrap();
+        println!("{:?}", status.1);
+
+        dmi.device_remove(&DevId::Name(&name), DmFlags::empty()).unwrap();
+
     }
 }

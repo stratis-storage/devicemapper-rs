@@ -1,6 +1,15 @@
+sudo: required
+os: linux
+dist: trusty
+
+before_install:
+    - sudo apt-get -qq update
+    - sudo apt-get install -y libdevmapper-dev 
+
 language: rust
-rust:
-  - stable
-  - beta
+rust: stable
+
+branches:
+    only: master
 
 script: make check

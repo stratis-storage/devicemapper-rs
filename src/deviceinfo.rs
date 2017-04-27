@@ -13,7 +13,7 @@ use util::slice_to_null;
 /// Contains information about the device.
 #[derive(Clone, Copy)]
 pub struct DeviceInfo {
-    /// ioclt arguement consit of a single chunk of memory, with this
+    /// ioclt arugument consits of a single chunk of memory, with this
     /// structure at the start.
     pub hdr: dmi::Struct_dm_ioctl,
 }
