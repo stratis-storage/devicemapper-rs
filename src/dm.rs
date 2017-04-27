@@ -732,29 +732,41 @@ mod tests {
         let dmi = DM::new().unwrap();
 
         println!("Calling version()");
-        let x = dmi.version().unwrap();
-        println!("{:?}", x);
+        let version = dmi.version().unwrap();
+        println!("{:?}", version);
+        let dev = match dmi.device_create("example-dev", None, DmFlags::empty()) {
+            Ok(di) => di,
+            _ => {
+                println!("failed to create example-dev");
+                assert!(false);
+                return;
+            }
+        };
 
-        println!("Calling list_devices()");
         let x = dmi.list_devices().unwrap();
         println!("{:?}", x);
-        let (first_name, first_dev) = x[0].clone();
+
+        let name = dev.name();
+        let device = dev.device();
 
         println!("Calling list_versions()");
-        let x = dmi.list_versions().unwrap();
-        println!("{:?}", x);
+        let versions = dmi.list_versions().unwrap();
+        println!("{:?}", versions);
 
         println!("Calling table_deps()");
-        let x = dmi.table_deps(first_dev, DmFlags::empty()).unwrap();
-        println!("{:?}", x);
+        let deps = dmi.table_deps(device, DmFlags::empty()).unwrap();
+        println!("{:?}", deps);
 
         println!("Calling table_status() INFO");
-        let x = dmi.table_status(&DevId::Name(&first_name), DmFlags::empty()).unwrap();
-        println!("{:?}", x.1);
+        let status_info = dmi.table_status(&DevId::Name(&name), DmFlags::empty()).unwrap();
+        println!("{:?}", status_info.1);
 
         println!("Calling table_status() TABLE");
-        let x = dmi.table_status(&DevId::Name(&first_name), DM_STATUS_TABLE)
+        let status = dmi.table_status(&DevId::Name(&name), DM_STATUS_TABLE)
             .unwrap();
-        println!("{:?}", x.1);
+        println!("{:?}", status.1);
+
+        dmi.device_remove(&DevId::Name(&name), DmFlags::empty()).unwrap();
+
     }
 }
