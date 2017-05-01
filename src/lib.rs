@@ -60,6 +60,8 @@ extern crate bitflags;
 #[macro_use]
 extern crate log;
 
+extern crate step;
+
 #[allow(dead_code, non_camel_case_types)]
 mod dm_ioctl;
 /// public utilities

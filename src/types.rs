@@ -10,6 +10,33 @@ use std::iter::Sum;
 use std::ops::{Div, Mul, Rem, Add};
 
 use serde;
+
+use step::Step;
+
+// macro for implementing Step
+macro_rules! impl_step {
+    ($t: ident) => {
+        impl Step for $t {
+            fn next(&self) -> Option<$t> {
+                self.0.next().map($t)
+            }
+            fn next_by(&self, by: &$t) -> Option<$t> {
+                self.0.next_by(&**by).map($t)
+            }
+            fn prev(&self) -> Option<$t> {
+                self.0.prev().map($t)
+            }
+            fn prev_by(&self, by: &$t) -> Option<$t> {
+                self.0.prev_by(&**by).map($t)
+            }
+            fn steps_to(&self, value: &$t) -> $t {
+                $t(self.0.steps_to(&**value))
+            }
+        }
+    }
+}
+
+
 // macros for unsigned operations on Sectors and Bytes
 macro_rules! unsigned_div {
     ($t: ty, $T: ident) => {
@@ -113,6 +140,8 @@ impl Display for Bytes {
     }
 }
 
+impl_step!(Bytes);
+
 custom_derive! {
     #[derive(NewtypeAdd, NewtypeAddAssign,
              NewtypeDeref,
@@ -153,6 +182,8 @@ impl Sum for Sectors {
         iter.fold(Sectors(0), Add::add)
     }
 }
+
+impl_step!(Sectors);
 
 unsigned_div!(u64, Sectors);
 unsigned_div!(u32, Sectors);
