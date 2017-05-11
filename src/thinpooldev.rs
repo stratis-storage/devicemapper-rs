@@ -92,10 +92,10 @@ impl ThinPoolDev {
 
         DM::wait_for_dm();
         Ok(ThinPoolDev {
-            dev_info: di,
-            meta_dev: meta,
-            data_dev: data,
-        })
+               dev_info: di,
+               meta_dev: meta,
+               data_dev: data,
+           })
     }
 
     /// Set up an existing ThinPoolDev.
@@ -112,10 +112,10 @@ impl ThinPoolDev {
             .devnode()
             .expect("meta device must have a devnode");
         if try!(Command::new("thin_check")
-                .arg("-q")
-                .arg(&meta_devnode)
-                .status())
-            .success() == false {
+                    .arg("-q")
+                    .arg(&meta_devnode)
+                    .status())
+                   .success() == false {
             return Err(DmError::Dm(InternalError("thin_check failed, run thin_repair".into())));
         }
 
@@ -172,8 +172,7 @@ impl ThinPoolDev {
 
     /// Get the current status of the thinpool.
     pub fn status(&self, dm: &DM) -> DmResult<ThinPoolStatus> {
-        let (_, mut status) = try!(dm.table_status(&DevId::Name(self.dev_info.name()),
-                                                   DmFlags::empty()));
+        let (_, mut status) = try!(dm.table_status(&DevId::Name(self.dev_info.name()), DmFlags::empty()));
 
         assert_eq!(status.len(),
                    1,
@@ -209,18 +208,14 @@ impl ThinPoolDev {
 
         match status_vals[7] {
             "-" => {}
-            "needs_check" => {
-                return Ok(ThinPoolStatus::Good(ThinPoolWorkingStatus::NeedsCheck, usage))
-            }
+            "needs_check" => return Ok(ThinPoolStatus::Good(ThinPoolWorkingStatus::NeedsCheck, usage)),
             _ => panic!("Kernel returned unexpected 8th value in thin pool status"),
         }
 
         match status_vals[4] {
             "rw" => Ok(ThinPoolStatus::Good(ThinPoolWorkingStatus::Good, usage)),
             "ro" => Ok(ThinPoolStatus::Good(ThinPoolWorkingStatus::ReadOnly, usage)),
-            "out_of_data_space" => {
-                Ok(ThinPoolStatus::Good(ThinPoolWorkingStatus::OutOfSpace, usage))
-            }
+            "out_of_data_space" => Ok(ThinPoolStatus::Good(ThinPoolWorkingStatus::OutOfSpace, usage)),
             _ => panic!("Kernel returned unexpected 5th value in thin pool status"),
         }
     }

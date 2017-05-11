@@ -92,8 +92,7 @@ impl ThinDev {
 
     /// Get the current status of the thin device.
     pub fn status(&self, dm: &DM) -> DmResult<ThinStatus> {
-        let (_, mut status) = try!(dm.table_status(&DevId::Name(&self.dev_info.name()),
-                                                   DmFlags::empty()));
+        let (_, mut status) = try!(dm.table_status(&DevId::Name(&self.dev_info.name()), DmFlags::empty()));
 
         assert!(status.len() == 1,
                 "Kernel must return 1 line from thin status");
