@@ -12,7 +12,7 @@ use result::{DmResult, DmError, InternalError};
 use thinpooldev::ThinPoolDev;
 use types::TargetLine;
 
-use types::Sectors;
+use types::{Bytes, Sectors};
 
 /// DM construct for a thin block device
 pub struct ThinDev {
@@ -57,10 +57,10 @@ impl ThinDev {
         try!(dm.device_suspend(id, DmFlags::empty()));
         DM::wait_for_dm();
         Ok(ThinDev {
-            dev_info: di,
-            thin_id: thin_id,
-            size: length,
-        })
+               dev_info: di,
+               thin_id: thin_id,
+               size: length,
+           })
     }
 
     /// Generate a Vec<> to be passed to DM. The format of the Vec
@@ -79,6 +79,11 @@ impl ThinDev {
     /// Get the "x:y" device string for this LinearDev
     pub fn dstr(&self) -> String {
         self.dev_info.device().dstr()
+    }
+
+    /// return the total size of the linear device
+    pub fn size(&self) -> Bytes {
+        self.size.bytes()
     }
 
     /// path of the device node
