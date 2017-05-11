@@ -92,10 +92,10 @@ impl ThinPoolDev {
 
         DM::wait_for_dm();
         Ok(ThinPoolDev {
-            dev_info: di,
-            meta_dev: meta,
-            data_dev: data,
-        })
+               dev_info: di,
+               meta_dev: meta,
+               data_dev: data,
+           })
     }
 
     /// Set up an existing ThinPoolDev.
@@ -112,10 +112,10 @@ impl ThinPoolDev {
             .devnode()
             .expect("meta device must have a devnode");
         if try!(Command::new("thin_check")
-                .arg("-q")
-                .arg(&meta_devnode)
-                .status())
-            .success() == false {
+                    .arg("-q")
+                    .arg(&meta_devnode)
+                    .status())
+                   .success() == false {
             return Err(DmError::Dm(InternalError("thin_check failed, run thin_repair".into())));
         }
 

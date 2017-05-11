@@ -14,11 +14,12 @@ pub struct Struct_Unnamed1 {
     pub fds_bits: [::libc::c_ulong; 16usize],
 }
 impl ::std::default::Default for Struct_Unnamed1 {
-    fn default() -> Self { unsafe { ::std::mem::zeroed() } }
+    fn default() -> Self {
+        unsafe { ::std::mem::zeroed() }
+    }
 }
 pub type __kernel_fd_set = Struct_Unnamed1;
-pub type __kernel_sighandler_t =
-    ::std::option::Option<extern "C" fn(arg1: ::libc::c_int) -> ()>;
+pub type __kernel_sighandler_t = ::std::option::Option<extern "C" fn(arg1: ::libc::c_int) -> ()>;
 pub type __kernel_key_t = ::libc::c_int;
 pub type __kernel_mqd_t = ::libc::c_int;
 pub type __kernel_old_uid_t = ::libc::c_ushort;
@@ -45,7 +46,9 @@ pub struct Struct_Unnamed2 {
     pub val: [::libc::c_int; 2usize],
 }
 impl ::std::default::Default for Struct_Unnamed2 {
-    fn default() -> Self { unsafe { ::std::mem::zeroed() } }
+    fn default() -> Self {
+        unsafe { ::std::mem::zeroed() }
+    }
 }
 pub type __kernel_fsid_t = Struct_Unnamed2;
 pub type __kernel_off_t = __kernel_long_t;
@@ -82,10 +85,14 @@ pub struct Struct_dm_ioctl {
     pub data: [::libc::c_char; 7usize],
 }
 impl ::std::clone::Clone for Struct_dm_ioctl {
-    fn clone(&self) -> Self { *self }
+    fn clone(&self) -> Self {
+        *self
+    }
 }
 impl ::std::default::Default for Struct_dm_ioctl {
-    fn default() -> Self { unsafe { ::std::mem::zeroed() } }
+    fn default() -> Self {
+        unsafe { ::std::mem::zeroed() }
+    }
 }
 #[repr(C)]
 #[derive(Copy, Clone)]
@@ -97,7 +104,9 @@ pub struct Struct_dm_target_spec {
     pub target_type: [::libc::c_char; 16usize],
 }
 impl ::std::default::Default for Struct_dm_target_spec {
-    fn default() -> Self { unsafe { ::std::mem::zeroed() } }
+    fn default() -> Self {
+        unsafe { ::std::mem::zeroed() }
+    }
 }
 #[repr(C, packed)]
 #[derive(Copy, Clone)]
@@ -107,7 +116,9 @@ pub struct Struct_dm_target_deps {
     pub dev: [__u64; 0usize],
 }
 impl ::std::default::Default for Struct_dm_target_deps {
-    fn default() -> Self { unsafe { ::std::mem::zeroed() } }
+    fn default() -> Self {
+        unsafe { ::std::mem::zeroed() }
+    }
 }
 #[repr(C, packed)]
 #[derive(Copy, Clone)]
@@ -117,7 +128,9 @@ pub struct Struct_dm_name_list {
     pub name: [::libc::c_char; 0usize],
 }
 impl ::std::default::Default for Struct_dm_name_list {
-    fn default() -> Self { unsafe { ::std::mem::zeroed() } }
+    fn default() -> Self {
+        unsafe { ::std::mem::zeroed() }
+    }
 }
 #[repr(C, packed)]
 #[derive(Copy, Clone)]
@@ -127,7 +140,9 @@ pub struct Struct_dm_target_versions {
     pub name: [::libc::c_char; 0usize],
 }
 impl ::std::default::Default for Struct_dm_target_versions {
-    fn default() -> Self { unsafe { ::std::mem::zeroed() } }
+    fn default() -> Self {
+        unsafe { ::std::mem::zeroed() }
+    }
 }
 #[repr(C, packed)]
 #[derive(Copy, Clone)]
@@ -136,7 +151,9 @@ pub struct Struct_dm_target_msg {
     pub message: [::libc::c_char; 0usize],
 }
 impl ::std::default::Default for Struct_dm_target_msg {
-    fn default() -> Self { unsafe { ::std::mem::zeroed() } }
+    fn default() -> Self {
+        unsafe { ::std::mem::zeroed() }
+    }
 }
 pub type Enum_Unnamed3 = ::libc::c_uint;
 pub const DM_VERSION_CMD: ::libc::c_uint = 0;
