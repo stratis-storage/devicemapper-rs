@@ -115,8 +115,8 @@ impl DM {
         let op = iorw!(DM_IOCTL, ioctl, size_of::<dmi::Struct_dm_ioctl>()) as c_ulong;
         loop {
             if let Err(_) = unsafe {
-                convert_ioctl_res!(nix_ioctl(self.file.as_raw_fd(), op, v.as_mut_ptr()))
-            } {
+                   convert_ioctl_res!(nix_ioctl(self.file.as_raw_fd(), op, v.as_mut_ptr()))
+               } {
                 return Err((DmError::Io(Error::last_os_error())));
             }
 
@@ -300,7 +300,7 @@ impl DM {
 
         if new_name.as_bytes().len() > max_len {
             return Err(DmError::Dm(InternalError(format!("New name {} too long", new_name)
-                .into())));
+                                                     .into())));
         }
 
         let mut data_in = new_name.as_bytes().to_vec();
@@ -401,7 +401,10 @@ impl DM {
     ///
     /// `targets` is an array of (sector_start, sector_length, type, params).
     ///
-    /// `params` are target-specific, please see [Linux kernel documentation](https://git.kernel.org/cgit/linux/kernel/git/torvalds/linux.git/tree/Documentation/device-mapper) for more.
+    /// `params` are target-specific, please see [Linux kernel documentation]
+    /// https://git.kernel.org/cgit/linux/kernel/git/torvalds/linux.git/tree/ ->
+    /// Documentation/device-mapper
+    /// for more.
     ///
     /// # Example
     ///
@@ -643,8 +646,8 @@ impl DM {
                         .unwrap()
                 };
 
-                let name_slc =
-                    slice_to_null(&result[size_of::<dmi::Struct_dm_target_versions>()..])
+                let name_slc = slice_to_null(&result
+                                                  [size_of::<dmi::Struct_dm_target_versions>()..])
                         .expect("bad data from ioctl");
                 let name = String::from_utf8_lossy(name_slc).into_owned();
                 targets.push((name, tver.version[0], tver.version[1], tver.version[2]));
@@ -758,7 +761,8 @@ mod tests {
         println!("{:?}", deps);
 
         println!("Calling table_status() INFO");
-        let status_info = dmi.table_status(&DevId::Name(&name), DmFlags::empty()).unwrap();
+        let status_info = dmi.table_status(&DevId::Name(&name), DmFlags::empty())
+            .unwrap();
         println!("{:?}", status_info.1);
 
         println!("Calling table_status() TABLE");
@@ -766,7 +770,8 @@ mod tests {
             .unwrap();
         println!("{:?}", status.1);
 
-        dmi.device_remove(&DevId::Name(&name), DmFlags::empty()).unwrap();
+        dmi.device_remove(&DevId::Name(&name), DmFlags::empty())
+            .unwrap();
 
     }
 }
