@@ -12,7 +12,7 @@ use result::{DmResult, DmError, InternalError};
 use thinpooldev::ThinPoolDev;
 use types::TargetLine;
 
-use types::Sectors;
+use types::{Bytes, Sectors};
 
 /// DM construct for a thin block device
 pub struct ThinDev {
@@ -57,10 +57,10 @@ impl ThinDev {
         try!(dm.device_suspend(id, DmFlags::empty()));
         DM::wait_for_dm();
         Ok(ThinDev {
-            dev_info: di,
-            thin_id: thin_id,
-            size: length,
-        })
+               dev_info: di,
+               thin_id: thin_id,
+               size: length,
+           })
     }
 
     /// Generate a Vec<> to be passed to DM. The format of the Vec
@@ -81,6 +81,11 @@ impl ThinDev {
         self.dev_info.device().dstr()
     }
 
+    /// return the total size of the linear device
+    pub fn size(&self) -> Bytes {
+        self.size.bytes()
+    }
+
     /// path of the device node
     pub fn devnode(&self) -> DmResult<PathBuf> {
         self.dev_info
@@ -92,8 +97,7 @@ impl ThinDev {
 
     /// Get the current status of the thin device.
     pub fn status(&self, dm: &DM) -> DmResult<ThinStatus> {
-        let (_, mut status) = try!(dm.table_status(&DevId::Name(&self.dev_info.name()),
-                                                   DmFlags::empty()));
+        let (_, mut status) = try!(dm.table_status(&DevId::Name(&self.dev_info.name()), DmFlags::empty()));
 
         assert!(status.len() == 1,
                 "Kernel must return 1 line from thin status");
