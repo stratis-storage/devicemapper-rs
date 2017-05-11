@@ -125,7 +125,16 @@ impl ThinDev {
                                          .expect("highest mapped sector value must be valid")))))
     }
 
-    /// Remove the device from DM
+    /// Remove the thin device.
+    pub fn destroy(self, dm: &DM, thin_pool: &ThinPoolDev) -> DmResult<()> {
+        let id = self.thin_id;
+        try!(self.teardown(dm));
+        try!(thin_pool.message(dm, &format!("delete {}", id)));
+
+        Ok(())
+    }
+
+    /// Tear down the DM device.
     pub fn teardown(self, dm: &DM) -> DmResult<()> {
         try!(dm.device_remove(&DevId::Name(self.name()), DmFlags::empty()));
         Ok(())
