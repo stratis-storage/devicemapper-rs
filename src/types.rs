@@ -69,9 +69,9 @@ impl serde::Serialize for DataBlocks {
     }
 }
 
-impl serde::Deserialize for DataBlocks {
+impl<'de> serde::Deserialize<'de> for DataBlocks {
     fn deserialize<D>(deserializer: D) -> Result<DataBlocks, D::Error>
-        where D: serde::de::Deserializer
+        where D: serde::de::Deserializer<'de>
     {
         let val = try!(serde::Deserialize::deserialize(deserializer));
         Ok(DataBlocks(val))
@@ -139,9 +139,9 @@ impl serde::Serialize for Sectors {
     }
 }
 
-impl serde::Deserialize for Sectors {
+impl<'de> serde::Deserialize<'de> for Sectors {
     fn deserialize<D>(deserializer: D) -> Result<Sectors, D::Error>
-        where D: serde::de::Deserializer
+        where D: serde::de::Deserializer<'de>
     {
         let val = try!(serde::Deserialize::deserialize(deserializer));
         Ok(Sectors(val))
