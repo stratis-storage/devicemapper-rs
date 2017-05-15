@@ -41,8 +41,8 @@ pub enum ThinStatus {
 
 /// support use of DM for thin provisioned devices over pools
 impl ThinDev {
-    /// Use the given ThinPoolDev as backing space for a newly constructed
-    /// thin provisioned ThinDev returned by new().
+    /// Use the given ThinPoolDev as backing space for a newly
+    /// constructed thin provisioned ThinDev.
     pub fn new(name: &str,
                dm: &DM,
                thin_pool: &ThinPoolDev,
@@ -51,6 +51,16 @@ impl ThinDev {
                -> DmResult<ThinDev> {
 
         try!(thin_pool.message(dm, &format!("create_thin {}", thin_id)));
+        ThinDev::setup(name, dm, thin_pool, thin_id, length)
+    }
+
+    /// Create the device for an existing thin volume.
+    pub fn setup(name: &str,
+                 dm: &DM,
+                 thin_pool: &ThinPoolDev,
+                 thin_id: u32,
+                 length: Sectors)
+                 -> DmResult<ThinDev> {
         try!(dm.device_create(name, None, DmFlags::empty()));
         let id = &DevId::Name(name);
         let di = try!(dm.table_load(&id, &ThinDev::dm_table(&thin_pool, thin_id, length)));
@@ -120,7 +130,16 @@ impl ThinDev {
                                          .expect("highest mapped sector value must be valid")))))
     }
 
-    /// Remove the device from DM
+    /// Remove the thin device.
+    pub fn destroy(self, dm: &DM, thin_pool: &ThinPoolDev) -> DmResult<()> {
+        let id = self.thin_id;
+        try!(self.teardown(dm));
+        try!(thin_pool.message(dm, &format!("delete {}", id)));
+
+        Ok(())
+    }
+
+    /// Tear down the DM device.
     pub fn teardown(self, dm: &DM) -> DmResult<()> {
         try!(dm.device_remove(&DevId::Name(self.name()), DmFlags::empty()));
         Ok(())
