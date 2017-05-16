@@ -9,9 +9,12 @@ use device::Device;
 /// struct to represent a continuous set of sectors on a disk
 #[derive(Debug)]
 pub struct Segment {
-    start: Sectors,
-    length: Sectors,
-    device: Device,
+    /// The offset into the device where this segment starts.
+    pub start: Sectors,
+    /// The length of the segment.
+    pub length: Sectors,
+    /// The device the segment is within.
+    pub device: Device,
 }
 
 
