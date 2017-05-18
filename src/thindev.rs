@@ -12,7 +12,7 @@ use result::{DmResult, DmError, InternalError};
 use thinpooldev::ThinPoolDev;
 use types::TargetLine;
 
-use types::{Bytes, Sectors};
+use types::Sectors;
 
 /// DM construct for a thin block device
 pub struct ThinDev {
@@ -82,14 +82,9 @@ impl ThinDev {
         self.dev_info.device().dstr()
     }
 
-    /// return the total size of the linear device in sectors
-    pub fn sectors(&self) -> Sectors {
-        self.size
-    }
-
     /// return the total size of the linear device
-    pub fn size(&self) -> Bytes {
-        self.size.bytes()
+    pub fn size(&self) -> Sectors {
+        self.size
     }
 
     /// return the thin id of the linear device
