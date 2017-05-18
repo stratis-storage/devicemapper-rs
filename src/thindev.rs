@@ -82,9 +82,19 @@ impl ThinDev {
         self.dev_info.device().dstr()
     }
 
+    /// return the total size of the linear device in sectors
+    pub fn sectors(&self) -> Sectors {
+        self.size
+    }
+
     /// return the total size of the linear device
     pub fn size(&self) -> Bytes {
         self.size.bytes()
+    }
+
+    /// return the thin id of the linear device
+    pub fn id(&self) -> u32 {
+        self.thin_id
     }
 
     /// path of the device node
