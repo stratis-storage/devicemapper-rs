@@ -69,7 +69,7 @@ impl Error for InternalError {
 impl fmt::Display for DmError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match *self {
-            DmError::Dm(ref err) => write!(f, "Stratis error: {}", err.0),
+            DmError::Dm(ref err) => write!(f, "DM error: {}", err.0),
             DmError::Io(ref err) => write!(f, "IO error: {}", err),
             DmError::Nix(ref err) => write!(f, "Nix error: {}", err.errno().desc()),
         }
