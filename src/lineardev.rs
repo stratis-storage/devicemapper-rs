@@ -9,7 +9,7 @@ use std::path::PathBuf;
 use consts::{DmFlags, DM_SUSPEND};
 use deviceinfo::DeviceInfo;
 use dm::{DM, DevId};
-use result::{DmResult, DmError, InternalError};
+use result::{DmResult, DmError, ErrorEnum};
 use segment::Segment;
 use types::{Bytes, Sectors, TargetLine};
 use util::blkdev_size;
@@ -128,7 +128,8 @@ impl LinearDev {
         self.dev_info
             .device()
             .devnode()
-            .ok_or(DmError::Dm(InternalError("No path associated with dev_info".into())))
+            .ok_or(DmError::Dm(ErrorEnum::NotFound,
+                               "No path associated with dev_info".into()))
     }
 
     /// Remove the device from DM
