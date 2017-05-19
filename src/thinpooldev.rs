@@ -98,6 +98,16 @@ impl ThinPoolDev {
            })
     }
 
+    /// Obtain the meta device that backs this thin pool device.
+    pub fn meta_dev(&self) -> &LinearDev {
+        &self.meta_dev
+    }
+
+    /// Obtain the data device that backs this thin pool device.
+    pub fn data_dev(&self) -> &LinearDev {
+        &self.data_dev
+    }
+
     /// Set up an existing ThinPoolDev.
     pub fn setup(name: &str,
                  dm: &DM,
