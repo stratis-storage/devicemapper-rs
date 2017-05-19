@@ -145,7 +145,8 @@ impl DM {
         hdr_slc.clone_from_slice(&v[..hdr.data_start as usize]);
 
         // Maybe we got some add'l data back?
-        Ok(v[hdr.data_start as usize..hdr.data_size as usize].to_vec())
+        let new_data_off = cmp::max(hdr.data_start, hdr.data_size);
+        Ok(v[hdr.data_start as usize..new_data_off as usize].to_vec())
     }
 
     /// Devicemapper version information: Major, Minor, and patchlevel versions.
