@@ -9,7 +9,7 @@ use std::path::PathBuf;
 use consts::{DmFlags, DM_SUSPEND};
 use deviceinfo::DeviceInfo;
 use dm::{DM, DevId};
-use result::{DmResult, DmError, InternalError};
+use result::{DmResult, DmError, ErrorEnum};
 use segment::Segment;
 use types::{Bytes, Sectors, TargetLine};
 use util::blkdev_size;
@@ -17,7 +17,7 @@ use util::blkdev_size;
 /// A DM construct of combined Segments
 pub struct LinearDev {
     /// Data about the device
-    pub dev_info: DeviceInfo,
+    dev_info: DeviceInfo,
     segments: Vec<Segment>,
 }
 
@@ -34,7 +34,10 @@ impl LinearDev {
     /// into linear space.  Use DM to reserve enough space for the stratis
     /// metadata on each DmDev.
     pub fn new(name: &str, dm: &DM, block_devs: Vec<Segment>) -> DmResult<LinearDev> {
-        assert_ne!(block_devs.len(), 0);
+        if block_devs.is_empty() {
+            return Err(DmError::Dm(ErrorEnum::Invalid,
+                                   "linear device must have at least one segment".into()));
+        }
 
         try!(dm.device_create(name, None, DmFlags::empty()));
         let table = LinearDev::dm_table(&block_devs);
@@ -72,6 +75,10 @@ impl LinearDev {
 
     /// Extend an existing LinearDev with additional new segments.
     pub fn extend(&mut self, new_segs: Vec<Segment>) -> DmResult<()> {
+        if new_segs.is_empty() {
+            return Ok(());
+        }
+
         // Last existing and first new may be contiguous. Coalesce into
         // a single Segment if so.
         let coalesced_new_first = {
@@ -128,7 +135,8 @@ impl LinearDev {
         self.dev_info
             .device()
             .devnode()
-            .ok_or(DmError::Dm(InternalError("No path associated with dev_info".into())))
+            .ok_or(DmError::Dm(ErrorEnum::NotFound,
+                               "No path associated with dev_info".into()))
     }
 
     /// Remove the device from DM

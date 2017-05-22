@@ -25,7 +25,7 @@ use consts::{DM_NAME_LEN, DM_UUID_LEN, MIN_BUF_SIZE, DM_IOCTL, DmFlags, DM_CTL_P
              DM_QUERY_INACTIVE_TABLE, DM_UUID, DM_DATA_OUT, DM_DEFERRED_REMOVE};
 use device::Device;
 use deviceinfo::DeviceInfo;
-use result::{DmError, DmResult, InternalError};
+use result::{DmError, DmResult, ErrorEnum};
 use types::TargetLine;
 use util::slice_to_null;
 
@@ -300,8 +300,8 @@ impl DM {
         };
 
         if new_name.as_bytes().len() > max_len {
-            return Err(DmError::Dm(InternalError(format!("New name {} too long", new_name)
-                                                     .into())));
+            return Err(DmError::Dm(ErrorEnum::Invalid,
+                                   format!("New name {} too long", new_name).into()));
         }
 
         let mut data_in = new_name.as_bytes().to_vec();

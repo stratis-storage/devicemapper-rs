@@ -10,7 +10,7 @@ use consts::DmFlags;
 use deviceinfo::DeviceInfo;
 use dm::{DM, DevId};
 use lineardev::LinearDev;
-use result::{DmResult, DmError, InternalError};
+use result::{DmResult, DmError, ErrorEnum};
 use types::{DataBlocks, Sectors, TargetLine};
 
 /// DM construct to contain thin provisioned devices
@@ -107,16 +107,13 @@ impl ThinPoolDev {
                  meta: LinearDev,
                  data: LinearDev)
                  -> DmResult<ThinPoolDev> {
-        let meta_devnode = meta.dev_info
-            .device()
-            .devnode()
-            .expect("meta device must have a devnode");
         if try!(Command::new("thin_check")
                     .arg("-q")
-                    .arg(&meta_devnode)
+                    .arg(&try!(meta.devnode()))
                     .status())
                    .success() == false {
-            return Err(DmError::Dm(InternalError("thin_check failed, run thin_repair".into())));
+            return Err(DmError::Dm(ErrorEnum::Error,
+                                   "thin_check failed, run thin_repair".into()));
         }
 
         ThinPoolDev::new(name,
@@ -166,7 +163,8 @@ impl ThinPoolDev {
         self.dev_info
             .device()
             .devnode()
-            .ok_or(DmError::Dm(InternalError("No path associated with dev_info".into())))
+            .ok_or(DmError::Dm(ErrorEnum::NotFound,
+                               "No path associated with dev_info".into()))
 
     }
 
