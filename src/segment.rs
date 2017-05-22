@@ -7,7 +7,7 @@ use types::Sectors;
 use device::Device;
 
 /// struct to represent a continuous set of sectors on a disk
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug)]
 pub struct Segment {
     /// The offset into the device where this segment starts.
     pub start: Sectors,
