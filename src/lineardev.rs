@@ -34,7 +34,10 @@ impl LinearDev {
     /// into linear space.  Use DM to reserve enough space for the stratis
     /// metadata on each DmDev.
     pub fn new(name: &str, dm: &DM, block_devs: Vec<Segment>) -> DmResult<LinearDev> {
-        assert_ne!(block_devs.len(), 0);
+        if block_devs.is_empty() {
+            return Err(DmError::Dm(ErrorEnum::Invalid,
+                                   "linear device must have at least one segment".into()));
+        }
 
         try!(dm.device_create(name, None, DmFlags::empty()));
         let table = LinearDev::dm_table(&block_devs);
