@@ -17,7 +17,7 @@ use util::blkdev_size;
 /// A DM construct of combined Segments
 pub struct LinearDev {
     /// Data about the device
-    pub dev_info: DeviceInfo,
+    dev_info: DeviceInfo,
     segments: Vec<Segment>,
 }
 
