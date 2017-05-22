@@ -107,10 +107,12 @@ impl ThinPoolDev {
                  meta: LinearDev,
                  data: LinearDev)
                  -> DmResult<ThinPoolDev> {
-        let meta_devnode = meta.dev_info
-            .device()
-            .devnode()
-            .expect("meta device must have a devnode");
+        let meta_devnode = try!(meta.dev_info
+                                    .device()
+                                    .devnode()
+                                    .ok_or(DmError::Dm(ErrorEnum::NotFound,
+                                                       "No path associated with dev info"
+                                                           .into())));
         if try!(Command::new("thin_check")
                     .arg("-q")
                     .arg(&meta_devnode)
