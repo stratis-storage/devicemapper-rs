@@ -7,7 +7,7 @@ use types::Sectors;
 use device::Device;
 
 /// struct to represent a continuous set of sectors on a disk
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug)]
 pub struct Segment {
     /// The offset into the device where this segment starts.
     pub start: Sectors,
@@ -26,15 +26,5 @@ impl Segment {
             start: start,
             length: length,
         }
-    }
-
-    /// Return the start and length sectors
-    pub fn range(&self) -> (Sectors, Sectors) {
-        (self.start, self.length)
-    }
-
-    /// Get the "x:y" device string for this blockdev
-    pub fn dstr(&self) -> String {
-        self.device.dstr()
     }
 }
