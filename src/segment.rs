@@ -27,14 +27,4 @@ impl Segment {
             length: length,
         }
     }
-
-    /// Return the start and length sectors
-    pub fn range(&self) -> (Sectors, Sectors) {
-        (self.start, self.length)
-    }
-
-    /// Get the "x:y" device string for this blockdev
-    pub fn dstr(&self) -> String {
-        self.device.dstr()
-    }
 }

@@ -57,11 +57,11 @@ impl LinearDev {
         let mut table = Vec::new();
         let mut logical_start_sector = Sectors(0);
         for block_dev in block_devs {
-            let (start, length) = block_dev.range();
+            let (start, length) = (block_dev.start, block_dev.length);
             let line = (*logical_start_sector,
                         *length,
                         "linear".to_owned(),
-                        format!("{} {}", block_dev.dstr(), *start));
+                        format!("{} {}", block_dev.device.dstr(), *start));
             debug!("dmtable line : {:?}", line);
             table.push(line);
             logical_start_sector = logical_start_sector + length;
