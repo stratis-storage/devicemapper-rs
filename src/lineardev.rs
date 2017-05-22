@@ -75,6 +75,10 @@ impl LinearDev {
 
     /// Extend an existing LinearDev with additional new segments.
     pub fn extend(&mut self, new_segs: Vec<Segment>) -> DmResult<()> {
+        if new_segs.is_empty() {
+            return Ok(());
+        }
+
         // Last existing and first new may be contiguous. Coalesce into
         // a single Segment if so.
         let coalesced_new_first = {
