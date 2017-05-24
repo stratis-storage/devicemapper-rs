@@ -18,6 +18,7 @@ pub struct ThinPoolDev {
     dev_info: DeviceInfo,
     meta_dev: LinearDev,
     data_dev: LinearDev,
+    data_block_size: Sectors,
 }
 
 impl fmt::Debug for ThinPoolDev {
@@ -95,6 +96,7 @@ impl ThinPoolDev {
                dev_info: di,
                meta_dev: meta,
                data_dev: data,
+               data_block_size: data_block_size,
            })
     }
 
@@ -106,6 +108,11 @@ impl ThinPoolDev {
     /// Obtain the data device that backs this thin pool device.
     pub fn data_dev(&self) -> &LinearDev {
         &self.data_dev
+    }
+
+    /// Obtain the data block size for this thin pool device.
+    pub fn data_block_size(&self) -> Sectors {
+        self.data_block_size
     }
 
     /// Set up an existing ThinPoolDev.
