@@ -52,6 +52,11 @@ impl LinearDev {
            })
     }
 
+    /// Return a reference to the segments that back this linear device.
+    pub fn segments(&self) -> &[Segment] {
+        &self.segments
+    }
+
     /// Generate a Vec<> to be passed to DM.  The format of the Vec entries is:
     /// <logical start sec> <length> "linear" /dev/xxx <start offset>
     fn dm_table(block_devs: &[Segment]) -> Vec<TargetLine> {
