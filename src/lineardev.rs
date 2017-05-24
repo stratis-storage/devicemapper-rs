@@ -11,7 +11,7 @@ use deviceinfo::DeviceInfo;
 use dm::{DM, DevId};
 use result::{DmResult, DmError, ErrorEnum};
 use segment::Segment;
-use types::{Bytes, Sectors, TargetLine};
+use types::{Sectors, TargetLine};
 use util::blkdev_size;
 
 /// A DM construct of combined Segments
@@ -124,10 +124,10 @@ impl LinearDev {
     }
 
     /// return the total size of the linear device
-    pub fn size(&self) -> DmResult<Bytes> {
+    pub fn size(&self) -> DmResult<Sectors> {
         let blockdev_path = try!(self.devnode());
         let f = try!(File::open(blockdev_path));
-        blkdev_size(&f)
+        Ok(try!(blkdev_size(&f)).sectors())
     }
 
     /// path of the device node
