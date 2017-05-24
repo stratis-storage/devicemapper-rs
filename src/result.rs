@@ -16,6 +16,8 @@ pub enum ErrorEnum {
     Invalid,
     /// something not found
     NotFound,
+    /// Check failed
+    CheckFailed,
 }
 
 impl fmt::Display for ErrorEnum {
