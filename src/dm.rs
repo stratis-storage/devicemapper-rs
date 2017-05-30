@@ -545,7 +545,7 @@ impl DM {
 
     // Both table_status and dev_wait return table status, so
     // unify table status parsing.
-    fn parse_table_status(count: u32, buf: &[u8]) -> DmResult<Vec<(u64, u64, String, String)>> {
+    fn parse_table_status(count: u32, buf: &[u8]) -> DmResult<Vec<TargetLine>> {
         let mut targets = Vec::new();
         if buf.len() > 0 {
             let mut next_off = 0;
