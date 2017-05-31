@@ -51,6 +51,15 @@ macro_rules! unsigned_rem {
     }
 }
 
+macro_rules! checked_add {
+    ($T: ident) => {
+        /// Add two items of type $T, return None if overflow.
+        pub fn checked_add(&self, other: $T) -> Option<$T> {
+            self.0.checked_add(other.0).map($T)
+        }
+    }
+}
+
 custom_derive! {
     #[derive(NewtypeAdd, NewtypeAddAssign,
              NewtypeDeref,
@@ -93,6 +102,8 @@ impl Bytes {
     pub fn sectors(self) -> Sectors {
         Sectors(self.0 / SECTOR_SIZE as u64)
     }
+
+    checked_add!(Bytes);
 }
 
 impl Sum for Bytes {
@@ -129,6 +140,8 @@ impl Sectors {
     pub fn bytes(&self) -> Bytes {
         Bytes(self.0 * SECTOR_SIZE as u64)
     }
+
+    checked_add!(Sectors);
 }
 
 impl serde::Serialize for Sectors {
