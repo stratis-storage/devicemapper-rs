@@ -1,9 +1,14 @@
 // This Source Code Form is subject to the terms of the Mozilla Public
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
+use types::Sectors;
 
 /// disk sector size in bytes
 pub const SECTOR_SIZE: usize = 512;
+
+/// thin-pool block size in sectors as suggested:
+/// https://www.kernel.org/doc/Documentation/device-mapper/thin-provisioning.txt
+pub const THINPOOL_BLOCK_SIZE: Sectors = Sectors(1024);
 
 use dm_ioctl as dmi;
 
