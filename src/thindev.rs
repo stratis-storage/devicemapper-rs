@@ -50,6 +50,17 @@ impl ThinDev {
                -> DmResult<ThinDev> {
 
         try!(thin_pool.message(dm, &format!("create_thin {}", thin_id)));
+        ThinDev::setup(name, dm, thin_pool, thin_id, length)
+    }
+
+    /// Set up an existing thindev.
+    pub fn setup(name: &str,
+                 dm: &DM,
+                 thin_pool: &ThinPoolDev,
+                 thin_id: u32,
+                 length: Sectors)
+                 -> DmResult<ThinDev> {
+
         try!(dm.device_create(name, None, DmFlags::empty()));
         let id = &DevId::Name(name);
         let thin_pool_dstr = thin_pool.dstr();
