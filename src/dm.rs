@@ -747,47 +747,32 @@ mod tests {
     use consts::{DmFlags, DM_STATUS_TABLE};
 
     #[test]
+    /// Verify that selected operations return an Ok result.
     fn test_basics() {
         let dmi = DM::new().unwrap();
 
-        println!("Calling version()");
-        let version = dmi.version().unwrap();
-        println!("{:?}", version);
-        let dev = match dmi.device_create("example-dev", None, DmFlags::empty()) {
-            Ok(di) => di,
-            _ => {
-                println!("failed to create example-dev");
-                assert!(false);
-                return;
-            }
-        };
+        assert!(dmi.version().is_ok());
 
-        let x = dmi.list_devices().unwrap();
-        println!("{:?}", x);
+        let dev = dmi.device_create("example-dev", None, DmFlags::empty())
+            .unwrap();
+
+        assert!(dmi.list_devices().is_ok());
 
         let name = dev.name();
         let device = dev.device();
 
-        println!("Calling list_versions()");
-        let versions = dmi.list_versions().unwrap();
-        println!("{:?}", versions);
+        assert!(dmi.list_versions().is_ok());
 
-        println!("Calling table_deps()");
-        let deps = dmi.table_deps(device, DmFlags::empty()).unwrap();
-        println!("{:?}", deps);
+        assert!(dmi.table_deps(device, DmFlags::empty()).is_ok());
 
-        println!("Calling table_status() INFO");
-        let status_info = dmi.table_status(&DevId::Name(&name), DmFlags::empty())
-            .unwrap();
-        println!("{:?}", status_info.1);
+        assert!(dmi.table_status(&DevId::Name(&name), DmFlags::empty())
+                    .is_ok());
 
-        println!("Calling table_status() TABLE");
-        let status = dmi.table_status(&DevId::Name(&name), DM_STATUS_TABLE)
-            .unwrap();
-        println!("{:?}", status.1);
+        assert!(dmi.table_status(&DevId::Name(&name), DM_STATUS_TABLE)
+                    .is_ok());
 
-        dmi.device_remove(&DevId::Name(&name), DmFlags::empty())
-            .unwrap();
+        assert!(dmi.device_remove(&DevId::Name(&name), DmFlags::empty())
+                    .is_ok());
 
     }
 }
