@@ -758,21 +758,18 @@ mod tests {
 
         assert!(dmi.list_devices().is_ok());
 
-        let name = dev.name();
+        let name = DevId::Name(dev.name());
         let device = dev.device();
 
         assert!(dmi.list_versions().is_ok());
 
         assert!(dmi.table_deps(device, DmFlags::empty()).is_ok());
 
-        assert!(dmi.table_status(&DevId::Name(&name), DmFlags::empty())
-                    .is_ok());
+        assert!(dmi.table_status(&name, DmFlags::empty()).is_ok());
 
-        assert!(dmi.table_status(&DevId::Name(&name), DM_STATUS_TABLE)
-                    .is_ok());
+        assert!(dmi.table_status(&name, DM_STATUS_TABLE).is_ok());
 
-        assert!(dmi.device_remove(&DevId::Name(&name), DmFlags::empty())
-                    .is_ok());
+        assert!(dmi.device_remove(&name, DmFlags::empty()).is_ok());
 
     }
 }
