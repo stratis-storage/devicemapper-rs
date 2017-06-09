@@ -91,5 +91,5 @@ pub use lineardev::LinearDev;
 pub use result::{DmResult, DmError, ErrorEnum};
 pub use segment::Segment;
 pub use thinpooldev::{ThinPoolBlockUsage, ThinPoolDev, ThinPoolStatus, ThinPoolWorkingStatus};
-pub use thindev::{ThinDev, ThinStatus};
+pub use thindev::{ThinDev, ThinDevId, ThinStatus};
 pub use types::{Bytes, DataBlocks, Sectors};

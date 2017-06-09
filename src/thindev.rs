@@ -5,6 +5,8 @@
 use std::fmt;
 use std::path::PathBuf;
 
+use serde;
+
 use consts::{DmFlags, DM_SUSPEND};
 use deviceinfo::DeviceInfo;
 use dm::{DM, DevId};
@@ -14,10 +16,59 @@ use types::TargetLine;
 
 use types::Sectors;
 
+const THIN_DEV_ID_LIMIT: u64 = 0x1000000; // 2 ^ 24
+
+#[derive(Debug, Clone, Copy, Eq, PartialEq, Hash)]
+/// A thindev id is a 24 bit number, i.e., its bit width is not a power of 2.
+pub struct ThinDevId {
+    value: u32,
+}
+
+impl ThinDevId {
+    /// Make a new ThinDevId.
+    /// Return an error if value is too large to represent in 24 bits.
+    pub fn new_u64(value: u64) -> DmResult<ThinDevId> {
+        if value < THIN_DEV_ID_LIMIT {
+            Ok(ThinDevId { value: value as u32 })
+        } else {
+            Err(DmError::Dm(ErrorEnum::Invalid,
+                            format!("argument {} unrepresentable in 24 bits", value)))
+        }
+    }
+}
+
+impl From<ThinDevId> for u32 {
+    fn from(id: ThinDevId) -> u32 {
+        id.value
+    }
+}
+
+impl fmt::Display for ThinDevId {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        fmt::Display::fmt(&self.value, f)
+    }
+}
+
+impl serde::Serialize for ThinDevId {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+        where S: serde::Serializer
+    {
+        serializer.serialize_u32(self.value)
+    }
+}
+
+impl<'de> serde::Deserialize<'de> for ThinDevId {
+    fn deserialize<D>(deserializer: D) -> Result<ThinDevId, D::Error>
+        where D: serde::de::Deserializer<'de>
+    {
+        Ok(ThinDevId { value: try!(serde::Deserialize::deserialize(deserializer)) })
+    }
+}
+
 /// DM construct for a thin block device
 pub struct ThinDev {
     dev_info: DeviceInfo,
-    thin_id: u32,
+    thin_id: ThinDevId,
     size: Sectors,
     thinpool_dstr: String,
 }
@@ -45,7 +96,7 @@ impl ThinDev {
     pub fn new(name: &str,
                dm: &DM,
                thin_pool: &ThinPoolDev,
-               thin_id: u32,
+               thin_id: ThinDevId,
                length: Sectors)
                -> DmResult<ThinDev> {
 
@@ -57,7 +108,7 @@ impl ThinDev {
     pub fn setup(name: &str,
                  dm: &DM,
                  thin_pool: &ThinPoolDev,
-                 thin_id: u32,
+                 thin_id: ThinDevId,
                  length: Sectors)
                  -> DmResult<ThinDev> {
 
@@ -78,7 +129,7 @@ impl ThinDev {
     /// Generate a Vec<> to be passed to DM. The format of the Vec
     /// entries are: "<start> <length> thin <thinpool maj:min>
     /// <thin_id>"
-    fn dm_table(thin_pool_dstr: &str, thin_id: u32, length: Sectors) -> Vec<TargetLine> {
+    fn dm_table(thin_pool_dstr: &str, thin_id: ThinDevId, length: Sectors) -> Vec<TargetLine> {
         let params = format!("{} {}", thin_pool_dstr, thin_id);
         vec![(0u64, *length, "thin".to_owned(), params)]
     }
@@ -99,7 +150,7 @@ impl ThinDev {
     }
 
     /// return the thin id of the linear device
-    pub fn id(&self) -> u32 {
+    pub fn id(&self) -> ThinDevId {
         self.thin_id
     }
 
@@ -158,5 +209,18 @@ impl ThinDev {
     pub fn teardown(self, dm: &DM) -> DmResult<()> {
         try!(dm.device_remove(&DevId::Name(self.name()), DmFlags::empty()));
         Ok(())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+
+    use super::{THIN_DEV_ID_LIMIT, ThinDevId};
+
+    #[test]
+    /// Verify that new_checked_u64 discriminates.
+    fn test_new_checked_u64() {
+        assert!(ThinDevId::new_u64(2u64.pow(32)).is_err());
+        assert!(ThinDevId::new_u64(THIN_DEV_ID_LIMIT - 1).is_ok());
     }
 }
