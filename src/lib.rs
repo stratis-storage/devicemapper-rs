@@ -36,14 +36,7 @@
 //! Devices have "active" and "inactive" mapping tables. See function
 //! descriptions for which table they affect.
 
-#![cfg_attr(feature = "clippy", feature(plugin))]
-#![cfg_attr(feature = "clippy", plugin(clippy))]
-#![cfg_attr(not(feature = "clippy"), allow(unknown_lints))]
-
 #![warn(missing_docs)]
-
-#![allow(used_underscore_binding)]
-#![allow(if_not_else)]
 
 #[macro_use]
 extern crate custom_derive;

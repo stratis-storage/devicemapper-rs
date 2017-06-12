@@ -14,7 +14,6 @@ license = "MPL-2.0"
 libc = "0.2"
 nix = "0.5"
 bitflags = "0.4"
-clippy = { version = "0", optional = true }
 newtype_derive = "0.1"
 custom_derive = "0.1"
 serde = "1"
