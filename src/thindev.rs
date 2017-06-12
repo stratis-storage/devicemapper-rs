@@ -3,6 +3,7 @@
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 use std::fmt;
+use std::hash::Hash;
 use std::path::PathBuf;
 
 use consts::{DmFlags, DM_SUSPEND};
@@ -14,15 +15,27 @@ use types::TargetLine;
 
 use types::Sectors;
 
+/// A thindev id.
+/// It must require no more than 24 bits for its representation in memory.
+/// Its Display representation must yield a positive, unsigned integer.
+/// It must be cheap to copy, and have a good definition of equality.
+pub trait ThinDevId
+    : Clone + Copy + fmt::Debug + fmt::Display + Eq + Hash + PartialEq {
+}
+
 /// DM construct for a thin block device
-pub struct ThinDev {
+pub struct ThinDev<Id>
+    where Id: ThinDevId
+{
     dev_info: DeviceInfo,
-    thin_id: u32,
+    thin_id: Id,
     size: Sectors,
     thinpool_dstr: String,
 }
 
-impl fmt::Debug for ThinDev {
+impl<Id> fmt::Debug for ThinDev<Id>
+    where Id: ThinDevId
+{
     fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
         write!(f, "{}", self.name())
     }
@@ -39,15 +52,17 @@ pub enum ThinStatus {
 }
 
 /// support use of DM for thin provisioned devices over pools
-impl ThinDev {
+impl<Id> ThinDev<Id>
+    where Id: ThinDevId
+{
     /// Use the given ThinPoolDev as backing space for a newly constructed
     /// thin provisioned ThinDev returned by new().
     pub fn new(name: &str,
                dm: &DM,
                thin_pool: &ThinPoolDev,
-               thin_id: u32,
+               thin_id: Id,
                length: Sectors)
-               -> DmResult<ThinDev> {
+               -> DmResult<ThinDev<Id>> {
 
         try!(thin_pool.message(dm, &format!("create_thin {}", thin_id)));
         ThinDev::setup(name, dm, thin_pool, thin_id, length)
@@ -57,9 +72,11 @@ impl ThinDev {
     pub fn setup(name: &str,
                  dm: &DM,
                  thin_pool: &ThinPoolDev,
-                 thin_id: u32,
+                 thin_id: Id,
                  length: Sectors)
-                 -> DmResult<ThinDev> {
+                 -> DmResult<ThinDev<Id>>
+        where Id: ThinDevId
+    {
 
         try!(dm.device_create(name, None, DmFlags::empty()));
         let id = &DevId::Name(name);
@@ -78,7 +95,7 @@ impl ThinDev {
     /// Generate a Vec<> to be passed to DM. The format of the Vec
     /// entries are: "<start> <length> thin <thinpool maj:min>
     /// <thin_id>"
-    fn dm_table(thin_pool_dstr: &str, thin_id: u32, length: Sectors) -> Vec<TargetLine> {
+    fn dm_table(thin_pool_dstr: &str, thin_id: Id, length: Sectors) -> Vec<TargetLine> {
         let params = format!("{} {}", thin_pool_dstr, thin_id);
         vec![(0u64, *length, "thin".to_owned(), params)]
     }
@@ -99,7 +116,7 @@ impl ThinDev {
     }
 
     /// return the thin id of the linear device
-    pub fn id(&self) -> u32 {
+    pub fn id(&self) -> Id {
         self.thin_id
     }
 
