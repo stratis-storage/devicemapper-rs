@@ -19,6 +19,7 @@ pub struct ThinPoolDev {
     meta_dev: LinearDev,
     data_dev: LinearDev,
     data_block_size: Sectors,
+    low_water_mark: DataBlocks,
 }
 
 impl fmt::Debug for ThinPoolDev {
@@ -97,6 +98,7 @@ impl ThinPoolDev {
                meta_dev: meta,
                data_dev: data,
                data_block_size: data_block_size,
+               low_water_mark: low_water_mark,
            })
     }
 
