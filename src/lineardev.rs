@@ -123,9 +123,9 @@ impl LinearDev {
         self.dev_info.name()
     }
 
-    /// Set a new name for this LinearDev.
-    pub fn set_name(&mut self, dm: &DM, new_name: &str) -> DmResult<()> {
-        self.dev_info = try!(dm.device_rename(self.dev_info.name(), new_name, DmFlags::empty()));
+    /// Set the name for this LinearDev.
+    pub fn set_name(&mut self, dm: &DM, name: &str) -> DmResult<()> {
+        self.dev_info = try!(dm.device_rename(self.dev_info.name(), name, DmFlags::empty()));
 
         Ok(())
     }

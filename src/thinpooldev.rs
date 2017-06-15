@@ -129,7 +129,7 @@ impl ThinPoolDev {
                     .arg(&try!(meta.devnode()))
                     .status())
                    .success() == false {
-            return Err(DmError::Dm(ErrorEnum::CheckFailed,
+            return Err(DmError::Dm(ErrorEnum::CheckFailed(meta, data),
                                    "thin_check failed, run thin_repair".into()));
         }
 
