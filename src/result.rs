@@ -7,8 +7,10 @@ use std::fmt;
 use std::io;
 use nix;
 
+use super::LinearDev;
+
 ///
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub enum ErrorEnum {
     /// generic error code
     Error,
@@ -17,7 +19,7 @@ pub enum ErrorEnum {
     /// something not found
     NotFound,
     /// Check failed
-    CheckFailed,
+    CheckFailed(LinearDev, LinearDev),
 }
 
 impl fmt::Display for ErrorEnum {
