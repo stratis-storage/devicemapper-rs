@@ -9,7 +9,6 @@ use std::mem::{size_of, transmute};
 use std::slice;
 use std::collections::BTreeSet;
 use std::cmp;
-use std::borrow::Borrow;
 use std::thread;
 use std::time::Duration;
 
@@ -423,8 +422,8 @@ impl DM {
                               name: &DevId,
                               targets: &[(u64, u64, T1, T2)])
                               -> DmResult<DeviceInfo>
-        where T1: Borrow<str>,
-              T2: Borrow<str>
+        where T1: AsRef<str>,
+              T2: AsRef<str>
     {
         let mut targs = Vec::new();
 
@@ -437,18 +436,16 @@ impl DM {
             targ.status = 0;
 
             let mut dst: &mut [u8] = unsafe { transmute(&mut targ.target_type[..]) };
-
-            let ttyp_len = if t.2.borrow().len() > dst.len() {
+            let ttyp = t.2.as_ref();
+            let ttyp_len = ttyp.len();
+            if ttyp_len > dst.len() {
                 return Err(DmError::Io(Error::new(Other, "target type too long")));
-            } else {
-                t.2.borrow().len()
-            };
+            }
+            dst[..ttyp_len].clone_from_slice(ttyp.as_bytes());
 
-            dst[..ttyp_len].clone_from_slice(t.2.borrow().as_bytes());
-
-            let mut params = t.3.borrow().to_owned();
-
-            let pad_bytes = align_to(params.len() + 1usize, 8usize) - params.len();
+            let mut params = t.3.as_ref().to_owned();
+            let params_len = params.len();
+            let pad_bytes = align_to(params_len + 1usize, 8usize) - params_len;
             params.extend(vec!["\0"; pad_bytes]);
 
             targ.next = (size_of::<dmi::Struct_dm_target_spec>() + params.len()) as u32;
@@ -492,8 +489,8 @@ impl DM {
                                 id: &DevId,
                                 table: &[(u64, u64, T1, T2)])
                                 -> DmResult<()>
-        where T1: Borrow<str>,
-              T2: Borrow<str>
+        where T1: AsRef<str>,
+              T2: AsRef<str>
     {
         try!(dm.table_load(id, table));
         try!(dm.device_suspend(id, DM_SUSPEND));
