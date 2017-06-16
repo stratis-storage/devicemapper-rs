@@ -487,6 +487,21 @@ impl DM {
         Ok(DeviceInfo { hdr: hdr })
     }
 
+    /// Reload the table for a device
+    pub fn table_reload<T1, T2>(&self,
+                                dm: &DM,
+                                id: &DevId,
+                                table: &[(u64, u64, T1, T2)])
+                                -> DmResult<()>
+        where T1: Borrow<str>,
+              T2: Borrow<str>
+    {
+        try!(dm.table_load(id, table));
+        try!(dm.device_suspend(id, DM_SUSPEND));
+        try!(dm.device_suspend(id, DmFlags::empty()));
+        Ok(())
+    }
+
     /// Clear the "inactive" table for a device.
     pub fn table_clear(&self, name: &DevId) -> DmResult<DeviceInfo> {
         let mut hdr: dmi::Struct_dm_ioctl = Default::default();
