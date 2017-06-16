@@ -11,6 +11,7 @@ use deviceinfo::DeviceInfo;
 use dm::{DM, DevId};
 use lineardev::LinearDev;
 use result::{DmResult, DmError, ErrorEnum};
+use segment::Segment;
 use types::{DataBlocks, Sectors, TargetLine};
 
 /// DM construct to contain thin provisioned devices
@@ -242,6 +243,29 @@ impl ThinPoolDev {
         }
     }
 
+    /// Reload the devie mapper table.
+    fn table_reload(&self, dm: &DM) -> DmResult<()> {
+        try!(dm.table_reload(&dm,
+                             &DevId::Name(self.name()),
+                             &ThinPoolDev::dm_table(try!(self.data_dev.size()),
+                                                    self.data_block_size,
+                                                    self.low_water_mark,
+                                                    &self.meta_dev,
+                                                    &self.data_dev)));
+        Ok(())
+    }
+
+    /// Extend an existing meta device with additional new segments.
+    pub fn extend_meta(&mut self, dm: &DM, new_segs: Vec<Segment>) -> DmResult<()> {
+        try!(self.meta_dev.extend(new_segs));
+        self.table_reload(dm)
+    }
+
+    /// Extend an existing data device with additional new segments.
+    pub fn extend_data(&mut self, dm: &DM, new_segs: Vec<Segment>) -> DmResult<()> {
+        try!(self.data_dev.extend(new_segs));
+        self.table_reload(dm)
+    }
 
     /// Remove the device from DM
     pub fn teardown(self, dm: &DM) -> DmResult<()> {
