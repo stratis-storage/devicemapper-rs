@@ -178,14 +178,17 @@ impl ThinPoolDev {
         self.dev_info.device().dstr()
     }
 
-    /// path of the device node
+    /// Path of the device node.
+    /// Returns an error if no device node found. It is possible for a device
+    /// not to have a device node, but it should not be possible for a DM
+    /// device.
     pub fn devnode(&self) -> DmResult<PathBuf> {
-        self.dev_info
-            .device()
-            .devnode()
-            .ok_or(DmError::Dm(ErrorEnum::NotFound,
-                               "No path associated with dev_info".into()))
-
+        try!(self.dev_info
+             .device()
+             .devnode())
+             .ok_or_else(|| {
+                DmError::Dm(ErrorEnum::NotFound,
+                            format!("No device node associated with device {}", self.dstr()))})
     }
 
     /// Get the current status of the thinpool.

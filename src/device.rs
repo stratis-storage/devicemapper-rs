@@ -9,6 +9,8 @@ use std::str::FromStr;
 use std::io::ErrorKind::InvalidInput;
 use std::os::unix::fs::MetadataExt;
 
+use result::{DmError, DmResult, ErrorEnum};
+
 /// A struct containing the device's major and minor numbers
 ///
 /// Also allows conversion to/from a single 64bit value.
@@ -22,22 +24,58 @@ pub struct Device {
 
 impl Device {
     /// Returns the path in `/dev` that corresponds with the device number/devnode.
-    pub fn devnode(&self) -> Option<PathBuf> {
-        let f = File::open("/proc/partitions").expect("Could not open /proc/partitions");
-
-        let reader = BufReader::new(f);
+    /// Returns an error if there was an error in trying to discover the device.
+    /// Returns None if there was no devnode. This is unusual for a device,
+    /// but not impossible.
+    pub fn devnode(&self) -> DmResult<Option<PathBuf>> {
+        let reader = BufReader::new(try!(File::open("/proc/partitions")));
 
         for line in reader.lines().skip(2) {
-            if let Ok(line) = line {
-                let spl: Vec<_> = line.split_whitespace().collect();
-
-                if spl[0].parse::<u32>().unwrap() == self.major &&
-                   spl[1].parse::<u8>().unwrap() == self.minor {
-                    return Some(vec!["/dev", spl[3]].iter().collect());
-                }
+            let line = try!(line);
+            let mut spl = line.split_whitespace();
+            if try!(try!(spl.next()
+                             .ok_or_else(|| {
+                                             DmError::Dm(ErrorEnum::Invalid,
+                                                         "bad line read from /proc/partitions"
+                                                             .into())
+                                         }))
+                            .parse::<u32>()
+                            .map_err(|_| {
+                                         DmError::Dm(ErrorEnum::Invalid,
+                                                     "bad line read from /proc/partitions".into())
+                                     })) != self.major {
+                continue;
             }
+            if try!(try!(spl.next()
+                             .ok_or_else(|| {
+                                             DmError::Dm(ErrorEnum::Invalid,
+                                                         "bad line read from /proc/partitions"
+                                                             .into())
+                                         }))
+                            .parse::<u8>()
+                            .map_err(|_| {
+                                         DmError::Dm(ErrorEnum::Invalid,
+                                                     "bad line read from /proc/partitions".into())
+                                     })) != self.minor {
+                continue;
+            }
+
+            try!(spl.next()
+                     .ok_or_else(|| {
+                                     DmError::Dm(ErrorEnum::Invalid,
+                                                 "bad line read from /proc/partitions".into())
+                                 }));
+
+            let devname = try!(spl.next()
+                                   .ok_or_else(|| {
+                                                   DmError::Dm(ErrorEnum::Invalid,
+                                                               "bad line read from /proc/partitions"
+                                                                   .into())
+                                               }));
+
+            return Ok(Some(vec!["/dev", devname].iter().collect()));
         }
-        None
+        Ok(None)
     }
 
     /// Get a string with the Device's major and minor numbers in
