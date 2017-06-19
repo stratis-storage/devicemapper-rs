@@ -25,7 +25,7 @@ use consts::{DM_NAME_LEN, DM_UUID_LEN, MIN_BUF_SIZE, DM_IOCTL, DmFlags, DM_CTL_P
 use device::Device;
 use deviceinfo::DeviceInfo;
 use result::{DmError, DmResult, ErrorEnum};
-use types::TargetLine;
+use types::{TargetLine, TargetLineArg};
 use util::slice_to_null;
 
 /// Used as a parameter for functions that take either a Device name
@@ -420,7 +420,7 @@ impl DM {
     /// ```
     pub fn table_load<T1, T2>(&self,
                               name: &DevId,
-                              targets: &[(u64, u64, T1, T2)])
+                              targets: &[TargetLineArg<T1, T2>])
                               -> DmResult<DeviceInfo>
         where T1: AsRef<str>,
               T2: AsRef<str>
@@ -487,7 +487,7 @@ impl DM {
     pub fn table_reload<T1, T2>(&self,
                                 dm: &DM,
                                 id: &DevId,
-                                table: &[(u64, u64, T1, T2)])
+                                table: &[TargetLineArg<T1, T2>])
                                 -> DmResult<()>
         where T1: AsRef<str>,
               T2: AsRef<str>
