@@ -12,7 +12,9 @@ use std::os::unix::prelude::AsRawFd;
 /// send IOCTL via blkgetsize64
 ioctl!(read blkgetsize64 with 0x12, 114; u64);
 
-/// TODO document
+/// The smallest number divisible by `align_to` and at least `num`.
+/// Precondition: `align_to` is a power of 2.
+/// Precondition: `num` + `align_to` < usize::MAX + 1.
 pub fn align_to(num: usize, align_to: usize) -> usize {
     let agn = align_to - 1;
 
