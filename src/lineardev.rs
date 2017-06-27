@@ -66,8 +66,8 @@ impl LinearDev {
         let mut logical_start_sector = Sectors(0);
         for segment in segments {
             let (start, length) = (segment.start, segment.length);
-            let line = (*logical_start_sector,
-                        *length,
+            let line = (logical_start_sector,
+                        length,
                         "linear".to_owned(),
                         format!("{} {}", segment.device.dstr(), *start));
             debug!("dmtable line : {:?}", line);

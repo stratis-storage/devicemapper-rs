@@ -25,7 +25,7 @@ use consts::{DM_NAME_LEN, DM_UUID_LEN, MIN_BUF_SIZE, DM_IOCTL, DmFlags, DM_CTL_P
 use device::Device;
 use deviceinfo::DeviceInfo;
 use result::{DmError, DmResult, ErrorEnum};
-use types::{TargetLine, TargetLineArg};
+use types::{Sectors, TargetLine, TargetLineArg};
 use util::slice_to_null;
 
 /// Used as a parameter for functions that take either a Device name
@@ -408,13 +408,16 @@ impl DM {
     /// # Example
     ///
     /// ```no_run
-    /// use devicemapper::{DM, DevId};
+    /// use devicemapper::{DM, DevId, Sectors};
     /// use devicemapper::consts::DmFlags;
     /// let dm = DM::new().unwrap();
     ///
     /// // Create a 16MiB device (32768 512-byte sectors) that maps to /dev/sdb1
     /// // starting 1MiB into sdb1
-    /// let table = vec![(0, 32768, "linear", "/dev/sdb1 2048")];
+    /// let table = vec![(Sectors(0),
+    ///                   Sectors(32768),
+    ///                   "linear",
+    ///                   "/dev/sdb1 2048")];
     ///
     /// dm.table_load(&DevId::Name("example-dev"), &table).unwrap();
     /// ```
@@ -431,8 +434,8 @@ impl DM {
         // before initializing the header.
         for t in targets {
             let mut targ: dmi::Struct_dm_target_spec = Default::default();
-            targ.sector_start = t.0;
-            targ.length = t.1;
+            targ.sector_start = *t.0;
+            targ.length = *t.1;
             targ.status = 0;
 
             let mut dst: &mut [u8] = unsafe { transmute(&mut targ.target_type[..]) };
@@ -582,7 +585,10 @@ impl DM {
                     String::from_utf8_lossy(slc).into_owned()
                 };
 
-                targets.push((targ.sector_start, targ.length, target_type, params));
+                targets.push((Sectors(targ.sector_start),
+                              Sectors(targ.length),
+                              target_type,
+                              params));
 
                 next_off = targ.next as usize;
             }

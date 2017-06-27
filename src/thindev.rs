@@ -131,7 +131,7 @@ impl ThinDev {
     /// <thin_id>"
     fn dm_table(thin_pool_dstr: &str, thin_id: ThinDevId, length: Sectors) -> Vec<TargetLine> {
         let params = format!("{} {}", thin_pool_dstr, thin_id);
-        vec![(0u64, *length, "thin".to_owned(), params)]
+        vec![(Sectors::default(), length, "thin".to_owned(), params)]
     }
 
     /// name of the thin device

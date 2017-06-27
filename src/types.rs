@@ -196,8 +196,8 @@ impl Display for Sectors {
 /// (sectors), target type (string, e.g. "linear"), and
 /// params(string). See target documentation for the format of each
 /// target type's params field.
-pub type TargetLine = (u64, u64, String, String);
+pub type TargetLine = (Sectors, Sectors, String, String);
 
 /// The same as TargetLine, except generalized for argument rather than
 /// return type.
-pub type TargetLineArg<T1, T2> = (u64, u64, T1, T2);
+pub type TargetLineArg<T1, T2> = (Sectors, Sectors, T1, T2);
