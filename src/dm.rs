@@ -3,7 +3,6 @@
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 use std::fs::File;
 use std::io::Error;
-use std::io::ErrorKind::Other;
 use std::os::unix::io::AsRawFd;
 use std::mem::{size_of, transmute};
 use std::slice;
@@ -442,7 +441,7 @@ impl DM {
             let ttyp = t.2.as_ref();
             let ttyp_len = ttyp.len();
             if ttyp_len > dst.len() {
-                return Err(DmError::Io(Error::new(Other, "target type too long")));
+                return Err(DmError::Dm(ErrorEnum::Invalid, "target type too long".into()));
             }
             dst[..ttyp_len].clone_from_slice(ttyp.as_bytes());
 
