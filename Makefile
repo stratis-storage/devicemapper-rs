@@ -8,7 +8,7 @@ build:
 	RUSTFLAGS='-D warnings' cargo build
 
 test:
-	RUSTFLAGS='-D warnings' RUST_BACKTRACE=1 cargo test -- --skip test_basics
+	RUSTFLAGS='-D warnings' RUST_BACKTRACE=1 cargo test -- --skip sudo_
 
 sudo_test:
 	sudo env "PATH=${PATH}" RUSTFLAGS='-D warnings' RUST_BACKTRACE=1 RUST_TEST_THREADS=1 cargo test
