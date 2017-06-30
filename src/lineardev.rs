@@ -27,20 +27,20 @@ impl fmt::Debug for LinearDev {
     }
 }
 
-/// Use DM to concatenate a set of blockdevs together into a
-/// /dev/mapper/xxx block device of continuous sectors.
+/// Use DM to concatenate a list of segments together into a
+/// linear block device of continuous sectors.
 impl LinearDev {
-    /// Construct a new block device by concatenating the given block_devs
+    /// Construct a new block device by concatenating the given segments
     /// into linear space.  Use DM to reserve enough space for the stratis
     /// metadata on each DmDev.
-    pub fn new(name: &str, dm: &DM, block_devs: Vec<Segment>) -> DmResult<LinearDev> {
-        if block_devs.is_empty() {
+    pub fn new(name: &str, dm: &DM, segments: Vec<Segment>) -> DmResult<LinearDev> {
+        if segments.is_empty() {
             return Err(DmError::Dm(ErrorEnum::Invalid,
                                    "linear device must have at least one segment".into()));
         }
 
         try!(dm.device_create(name, None, DmFlags::empty()));
-        let table = LinearDev::dm_table(&block_devs);
+        let table = LinearDev::dm_table(&segments);
         let id = &DevId::Name(name);
         let dev_info = try!(dm.table_load(id, &table));
         try!(dm.device_suspend(id, DmFlags::empty()));
@@ -48,7 +48,7 @@ impl LinearDev {
         DM::wait_for_dm();
         Ok(LinearDev {
                dev_info: dev_info,
-               segments: block_devs,
+               segments: segments,
            })
     }
 
@@ -59,17 +59,17 @@ impl LinearDev {
 
     /// Generate a Vec<> to be passed to DM.  The format of the Vec entries is:
     /// <logical start sec> <length> "linear" /dev/xxx <start offset>
-    fn dm_table(block_devs: &[Segment]) -> Vec<TargetLine> {
-        assert_ne!(block_devs.len(), 0);
+    fn dm_table(segments: &[Segment]) -> Vec<TargetLine> {
+        assert_ne!(segments.len(), 0);
 
         let mut table = Vec::new();
         let mut logical_start_sector = Sectors(0);
-        for block_dev in block_devs {
-            let (start, length) = (block_dev.start, block_dev.length);
+        for segment in segments {
+            let (start, length) = (segment.start, segment.length);
             let line = (*logical_start_sector,
                         *length,
                         "linear".to_owned(),
-                        format!("{} {}", block_dev.device.dstr(), *start));
+                        format!("{} {}", segment.device.dstr(), *start));
             debug!("dmtable line : {:?}", line);
             table.push(line);
             logical_start_sector += length;
@@ -137,8 +137,7 @@ impl LinearDev {
 
     /// return the total size of the linear device
     pub fn size(&self) -> DmResult<Sectors> {
-        let blockdev_path = try!(self.devnode());
-        let f = try!(File::open(blockdev_path));
+        let f = try!(File::open(try!(self.devnode())));
         Ok(try!(blkdev_size(&f)).sectors())
     }
 
