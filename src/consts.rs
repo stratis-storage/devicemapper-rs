@@ -50,6 +50,7 @@ bitflags!(
     flags DmFlags: dmi::__u32 {
         /// In: Device should be read-only.
         /// Out: Device is read-only.
+        #[allow(identity_op)]
         const DM_READONLY             = (1 << 0),
         /// In: Device should be suspended.
         /// Out: Device is suspended.
