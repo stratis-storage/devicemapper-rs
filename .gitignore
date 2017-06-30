@@ -3,5 +3,6 @@ Cargo.lock
 .project 
 .settings
 
+*.bk
 *.swo
 *.swp
