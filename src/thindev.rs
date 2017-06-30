@@ -115,7 +115,7 @@ impl ThinDev {
         try!(dm.device_create(name, None, DmFlags::empty()));
         let id = &DevId::Name(name);
         let thin_pool_dstr = thin_pool.dstr();
-        let di = try!(dm.table_load(&id, &ThinDev::dm_table(&thin_pool_dstr, thin_id, length)));
+        let di = try!(dm.table_load(id, &ThinDev::dm_table(&thin_pool_dstr, thin_id, length)));
         try!(dm.device_suspend(id, DmFlags::empty()));
         DM::wait_for_dm();
         Ok(ThinDev {
@@ -166,11 +166,12 @@ impl ThinDev {
 
     /// Get the current status of the thin device.
     pub fn status(&self, dm: &DM) -> DmResult<ThinStatus> {
-        let (_, mut status) = try!(dm.table_status(&DevId::Name(&self.dev_info.name()),
+        let (_, mut status) = try!(dm.table_status(&DevId::Name(self.dev_info.name()),
                                                    DmFlags::empty()));
 
-        assert!(status.len() == 1,
-                "Kernel must return 1 line from thin status");
+        assert_eq!(status.len(),
+                   1,
+                   "Kernel must return 1 line from thin status");
 
         let status_line = status.pop().expect("assertion above holds").3;
         if status_line.starts_with("Fail") {
@@ -193,9 +194,9 @@ impl ThinDev {
     /// sectors given.
     pub fn extend(&mut self, dm: &DM, sectors: Sectors) -> DmResult<()> {
 
-        self.size = self.size + sectors;
+        self.size += sectors;
 
-        let id = &DevId::Name(&self.dev_info.name());
+        let id = &DevId::Name(self.dev_info.name());
 
         try!(dm.table_load(id,
                            &ThinDev::dm_table(&self.thinpool_dstr, self.thin_id, self.size)));
