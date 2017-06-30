@@ -40,6 +40,8 @@
 #![cfg_attr(feature = "clippy", plugin(clippy))]
 #![cfg_attr(not(features = "clippy"), allow(unknown_lints))]
 
+#![allow(doc_markdown)]
+
 #![warn(missing_docs)]
 
 #[macro_use]
