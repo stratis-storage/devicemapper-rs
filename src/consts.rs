@@ -41,7 +41,7 @@ pub const DM_VERSION_PATCHLEVEL: u32 = 0;
 pub const DM_NAME_LEN: usize = 128;
 /// UUID max length
 pub const DM_UUID_LEN: usize = 129;
-/// Start with a large buffer to make BUFFER_FULL rare. Libdm does this too.s
+/// Start with a large buffer to make BUFFER_FULL rare. Libdm does this too.
 pub const MIN_BUF_SIZE: usize = 16 * 1024;
 
 
@@ -50,6 +50,7 @@ bitflags!(
     flags DmFlags: dmi::__u32 {
         /// In: Device should be read-only.
         /// Out: Device is read-only.
+        #[allow(identity_op)]
         const DM_READONLY             = (1 << 0),
         /// In: Device should be suspended.
         /// Out: Device is suspended.

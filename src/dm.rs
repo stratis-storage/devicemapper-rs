@@ -114,10 +114,9 @@ impl DM {
 
         let op = iorw!(DM_IOCTL, ioctl, size_of::<dmi::Struct_dm_ioctl>()) as c_ulong;
         loop {
-            if let Err(_) = unsafe {
-                   convert_ioctl_res!(nix_ioctl(self.file.as_raw_fd(), op, v.as_mut_ptr()))
-               } {
-                return Err((DmError::Io(Error::last_os_error())));
+            if unsafe { convert_ioctl_res!(nix_ioctl(self.file.as_raw_fd(), op, v.as_mut_ptr())) }
+                   .is_err() {
+                return Err(DmError::Io(Error::last_os_error()));
             }
 
             let hdr = unsafe {
@@ -562,7 +561,7 @@ impl DM {
     // unify table status parsing.
     fn parse_table_status(count: u32, buf: &[u8]) -> DmResult<Vec<TargetLine>> {
         let mut targets = Vec::new();
-        if buf.len() > 0 {
+        if !buf.is_empty() {
             let mut next_off = 0;
             let mut result = &buf[..];
 

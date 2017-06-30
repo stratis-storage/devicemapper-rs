@@ -127,11 +127,11 @@ impl ThinPoolDev {
                  meta: LinearDev,
                  data: LinearDev)
                  -> DmResult<ThinPoolDev> {
-        if try!(Command::new("thin_check")
-                    .arg("-q")
-                    .arg(&try!(meta.devnode()))
-                    .status())
-                   .success() == false {
+        if !try!(Command::new("thin_check")
+                     .arg("-q")
+                     .arg(&try!(meta.devnode()))
+                     .status())
+                    .success() {
             return Err(DmError::Dm(ErrorEnum::CheckFailed(meta, data),
                                    "thin_check failed, run thin_repair".into()));
         }
@@ -245,7 +245,7 @@ impl ThinPoolDev {
 
     /// Reload the devie mapper table.
     fn table_reload(&self, dm: &DM) -> DmResult<()> {
-        try!(dm.table_reload(&dm,
+        try!(dm.table_reload(dm,
                              &DevId::Name(self.name()),
                              &ThinPoolDev::dm_table(try!(self.data_dev.size()),
                                                     self.data_block_size,

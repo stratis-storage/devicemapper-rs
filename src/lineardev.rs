@@ -72,7 +72,7 @@ impl LinearDev {
                         format!("{} {}", block_dev.device.dstr(), *start));
             debug!("dmtable line : {:?}", line);
             table.push(line);
-            logical_start_sector = logical_start_sector + length;
+            logical_start_sector += length;
         }
 
         table
@@ -93,7 +93,7 @@ impl LinearDev {
             let new_first = new_segs.first().expect("new_segs must not be empty");
             if old_last.device == new_first.device &&
                (old_last.start + old_last.length == new_first.start) {
-                old_last.length = old_last.length + new_first.length;
+                old_last.length += new_first.length;
                 true
             } else {
                 false

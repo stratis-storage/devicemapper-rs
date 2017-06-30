@@ -36,6 +36,12 @@
 //! Devices have "active" and "inactive" mapping tables. See function
 //! descriptions for which table they affect.
 
+#![cfg_attr(feature = "clippy", feature(plugin))]
+#![cfg_attr(feature = "clippy", plugin(clippy))]
+#![cfg_attr(not(features = "clippy"), allow(unknown_lints))]
+
+#![allow(doc_markdown)]
+
 #![warn(missing_docs)]
 
 #[macro_use]

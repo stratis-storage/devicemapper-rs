@@ -19,3 +19,4 @@ custom_derive = "0.1"
 serde = "1"
 log = "0.3"
 env_logger="0.3.5"
+clippy = {version = "*", optional = true}
