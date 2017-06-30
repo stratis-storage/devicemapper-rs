@@ -31,13 +31,7 @@ pub fn blkdev_size(file: &File) -> DmResult<Bytes> {
     }
 }
 
-// Return up to the first \0, or None
-//
+/// Return slc up to the first \0, or None
 pub fn slice_to_null(slc: &[u8]) -> Option<&[u8]> {
-    for (i, c) in slc.iter().enumerate() {
-        if *c == b'\0' {
-            return Some(&slc[..i]);
-        };
-    }
-    None
+    slc.iter().position(|c| *c == b'\0').map(|i| &slc[..i])
 }
