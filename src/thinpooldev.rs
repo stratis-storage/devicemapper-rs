@@ -159,7 +159,7 @@ impl ThinPoolDev {
                              data.dstr(),
                              *data_block_size,
                              *low_water_mark);
-        vec![(0u64, *length, "thin-pool".to_owned(), params)]
+        vec![(Sectors::default(), length, "thin-pool".to_owned(), params)]
     }
 
     /// send a message to DM thin pool

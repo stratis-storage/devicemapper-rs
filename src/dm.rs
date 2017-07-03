@@ -3,13 +3,11 @@
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 use std::fs::File;
 use std::io::Error;
-use std::io::ErrorKind::Other;
 use std::os::unix::io::AsRawFd;
 use std::mem::{size_of, transmute};
 use std::slice;
 use std::collections::BTreeSet;
 use std::cmp;
-use std::borrow::Borrow;
 use std::thread;
 use std::time::Duration;
 
@@ -26,7 +24,7 @@ use consts::{DM_NAME_LEN, DM_UUID_LEN, MIN_BUF_SIZE, DM_IOCTL, DmFlags, DM_CTL_P
 use device::Device;
 use deviceinfo::DeviceInfo;
 use result::{DmError, DmResult, ErrorEnum};
-use types::TargetLine;
+use types::{Sectors, TargetLine, TargetLineArg};
 use util::slice_to_null;
 
 /// Used as a parameter for functions that take either a Device name
@@ -409,22 +407,25 @@ impl DM {
     /// # Example
     ///
     /// ```no_run
-    /// use devicemapper::{DM, DevId};
+    /// use devicemapper::{DM, DevId, Sectors};
     /// use devicemapper::consts::DmFlags;
     /// let dm = DM::new().unwrap();
     ///
     /// // Create a 16MiB device (32768 512-byte sectors) that maps to /dev/sdb1
     /// // starting 1MiB into sdb1
-    /// let table = vec![(0, 32768, "linear", "/dev/sdb1 2048")];
+    /// let table = vec![(Sectors(0),
+    ///                   Sectors(32768),
+    ///                   "linear",
+    ///                   "/dev/sdb1 2048")];
     ///
     /// dm.table_load(&DevId::Name("example-dev"), &table).unwrap();
     /// ```
     pub fn table_load<T1, T2>(&self,
                               name: &DevId,
-                              targets: &[(u64, u64, T1, T2)])
+                              targets: &[TargetLineArg<T1, T2>])
                               -> DmResult<DeviceInfo>
-        where T1: Borrow<str>,
-              T2: Borrow<str>
+        where T1: AsRef<str>,
+              T2: AsRef<str>
     {
         let mut targs = Vec::new();
 
@@ -432,23 +433,21 @@ impl DM {
         // before initializing the header.
         for t in targets {
             let mut targ: dmi::Struct_dm_target_spec = Default::default();
-            targ.sector_start = t.0;
-            targ.length = t.1;
+            targ.sector_start = *t.0;
+            targ.length = *t.1;
             targ.status = 0;
 
             let mut dst: &mut [u8] = unsafe { transmute(&mut targ.target_type[..]) };
+            let ttyp = t.2.as_ref();
+            let ttyp_len = ttyp.len();
+            if ttyp_len > dst.len() {
+                return Err(DmError::Dm(ErrorEnum::Invalid, "target type too long".into()));
+            }
+            dst[..ttyp_len].clone_from_slice(ttyp.as_bytes());
 
-            let ttyp_len = if t.2.borrow().len() > dst.len() {
-                return Err(DmError::Io(Error::new(Other, "target type too long")));
-            } else {
-                t.2.borrow().len()
-            };
-
-            dst[..ttyp_len].clone_from_slice(t.2.borrow().as_bytes());
-
-            let mut params = t.3.borrow().to_owned();
-
-            let pad_bytes = align_to(params.len() + 1usize, 8usize) - params.len();
+            let mut params = t.3.as_ref().to_owned();
+            let params_len = params.len();
+            let pad_bytes = align_to(params_len + 1usize, 8usize) - params_len;
             params.extend(vec!["\0"; pad_bytes]);
 
             targ.next = (size_of::<dmi::Struct_dm_target_spec>() + params.len()) as u32;
@@ -490,10 +489,10 @@ impl DM {
     pub fn table_reload<T1, T2>(&self,
                                 dm: &DM,
                                 id: &DevId,
-                                table: &[(u64, u64, T1, T2)])
+                                table: &[TargetLineArg<T1, T2>])
                                 -> DmResult<()>
-        where T1: Borrow<str>,
-              T2: Borrow<str>
+        where T1: AsRef<str>,
+              T2: AsRef<str>
     {
         try!(dm.table_load(id, table));
         try!(dm.device_suspend(id, DM_SUSPEND));
@@ -585,7 +584,10 @@ impl DM {
                     String::from_utf8_lossy(slc).into_owned()
                 };
 
-                targets.push((targ.sector_start, targ.length, target_type, params));
+                targets.push((Sectors(targ.sector_start),
+                              Sectors(targ.length),
+                              target_type,
+                              params));
 
                 next_off = targ.next as usize;
             }
