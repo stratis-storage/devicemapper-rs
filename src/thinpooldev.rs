@@ -245,7 +245,7 @@ impl ThinPoolDev {
         }
     }
 
-    /// Reload the devie mapper table.
+    /// Reload the device mapper table.
     fn table_reload(&self, dm: &DM) -> DmResult<()> {
         let size = {
             let error_func = || {
