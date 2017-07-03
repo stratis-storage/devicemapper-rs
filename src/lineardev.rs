@@ -135,23 +135,20 @@ impl LinearDev {
         self.dev_info.device().dstr()
     }
 
-    /// return the total size of the linear device
-    pub fn size(&self) -> DmResult<Sectors> {
-        let f = try!(File::open(try!(self.devnode())));
-        Ok(try!(blkdev_size(&f)).sectors())
+    /// Return the total size of the linear device
+    /// Return None if there is no device node associated with the device.
+    pub fn size(&self) -> DmResult<Option<Sectors>> {
+        if let Some(devnode) = try!(self.devnode()) {
+            let f = try!(File::open(devnode));
+            Ok(Some(try!(blkdev_size(&f)).sectors()))
+        } else {
+            Ok(None)
+        }
     }
 
     /// Path of the device node.
-    /// Returns an error if no device node found. It is possible for a device
-    /// not to have a device node, but it should not be possible for a DM
-    /// device.
-    pub fn devnode(&self) -> DmResult<PathBuf> {
-        try!(self.dev_info
-             .device()
-             .devnode())
-             .ok_or_else(|| {
-                DmError::Dm(ErrorEnum::NotFound,
-                            format!("No device node associated with device {}", self.dstr()))})
+    pub fn devnode(&self) -> DmResult<Option<PathBuf>> {
+        self.dev_info.device().devnode()
     }
 
     /// Remove the device from DM
