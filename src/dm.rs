@@ -538,8 +538,9 @@ impl DM {
 
         let data_out = try!(self.do_ioctl(dmi::DM_TABLE_DEPS_CMD as u8, &mut hdr, None));
 
-        let mut devs = Vec::new();
-        if !data_out.is_empty() {
+        if data_out.is_empty() {
+            Ok(vec![])
+        } else {
             let result = &data_out[..];
             let target_deps = unsafe {
                 (result.as_ptr() as *const dmi::Struct_dm_target_deps)
@@ -553,12 +554,8 @@ impl DM {
                                       target_deps.count as usize)
             };
 
-            for dev in dev_slc {
-                devs.push(Device::from(*dev));
-            }
+            Ok(dev_slc.iter().map(|d| Device::from(*d)).collect())
         }
-
-        Ok(devs)
     }
 
     // Both table_status and dev_wait return table status, so
