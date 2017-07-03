@@ -279,6 +279,10 @@ impl DM {
     /// If DM_UUID is set, change the UUID instead.
     ///
     /// Valid flags: DM_UUID
+    ///
+    /// Prerequisite: old_name != new_name
+    /// Note: Possibly surprisingly, returned DeviceInfo's name field
+    /// contains the previous name, not the new name.
     pub fn device_rename(&self,
                          old_name: &str,
                          new_name: &str,
