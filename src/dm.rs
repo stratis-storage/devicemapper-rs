@@ -246,7 +246,7 @@ impl DM {
 
         try!(self.do_ioctl(dmi::DM_DEV_CREATE_CMD as u8, &mut hdr, None));
 
-        Ok(DeviceInfo { hdr: hdr })
+        Ok(DeviceInfo::new(hdr))
     }
 
     /// Remove a DM device and its mapping tables.
@@ -269,7 +269,7 @@ impl DM {
 
         try!(self.do_ioctl(dmi::DM_DEV_REMOVE_CMD as u8, &mut hdr, None));
 
-        Ok(DeviceInfo { hdr: hdr })
+        Ok(DeviceInfo::new(hdr))
     }
 
     /// Change a DM device's name.
@@ -306,7 +306,7 @@ impl DM {
 
         try!(self.do_ioctl(dmi::DM_DEV_RENAME_CMD as u8, &mut hdr, Some(&data_in)));
 
-        Ok(DeviceInfo { hdr: hdr })
+        Ok(DeviceInfo::new(hdr))
     }
 
     /// Suspend or resume a DM device, depending on if DM_SUSPEND flag
@@ -345,7 +345,7 @@ impl DM {
 
         try!(self.do_ioctl(dmi::DM_DEV_SUSPEND_CMD as u8, &mut hdr, None));
 
-        Ok(DeviceInfo { hdr: hdr })
+        Ok(DeviceInfo::new(hdr))
     }
 
     /// Get DeviceInfo for a device. This is also returned by other
@@ -363,7 +363,7 @@ impl DM {
 
         try!(self.do_ioctl(dmi::DM_DEV_STATUS_CMD as u8, &mut hdr, None));
 
-        Ok(DeviceInfo { hdr: hdr })
+        Ok(DeviceInfo::new(hdr))
     }
 
     /// Wait for a device to report an event.
@@ -391,7 +391,7 @@ impl DM {
 
         let status = try!(Self::parse_table_status(hdr.target_count, &data_out));
 
-        Ok((DeviceInfo { hdr: hdr }, status))
+        Ok((DeviceInfo::new(hdr), status))
 
     }
 
@@ -482,7 +482,7 @@ impl DM {
 
         try!(self.do_ioctl(dmi::DM_TABLE_LOAD_CMD as u8, &mut hdr, Some(&data_in)));
 
-        Ok(DeviceInfo { hdr: hdr })
+        Ok(DeviceInfo::new(hdr))
     }
 
     /// Reload the table for a device
@@ -513,7 +513,7 @@ impl DM {
 
         try!(self.do_ioctl(dmi::DM_TABLE_CLEAR_CMD as u8, &mut hdr, None));
 
-        Ok(DeviceInfo { hdr: hdr })
+        Ok(DeviceInfo::new(hdr))
     }
 
     /// Query DM for which devices are referenced by the "active"
@@ -639,7 +639,7 @@ impl DM {
 
         let status = try!(Self::parse_table_status(hdr.target_count, &data_out));
 
-        Ok((DeviceInfo { hdr: hdr }, status))
+        Ok((DeviceInfo::new(hdr), status))
     }
 
     /// Returns a list of each loaded target type with its name, and
@@ -710,7 +710,7 @@ impl DM {
 
         let data_out = try!(self.do_ioctl(dmi::DM_TARGET_MSG_CMD as u8, &mut hdr, Some(&data_in)));
 
-        Ok((DeviceInfo { hdr: hdr },
+        Ok((DeviceInfo::new(hdr),
             if (hdr.flags & DM_DATA_OUT.bits()) > 0 {
                 Some(String::from_utf8_lossy(&data_out[..data_out.len() - 1]).into_owned())
             } else {
