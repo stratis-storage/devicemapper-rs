@@ -15,10 +15,14 @@ use util::slice_to_null;
 pub struct DeviceInfo {
     /// ioclt arugument consits of a single chunk of memory, with this
     /// structure at the start.
-    pub hdr: dmi::Struct_dm_ioctl,
+    hdr: dmi::Struct_dm_ioctl,
 }
 
 impl DeviceInfo {
+    pub fn new(hdr: dmi::Struct_dm_ioctl) -> DeviceInfo {
+        DeviceInfo { hdr }
+    }
+
     /// The major, minor, and patchlevel versions of devicemapper.
     pub fn version(&self) -> (u32, u32, u32) {
         (self.hdr.version[0], self.hdr.version[1], self.hdr.version[2])

@@ -17,7 +17,7 @@ use util::blkdev_size;
 /// A DM construct of combined Segments
 pub struct LinearDev {
     /// Data about the device
-    dev_info: DeviceInfo,
+    dev_info: Box<DeviceInfo>,
     segments: Vec<Segment>,
 }
 
@@ -42,7 +42,7 @@ impl LinearDev {
         try!(dm.device_create(name, None, DmFlags::empty()));
         let table = LinearDev::dm_table(&segments);
         let id = &DevId::Name(name);
-        let dev_info = try!(dm.table_load(id, &table));
+        let dev_info = Box::new(try!(dm.table_load(id, &table)));
         try!(dm.device_suspend(id, DmFlags::empty()));
 
         DM::wait_for_dm();
@@ -125,7 +125,8 @@ impl LinearDev {
 
     /// Set the name for this LinearDev.
     pub fn set_name(&mut self, dm: &DM, name: &str) -> DmResult<()> {
-        self.dev_info = try!(dm.device_rename(self.dev_info.name(), name, DmFlags::empty()));
+        self.dev_info =
+            Box::new(try!(dm.device_rename(self.dev_info.name(), name, DmFlags::empty())));
 
         Ok(())
     }
