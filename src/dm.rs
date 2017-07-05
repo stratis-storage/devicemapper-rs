@@ -277,6 +277,10 @@ impl DM {
     /// If DM_UUID is set, change the UUID instead.
     ///
     /// Valid flags: DM_UUID
+    ///
+    /// Prerequisite: old_name != new_name
+    /// Note: Possibly surprisingly, returned DeviceInfo's name field
+    /// contains the previous name, not the new name.
     pub fn device_rename(&self,
                          old_name: &str,
                          new_name: &str,
@@ -533,8 +537,9 @@ impl DM {
 
         let data_out = try!(self.do_ioctl(dmi::DM_TABLE_DEPS_CMD as u8, &mut hdr, None));
 
-        let mut devs = Vec::new();
-        if !data_out.is_empty() {
+        if data_out.is_empty() {
+            Ok(vec![])
+        } else {
             let result = &data_out[..];
             let target_deps = unsafe {
                 (result.as_ptr() as *const dmi::Struct_dm_target_deps)
@@ -548,12 +553,8 @@ impl DM {
                                       target_deps.count as usize)
             };
 
-            for dev in dev_slc {
-                devs.push(Device::from(*dev));
-            }
+            Ok(dev_slc.iter().map(|d| Device::from(*d)).collect())
         }
-
-        Ok(devs)
     }
 
     // Both table_status and dev_wait return table status, so
@@ -748,47 +749,164 @@ mod tests {
     use consts::{DmFlags, DM_STATUS_TABLE};
 
     #[test]
-    fn test_basics() {
-        let dmi = DM::new().unwrap();
+    /// Test that some version can be obtained.
+    fn sudo_test_version() {
+        assert!(DM::new().unwrap().version().is_ok());
+    }
 
-        println!("Calling version()");
-        let version = dmi.version().unwrap();
-        println!("{:?}", version);
-        let dev = match dmi.device_create("example-dev", None, DmFlags::empty()) {
-            Ok(di) => di,
-            _ => {
-                println!("failed to create example-dev");
-                assert!(false);
-                return;
+    #[test]
+    /// Test that versions for some targets can be obtained.
+    fn sudo_test_versions() {
+        assert!(!DM::new().unwrap().list_versions().unwrap().is_empty());
+    }
+
+    #[test]
+    /// Verify that if no devices have been created the list is empty.
+    fn sudo_test_list_devices_empty() {
+        assert!(DM::new().unwrap().list_devices().unwrap().is_empty());
+    }
+
+    #[test]
+    /// Verify that if one device has been created, it will be the only device
+    /// listed.
+    fn sudo_test_list_devices() {
+        let dm = DM::new().unwrap();
+        let name = "example-dev";
+        dm.device_create(name, None, DmFlags::empty()).unwrap();
+
+        let devices;
+        loop {
+            if let Ok(list) = dm.list_devices() {
+                devices = list;
+                break;
             }
-        };
+        }
 
-        let x = dmi.list_devices().unwrap();
-        println!("{:?}", x);
-
-        let name = dev.name();
-        let device = dev.device();
-
-        println!("Calling list_versions()");
-        let versions = dmi.list_versions().unwrap();
-        println!("{:?}", versions);
-
-        println!("Calling table_deps()");
-        let deps = dmi.table_deps(device, DmFlags::empty()).unwrap();
-        println!("{:?}", deps);
-
-        println!("Calling table_status() INFO");
-        let status_info = dmi.table_status(&DevId::Name(&name), DmFlags::empty())
+        assert_eq!(devices.len(), 1);
+        assert!(devices[0].0 == name);
+        dm.device_remove(&DevId::Name(name), DmFlags::empty())
             .unwrap();
-        println!("{:?}", status_info.1);
+    }
 
-        println!("Calling table_status() TABLE");
-        let status = dmi.table_status(&DevId::Name(&name), DM_STATUS_TABLE)
+    #[test]
+    /// Test that device creation gives a device with the expected name.
+    fn sudo_test_create() {
+        let dm = DM::new().unwrap();
+        let name = "example-dev";
+        let result = dm.device_create(name, None, DmFlags::empty()).unwrap();
+        assert!(result.name() == name);
+        dm.device_remove(&DevId::Name(name), DmFlags::empty())
             .unwrap();
-        println!("{:?}", status.1);
+    }
 
-        dmi.device_remove(&DevId::Name(&name), DmFlags::empty())
+    #[test]
+    /// Test that device rename to same name fails.
+    /// This is unfortunate, but appears to be true.
+    fn sudo_test_rename_id() {
+        let dm = DM::new().unwrap();
+        let name = "example-dev";
+        dm.device_create(name, None, DmFlags::empty()).unwrap();
+        DM::wait_for_dm();
+        assert!(dm.device_rename(name, name, DmFlags::empty()).is_err());
+        dm.device_remove(&DevId::Name(name), DmFlags::empty())
             .unwrap();
+    }
 
+    #[test]
+    /// Test that device rename to different name works.
+    /// Verify that the only device in the list of devices is a device with
+    /// the new name.
+    fn sudo_test_rename() {
+        let dm = DM::new().unwrap();
+        let name = "example-dev";
+        dm.device_create(name, None, DmFlags::empty()).unwrap();
+
+        let new_name = "example-dev-2";
+        loop {
+            if dm.device_rename(name, new_name, DmFlags::empty())
+                   .is_ok() {
+                break;
+            }
+        }
+
+        assert!(dm.device_status(&DevId::Name(name)).is_err());
+        assert!(dm.device_status(&DevId::Name(new_name)).is_ok());
+
+        let devices = dm.list_devices().unwrap();
+        assert_eq!(devices.len(), 1);
+        assert_eq!(devices[0].0, new_name);
+
+        dm.device_remove(&DevId::Name(new_name), DmFlags::empty())
+            .unwrap();
+    }
+
+    #[test]
+    /// Renaming a device that does not exist yields an error.
+    fn sudo_test_rename_non_existant() {
+        assert!(DM::new()
+                    .unwrap()
+                    .device_rename("old_name", "new_name", DmFlags::empty())
+                    .is_err());
+    }
+
+    #[test]
+    /// A newly created device has no deps.
+    fn sudo_test_empty_deps() {
+        let dm = DM::new().unwrap();
+        let name = "example-dev";
+        let result = dm.device_create(name, None, DmFlags::empty()).unwrap();
+        let device = result.device();
+
+        let deps;
+        loop {
+            if let Ok(list) = dm.table_deps(device, DmFlags::empty()) {
+                deps = list;
+                break;
+            }
+        }
+
+        assert!(deps.is_empty());
+        dm.device_remove(&DevId::Name(name), DmFlags::empty())
+            .unwrap();
+    }
+
+    #[test]
+    /// Table status on a non-existant name should return an error.
+    fn sudo_test_table_status_non_existant() {
+        assert!(DM::new()
+                    .unwrap()
+                    .table_status(&DevId::Name("junk"), DmFlags::empty())
+                    .is_err());
+    }
+
+    #[test]
+    /// Table status on a non-existant name with TABLE_STATUS flag errors.
+    fn sudo_test_table_status_non_existant_table() {
+        assert!(DM::new()
+                    .unwrap()
+                    .table_status(&DevId::Name("junk"), DM_STATUS_TABLE)
+                    .is_err());
+    }
+
+    #[test]
+    /// The table should have an entry for a newly created device.
+    /// The device has no segments, so the second part of the info should
+    /// be empty.
+    fn sudo_test_table_status() {
+        let dm = DM::new().unwrap();
+        let name = "example-dev";
+        dm.device_create(name, None, DmFlags::empty()).unwrap();
+
+        let status;
+        loop {
+            if let Ok(info) = dm.table_status(&DevId::Name(name), DmFlags::empty()) {
+                status = info;
+                break;
+            }
+        }
+
+        assert!(status.1.is_empty());
+        dm.device_remove(&DevId::Name(name), DmFlags::empty())
+            .unwrap();
     }
 }
