@@ -64,7 +64,7 @@ custom_derive! {
     #[derive(NewtypeAdd, NewtypeAddAssign,
              NewtypeDeref,
              NewtypeFrom,
-             NewtypeSub,
+             NewtypeSub, NewtypeSubAssign,
              Debug, Default, Clone, Copy, Eq, PartialEq, PartialOrd, Ord)]
     /// A type for Data Blocks as used by the thin pool.
     pub struct DataBlocks(pub u64);
@@ -91,7 +91,7 @@ custom_derive! {
     #[derive(NewtypeAdd, NewtypeAddAssign,
              NewtypeDeref,
              NewtypeFrom,
-             NewtypeSub,
+             NewtypeSub, NewtypeSubAssign,
              Debug, Default, Clone, Copy, Eq, PartialEq, PartialOrd, Ord)]
     /// Structure to represent bytes
     pub struct Bytes(pub u64);
@@ -128,7 +128,7 @@ custom_derive! {
     #[derive(NewtypeAdd, NewtypeAddAssign,
              NewtypeDeref,
              NewtypeFrom,
-             NewtypeSub,
+             NewtypeSub, NewtypeSubAssign,
              Debug, Default, Clone, Copy, Eq, PartialEq, PartialOrd, Ord)]
     /// A separate type to store counts and offsets expressed in
     /// 512-byte sectors.
