@@ -206,7 +206,17 @@ impl ThinDev {
         Ok(())
     }
 
-    /// Remove the device from DM
+    /// Tear down the DM device, and also delete resources associated
+    /// with its thin id from the thinpool.
+    pub fn destroy(self, dm: &DM, thin_pool: &ThinPoolDev) -> DmResult<()> {
+        let thin_id = self.thin_id;
+        try!(self.teardown(dm));
+        try!(thin_pool.message(dm, &format!("delete {}", thin_id)));
+
+        Ok(())
+    }
+
+    /// Tear down the DM device.
     pub fn teardown(self, dm: &DM) -> DmResult<()> {
         try!(dm.device_remove(&DevId::Name(self.name()), DmFlags::empty()));
         Ok(())
