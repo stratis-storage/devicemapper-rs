@@ -278,7 +278,6 @@ impl DM {
     ///
     /// Valid flags: DM_UUID
     ///
-    /// Prerequisite: old_name != new_name
     /// Note: Possibly surprisingly, returned DeviceInfo's name field
     /// contains the previous name, not the new name.
     pub fn device_rename(&self,
@@ -286,6 +285,10 @@ impl DM {
                          new_name: &str,
                          flags: DmFlags)
                          -> DmResult<DeviceInfo> {
+        if old_name == new_name {
+            return self.device_status(&DevId::Name(old_name));
+        }
+
         let mut hdr: dmi::Struct_dm_ioctl = Default::default();
 
         let clean_flags = DM_UUID & flags;
@@ -800,14 +803,13 @@ mod tests {
     }
 
     #[test]
-    /// Test that device rename to same name fails.
-    /// This is unfortunate, but appears to be true.
+    /// Test that device rename to same name succeeds.
     fn sudo_test_rename_id() {
         let dm = DM::new().unwrap();
         let name = "example-dev";
         dm.device_create(name, None, DmFlags::empty()).unwrap();
         DM::wait_for_dm();
-        assert!(dm.device_rename(name, name, DmFlags::empty()).is_err());
+        assert!(dm.device_rename(name, name, DmFlags::empty()).is_ok());
         dm.device_remove(&DevId::Name(name), DmFlags::empty())
             .unwrap();
     }
