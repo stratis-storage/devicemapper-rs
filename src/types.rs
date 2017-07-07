@@ -11,6 +11,27 @@ use std::ops::{Div, Mul, Rem, Add};
 
 use serde;
 
+// macros for implementing serialize and deserialize on all types
+macro_rules! serde {
+    ($T: ident) => {
+        impl serde::Serialize for $T {
+            fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+                where S: serde::Serializer
+            {
+                serializer.serialize_u64(**self)
+            }
+        }
+
+        impl <'de> serde::Deserialize<'de> for $T {
+            fn deserialize<D>(deserializer: D) -> Result<$T, D::Error>
+                where D: serde::de::Deserializer<'de>
+            {
+                Ok($T(try!(serde::Deserialize::deserialize(deserializer))))
+            }
+        }
+    }
+}
+
 // macros for implementing Sum on all types
 macro_rules! sum {
     ($T: ident) => {
@@ -82,22 +103,7 @@ custom_derive! {
     pub struct DataBlocks(pub u64);
 }
 
-impl serde::Serialize for DataBlocks {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-        where S: serde::Serializer
-    {
-        serializer.serialize_u64(**self)
-    }
-}
-
-impl<'de> serde::Deserialize<'de> for DataBlocks {
-    fn deserialize<D>(deserializer: D) -> Result<DataBlocks, D::Error>
-        where D: serde::de::Deserializer<'de>
-    {
-        let val = try!(serde::Deserialize::deserialize(deserializer));
-        Ok(DataBlocks(val))
-    }
-}
+serde!(DataBlocks);
 
 custom_derive! {
     #[derive(NewtypeAdd, NewtypeAddAssign,
@@ -118,6 +124,7 @@ impl Bytes {
     checked_add!(Bytes);
 }
 
+serde!(Bytes);
 sum!(Bytes);
 
 unsigned_mul!(u64, Bytes);
@@ -152,23 +159,8 @@ impl Sectors {
     checked_add!(Sectors);
 }
 
-impl serde::Serialize for Sectors {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-        where S: serde::Serializer
-    {
-        serializer.serialize_u64(**self)
-    }
-}
 
-impl<'de> serde::Deserialize<'de> for Sectors {
-    fn deserialize<D>(deserializer: D) -> Result<Sectors, D::Error>
-        where D: serde::de::Deserializer<'de>
-    {
-        let val = try!(serde::Deserialize::deserialize(deserializer));
-        Ok(Sectors(val))
-    }
-}
-
+serde!(Sectors);
 sum!(Sectors);
 
 unsigned_div!(u64, Sectors);
