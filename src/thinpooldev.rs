@@ -127,9 +127,16 @@ impl ThinPoolDev {
                  meta: LinearDev,
                  data: LinearDev)
                  -> DmResult<ThinPoolDev> {
+        let meta_devnode = {
+            let error_func = || {
+                DmError::Dm(ErrorEnum::NotFound,
+                            format!("no device node for meta device {}", meta.name()))
+            };
+            try!(try!(meta.devnode()).ok_or_else(error_func))
+        };
         if !try!(Command::new("thin_check")
                      .arg("-q")
-                     .arg(&try!(meta.devnode()))
+                     .arg(meta_devnode)
                      .status())
                     .success() {
             return Err(DmError::Dm(ErrorEnum::CheckFailed(meta, data),
@@ -178,14 +185,9 @@ impl ThinPoolDev {
         self.dev_info.device().dstr()
     }
 
-    /// path of the device node
-    pub fn devnode(&self) -> DmResult<PathBuf> {
-        self.dev_info
-            .device()
-            .devnode()
-            .ok_or(DmError::Dm(ErrorEnum::NotFound,
-                               "No path associated with dev_info".into()))
-
+    /// Path of the device node.
+    pub fn devnode(&self) -> DmResult<Option<PathBuf>> {
+        self.dev_info.device().devnode()
     }
 
     /// Get the current status of the thinpool.
@@ -243,11 +245,18 @@ impl ThinPoolDev {
         }
     }
 
-    /// Reload the devie mapper table.
+    /// Reload the device mapper table.
     fn table_reload(&self, dm: &DM) -> DmResult<()> {
+        let size = {
+            let error_func = || {
+                DmError::Dm(ErrorEnum::NotFound,
+                            format!("no device size found for data dev {}", self.data_dev.name()))
+            };
+            try!(try!(self.data_dev.size()).ok_or_else(error_func))
+        };
         try!(dm.table_reload(dm,
                              &DevId::Name(self.name()),
-                             &ThinPoolDev::dm_table(try!(self.data_dev.size()),
+                             &ThinPoolDev::dm_table(size,
                                                     self.data_block_size,
                                                     self.low_water_mark,
                                                     &self.meta_dev,
