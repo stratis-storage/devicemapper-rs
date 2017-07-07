@@ -10,6 +10,18 @@ use std::iter::Sum;
 use std::ops::{Div, Mul, Rem, Add};
 
 use serde;
+
+// macros for implementing Sum on all types
+macro_rules! sum {
+    ($T: ident) => {
+        impl Sum for $T {
+            fn sum<I: Iterator<Item = $T>>(iter: I) -> $T {
+                iter.fold($T::default(), Add::add)
+            }
+        }
+    }
+}
+
 // macros for unsigned operations on Sectors and Bytes
 macro_rules! unsigned_div {
     ($t: ty, $T: ident) => {
@@ -106,11 +118,7 @@ impl Bytes {
     checked_add!(Bytes);
 }
 
-impl Sum for Bytes {
-    fn sum<I: Iterator<Item = Bytes>>(iter: I) -> Bytes {
-        iter.fold(Bytes(0), Add::add)
-    }
-}
+sum!(Bytes);
 
 unsigned_mul!(u64, Bytes);
 unsigned_mul!(u32, Bytes);
@@ -161,11 +169,7 @@ impl<'de> serde::Deserialize<'de> for Sectors {
     }
 }
 
-impl Sum for Sectors {
-    fn sum<I: Iterator<Item = Sectors>>(iter: I) -> Sectors {
-        iter.fold(Sectors(0), Add::add)
-    }
-}
+sum!(Sectors);
 
 unsigned_div!(u64, Sectors);
 unsigned_div!(u32, Sectors);
