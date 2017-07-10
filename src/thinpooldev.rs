@@ -12,7 +12,7 @@ use dm::{DM, DevId};
 use lineardev::LinearDev;
 use result::{DmResult, DmError, ErrorEnum};
 use segment::Segment;
-use types::{DataBlocks, Sectors, TargetLine};
+use types::{DataBlocks, MetaBlocks, Sectors, TargetLine};
 
 /// DM construct to contain thin provisioned devices
 pub struct ThinPoolDev {
@@ -34,9 +34,9 @@ impl fmt::Debug for ThinPoolDev {
 /// allocations for metadata and data blocks.
 pub struct ThinPoolBlockUsage {
     /// The number of metadata blocks that are in use.
-    pub used_meta: u64,
+    pub used_meta: MetaBlocks,
     /// The total number of metadata blocks available to the thinpool.
-    pub total_meta: u64,
+    pub total_meta: MetaBlocks,
     /// The number of data blocks that are in use.
     pub used_data: DataBlocks,
     /// The total number of data blocks available to the thinpool.
@@ -210,12 +210,12 @@ impl ThinPoolDev {
             let meta_vals = status_vals[1].split('/').collect::<Vec<_>>();
             let data_vals = status_vals[2].split('/').collect::<Vec<_>>();
             ThinPoolBlockUsage {
-                used_meta: meta_vals[0]
-                    .parse::<u64>()
-                    .expect("used_meta value must be valid"),
-                total_meta: meta_vals[1]
-                    .parse::<u64>()
-                    .expect("total_meta value must be valid"),
+                used_meta: MetaBlocks(meta_vals[0]
+                                          .parse::<u64>()
+                                          .expect("used_meta value must be valid")),
+                total_meta: MetaBlocks(meta_vals[1]
+                                           .parse::<u64>()
+                                           .expect("total_meta value must be valid")),
                 used_data: DataBlocks(data_vals[0]
                                           .parse::<u64>()
                                           .expect("used_data value must be valid")),
