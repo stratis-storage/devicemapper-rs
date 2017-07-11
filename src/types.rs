@@ -7,13 +7,16 @@ use consts::SECTOR_SIZE;
 use std::fmt;
 use std::fmt::Display;
 use std::iter::Sum;
-use std::ops::{Div, Mul, Rem, Add};
+use std::ops::{Add, AddAssign, Deref, Div, Mul, Rem, Sub, SubAssign};
 
 use serde;
 
 /// a kernel defined block size constant for a DM meta device
 /// defined in drivers/md/persistent-data/dm-space-map-metadata.h line 12
 const META_BLOCK_SIZE: Sectors = Sectors(8);
+
+trait Block: Sized + Add + AddAssign + Deref + Sub + SubAssign {}
+
 
 // macros for implementing serialize and deserialize on all types
 macro_rules! serde {
