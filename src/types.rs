@@ -113,6 +113,24 @@ custom_derive! {
     #[derive(NewtypeAdd, NewtypeAddAssign,
              NewtypeDeref,
              NewtypeFrom,
+             NewtypeSub,
+             Debug, Clone, Copy, Eq, PartialEq, PartialOrd, Ord)]
+    /// A type for Meta Data blocks as used by the thin pool.
+    /// MetaBlocks have a kernel defined constant size of META_BLOCK_SIZE
+    pub struct MetaBlocks(pub u64);
+}
+
+impl MetaBlocks {
+    /// Return the number of Sectors in the MetaBlocks.
+    pub fn sectors(self) -> Sectors {
+        self.0 * META_BLOCK_SIZE
+    }
+}
+
+custom_derive! {
+    #[derive(NewtypeAdd, NewtypeAddAssign,
+             NewtypeDeref,
+             NewtypeFrom,
              NewtypeSub, NewtypeSubAssign,
              Debug, Default, Clone, Copy, Eq, PartialEq, PartialOrd, Ord)]
     /// Structure to represent bytes
