@@ -129,7 +129,7 @@ impl ThinPoolDev {
                  -> DmResult<ThinPoolDev> {
         if !try!(Command::new("thin_check")
                      .arg("-q")
-                     .arg(&try!(meta.devnode()))
+                     .arg(&meta.devnode())
                      .status())
                     .success() {
             return Err(DmError::Dm(ErrorEnum::CheckFailed(meta, data),
@@ -179,12 +179,8 @@ impl ThinPoolDev {
     }
 
     /// path of the device node
-    pub fn devnode(&self) -> DmResult<PathBuf> {
-        self.dev_info
-            .device()
-            .devnode()
-            .ok_or(DmError::Dm(ErrorEnum::NotFound,
-                               "No path associated with dev_info".into()))
+    pub fn devnode(&self) -> PathBuf {
+        self.dev_info.device().devnode()
 
     }
 
@@ -243,7 +239,7 @@ impl ThinPoolDev {
         }
     }
 
-    /// Reload the devie mapper table.
+    /// Reload the device mapper table.
     fn table_reload(&self, dm: &DM) -> DmResult<()> {
         try!(dm.table_reload(dm,
                              &DevId::Name(self.name()),
