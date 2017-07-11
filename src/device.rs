@@ -1,13 +1,14 @@
 // This Source Code Form is subject to the terms of the Mozilla Public
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
-use std::fs::File;
 use std::io;
-use std::io::{Error, BufReader, BufRead};
+use std::io::Error;
 use std::path::{Path, PathBuf};
 use std::str::FromStr;
 use std::io::ErrorKind::InvalidInput;
 use std::os::unix::fs::MetadataExt;
+
+/// A generic device-mapper device.
 
 /// A struct containing the device's major and minor numbers
 ///
@@ -21,23 +22,11 @@ pub struct Device {
 }
 
 impl Device {
-    /// Returns the path in `/dev` that corresponds with the device number/devnode.
-    pub fn devnode(&self) -> Option<PathBuf> {
-        let f = File::open("/proc/partitions").expect("Could not open /proc/partitions");
-
-        let reader = BufReader::new(f);
-
-        for line in reader.lines().skip(2) {
-            if let Ok(line) = line {
-                let spl: Vec<_> = line.split_whitespace().collect();
-
-                if spl[0].parse::<u32>().unwrap() == self.major &&
-                   spl[1].parse::<u8>().unwrap() == self.minor {
-                    return Some(PathBuf::from(format!("/dev/{}", spl[3])));
-                }
-            }
-        }
-        None
+    /// The device node for this device.
+    pub fn devnode(&self) -> PathBuf {
+        vec!["/dev", &format!("dm-{}", self.minor)]
+            .iter()
+            .collect()
     }
 
     /// Get a string with the Device's major and minor numbers in

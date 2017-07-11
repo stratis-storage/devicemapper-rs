@@ -155,12 +155,8 @@ impl ThinDev {
     }
 
     /// path of the device node
-    pub fn devnode(&self) -> DmResult<PathBuf> {
-        self.dev_info
-            .device()
-            .devnode()
-            .ok_or(DmError::Dm(ErrorEnum::NotFound,
-                               "No path associated with dev_info".into()))
+    pub fn devnode(&self) -> PathBuf {
+        self.dev_info.device().devnode()
 
     }
 
