@@ -440,8 +440,8 @@ impl DM {
         // before initializing the header.
         for t in targets {
             let mut targ: dmi::Struct_dm_target_spec = Default::default();
-            targ.sector_start = *t.0;
-            targ.length = *t.1;
+            targ.sector_start = t.0.into();
+            targ.length = t.1.into();
             targ.status = 0;
 
             let mut dst: &mut [u8] = unsafe { transmute(&mut targ.target_type[..]) };
