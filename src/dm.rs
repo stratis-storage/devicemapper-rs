@@ -97,7 +97,7 @@ impl DM {
 
         let hdr_slc = unsafe {
             let len = hdr.data_start as usize;
-            let ptr: *mut u8 = transmute(hdr);
+            let ptr = hdr as *mut dmi::Struct_dm_ioctl as *mut u8;
             slice::from_raw_parts_mut(ptr, len)
         };
 
@@ -479,7 +479,7 @@ impl DM {
 
         for (targ, param) in targs {
             unsafe {
-                let ptr: *mut u8 = transmute(&targ);
+                let ptr = &targ as *const dmi::Struct_dm_target_spec as *mut u8;
                 let slc = slice::from_raw_parts(ptr, size_of::<dmi::Struct_dm_target_spec>());
                 data_in.extend_from_slice(slc);
             }
@@ -704,9 +704,8 @@ impl DM {
         let mut msg_struct: dmi::Struct_dm_target_msg = Default::default();
         msg_struct.sector = sector;
         let mut data_in = unsafe {
-            let ptr: *mut u8 = transmute(&msg_struct);
-            let slc = slice::from_raw_parts(ptr, size_of::<dmi::Struct_dm_target_msg>());
-            slc.to_vec()
+            let ptr = &msg_struct as *const dmi::Struct_dm_target_msg as *mut u8;
+            slice::from_raw_parts(ptr, size_of::<dmi::Struct_dm_target_msg>()).to_vec()
         };
 
         data_in.extend(msg.as_bytes());
