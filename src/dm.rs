@@ -719,20 +719,18 @@ impl DM {
     }
 
     /// Recursively walk DM deps to see if `dev` might be its own dependency.
-    pub fn depends_on(&self, dev: Device, dm_majors: &BTreeSet<u32>) -> bool {
+    pub fn depends_on(&self, dev: Device, dm_majors: &BTreeSet<u32>) -> DmResult<bool> {
         if !dm_majors.contains(&dev.major) {
-            return false;
+            return Ok(false);
         }
 
-        if let Ok(dep_list) = self.table_deps(dev, DmFlags::empty()) {
-            for d in dep_list {
-                if d == dev || self.depends_on(d, dm_majors) {
-                    return true;
-                }
+        for d in try!(self.table_deps(dev, DmFlags::empty())) {
+            if d == dev || try!(self.depends_on(d, dm_majors)) {
+                return Ok(true);
             }
         }
 
-        false
+        Ok(false)
     }
 }
 
