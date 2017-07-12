@@ -721,11 +721,6 @@ impl DM {
             }))
     }
 
-    /// Unimplemented.
-    pub fn device_set_geometry(&self, _flags: DmFlags) {
-        unimplemented!()
-    }
-
     /// Recursively walk DM deps to see if `dev` might be its own dependency.
     pub fn depends_on(&self, dev: Device, dm_majors: &BTreeSet<u32>) -> bool {
         if !dm_majors.contains(&dev.major) {
