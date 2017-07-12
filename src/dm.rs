@@ -903,4 +903,14 @@ mod tests {
         dm.device_remove(&DevId::Name(name), DmFlags::empty())
             .unwrap();
     }
+
+    #[test]
+    /// Verify that getting the status of a non-existant device specified
+    /// by name returns an error.
+    fn sudo_status_no_name() {
+        assert!(DM::new()
+                    .unwrap()
+                    .device_status(&DevId::Name("example_dev"))
+                    .is_err());
+    }
 }
