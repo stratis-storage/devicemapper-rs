@@ -11,6 +11,10 @@ use std::ops::{Div, Mul, Rem, Add};
 
 use serde;
 
+/// a kernel defined block size constant for a DM meta device
+/// defined in drivers/md/persistent-data/dm-space-map-metadata.h line 12
+const META_BLOCK_SIZE: Sectors = Sectors(8);
+
 // macros for implementing serialize and deserialize on all types
 macro_rules! serde {
     ($T: ident) => {
@@ -104,6 +108,24 @@ custom_derive! {
 }
 
 serde!(DataBlocks);
+
+custom_derive! {
+    #[derive(NewtypeAdd, NewtypeAddAssign,
+             NewtypeDeref,
+             NewtypeFrom,
+             NewtypeSub,
+             Debug, Clone, Copy, Eq, PartialEq, PartialOrd, Ord)]
+    /// A type for Meta Data blocks as used by the thin pool.
+    /// MetaBlocks have a kernel defined constant size of META_BLOCK_SIZE
+    pub struct MetaBlocks(pub u64);
+}
+
+impl MetaBlocks {
+    /// Return the number of Sectors in the MetaBlocks.
+    pub fn sectors(self) -> Sectors {
+        self.0 * META_BLOCK_SIZE
+    }
+}
 
 custom_derive! {
     #[derive(NewtypeAdd, NewtypeAddAssign,

@@ -91,4 +91,4 @@ pub use result::{DmResult, DmError, ErrorEnum};
 pub use segment::Segment;
 pub use thinpooldev::{ThinPoolBlockUsage, ThinPoolDev, ThinPoolStatus, ThinPoolWorkingStatus};
 pub use thindev::{ThinDev, ThinDevId, ThinStatus};
-pub use types::{Bytes, DataBlocks, Sectors};
+pub use types::{Bytes, DataBlocks, MetaBlocks, Sectors};
