@@ -198,8 +198,12 @@ impl DM {
                         .unwrap()
                 };
 
-                let slc = slice_to_null(&result[size_of::<dmi::Struct_dm_name_list>()..])
-                    .expect("Bad data from ioctl");
+                let slc = try!(slice_to_null(&result[size_of::<dmi::Struct_dm_name_list>()..])
+                                   .ok_or_else(|| {
+                                                   DmError::Dm(ErrorEnum::NotFound,
+                                                               "no null terminated name found"
+                                                                   .into())
+                                               }));
                 let dm_name = String::from_utf8_lossy(slc).into_owned();
                 devs.push((dm_name, device.dev.into()));
 
