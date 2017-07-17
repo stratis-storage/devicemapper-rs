@@ -138,12 +138,17 @@ impl LinearDev {
 
     /// return the total size of the linear device
     pub fn size(&self) -> DmResult<Sectors> {
-        Ok(try!(blkdev_size(&try!(File::open(self.devnode())))).sectors())
+        let f = try!(File::open(try!(self.devnode())));
+        Ok(try!(blkdev_size(&f)).sectors())
     }
 
     /// path of the device node
-    pub fn devnode(&self) -> PathBuf {
-        self.dev_info.device().devnode()
+    pub fn devnode(&self) -> DmResult<PathBuf> {
+        self.dev_info
+            .device()
+            .devnode()
+            .ok_or(DmError::Dm(ErrorEnum::NotFound,
+                               "No path associated with dev_info".into()))
     }
 
     /// Remove the device from DM
