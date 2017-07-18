@@ -109,6 +109,12 @@ custom_derive! {
 
 serde!(DataBlocks);
 
+unsigned_mul!(u64, DataBlocks);
+unsigned_mul!(u32, DataBlocks);
+unsigned_mul!(u16, DataBlocks);
+unsigned_mul!(u8, DataBlocks);
+unsigned_mul!(usize, DataBlocks);
+
 custom_derive! {
     #[derive(NewtypeAdd, NewtypeAddAssign,
              NewtypeDeref,
@@ -126,6 +132,14 @@ impl MetaBlocks {
         self.0 * META_BLOCK_SIZE
     }
 }
+
+serde!(MetaBlocks);
+
+unsigned_mul!(u64, MetaBlocks);
+unsigned_mul!(u32, MetaBlocks);
+unsigned_mul!(u16, MetaBlocks);
+unsigned_mul!(u8, MetaBlocks);
+unsigned_mul!(usize, MetaBlocks);
 
 custom_derive! {
     #[derive(NewtypeAdd, NewtypeAddAssign,
