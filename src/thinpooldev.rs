@@ -163,8 +163,8 @@ impl ThinPoolDev {
     }
 
     /// send a message to DM thin pool
-    pub fn message(&self, dm: &DM, message: &str) -> DmResult<()> {
-        try!(dm.target_msg(&DevId::Name(self.name()), 0, message));
+    pub fn message(dm: &DM, name: &str, message: &str) -> DmResult<()> {
+        try!(dm.target_msg(&DevId::Name(name), 0, message));
         Ok(())
     }
 
