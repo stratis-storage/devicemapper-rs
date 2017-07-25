@@ -71,6 +71,7 @@ pub struct ThinDev {
     thin_id: ThinDevId,
     size: Sectors,
     thinpool_dstr: String,
+    thinpool_name: String,
 }
 
 impl fmt::Debug for ThinDev {
@@ -95,26 +96,27 @@ impl ThinDev {
     /// thin provisioned ThinDev returned by new().
     pub fn new(name: &str,
                dm: &DM,
-               thin_pool: &ThinPoolDev,
+               thin_pool_name: &str,
+               thin_pool_dstr: &str,
                thin_id: ThinDevId,
                length: Sectors)
                -> DmResult<ThinDev> {
 
-        try!(thin_pool.message(dm, &format!("create_thin {}", thin_id)));
-        ThinDev::setup(name, dm, thin_pool, thin_id, length)
+        try!(ThinPoolDev::message(dm, thin_pool_name, &format!("create_thin {}", thin_id)));
+        ThinDev::setup(name, dm, thin_pool_name, thin_pool_dstr, thin_id, length)
     }
 
     /// Set up an existing thindev.
     pub fn setup(name: &str,
                  dm: &DM,
-                 thin_pool: &ThinPoolDev,
+                 thin_pool_name: &str,
+                 thin_pool_dstr: &str,
                  thin_id: ThinDevId,
                  length: Sectors)
                  -> DmResult<ThinDev> {
 
         try!(dm.device_create(name, None, DmFlags::empty()));
         let id = &DevId::Name(name);
-        let thin_pool_dstr = thin_pool.dstr();
         let di = try!(dm.table_load(id, &ThinDev::dm_table(&thin_pool_dstr, thin_id, length)));
         try!(dm.device_suspend(id, DmFlags::empty()));
         DM::wait_for_dm();
@@ -122,7 +124,8 @@ impl ThinDev {
                dev_info: di,
                thin_id: thin_id,
                size: length,
-               thinpool_dstr: thin_pool_dstr,
+               thinpool_dstr: thin_pool_dstr.to_string(),
+               thinpool_name: thin_pool_name.to_string(),
            })
     }
 
@@ -208,11 +211,10 @@ impl ThinDev {
 
     /// Tear down the DM device, and also delete resources associated
     /// with its thin id from the thinpool.
-    pub fn destroy(self, dm: &DM, thin_pool: &ThinPoolDev) -> DmResult<()> {
+    pub fn destroy(self, dm: &DM) -> DmResult<()> {
         let thin_id = self.thin_id;
+        try!(ThinPoolDev::message(dm, &self.thinpool_name, &format!("delete {}", thin_id)));
         try!(self.teardown(dm));
-        try!(thin_pool.message(dm, &format!("delete {}", thin_id)));
-
         Ok(())
     }
 
