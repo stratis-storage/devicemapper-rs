@@ -9,11 +9,6 @@ use types::Bytes;
 use std::fs::File;
 use std::os::unix::prelude::AsRawFd;
 
-use super::consts::{DmFlags, DM_SUSPEND};
-use super::deviceinfo::DeviceInfo;
-use super::dm::{DevId, DM};
-use super::types::TargetLineArg;
-
 /// send IOCTL via blkgetsize64
 ioctl!(read blkgetsize64 with 0x12, 114; u64);
 
@@ -39,18 +34,4 @@ pub fn blkdev_size(file: &File) -> DmResult<Bytes> {
 /// Return slc up to the first \0, or None
 pub fn slice_to_null(slc: &[u8]) -> Option<&[u8]> {
     slc.iter().position(|c| *c == b'\0').map(|i| &slc[..i])
-}
-
-
-/// Reload the table for a device
-pub fn table_reload<T1, T2>(dm: &DM,
-                            id: &DevId,
-                            table: &[TargetLineArg<T1, T2>])
-                            -> DmResult<DeviceInfo>
-    where T1: AsRef<str>,
-          T2: AsRef<str>
-{
-    try!(dm.table_load(id, table));
-    try!(dm.device_suspend(id, DM_SUSPEND));
-    dm.device_suspend(id, DmFlags::empty())
 }

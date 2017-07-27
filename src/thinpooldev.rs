@@ -12,8 +12,8 @@ use dm::{DM, DevId};
 use lineardev::LinearDev;
 use result::{DmResult, DmError, ErrorEnum};
 use segment::Segment;
+use shared::table_reload;
 use types::{DataBlocks, MetaBlocks, Sectors, TargetLine};
-use util::table_reload;
 
 /// DM construct to contain thin provisioned devices
 pub struct ThinPoolDev {
