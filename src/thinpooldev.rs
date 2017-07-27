@@ -12,6 +12,7 @@ use dm::{DM, DevId};
 use lineardev::LinearDev;
 use result::{DmResult, DmError, ErrorEnum};
 use segment::Segment;
+use shared::table_reload;
 use types::{DataBlocks, MetaBlocks, Sectors, TargetLine};
 
 /// DM construct to contain thin provisioned devices
@@ -245,13 +246,13 @@ impl ThinPoolDev {
 
     /// Reload the device mapper table.
     fn table_reload(&self, dm: &DM) -> DmResult<()> {
-        try!(dm.table_reload(dm,
-                             &DevId::Name(self.name()),
-                             &ThinPoolDev::dm_table(try!(self.data_dev.size()),
-                                                    self.data_block_size,
-                                                    self.low_water_mark,
-                                                    &self.meta_dev,
-                                                    &self.data_dev)));
+        try!(table_reload(&dm,
+                          &DevId::Name(self.name()),
+                          &ThinPoolDev::dm_table(try!(self.data_dev.size()),
+                                                 self.data_block_size,
+                                                 self.low_water_mark,
+                                                 &self.meta_dev,
+                                                 &self.data_dev)));
         Ok(())
     }
 
