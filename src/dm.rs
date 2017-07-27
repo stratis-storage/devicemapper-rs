@@ -490,14 +490,16 @@ impl DM {
     }
 
     /// Reload the table for a device
-    pub fn table_reload<T1, T2>(&self, id: &DevId, table: &[TargetLineArg<T1, T2>]) -> DmResult<()>
+    pub fn table_reload<T1, T2>(&self,
+                                id: &DevId,
+                                table: &[TargetLineArg<T1, T2>])
+                                -> DmResult<DeviceInfo>
         where T1: AsRef<str>,
               T2: AsRef<str>
     {
         try!(self.table_load(id, table));
         try!(self.device_suspend(id, DM_SUSPEND));
-        try!(self.device_suspend(id, DmFlags::empty()));
-        Ok(())
+        self.device_suspend(id, DmFlags::empty())
     }
 
     /// Clear the "inactive" table for a device.
