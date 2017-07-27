@@ -6,11 +6,12 @@ use std::fmt;
 use std::fs::File;
 use std::path::PathBuf;
 
-use consts::{DmFlags, DM_SUSPEND};
+use consts::DmFlags;
 use deviceinfo::DeviceInfo;
 use dm::{DM, DevId};
 use result::{DmResult, DmError, ErrorEnum};
 use segment::Segment;
+use shared::{table_load, table_reload};
 use types::{Sectors, TargetLine};
 use util::blkdev_size;
 
@@ -42,8 +43,7 @@ impl LinearDev {
         try!(dm.device_create(name, None, DmFlags::empty()));
         let table = LinearDev::dm_table(&segments);
         let id = &DevId::Name(name);
-        let dev_info = Box::new(try!(dm.table_load(id, &table)));
-        try!(dm.device_suspend(id, DmFlags::empty()));
+        let dev_info = Box::new(try!(table_load(&dm, id, &table)));
 
         DM::wait_for_dm();
         Ok(LinearDev {
@@ -111,9 +111,7 @@ impl LinearDev {
         let dm = try!(DM::new());
         let id = &DevId::Name(self.name());
 
-        try!(dm.table_load(id, &table));
-        try!(dm.device_suspend(id, DM_SUSPEND));
-        try!(dm.device_suspend(id, DmFlags::empty()));
+        try!(table_reload(&dm, id, &table));
 
         Ok(())
     }

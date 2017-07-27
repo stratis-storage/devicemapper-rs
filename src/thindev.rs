@@ -7,10 +7,11 @@ use std::path::PathBuf;
 
 use serde;
 
-use consts::{DmFlags, DM_SUSPEND};
+use consts::DmFlags;
 use deviceinfo::DeviceInfo;
 use dm::{DM, DevId};
 use result::{DmResult, DmError, ErrorEnum};
+use shared::{table_load, table_reload};
 use thinpooldev::ThinPoolDev;
 use types::TargetLine;
 
@@ -117,8 +118,9 @@ impl ThinDev {
         try!(dm.device_create(name, None, DmFlags::empty()));
         let id = &DevId::Name(name);
         let thin_pool_dstr = thin_pool.dstr();
-        let di = try!(dm.table_load(id, &ThinDev::dm_table(&thin_pool_dstr, thin_id, length)));
-        try!(dm.device_suspend(id, DmFlags::empty()));
+        let di = try!(table_load(&dm,
+                                 id,
+                                 &ThinDev::dm_table(&thin_pool_dstr, thin_id, length)));
         DM::wait_for_dm();
         Ok(ThinDev {
                dev_info: di,
@@ -200,10 +202,9 @@ impl ThinDev {
 
         let id = &DevId::Name(self.dev_info.name());
 
-        try!(dm.table_load(id,
-                           &ThinDev::dm_table(&self.thinpool_dstr, self.thin_id, self.size)));
-        try!(dm.device_suspend(id, DM_SUSPEND));
-        try!(dm.device_suspend(id, DmFlags::empty()));
+        try!(table_reload(dm,
+                          id,
+                          &ThinDev::dm_table(&self.thinpool_dstr, self.thin_id, self.size)));
 
         Ok(())
     }
