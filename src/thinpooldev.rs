@@ -245,8 +245,7 @@ impl ThinPoolDev {
 
     /// Reload the device mapper table.
     fn table_reload(&self, dm: &DM) -> DmResult<()> {
-        try!(dm.table_reload(dm,
-                             &DevId::Name(self.name()),
+        try!(dm.table_reload(&DevId::Name(self.name()),
                              &ThinPoolDev::dm_table(try!(self.data_dev.size()),
                                                     self.data_block_size,
                                                     self.low_water_mark,
