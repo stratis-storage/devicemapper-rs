@@ -58,7 +58,7 @@ impl LinearDev {
     }
 
     /// Generate a Vec<> to be passed to DM.  The format of the Vec entries is:
-    /// <logical start sec> <length> "linear" /dev/xxx <start offset>
+    /// <logical start sec> <length> "linear" <maj:min> <start offset>
     fn dm_table(segments: &[Segment]) -> Vec<TargetLine> {
         assert_ne!(segments.len(), 0);
 
