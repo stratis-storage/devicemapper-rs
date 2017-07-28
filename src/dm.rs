@@ -686,7 +686,7 @@ impl DM {
     /// return a string; targets do not.
     pub fn target_msg(&self,
                       name: &DevId,
-                      sector: u64,
+                      sector: Sectors,
                       msg: &str)
                       -> DmResult<(DeviceInfo, Option<String>)> {
         let mut hdr: dmi::Struct_dm_ioctl = Default::default();
@@ -699,7 +699,7 @@ impl DM {
         };
 
         let mut msg_struct: dmi::Struct_dm_target_msg = Default::default();
-        msg_struct.sector = sector;
+        msg_struct.sector = *sector;
         let mut data_in = unsafe {
             let ptr = &msg_struct as *const dmi::Struct_dm_target_msg as *mut u8;
             slice::from_raw_parts(ptr, size_of::<dmi::Struct_dm_target_msg>()).to_vec()
