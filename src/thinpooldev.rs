@@ -72,8 +72,7 @@ pub enum ThinPoolWorkingStatus {
 /// See section "Setting up a fresh pool device":
 /// https://www.kernel.org/doc/Documentation/device-mapper/thin-provisioning.txt
 impl ThinPoolDev {
-    /// Construct a new ThinPoolDev with the given data and meta devs.  The
-    /// ThinPoolDev is used as backing for by ThinDev.
+    /// Construct a new ThinPoolDev with the given data and meta devs.
     pub fn new(name: &str,
                dm: &DM,
                length: Sectors,
