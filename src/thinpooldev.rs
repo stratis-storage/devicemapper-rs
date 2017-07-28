@@ -118,6 +118,8 @@ impl ThinPoolDev {
     }
 
     /// Set up an existing ThinPoolDev.
+    /// By "existing" is here meant that metadata for the thinpool already
+    /// exists on the thinpool's metadata device.
     pub fn setup(name: &str,
                  dm: &DM,
                  length: Sectors,
