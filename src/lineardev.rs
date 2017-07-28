@@ -11,7 +11,7 @@ use deviceinfo::DeviceInfo;
 use dm::{DM, DevId};
 use result::{DmResult, DmError, ErrorEnum};
 use segment::Segment;
-use shared::{table_load, table_reload};
+use shared::{device_exists, table_load, table_reload};
 use types::{Sectors, TargetLine};
 use util::blkdev_size;
 
@@ -34,16 +34,23 @@ impl LinearDev {
     /// Construct a new block device by concatenating the given segments
     /// into linear space.  Use DM to reserve enough space for the stratis
     /// metadata on each DmDev.
+    /// TODO: If the linear device already exists, verify that the kernel's
+    /// model matches the segments argument.
     pub fn new(name: &str, dm: &DM, segments: Vec<Segment>) -> DmResult<LinearDev> {
         if segments.is_empty() {
             return Err(DmError::Dm(ErrorEnum::Invalid,
                                    "linear device must have at least one segment".into()));
         }
 
-        try!(dm.device_create(name, None, DmFlags::empty()));
-        let table = LinearDev::dm_table(&segments);
-        let id = &DevId::Name(name);
-        let dev_info = Box::new(try!(table_load(&dm, id, &table)));
+        let id = DevId::Name(name);
+        let dev_info = if try!(device_exists(dm, name)) {
+            // TODO: Verify that kernel's model matches up with segments.
+            Box::new(try!(dm.device_status(&id)))
+        } else {
+            try!(dm.device_create(name, None, DmFlags::empty()));
+            let table = LinearDev::dm_table(&segments);
+            Box::new(try!(table_load(dm, &id, &table)))
+        };
 
         DM::wait_for_dm();
         Ok(LinearDev {

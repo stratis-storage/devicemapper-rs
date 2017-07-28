@@ -40,7 +40,6 @@ pub fn table_reload<T1, T2>(dm: &DM,
 }
 
 /// Check if a device of the given name exists.
-#[allow(dead_code)]
 pub fn device_exists(dm: &DM, name: &str) -> DmResult<bool> {
     Ok(try!(dm.list_devices()
                 .map(|l| l.iter().any(|&(ref n, _)| n == name))))
