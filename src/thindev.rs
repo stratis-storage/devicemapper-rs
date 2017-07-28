@@ -105,6 +105,8 @@ impl ThinDev {
     }
 
     /// Set up an existing thindev.
+    /// By "existing" is here meant that metadata for this thin device exists
+    /// on the metadata device for its thin pool.
     pub fn setup(name: &str,
                  dm: &DM,
                  thin_pool: &ThinPoolDev,
