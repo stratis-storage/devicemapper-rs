@@ -14,7 +14,7 @@ sudo_test:
 	sudo env "PATH=${PATH}" RUSTFLAGS='-D warnings' RUST_BACKTRACE=1 RUST_TEST_THREADS=1 cargo test
 
 clippy:
-	RUSTFLAGS='-D warnings' cargo build --features "clippy" --verbose
+	RUSTFLAGS='-D warnings' cargo build --features "clippy"
 
 .PHONY:
 	fmt
