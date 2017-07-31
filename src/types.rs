@@ -15,6 +15,18 @@ use serde;
 /// defined in drivers/md/persistent-data/dm-space-map-metadata.h line 12
 const META_BLOCK_SIZE: Sectors = Sectors(8);
 
+// division by self
+macro_rules! self_div {
+    ($T: ident) => {
+        impl Div<$T> for $T {
+            type Output = u64;
+            fn div(self, rhs: $T) -> u64 {
+                self.0 / *rhs
+            }
+        }
+    }
+}
+
 // macros for implementing serialize and deserialize on all types
 macro_rules! serde {
     ($T: ident) => {
@@ -107,6 +119,7 @@ custom_derive! {
     pub struct DataBlocks(pub u64);
 }
 
+self_div!(DataBlocks);
 serde!(DataBlocks);
 
 unsigned_mul!(u64, DataBlocks);
@@ -133,6 +146,7 @@ impl MetaBlocks {
     }
 }
 
+self_div!(MetaBlocks);
 serde!(MetaBlocks);
 
 unsigned_mul!(u64, MetaBlocks);
@@ -160,6 +174,7 @@ impl Bytes {
     checked_add!(Bytes);
 }
 
+self_div!(Bytes);
 serde!(Bytes);
 sum!(Bytes);
 
@@ -196,6 +211,7 @@ impl Sectors {
 }
 
 
+self_div!(Sectors);
 serde!(Sectors);
 sum!(Sectors);
 
