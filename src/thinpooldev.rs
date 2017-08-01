@@ -12,6 +12,7 @@ use dm::{DM, DevId};
 use lineardev::LinearDev;
 use result::{DmResult, DmError, ErrorEnum};
 use segment::Segment;
+use shared::{device_exists, table_load, table_reload};
 use types::{DataBlocks, MetaBlocks, Sectors, TargetLine};
 
 /// DM construct to contain thin provisioned devices
@@ -73,6 +74,8 @@ pub enum ThinPoolWorkingStatus {
 /// https://www.kernel.org/doc/Documentation/device-mapper/thin-provisioning.txt
 impl ThinPoolDev {
     /// Construct a new ThinPoolDev with the given data and meta devs.
+    /// TODO: If the device already exists, verify that kernel's model
+    /// matches arguments.
     pub fn new(name: &str,
                dm: &DM,
                length: Sectors,
@@ -81,20 +84,20 @@ impl ThinPoolDev {
                meta: LinearDev,
                data: LinearDev)
                -> DmResult<ThinPoolDev> {
-        try!(dm.device_create(name, None, DmFlags::empty()));
-
-        let id = &DevId::Name(name);
-        let di = try!(dm.table_load(id,
-                                    &ThinPoolDev::dm_table(length,
-                                                           data_block_size,
-                                                           low_water_mark,
-                                                           &meta,
-                                                           &data)));
-        try!(dm.device_suspend(id, DmFlags::empty()));
+        let id = DevId::Name(name);
+        let dev_info = if try!(device_exists(dm, name)) {
+            // TODO: Verify that kernel table matches our table.
+            try!(dm.device_status(&id))
+        } else {
+            try!(dm.device_create(name, None, DmFlags::empty()));
+            let table =
+                ThinPoolDev::dm_table(length, data_block_size, low_water_mark, &meta, &data);
+            try!(table_load(dm, &id, &table))
+        };
 
         DM::wait_for_dm();
         Ok(ThinPoolDev {
-               dev_info: di,
+               dev_info: dev_info,
                meta_dev: meta,
                data_dev: data,
                data_block_size: data_block_size,
@@ -246,13 +249,13 @@ impl ThinPoolDev {
 
     /// Reload the device mapper table.
     fn table_reload(&self, dm: &DM) -> DmResult<()> {
-        try!(dm.table_reload(dm,
-                             &DevId::Name(self.name()),
-                             &ThinPoolDev::dm_table(try!(self.data_dev.size()),
-                                                    self.data_block_size,
-                                                    self.low_water_mark,
-                                                    &self.meta_dev,
-                                                    &self.data_dev)));
+        try!(table_reload(dm,
+                          &DevId::Name(self.name()),
+                          &ThinPoolDev::dm_table(try!(self.data_dev.size()),
+                                                 self.data_block_size,
+                                                 self.low_water_mark,
+                                                 &self.meta_dev,
+                                                 &self.data_dev)));
         Ok(())
     }
 

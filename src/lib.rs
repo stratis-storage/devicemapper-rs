@@ -83,6 +83,8 @@ mod deviceinfo;
 mod device;
 /// core lower level API
 mod dm;
+/// functionality shared between devices
+mod shared;
 
 pub use dm::{DM, DevId};
 pub use device::Device;

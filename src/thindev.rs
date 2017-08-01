@@ -7,10 +7,11 @@ use std::path::PathBuf;
 
 use serde;
 
-use consts::{DmFlags, DM_SUSPEND};
+use consts::DmFlags;
 use deviceinfo::DeviceInfo;
 use dm::{DM, DevId};
 use result::{DmResult, DmError, ErrorEnum};
+use shared::{device_exists, table_load, table_reload};
 use thinpooldev::ThinPoolDev;
 use types::TargetLine;
 
@@ -107,6 +108,8 @@ impl ThinDev {
     /// Set up an existing thindev.
     /// By "existing" is here meant that metadata for this thin device exists
     /// on the metadata device for its thin pool.
+    /// TODO: If the device is already known to the kernel, verify that kernel
+    /// model matches arguments.
     pub fn setup(name: &str,
                  dm: &DM,
                  thin_pool: &ThinPoolDev,
@@ -114,14 +117,21 @@ impl ThinDev {
                  length: Sectors)
                  -> DmResult<ThinDev> {
 
-        try!(dm.device_create(name, None, DmFlags::empty()));
-        let id = &DevId::Name(name);
+        let id = DevId::Name(name);
         let thin_pool_dstr = thin_pool.dstr();
-        let di = try!(dm.table_load(id, &ThinDev::dm_table(&thin_pool_dstr, thin_id, length)));
-        try!(dm.device_suspend(id, DmFlags::empty()));
+
+        let dev_info = if try!(device_exists(dm, name)) {
+            // TODO: Verify that kernel's model matches arguments.
+            try!(dm.device_status(&id))
+        } else {
+            try!(dm.device_create(name, None, DmFlags::empty()));
+            let table = ThinDev::dm_table(&thin_pool_dstr, thin_id, length);
+            try!(table_load(dm, &id, &table))
+        };
+
         DM::wait_for_dm();
         Ok(ThinDev {
-               dev_info: di,
+               dev_info: dev_info,
                thin_id: thin_id,
                size: length,
                thinpool_dstr: thin_pool_dstr,
@@ -200,10 +210,9 @@ impl ThinDev {
 
         let id = &DevId::Name(self.dev_info.name());
 
-        try!(dm.table_load(id,
-                           &ThinDev::dm_table(&self.thinpool_dstr, self.thin_id, self.size)));
-        try!(dm.device_suspend(id, DM_SUSPEND));
-        try!(dm.device_suspend(id, DmFlags::empty()));
+        try!(table_reload(dm,
+                          id,
+                          &ThinDev::dm_table(&self.thinpool_dstr, self.thin_id, self.size)));
 
         Ok(())
     }
