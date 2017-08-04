@@ -152,8 +152,10 @@ impl LinearDev {
         self.dev_info
             .device()
             .devnode()
-            .ok_or(DmError::Dm(ErrorEnum::NotFound,
-                               "No path associated with dev_info".into()))
+            .ok_or_else(|| {
+                            DmError::Dm(ErrorEnum::NotFound,
+                                        "No path associated with dev_info".into())
+                        })
     }
 
     /// Remove the device from DM
