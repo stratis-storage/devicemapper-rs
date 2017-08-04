@@ -9,6 +9,8 @@ addons:
 
 language: rust
 
+cache: cargo
+
 matrix:
     allow_failures:
         - env: TASK=clippy
