@@ -11,8 +11,8 @@ use std::cmp;
 use std::thread;
 use std::time::Duration;
 
-use nix::sys::ioctl::ioctl as nix_ioctl;
-use nix::sys::ioctl::libc::c_ulong;
+use nix::libc::ioctl as nix_ioctl;
+use nix::libc::c_ulong;
 
 use dm_ioctl as dmi;
 use util::align_to;

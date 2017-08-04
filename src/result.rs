@@ -60,7 +60,7 @@ impl fmt::Display for DmError {
         match *self {
             DmError::Dm(ref err, ref msg) => write!(f, "DM error: {}: {}", err, msg),
             DmError::Io(ref err) => write!(f, "IO error: {}", err),
-            DmError::Nix(ref err) => write!(f, "Nix error: {}", err.errno().desc()),
+            DmError::Nix(ref err) => write!(f, "Nix error: {}", err.description()),
         }
     }
 }
@@ -71,7 +71,7 @@ impl Error for DmError {
         match *self {
             DmError::Dm(_, ref msg) => msg,
             DmError::Io(ref err) => err.description(),
-            DmError::Nix(ref err) => err.errno().desc(),
+            DmError::Nix(ref err) => err.description(),
         }
     }
 
