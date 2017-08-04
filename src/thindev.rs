@@ -17,7 +17,7 @@ use types::TargetLine;
 
 use types::Sectors;
 
-const THIN_DEV_ID_LIMIT: u64 = 0x1000000; // 2 ^ 24
+const THIN_DEV_ID_LIMIT: u64 = 0x1_000_000; // 2 ^ 24
 
 #[derive(Debug, Clone, Copy, Eq, PartialEq, Hash)]
 /// A thindev id is a 24 bit number, i.e., its bit width is not a power of 2.
