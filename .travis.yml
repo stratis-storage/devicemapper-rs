@@ -1,11 +1,11 @@
-sudo: required
 os: linux
 dist: trusty
 group: edge
 
-before_install:
-    - sudo apt-get -qq update
-    - sudo apt-get install -y libdevmapper-dev
+addons:
+  apt:
+    packages:
+    - libdevmapper-dev
 
 language: rust
 
