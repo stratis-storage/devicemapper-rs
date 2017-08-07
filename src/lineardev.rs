@@ -34,6 +34,9 @@ impl LinearDev {
     /// Construct a new block device by concatenating the given segments
     /// into linear space.  Use DM to reserve enough space for the stratis
     /// metadata on each DmDev.
+    /// Warning: If the segments overlap, this method will succeed. However,
+    /// the behavior of the linear device in that case should be treated as
+    /// undefined.
     /// TODO: If the linear device already exists, verify that the kernel's
     /// model matches the segments argument.
     pub fn new(name: &str, dm: &DM, segments: Vec<Segment>) -> DmResult<LinearDev> {
