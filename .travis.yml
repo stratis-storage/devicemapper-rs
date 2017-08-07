@@ -1,13 +1,15 @@
-sudo: required
 os: linux
 dist: trusty
 group: edge
 
-before_install:
-    - sudo apt-get -qq update
-    - sudo apt-get install -y libdevmapper-dev
+addons:
+  apt:
+    packages:
+    - libdevmapper-dev
 
 language: rust
+
+cache: cargo
 
 matrix:
     include:
@@ -16,6 +18,7 @@ matrix:
         - rust: stable
           env: TASK=build
         - rust: stable
+          sudo: required
           env: TASK=sudo_test
         - rust: nightly
           env: TASK=clippy
