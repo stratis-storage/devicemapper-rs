@@ -827,6 +827,15 @@ mod tests {
     }
 
     #[test]
+    /// Removing a device that does not exist yields an error, unfortunately.
+    fn sudo_test_remove_non_existant() {
+        assert!(DM::new()
+                    .unwrap()
+                    .device_remove(&DevId::Name("junk"), DmFlags::empty())
+                    .is_err());
+    }
+
+    #[test]
     /// A newly created device has no deps.
     fn sudo_test_empty_deps() {
         let dm = DM::new().unwrap();
@@ -895,5 +904,16 @@ mod tests {
                     .unwrap()
                     .device_status(&DevId::Name("example_dev"))
                     .is_err());
+    }
+
+    #[test]
+    /// Verify that creating a device with the same name twice fails.
+    fn sudo_test_double_creation() {
+        let dm = DM::new().unwrap();
+        let name = "example-dev";
+        dm.device_create(name, None, DmFlags::empty()).unwrap();
+        assert!(dm.device_create(name, None, DmFlags::empty()).is_err());
+        dm.device_remove(&DevId::Name(name), DmFlags::empty())
+            .unwrap();
     }
 }
