@@ -11,7 +11,7 @@ language: rust
 
 matrix:
     include:
-        - rust: stable
+        - rust: nightly
           env: TASK=fmt
         - rust: stable
           env: TASK=build
