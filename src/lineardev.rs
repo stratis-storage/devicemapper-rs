@@ -67,22 +67,25 @@ impl LinearDev {
         &self.segments
     }
 
-    /// Generate a Vec<> to be passed to DM.  The format of the Vec entries is:
-    /// <logical start sec> <length> "linear" <maj:min> <start offset>
+    /// Generate a table to be passed to DM.  The format of the table entries
+    /// is:
+    /// <logical start offset> <length> "linear" <linear-specific string>
+    /// where the linear-specific string has the format:
+    /// <maj:min> <physical start offset>
     fn dm_table(segments: &[Segment]) -> Vec<TargetLine> {
         assert_ne!(segments.len(), 0);
 
         let mut table = Vec::new();
-        let mut logical_start_sector = Sectors(0);
+        let mut logical_start_offset = Sectors(0);
         for segment in segments {
-            let (start, length) = (segment.start, segment.length);
-            let line = (logical_start_sector,
+            let (physical_start_offset, length) = (segment.start, segment.length);
+            let line = (logical_start_offset,
                         length,
                         "linear".to_owned(),
-                        format!("{} {}", segment.device.dstr(), *start));
+                        format!("{} {}", segment.device.dstr(), *physical_start_offset));
             debug!("dmtable line : {:?}", line);
             table.push(line);
-            logical_start_sector += length;
+            logical_start_offset += length;
         }
 
         table
