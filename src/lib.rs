@@ -59,6 +59,11 @@ extern crate bitflags;
 #[macro_use]
 extern crate log;
 
+#[cfg(test)]
+extern crate loopdev;
+#[cfg(test)]
+extern crate tempdir;
+
 #[allow(dead_code, non_camel_case_types)]
 mod dm_ioctl;
 /// public utilities
@@ -85,6 +90,11 @@ mod device;
 mod dm;
 /// functionality shared between devices
 mod shared;
+
+#[cfg(test)]
+#[allow(dead_code)]
+mod loopbacked;
+
 
 pub use dm::{DM, DevId};
 pub use device::Device;
