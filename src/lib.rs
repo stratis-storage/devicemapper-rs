@@ -92,7 +92,6 @@ mod dm;
 mod shared;
 
 #[cfg(test)]
-#[allow(dead_code)]
 mod loopbacked;
 
 
