@@ -164,3 +164,132 @@ impl LinearDev {
         Ok(())
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use std::fs::OpenOptions;
+    use std::path::Path;
+    use std::str::FromStr;
+
+    use super::super::consts::DM_STATUS_TABLE;
+    use super::super::device::Device;
+    use super::super::loopbacked::test_with_spec;
+
+    use super::*;
+
+    /// Verify that a new linear dev with 0 segments fails.
+    fn test_empty(_paths: &[&Path]) -> () {
+        assert!(LinearDev::new("new", &DM::new().unwrap(), vec![]).is_err());
+    }
+
+    /// Verify that passing the same segments two times gets two segments.
+    /// Verify that the size of the devnode is the size of the sum of the
+    /// ranges of the segments.
+    fn test_duplicate_segments(paths: &[&Path]) -> () {
+        assert!(paths.len() >= 1);
+
+        let dm = DM::new().unwrap();
+        let name = "name";
+        let dev = Device::from_str(&paths[0].to_string_lossy()).unwrap();
+        let segments = vec![Segment::new(dev, Sectors(0), Sectors(1)),
+                            Segment::new(dev, Sectors(0), Sectors(1))];
+        let range: Sectors = segments.iter().map(|s| s.length).sum();
+        let count = segments.len();
+        let ld = LinearDev::new(name, &dm, segments).unwrap();
+        assert_eq!(dm.table_status(&DevId::Name(name), DM_STATUS_TABLE)
+                       .unwrap()
+                       .1
+                       .len(),
+                   count);
+        assert_eq!(blkdev_size(&OpenOptions::new()
+                                    .read(true)
+                                    .open(ld.devnode().unwrap())
+                                    .unwrap())
+                           .unwrap()
+                           .sectors(),
+                   range);
+
+        ld.teardown(&dm).unwrap();
+    }
+
+    /// Verify that constructing a second dev with the same name succeeds.
+    /// Verify that the segment table is, however, the segment table of the
+    /// previously constructed device.
+    fn test_same_name(paths: &[&Path]) -> () {
+        assert!(paths.len() >= 1);
+
+        let dm = DM::new().unwrap();
+        let name = "name";
+        let dev = Device::from_str(&paths[0].to_string_lossy()).unwrap();
+        let segments = vec![Segment::new(dev, Sectors(0), Sectors(1))];
+        let table = LinearDev::dm_table(&segments);
+        let ld = LinearDev::new(name, &dm, vec![Segment::new(dev, Sectors(0), Sectors(1))])
+            .unwrap();
+        assert!(LinearDev::new(name, &dm, vec![Segment::new(dev, Sectors(1), Sectors(1))]).is_ok());
+        assert_eq!(table,
+                   dm.table_status(&DevId::Name(name), DM_STATUS_TABLE)
+                       .unwrap()
+                       .1);
+
+        ld.teardown(&dm).unwrap();
+    }
+
+    /// Verify constructing a second linear dev with the same segment succeeds.
+    fn test_same_segment(paths: &[&Path]) -> () {
+        assert!(paths.len() >= 1);
+
+        let dm = DM::new().unwrap();
+        let dev = Device::from_str(&paths[0].to_string_lossy()).unwrap();
+        let ld = LinearDev::new("name", &dm, vec![Segment::new(dev, Sectors(0), Sectors(1))])
+            .unwrap();
+        let ld2 = LinearDev::new("ersatz",
+                                 &dm,
+                                 vec![Segment::new(dev, Sectors(0), Sectors(1))]);
+        assert!(ld2.is_ok());
+
+        ld2.unwrap().teardown(&dm).unwrap();
+        ld.teardown(&dm).unwrap();
+    }
+
+    /// Verify that table status returns the expected table.
+    fn test_table_status(paths: &[&Path]) -> () {
+        assert!(paths.len() >= 1);
+
+        let dm = DM::new().unwrap();
+        let name = "name";
+        let dev = Device::from_str(&paths[0].to_string_lossy()).unwrap();
+        let segments = vec![Segment::new(dev, Sectors(0), Sectors(1))];
+        let table = LinearDev::dm_table(&segments);
+        let ld = LinearDev::new(name, &dm, segments).unwrap();
+        assert_eq!(table,
+                   dm.table_status(&DevId::Name(name), DM_STATUS_TABLE)
+                       .unwrap()
+                       .1);
+        ld.teardown(&dm).unwrap();
+    }
+
+    #[test]
+    fn loop_test_duplicate_segments() {
+        test_with_spec(1, test_duplicate_segments);
+    }
+
+    #[test]
+    fn loop_test_empty() {
+        test_with_spec(0, test_empty);
+    }
+
+    #[test]
+    fn loop_test_same_name() {
+        test_with_spec(1, test_same_name);
+    }
+
+    #[test]
+    fn loop_test_segment() {
+        test_with_spec(1, test_same_segment);
+    }
+
+    #[test]
+    fn loop_test_table_status() {
+        test_with_spec(1, test_table_status);
+    }
+}
