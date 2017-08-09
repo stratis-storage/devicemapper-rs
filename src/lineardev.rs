@@ -92,6 +92,13 @@ impl LinearDev {
     }
 
     /// Extend an existing LinearDev with additional new segments.
+    /// In the event that the first segments in new_segs is contiguous with
+    /// the device's last segment, these segments are coalesced into a single
+    /// segment.
+    /// Warning: If the segments overlap, either with each other or with the
+    /// segments already in the device, this method will succeed. However,
+    /// the behavior of the linear device in that case should be treated as
+    /// undefined.
     pub fn extend(&mut self, new_segs: Vec<Segment>) -> DmResult<()> {
         if new_segs.is_empty() {
             return Ok(());
@@ -102,8 +109,8 @@ impl LinearDev {
         let coalesced_new_first = {
             let mut old_last = self.segments
                 .last_mut()
-                .expect("Existing segment list must not be empty");
-            let new_first = new_segs.first().expect("new_segs must not be empty");
+                .expect("every LinearDev must have at least one segment");
+            let new_first = new_segs.first().expect("new_segs.is_empty() is false");
             if old_last.device == new_first.device &&
                (old_last.start + old_last.length == new_first.start) {
                 old_last.length += new_first.length;
@@ -120,12 +127,7 @@ impl LinearDev {
         }
 
         let table = LinearDev::dm_table(&self.segments);
-
-        let dm = DM::new()?;
-        let id = &DevId::Name(self.name());
-
-        table_reload(&dm, id, &table)?;
-
+        table_reload(&DM::new()?, &DevId::Name(self.name()), &table)?;
         Ok(())
     }
 
