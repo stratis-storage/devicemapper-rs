@@ -19,8 +19,8 @@ pub fn table_load<T1, T2>(dm: &DM,
     where T1: AsRef<str>,
           T2: AsRef<str>
 {
-    let dev_info = try!(dm.table_load(id, table));
-    try!(dm.device_suspend(id, DmFlags::empty()));
+    let dev_info = dm.table_load(id, table)?;
+    dm.device_suspend(id, DmFlags::empty())?;
     Ok(dev_info)
 
 }
@@ -33,14 +33,14 @@ pub fn table_reload<T1, T2>(dm: &DM,
     where T1: AsRef<str>,
           T2: AsRef<str>
 {
-    let dev_info = try!(dm.table_load(id, table));
-    try!(dm.device_suspend(id, DM_SUSPEND));
-    try!(dm.device_suspend(id, DmFlags::empty()));
+    let dev_info = dm.table_load(id, table)?;
+    dm.device_suspend(id, DM_SUSPEND)?;
+    dm.device_suspend(id, DmFlags::empty())?;
     Ok(dev_info)
 }
 
 /// Check if a device of the given name exists.
 pub fn device_exists(dm: &DM, name: &str) -> DmResult<bool> {
-    Ok(try!(dm.list_devices()
-                .map(|l| l.iter().any(|&(ref n, _)| n == name))))
+    Ok(dm.list_devices()
+           .map(|l| l.iter().any(|&(ref n, _)| n == name))?)
 }

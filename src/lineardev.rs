@@ -43,13 +43,13 @@ impl LinearDev {
         }
 
         let id = DevId::Name(name);
-        let dev_info = if try!(device_exists(dm, name)) {
+        let dev_info = if device_exists(dm, name)? {
             // TODO: Verify that kernel's model matches up with segments.
-            Box::new(try!(dm.device_status(&id)))
+            Box::new(dm.device_status(&id)?)
         } else {
-            try!(dm.device_create(name, None, DmFlags::empty()));
+            dm.device_create(name, None, DmFlags::empty())?;
             let table = LinearDev::dm_table(&segments);
-            Box::new(try!(table_load(dm, &id, &table)))
+            Box::new(table_load(dm, &id, &table)?)
         };
 
         DM::wait_for_dm();
@@ -115,10 +115,10 @@ impl LinearDev {
 
         let table = LinearDev::dm_table(&self.segments);
 
-        let dm = try!(DM::new());
+        let dm = DM::new()?;
         let id = &DevId::Name(self.name());
 
-        try!(table_reload(&dm, id, &table));
+        table_reload(&dm, id, &table)?;
 
         Ok(())
     }
@@ -130,8 +130,7 @@ impl LinearDev {
 
     /// Set the name for this LinearDev.
     pub fn set_name(&mut self, dm: &DM, name: &str) -> DmResult<()> {
-        self.dev_info =
-            Box::new(try!(dm.device_rename(self.dev_info.name(), name, DmFlags::empty())));
+        self.dev_info = Box::new(dm.device_rename(self.dev_info.name(), name, DmFlags::empty())?);
 
         Ok(())
     }
@@ -143,8 +142,8 @@ impl LinearDev {
 
     /// return the total size of the linear device
     pub fn size(&self) -> DmResult<Sectors> {
-        let f = try!(File::open(try!(self.devnode())));
-        Ok(try!(blkdev_size(&f)).sectors())
+        let f = File::open(self.devnode()?)?;
+        Ok(blkdev_size(&f)?.sectors())
     }
 
     /// path of the device node
@@ -160,7 +159,7 @@ impl LinearDev {
 
     /// Remove the device from DM
     pub fn teardown(self, dm: &DM) -> DmResult<()> {
-        try!(dm.device_remove(&DevId::Name(self.name()), DmFlags::empty()));
+        dm.device_remove(&DevId::Name(self.name()), DmFlags::empty())?;
         Ok(())
     }
 }
