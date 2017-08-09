@@ -62,7 +62,7 @@ impl<'de> serde::Deserialize<'de> for ThinDevId {
     fn deserialize<D>(deserializer: D) -> Result<ThinDevId, D::Error>
         where D: serde::de::Deserializer<'de>
     {
-        Ok(ThinDevId { value: try!(serde::Deserialize::deserialize(deserializer)) })
+        Ok(ThinDevId { value: serde::Deserialize::deserialize(deserializer)? })
     }
 }
 
@@ -101,7 +101,8 @@ impl ThinDev {
                length: Sectors)
                -> DmResult<ThinDev> {
 
-        try!(thin_pool.message(dm, &format!("create_thin {}", thin_id)));
+        thin_pool
+            .message(dm, &format!("create_thin {}", thin_id))?;
         ThinDev::setup(name, dm, thin_pool, thin_id, length)
     }
 
@@ -120,13 +121,13 @@ impl ThinDev {
         let id = DevId::Name(name);
         let thin_pool_dstr = thin_pool.dstr();
 
-        let dev_info = if try!(device_exists(dm, name)) {
+        let dev_info = if device_exists(dm, name)? {
             // TODO: Verify that kernel's model matches arguments.
-            try!(dm.device_status(&id))
+            dm.device_status(&id)?
         } else {
-            try!(dm.device_create(name, None, DmFlags::empty()));
+            dm.device_create(name, None, DmFlags::empty())?;
             let table = ThinDev::dm_table(&thin_pool_dstr, thin_id, length);
-            try!(table_load(dm, &id, &table))
+            table_load(dm, &id, &table)?
         };
 
         DM::wait_for_dm();
@@ -180,8 +181,8 @@ impl ThinDev {
 
     /// Get the current status of the thin device.
     pub fn status(&self, dm: &DM) -> DmResult<ThinStatus> {
-        let (_, mut status) = try!(dm.table_status(&DevId::Name(self.dev_info.name()),
-                                                   DmFlags::empty()));
+        let (_, mut status) =
+            dm.table_status(&DevId::Name(self.dev_info.name()), DmFlags::empty())?;
 
         assert_eq!(status.len(),
                    1,
@@ -212,9 +213,9 @@ impl ThinDev {
 
         let id = &DevId::Name(self.dev_info.name());
 
-        try!(table_reload(dm,
-                          id,
-                          &ThinDev::dm_table(&self.thinpool_dstr, self.thin_id, self.size)));
+        table_reload(dm,
+                     id,
+                     &ThinDev::dm_table(&self.thinpool_dstr, self.thin_id, self.size))?;
 
         Ok(())
     }
@@ -223,15 +224,15 @@ impl ThinDev {
     /// with its thin id from the thinpool.
     pub fn destroy(self, dm: &DM, thin_pool: &ThinPoolDev) -> DmResult<()> {
         let thin_id = self.thin_id;
-        try!(self.teardown(dm));
-        try!(thin_pool.message(dm, &format!("delete {}", thin_id)));
+        self.teardown(dm)?;
+        thin_pool.message(dm, &format!("delete {}", thin_id))?;
 
         Ok(())
     }
 
     /// Tear down the DM device.
     pub fn teardown(self, dm: &DM) -> DmResult<()> {
-        try!(dm.device_remove(&DevId::Name(self.name()), DmFlags::empty()));
+        dm.device_remove(&DevId::Name(self.name()), DmFlags::empty())?;
         Ok(())
     }
 }

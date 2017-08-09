@@ -85,14 +85,14 @@ impl ThinPoolDev {
                data: LinearDev)
                -> DmResult<ThinPoolDev> {
         let id = DevId::Name(name);
-        let dev_info = if try!(device_exists(dm, name)) {
+        let dev_info = if device_exists(dm, name)? {
             // TODO: Verify that kernel table matches our table.
-            try!(dm.device_status(&id))
+            dm.device_status(&id)?
         } else {
-            try!(dm.device_create(name, None, DmFlags::empty()));
+            dm.device_create(name, None, DmFlags::empty())?;
             let table =
                 ThinPoolDev::dm_table(length, data_block_size, low_water_mark, &meta, &data);
-            try!(table_load(dm, &id, &table))
+            table_load(dm, &id, &table)?
         };
 
         DM::wait_for_dm();
@@ -131,11 +131,11 @@ impl ThinPoolDev {
                  meta: LinearDev,
                  data: LinearDev)
                  -> DmResult<ThinPoolDev> {
-        if !try!(Command::new("thin_check")
-                     .arg("-q")
-                     .arg(&try!(meta.devnode()))
-                     .status())
-                    .success() {
+        if !Command::new("thin_check")
+                .arg("-q")
+                .arg(&meta.devnode()?)
+                .status()?
+                .success() {
             return Err(DmError::Dm(ErrorEnum::CheckFailed(meta, data),
                                    "thin_check failed, run thin_repair".into()));
         }
@@ -168,7 +168,7 @@ impl ThinPoolDev {
 
     /// send a message to DM thin pool
     pub fn message(&self, dm: &DM, message: &str) -> DmResult<()> {
-        try!(dm.target_msg(&DevId::Name(self.name()), Sectors(0), message));
+        dm.target_msg(&DevId::Name(self.name()), Sectors(0), message)?;
         Ok(())
     }
 
@@ -196,8 +196,8 @@ impl ThinPoolDev {
 
     /// Get the current status of the thinpool.
     pub fn status(&self, dm: &DM) -> DmResult<ThinPoolStatus> {
-        let (_, mut status) = try!(dm.table_status(&DevId::Name(self.dev_info.name()),
-                                                   DmFlags::empty()));
+        let (_, mut status) =
+            dm.table_status(&DevId::Name(self.dev_info.name()), DmFlags::empty())?;
 
         assert_eq!(status.len(),
                    1,
@@ -251,33 +251,33 @@ impl ThinPoolDev {
 
     /// Reload the device mapper table.
     fn table_reload(&self, dm: &DM) -> DmResult<()> {
-        try!(table_reload(dm,
-                          &DevId::Name(self.name()),
-                          &ThinPoolDev::dm_table(try!(self.data_dev.size()),
-                                                 self.data_block_size,
-                                                 self.low_water_mark,
-                                                 &self.meta_dev,
-                                                 &self.data_dev)));
+        table_reload(dm,
+                     &DevId::Name(self.name()),
+                     &ThinPoolDev::dm_table(self.data_dev.size()?,
+                                            self.data_block_size,
+                                            self.low_water_mark,
+                                            &self.meta_dev,
+                                            &self.data_dev))?;
         Ok(())
     }
 
     /// Extend an existing meta device with additional new segments.
     pub fn extend_meta(&mut self, dm: &DM, new_segs: Vec<Segment>) -> DmResult<()> {
-        try!(self.meta_dev.extend(new_segs));
+        self.meta_dev.extend(new_segs)?;
         self.table_reload(dm)
     }
 
     /// Extend an existing data device with additional new segments.
     pub fn extend_data(&mut self, dm: &DM, new_segs: Vec<Segment>) -> DmResult<()> {
-        try!(self.data_dev.extend(new_segs));
+        self.data_dev.extend(new_segs)?;
         self.table_reload(dm)
     }
 
     /// Remove the device from DM
     pub fn teardown(self, dm: &DM) -> DmResult<()> {
-        try!(dm.device_remove(&DevId::Name(self.name()), DmFlags::empty()));
-        try!(self.data_dev.teardown(dm));
-        try!(self.meta_dev.teardown(dm));
+        dm.device_remove(&DevId::Name(self.name()), DmFlags::empty())?;
+        self.data_dev.teardown(dm)?;
+        self.meta_dev.teardown(dm)?;
         Ok(())
     }
 }

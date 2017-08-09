@@ -42,7 +42,7 @@ macro_rules! serde {
             fn deserialize<D>(deserializer: D) -> Result<$T, D::Error>
                 where D: serde::de::Deserializer<'de>
             {
-                Ok($T(try!(serde::Deserialize::deserialize(deserializer))))
+                Ok($T(serde::Deserialize::deserialize(deserializer)?))
             }
         }
     }

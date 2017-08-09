@@ -44,7 +44,7 @@ pub struct DM {
 impl DM {
     /// Create a new context for communicating with DM.
     pub fn new() -> DmResult<DM> {
-        Ok(DM { file: try!(File::open(DM_CTL_PATH)) })
+        Ok(DM { file: File::open(DM_CTL_PATH)? })
     }
 
     /// The /dev/mapper/<name> device is not immediately available for use.
@@ -153,7 +153,7 @@ impl DM {
         // No flags checked so don't pass any
         Self::initialize_hdr(&mut hdr, DmFlags::empty());
 
-        try!(self.do_ioctl(dmi::DM_VERSION_CMD as u8, &mut hdr, None));
+        self.do_ioctl(dmi::DM_VERSION_CMD as u8, &mut hdr, None)?;
 
         Ok((hdr.version[0], hdr.version[1], hdr.version[2]))
     }
@@ -172,7 +172,7 @@ impl DM {
 
         Self::initialize_hdr(&mut hdr, clean_flags);
 
-        try!(self.do_ioctl(dmi::DM_REMOVE_ALL_CMD as u8, &mut hdr, None));
+        self.do_ioctl(dmi::DM_REMOVE_ALL_CMD as u8, &mut hdr, None)?;
 
         Ok(())
     }
@@ -185,7 +185,7 @@ impl DM {
         // No flags checked so don't pass any
         Self::initialize_hdr(&mut hdr, DmFlags::empty());
 
-        let data_out = try!(self.do_ioctl(dmi::DM_LIST_DEVICES_CMD as u8, &mut hdr, None));
+        let data_out = self.do_ioctl(dmi::DM_LIST_DEVICES_CMD as u8, &mut hdr, None)?;
 
         let mut devs = Vec::new();
         if !data_out.is_empty() {
@@ -244,7 +244,7 @@ impl DM {
             Self::hdr_set_uuid(&mut hdr, uuid);
         }
 
-        try!(self.do_ioctl(dmi::DM_DEV_CREATE_CMD as u8, &mut hdr, None));
+        self.do_ioctl(dmi::DM_DEV_CREATE_CMD as u8, &mut hdr, None)?;
 
         Ok(DeviceInfo::new(hdr))
     }
@@ -267,7 +267,7 @@ impl DM {
             DevId::Uuid(uuid) => Self::hdr_set_uuid(&mut hdr, uuid),
         };
 
-        try!(self.do_ioctl(dmi::DM_DEV_REMOVE_CMD as u8, &mut hdr, None));
+        self.do_ioctl(dmi::DM_DEV_REMOVE_CMD as u8, &mut hdr, None)?;
 
         Ok(DeviceInfo::new(hdr))
     }
@@ -308,7 +308,7 @@ impl DM {
         let mut data_in = new_name.as_bytes().to_vec();
         data_in.push(b'\0');
 
-        try!(self.do_ioctl(dmi::DM_DEV_RENAME_CMD as u8, &mut hdr, Some(&data_in)));
+        self.do_ioctl(dmi::DM_DEV_RENAME_CMD as u8, &mut hdr, Some(&data_in))?;
 
         Ok(DeviceInfo::new(hdr))
     }
@@ -347,7 +347,7 @@ impl DM {
             DevId::Uuid(uuid) => Self::hdr_set_uuid(&mut hdr, uuid),
         };
 
-        try!(self.do_ioctl(dmi::DM_DEV_SUSPEND_CMD as u8, &mut hdr, None));
+        self.do_ioctl(dmi::DM_DEV_SUSPEND_CMD as u8, &mut hdr, None)?;
 
         Ok(DeviceInfo::new(hdr))
     }
@@ -365,7 +365,7 @@ impl DM {
             DevId::Uuid(uuid) => Self::hdr_set_uuid(&mut hdr, uuid),
         };
 
-        try!(self.do_ioctl(dmi::DM_DEV_STATUS_CMD as u8, &mut hdr, None));
+        self.do_ioctl(dmi::DM_DEV_STATUS_CMD as u8, &mut hdr, None)?;
 
         Ok(DeviceInfo::new(hdr))
     }
@@ -391,9 +391,9 @@ impl DM {
             DevId::Uuid(uuid) => Self::hdr_set_uuid(&mut hdr, uuid),
         };
 
-        let data_out = try!(self.do_ioctl(dmi::DM_DEV_WAIT_CMD as u8, &mut hdr, None));
+        let data_out = self.do_ioctl(dmi::DM_DEV_WAIT_CMD as u8, &mut hdr, None)?;
 
-        let status = try!(Self::parse_table_status(hdr.target_count, &data_out));
+        let status = Self::parse_table_status(hdr.target_count, &data_out)?;
 
         Ok((DeviceInfo::new(hdr), status))
 
@@ -484,7 +484,7 @@ impl DM {
             data_in.extend(param.as_bytes());
         }
 
-        try!(self.do_ioctl(dmi::DM_TABLE_LOAD_CMD as u8, &mut hdr, Some(&data_in)));
+        self.do_ioctl(dmi::DM_TABLE_LOAD_CMD as u8, &mut hdr, Some(&data_in))?;
 
         Ok(DeviceInfo::new(hdr))
     }
@@ -500,7 +500,7 @@ impl DM {
             DevId::Uuid(uuid) => Self::hdr_set_uuid(&mut hdr, uuid),
         };
 
-        try!(self.do_ioctl(dmi::DM_TABLE_CLEAR_CMD as u8, &mut hdr, None));
+        self.do_ioctl(dmi::DM_TABLE_CLEAR_CMD as u8, &mut hdr, None)?;
 
         Ok(DeviceInfo::new(hdr))
     }
@@ -520,7 +520,7 @@ impl DM {
         Self::initialize_hdr(&mut hdr, clean_flags);
         hdr.dev = dev.into();
 
-        let data_out = try!(self.do_ioctl(dmi::DM_TABLE_DEPS_CMD as u8, &mut hdr, None));
+        let data_out = self.do_ioctl(dmi::DM_TABLE_DEPS_CMD as u8, &mut hdr, None)?;
 
         if data_out.is_empty() {
             Ok(vec![])
@@ -621,9 +621,9 @@ impl DM {
             DevId::Uuid(uuid) => Self::hdr_set_uuid(&mut hdr, uuid),
         };
 
-        let data_out = try!(self.do_ioctl(dmi::DM_TABLE_STATUS_CMD as u8, &mut hdr, None));
+        let data_out = self.do_ioctl(dmi::DM_TABLE_STATUS_CMD as u8, &mut hdr, None)?;
 
-        let status = try!(Self::parse_table_status(hdr.target_count, &data_out));
+        let status = Self::parse_table_status(hdr.target_count, &data_out)?;
 
         Ok((DeviceInfo::new(hdr), status))
     }
@@ -636,7 +636,7 @@ impl DM {
         // No flags checked so don't pass any
         Self::initialize_hdr(&mut hdr, DmFlags::empty());
 
-        let data_out = try!(self.do_ioctl(dmi::DM_LIST_VERSIONS_CMD as u8, &mut hdr, None));
+        let data_out = self.do_ioctl(dmi::DM_LIST_VERSIONS_CMD as u8, &mut hdr, None)?;
 
         let mut targets = Vec::new();
         if !data_out.is_empty() {
@@ -693,7 +693,7 @@ impl DM {
         data_in.extend(msg.as_bytes());
         data_in.push(b'\0');
 
-        let data_out = try!(self.do_ioctl(dmi::DM_TARGET_MSG_CMD as u8, &mut hdr, Some(&data_in)));
+        let data_out = self.do_ioctl(dmi::DM_TARGET_MSG_CMD as u8, &mut hdr, Some(&data_in))?;
 
         Ok((DeviceInfo::new(hdr),
             if (hdr.flags & DM_DATA_OUT.bits()) > 0 {
@@ -709,8 +709,8 @@ impl DM {
             return Ok(false);
         }
 
-        for d in try!(self.table_deps(dev, DmFlags::empty())) {
-            if d == dev || try!(self.depends_on(d, dm_majors)) {
+        for d in self.table_deps(dev, DmFlags::empty())? {
+            if d == dev || self.depends_on(d, dm_majors)? {
                 return Ok(true);
             }
         }
