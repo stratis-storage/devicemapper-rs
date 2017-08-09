@@ -8,6 +8,8 @@ addons:
 
 language: rust
 
+cache: cargo
+
 matrix:
     include:
         - rust: stable
