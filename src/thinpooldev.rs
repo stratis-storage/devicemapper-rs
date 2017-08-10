@@ -6,7 +6,7 @@ use std::fmt;
 use std::path::PathBuf;
 use std::process::Command;
 
-use consts::{DmFlags, IEC};
+use consts::{DM_STATUS_TABLE, DmFlags, IEC};
 use device::Device;
 use deviceinfo::DeviceInfo;
 use dm::{DM, DevId, DmName};
@@ -115,8 +115,6 @@ pub enum ThinPoolWorkingStatus {
 /// https://www.kernel.org/doc/Documentation/device-mapper/thin-provisioning.txt
 impl ThinPoolDev {
     /// Construct a new ThinPoolDev with the given data and meta devs.
-    /// TODO: If the device already exists, verify that kernel's model
-    /// matches arguments.
     pub fn new(name: &DmName,
                dm: &DM,
                data_block_size: Sectors,
@@ -125,12 +123,15 @@ impl ThinPoolDev {
                data: LinearDev)
                -> DmResult<ThinPoolDev> {
         let id = DevId::Name(name);
+        let table =
+            ThinPoolDev::dm_table(data.size(), data_block_size, low_water_mark, &meta, &data);
         let dev_info = if device_exists(dm, name)? {
-            // TODO: Verify that kernel table matches our table.
+            if dm.table_status(&id, DM_STATUS_TABLE)?.1 != table {
+                return Err(DmError::Dm(ErrorEnum::Invalid,
+                                       "specified data does not match kernel data".into()));
+            }
             Box::new(dm.device_status(&id)?)
         } else {
-            let table =
-                ThinPoolDev::dm_table(data.size(), data_block_size, low_water_mark, &meta, &data);
             Box::new(device_create(dm, name, &id, &table)?)
         };
 

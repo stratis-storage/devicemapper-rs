@@ -7,7 +7,7 @@ use std::path::PathBuf;
 
 use serde;
 
-use consts::DmFlags;
+use consts::{DM_STATUS_TABLE, DmFlags};
 use device::Device;
 use deviceinfo::DeviceInfo;
 use dm::{DM, DevId, DmName};
@@ -133,8 +133,6 @@ impl ThinDev {
     /// Set up an existing thindev.
     /// By "existing" is here meant that metadata for this thin device exists
     /// on the metadata device for its thin pool.
-    /// TODO: If the device is already known to the kernel, verify that kernel
-    /// model matches arguments.
     pub fn setup(name: &DmName,
                  dm: &DM,
                  thin_pool: &ThinPoolDev,
@@ -144,12 +142,15 @@ impl ThinDev {
 
         let id = DevId::Name(name);
         let thin_pool_device = thin_pool.device();
+        let table = ThinDev::dm_table(thin_pool_device, thin_id, length);
 
         let dev_info = if device_exists(dm, name)? {
-            // TODO: Verify that kernel's model matches arguments.
+            if dm.table_status(&id, DM_STATUS_TABLE)?.1 != table {
+                return Err(DmError::Dm(ErrorEnum::Invalid,
+                                       "specified data does not match kernel data".into()));
+            }
             Box::new(dm.device_status(&id)?)
         } else {
-            let table = ThinDev::dm_table(thin_pool_device, thin_id, length);
             Box::new(device_create(dm, name, &id, &table)?)
         };
 
