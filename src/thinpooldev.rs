@@ -154,9 +154,14 @@ impl ThinPoolDev {
         self.data_block_size
     }
 
-    /// Set up an existing ThinPoolDev.
-    /// By "existing" is here meant that metadata for the thinpool already
-    /// exists on the thinpool's metadata device.
+    /// Set up a thin pool from the given metadata and data device.
+    /// If the pool is not busy, runs the "thin_check" command to verify
+    /// the correctness of the metadata.
+    /// Returns an error if the "thin_check" command fails.
+    /// If there is no metadata on the metadata device, "thin_check" will
+    /// return an error, so this method returns an error in that case.
+    // Our best proxy for "busy" at this time is if the device is known to
+    // the kernel.
     pub fn setup(name: &DmName,
                  dm: &DM,
                  data_block_size: Sectors,
@@ -164,7 +169,8 @@ impl ThinPoolDev {
                  meta: LinearDev,
                  data: LinearDev)
                  -> DmResult<ThinPoolDev> {
-        if !Command::new("thin_check")
+        if !device_exists(dm, name)? &&
+           !Command::new("thin_check")
                 .arg("-q")
                 .arg(&meta.devnode())
                 .status()?
