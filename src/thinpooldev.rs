@@ -6,7 +6,7 @@ use std::fmt;
 use std::path::PathBuf;
 use std::process::Command;
 
-use consts::DmFlags;
+use consts::{DmFlags, IEC};
 use deviceinfo::DeviceInfo;
 use dm::{DM, DevId};
 use lineardev::LinearDev;
@@ -14,6 +14,16 @@ use result::{DmResult, DmError, ErrorEnum};
 use segment::Segment;
 use shared::{device_exists, table_load, table_reload};
 use types::{DataBlocks, MetaBlocks, Sectors, TargetLine};
+
+/// Values are explicitly stated in the device-mapper kernel documentation.
+#[allow(dead_code)]
+const MIN_DATA_BLOCK_SIZE: Sectors = Sectors(128); // 64 KiB
+#[allow(dead_code)]
+const MAX_DATA_BLOCK_SIZE: Sectors = Sectors(2 * IEC::Mi); // 1 GiB
+#[allow(dead_code)]
+const MIN_RECOMMENDED_METADATA_SIZE: Sectors = Sectors(4 * IEC::Ki); // 2 MiB
+#[allow(dead_code)]
+const MAX_RECOMMENDED_METADATA_SIZE: Sectors = Sectors(32 * IEC::Mi); // 16 GiB
 
 /// DM construct to contain thin provisioned devices
 pub struct ThinPoolDev {
