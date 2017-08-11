@@ -88,7 +88,6 @@ impl ThinPoolDev {
     /// matches arguments.
     pub fn new(name: &str,
                dm: &DM,
-               length: Sectors,
                data_block_size: Sectors,
                low_water_mark: DataBlocks,
                meta: LinearDev,
@@ -101,7 +100,7 @@ impl ThinPoolDev {
         } else {
             dm.device_create(name, None, DmFlags::empty())?;
             let table =
-                ThinPoolDev::dm_table(length, data_block_size, low_water_mark, &meta, &data);
+                ThinPoolDev::dm_table(data.size()?, data_block_size, low_water_mark, &meta, &data);
             table_load(dm, &id, &table)?
         };
 
@@ -135,7 +134,6 @@ impl ThinPoolDev {
     /// exists on the thinpool's metadata device.
     pub fn setup(name: &str,
                  dm: &DM,
-                 length: Sectors,
                  data_block_size: Sectors,
                  low_water_mark: DataBlocks,
                  meta: LinearDev,
@@ -150,13 +148,7 @@ impl ThinPoolDev {
                                    "thin_check failed, run thin_repair".into()));
         }
 
-        ThinPoolDev::new(name,
-                         dm,
-                         length,
-                         data_block_size,
-                         low_water_mark,
-                         meta,
-                         data)
+        ThinPoolDev::new(name, dm, data_block_size, low_water_mark, meta, data)
     }
 
     /// Generate a table to be passed to DM. The format of the table
