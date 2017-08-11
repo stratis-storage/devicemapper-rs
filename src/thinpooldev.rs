@@ -195,6 +195,12 @@ impl ThinPoolDev {
     }
 
     /// Get the current status of the thinpool.
+    /// Returns an error if there was an error getting the status value.
+    /// Panics if there is an error parsing the status value.
+    // The justification for this is that if there was no error in obtaining
+    // the status value, the data is correct and complete.
+    // Therefore, an error in parsing can only result from a change in the
+    // kernel. We assume that Stratis will know in advance about such changes.
     pub fn status(&self, dm: &DM) -> DmResult<ThinPoolStatus> {
         let (_, mut status) =
             dm.table_status(&DevId::Name(self.dev_info.name()), DmFlags::empty())?;
