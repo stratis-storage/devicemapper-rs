@@ -139,9 +139,12 @@ impl ThinDev {
            })
     }
 
-    /// Generate a Vec<> to be passed to DM. The format of the Vec
-    /// entries are: "<start> <length> thin <thinpool maj:min>
-    /// <thin_id>"
+    /// Generate a table to be passed to DM. The format of the table
+    /// entries is:
+    /// <start> <length> "thin" <thin device specific string>
+    /// where the thin device specific string has the format:
+    /// <thinpool maj:min> <thin_id>
+    /// There is exactly one entry in the table.
     fn dm_table(thin_pool_dstr: &str, thin_id: ThinDevId, length: Sectors) -> Vec<TargetLine> {
         let params = format!("{} {}", thin_pool_dstr, thin_id);
         vec![(Sectors::default(), length, "thin".to_owned(), params)]
