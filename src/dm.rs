@@ -545,6 +545,8 @@ impl DM {
     /// Parse a device's table. The table value is in buf, count indicates the
     /// expected number of lines.
     /// Panics if there is an error parsing the table.
+    /// Trims trailing white space off final entry on each line. This
+    /// canonicalization makes checking identity of tables easier.
     // The justification for this is that if there was no error in obtaining
     // the table the data is correct and complete. Therefore, an error in
     // parsing can only result from a change in the kernel. We assume that
@@ -572,7 +574,7 @@ impl DM {
                 let params = {
                     let slc = slice_to_null(&buf[size_of::<dmi::Struct_dm_target_spec>()..])
                         .expect("assume all parsing succeeds");
-                    String::from_utf8_lossy(slc).into_owned()
+                    String::from_utf8_lossy(slc).trim_right().to_owned()
                 };
 
                 targets.push((Sectors(targ.sector_start),
