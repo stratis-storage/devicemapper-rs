@@ -33,7 +33,7 @@ impl Device {
 
                 if spl[0].parse::<u32>().unwrap() == self.major &&
                    spl[1].parse::<u8>().unwrap() == self.minor {
-                    return Some(PathBuf::from(format!("/dev/{}", spl[3])));
+                    return Some(["/dev", spl[3]].iter().collect::<PathBuf>());
                 }
             }
         }
