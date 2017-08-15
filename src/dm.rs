@@ -393,7 +393,7 @@ impl DM {
 
         let data_out = self.do_ioctl(dmi::DM_DEV_WAIT_CMD as u8, &mut hdr, None)?;
 
-        let status = Self::parse_table_status(hdr.target_count, &data_out)?;
+        let status = Self::parse_table_status(hdr.target_count, &data_out);
 
         Ok((DeviceInfo::new(hdr), status))
 
@@ -542,9 +542,14 @@ impl DM {
         }
     }
 
-    // Both table_status and dev_wait return table status, so
-    // unify table status parsing.
-    fn parse_table_status(count: u32, buf: &[u8]) -> DmResult<Vec<TargetLine>> {
+    /// Parse a device's table. The table value is in buf, count indicates the
+    /// expected number of lines.
+    /// Panics if there is an error parsing the table.
+    // The justification for this is that if there was no error in obtaining
+    // the table the data is correct and complete. Therefore, an error in
+    // parsing can only result from a change in the kernel. We assume that
+    // Stratis will know in advance about such changes.
+    fn parse_table_status(count: u32, buf: &[u8]) -> Vec<TargetLine> {
         let mut targets = Vec::new();
         if !buf.is_empty() {
             let mut next_off = 0;
@@ -555,18 +560,18 @@ impl DM {
                 let targ = unsafe {
                     (result.as_ptr() as *const dmi::Struct_dm_target_spec)
                         .as_ref()
-                        .unwrap()
+                        .expect("assume all parsing succeeds")
                 };
 
                 let target_type = unsafe {
                     let cast: &[u8; 16] = transmute(&targ.target_type);
-                    let slc = slice_to_null(cast).expect("bad data from ioctl");
+                    let slc = slice_to_null(cast).expect("assume all parsing succeeds");
                     String::from_utf8_lossy(slc).into_owned()
                 };
 
                 let params = {
                     let slc = slice_to_null(&buf[size_of::<dmi::Struct_dm_target_spec>()..])
-                        .expect("bad data from ioctl");
+                        .expect("assume all parsing succeeds");
                     String::from_utf8_lossy(slc).into_owned()
                 };
 
@@ -578,7 +583,7 @@ impl DM {
                 next_off = targ.next as usize;
             }
         }
-        Ok(targets)
+        targets
     }
 
     /// Return the status of all targets for a device's "active"
@@ -623,7 +628,7 @@ impl DM {
 
         let data_out = self.do_ioctl(dmi::DM_TABLE_STATUS_CMD as u8, &mut hdr, None)?;
 
-        let status = Self::parse_table_status(hdr.target_count, &data_out)?;
+        let status = Self::parse_table_status(hdr.target_count, &data_out);
 
         Ok((DeviceInfo::new(hdr), status))
     }
