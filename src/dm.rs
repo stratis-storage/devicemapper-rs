@@ -441,7 +441,7 @@ impl DM {
             targ.length = *t.1;
             targ.status = 0;
 
-            let mut dst: &mut [u8] = unsafe { transmute(&mut targ.target_type[..]) };
+            let dst: &mut [u8] = unsafe { transmute(&mut targ.target_type[..]) };
             let ttyp = t.2.as_ref();
             let ttyp_len = ttyp.len();
             if ttyp_len > dst.len() {

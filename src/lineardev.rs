@@ -94,7 +94,7 @@ impl LinearDev {
         // Last existing and first new may be contiguous. Coalesce into
         // a single Segment if so.
         let coalesced_new_first = {
-            let mut old_last = self.segments
+            let old_last = self.segments
                 .last_mut()
                 .expect("Existing segment list must not be empty");
             let new_first = new_segs.first().expect("new_segs must not be empty");
