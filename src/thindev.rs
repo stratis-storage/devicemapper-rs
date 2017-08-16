@@ -11,7 +11,7 @@ use consts::DmFlags;
 use deviceinfo::DeviceInfo;
 use dm::{DM, DevId, DmName};
 use result::{DmError, DmResult, ErrorEnum};
-use shared::{device_exists, table_load, table_reload};
+use shared::{DmDevice, device_exists, table_load, table_reload};
 use thinpooldev::ThinPoolDev;
 use types::TargetLine;
 
@@ -77,6 +77,25 @@ pub struct ThinDev {
 impl fmt::Debug for ThinDev {
     fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
         write!(f, "{}", self.name())
+    }
+}
+
+impl DmDevice for ThinDev {
+    fn devnode(&self) -> DmResult<PathBuf> {
+        devnode!(self)
+    }
+
+    fn dstr(&self) -> String {
+        dstr!(self)
+    }
+
+    fn name(&self) -> &DmName {
+        name!(self)
+    }
+
+    fn teardown(self, dm: &DM) -> DmResult<()> {
+        dm.device_remove(&DevId::Name(self.name()), DmFlags::empty())?;
+        Ok(())
     }
 }
 
@@ -150,16 +169,6 @@ impl ThinDev {
         vec![(Sectors::default(), length, "thin".to_owned(), params)]
     }
 
-    /// name of the thin device
-    pub fn name(&self) -> &DmName {
-        self.dev_info.name()
-    }
-
-    /// Get the "x:y" device string for this LinearDev
-    pub fn dstr(&self) -> String {
-        self.dev_info.device().dstr()
-    }
-
     /// return the total size of the linear device
     pub fn size(&self) -> Sectors {
         self.size
@@ -168,18 +177,6 @@ impl ThinDev {
     /// return the thin id of the linear device
     pub fn id(&self) -> ThinDevId {
         self.thin_id
-    }
-
-    /// path of the device node
-    pub fn devnode(&self) -> DmResult<PathBuf> {
-        self.dev_info
-            .device()
-            .devnode()
-            .ok_or_else(|| {
-                            DmError::Dm(ErrorEnum::NotFound,
-                                        "No path associated with dev_info".into())
-                        })
-
     }
 
     /// Get the current status of the thin device.
@@ -226,12 +223,6 @@ impl ThinDev {
         self.teardown(dm)?;
         thin_pool.message(dm, &format!("delete {}", thin_id))?;
 
-        Ok(())
-    }
-
-    /// Tear down the DM device.
-    pub fn teardown(self, dm: &DM) -> DmResult<()> {
-        dm.device_remove(&DevId::Name(self.name()), DmFlags::empty())?;
         Ok(())
     }
 }

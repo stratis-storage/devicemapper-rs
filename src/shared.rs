@@ -5,11 +5,28 @@
 /// A module to contain functionality shared among the various types of
 /// devices.
 
+use std::path::PathBuf;
+
 use super::consts::{DmFlags, DM_SUSPEND};
 use super::deviceinfo::DeviceInfo;
 use super::dm::{DevId, DM, DmName};
 use super::result::DmResult;
 use super::types::TargetLineArg;
+
+/// A trait capturing some shared properties of DM devices.
+pub trait DmDevice {
+    /// The device's device node.
+    fn devnode(&self) -> DmResult<PathBuf>;
+
+    /// The device's number, formatted as a string <maj:min>.
+    fn dstr(&self) -> String;
+
+    /// The device's name.
+    fn name(&self) -> &DmName;
+
+    /// Erase the kernel's memory of this device.
+    fn teardown(self, dm: &DM) -> DmResult<()>;
+}
 
 /// Load the table for a device.
 pub fn table_load<T1, T2>(dm: &DM,

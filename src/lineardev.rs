@@ -11,7 +11,7 @@ use deviceinfo::DeviceInfo;
 use dm::{DM, DevId, DmName};
 use result::{DmResult, DmError, ErrorEnum};
 use segment::Segment;
-use shared::{device_exists, table_load, table_reload};
+use shared::{DmDevice, device_exists, table_load, table_reload};
 use types::{Sectors, TargetLine};
 use util::blkdev_size;
 
@@ -25,6 +25,25 @@ pub struct LinearDev {
 impl fmt::Debug for LinearDev {
     fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
         write!(f, "{}", self.name())
+    }
+}
+
+impl DmDevice for LinearDev {
+    fn devnode(&self) -> DmResult<PathBuf> {
+        devnode!(self)
+    }
+
+    fn dstr(&self) -> String {
+        dstr!(self)
+    }
+
+    fn name(&self) -> &DmName {
+        name!(self)
+    }
+
+    fn teardown(self, dm: &DM) -> DmResult<()> {
+        dm.device_remove(&DevId::Name(self.name()), DmFlags::empty())?;
+        Ok(())
     }
 }
 
@@ -130,11 +149,6 @@ impl LinearDev {
         Ok(())
     }
 
-    /// DM name - from the DeviceInfo struct
-    pub fn name(&self) -> &DmName {
-        self.dev_info.name()
-    }
-
     /// Set the name for this LinearDev.
     pub fn set_name(&mut self, dm: &DM, name: &DmName) -> DmResult<()> {
         if self.name() == name {
@@ -145,32 +159,10 @@ impl LinearDev {
         Ok(())
     }
 
-    /// Get the "x:y" device string for this LinearDev
-    pub fn dstr(&self) -> String {
-        self.dev_info.device().dstr()
-    }
-
     /// return the total size of the linear device
     pub fn size(&self) -> DmResult<Sectors> {
         let f = File::open(self.devnode()?)?;
         Ok(blkdev_size(&f)?.sectors())
-    }
-
-    /// path of the device node
-    pub fn devnode(&self) -> DmResult<PathBuf> {
-        self.dev_info
-            .device()
-            .devnode()
-            .ok_or_else(|| {
-                            DmError::Dm(ErrorEnum::NotFound,
-                                        "No path associated with dev_info".into())
-                        })
-    }
-
-    /// Remove the device from DM
-    pub fn teardown(self, dm: &DM) -> DmResult<()> {
-        dm.device_remove(&DevId::Name(self.name()), DmFlags::empty())?;
-        Ok(())
     }
 }
 

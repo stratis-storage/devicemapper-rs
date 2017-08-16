@@ -12,7 +12,7 @@ use dm::{DM, DevId, DmName};
 use lineardev::LinearDev;
 use result::{DmResult, DmError, ErrorEnum};
 use segment::Segment;
-use shared::{device_exists, table_load, table_reload};
+use shared::{DmDevice, device_exists, table_load, table_reload};
 use types::{DataBlocks, MetaBlocks, Sectors, TargetLine};
 
 /// Values are explicitly stated in the device-mapper kernel documentation.
@@ -37,6 +37,27 @@ pub struct ThinPoolDev {
 impl fmt::Debug for ThinPoolDev {
     fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
         write!(f, "{}", self.name())
+    }
+}
+
+impl DmDevice for ThinPoolDev {
+    fn devnode(&self) -> DmResult<PathBuf> {
+        devnode!(self)
+    }
+
+    fn dstr(&self) -> String {
+        dstr!(self)
+    }
+
+    fn name(&self) -> &DmName {
+        name!(self)
+    }
+
+    fn teardown(self, dm: &DM) -> DmResult<()> {
+        dm.device_remove(&DevId::Name(self.name()), DmFlags::empty())?;
+        self.data_dev.teardown(dm)?;
+        self.meta_dev.teardown(dm)?;
+        Ok(())
     }
 }
 
@@ -177,28 +198,6 @@ impl ThinPoolDev {
         Ok(())
     }
 
-    /// name of the thin pool device
-    pub fn name(&self) -> &DmName {
-        self.dev_info.name()
-    }
-
-    /// Get the "x:y" device string for this LinearDev
-    pub fn dstr(&self) -> String {
-        self.dev_info.device().dstr()
-    }
-
-    /// path of the device node
-    pub fn devnode(&self) -> DmResult<PathBuf> {
-        self.dev_info
-            .device()
-            .devnode()
-            .ok_or_else(|| {
-                            DmError::Dm(ErrorEnum::NotFound,
-                                        "No path associated with dev_info".into())
-                        })
-
-    }
-
     /// Get the current status of the thinpool.
     /// Returns an error if there was an error getting the status value.
     /// Panics if there is an error parsing the status value.
@@ -279,14 +278,6 @@ impl ThinPoolDev {
                                             self.low_water_mark,
                                             &self.meta_dev,
                                             &self.data_dev))?;
-        Ok(())
-    }
-
-    /// Remove the device from DM
-    pub fn teardown(self, dm: &DM) -> DmResult<()> {
-        dm.device_remove(&DevId::Name(self.name()), DmFlags::empty())?;
-        self.data_dev.teardown(dm)?;
-        self.meta_dev.teardown(dm)?;
         Ok(())
     }
 }
