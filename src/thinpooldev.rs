@@ -6,7 +6,7 @@ use std::fmt;
 use std::path::PathBuf;
 use std::process::Command;
 
-use consts::DmFlags;
+use consts::{DmFlags, IEC};
 use deviceinfo::DeviceInfo;
 use dm::{DM, DevId};
 use lineardev::LinearDev;
@@ -14,6 +14,16 @@ use result::{DmResult, DmError, ErrorEnum};
 use segment::Segment;
 use shared::{device_exists, table_load, table_reload};
 use types::{DataBlocks, MetaBlocks, Sectors, TargetLine};
+
+/// Values are explicitly stated in the device-mapper kernel documentation.
+#[allow(dead_code)]
+const MIN_DATA_BLOCK_SIZE: Sectors = Sectors(128); // 64 KiB
+#[allow(dead_code)]
+const MAX_DATA_BLOCK_SIZE: Sectors = Sectors(2 * IEC::Mi); // 1 GiB
+#[allow(dead_code)]
+const MIN_RECOMMENDED_METADATA_SIZE: Sectors = Sectors(4 * IEC::Ki); // 2 MiB
+#[allow(dead_code)]
+const MAX_RECOMMENDED_METADATA_SIZE: Sectors = Sectors(32 * IEC::Mi); // 16 GiB
 
 /// DM construct to contain thin provisioned devices
 pub struct ThinPoolDev {
@@ -149,9 +159,12 @@ impl ThinPoolDev {
                          data)
     }
 
-    /// Generate a Vec<> to be passed to DM. The format of the Vec
-    /// entries is: <start sec> <length> "thin-pool" <meta maj:min>
-    /// <data maj:min> <block size> <low water mark>
+    /// Generate a table to be passed to DM. The format of the table
+    /// entries is:
+    /// <start sec> <length> "thin-pool" <thin-pool-specific string>
+    /// where the thin-pool-specific string has the format:
+    /// <meta maj:min> <data maj:min> <block size> <low water mark>
+    /// There is exactly one entry in the table.
     fn dm_table(length: Sectors,
                 data_block_size: Sectors,
                 low_water_mark: DataBlocks,

@@ -139,9 +139,12 @@ impl ThinDev {
            })
     }
 
-    /// Generate a Vec<> to be passed to DM. The format of the Vec
-    /// entries are: "<start> <length> thin <thinpool maj:min>
-    /// <thin_id>"
+    /// Generate a table to be passed to DM. The format of the table
+    /// entries is:
+    /// <start> <length> "thin" <thin device specific string>
+    /// where the thin device specific string has the format:
+    /// <thinpool maj:min> <thin_id>
+    /// There is exactly one entry in the table.
     fn dm_table(thin_pool_dstr: &str, thin_id: ThinDevId, length: Sectors) -> Vec<TargetLine> {
         let params = format!("{} {}", thin_pool_dstr, thin_id);
         vec![(Sectors::default(), length, "thin".to_owned(), params)]
@@ -208,13 +211,10 @@ impl ThinDev {
     /// Extend the thin device's (virtual) size by the number of
     /// sectors given.
     pub fn extend(&mut self, dm: &DM, sectors: Sectors) -> DmResult<()> {
-
         self.size += sectors;
 
-        let id = &DevId::Name(self.dev_info.name());
-
         table_reload(dm,
-                     id,
+                     &DevId::Name(self.dev_info.name()),
                      &ThinDev::dm_table(&self.thinpool_dstr, self.thin_id, self.size))?;
 
         Ok(())
