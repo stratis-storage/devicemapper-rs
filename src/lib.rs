@@ -59,6 +59,8 @@ extern crate bitflags;
 #[macro_use]
 extern crate log;
 
+extern crate uuid;
+
 #[cfg(test)]
 extern crate loopdev;
 #[cfg(test)]
