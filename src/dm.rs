@@ -787,6 +787,64 @@ mod tests {
     }
 
     #[test]
+    /// Verify that creation with a UUID results in correct name and UUID.
+    fn sudo_test_create_uuid() {
+        let dm = DM::new().unwrap();
+        let name = "example-dev";
+        let uuid = "stratis-363333333333333";
+        let result = dm.device_create(name, Some(&uuid), DmFlags::empty())
+            .unwrap();
+        assert_eq!(result.name(), name);
+        assert_eq!(result.uuid(), uuid);
+        dm.device_remove(&DevId::Name(name), DmFlags::empty())
+            .unwrap();
+    }
+
+    #[test]
+    /// Verify that renaming to a new uuid fails.
+    fn sudo_test_rename_uuid() {
+        let dm = DM::new().unwrap();
+        let name = "example-dev";
+        let uuid = "stratis-363333333333333";
+        dm.device_create(name, Some(&uuid), DmFlags::empty())
+            .unwrap();
+        assert!(dm.device_rename(name, DevId::Uuid("stratis-9999999999"))
+                    .is_err());
+        dm.device_remove(&DevId::Name(name), DmFlags::empty())
+            .unwrap();
+    }
+
+    #[test]
+    /// Verify that renaming to same uuid fails.
+    fn sudo_test_rename_uuid_id() {
+        let dm = DM::new().unwrap();
+        let name = "example-dev";
+        let uuid = "stratis-363333333333333";
+        dm.device_create(name, Some(&uuid), DmFlags::empty())
+            .unwrap();
+        assert!(dm.device_rename(name, DevId::Uuid(&uuid)).is_err());
+        dm.device_remove(&DevId::Name(name), DmFlags::empty())
+            .unwrap();
+    }
+
+    #[test]
+    /// Verify that setting a new uuid succeeds.
+    /// Note that the uuid is not set in the returned dev_info.
+    fn sudo_test_set_uuid() {
+        let dm = DM::new().unwrap();
+        let name = "example-dev";
+        dm.device_create(name, None, DmFlags::empty()).unwrap();
+
+        let uuid = "stratis-363333333333333";
+        let result = dm.device_rename(name, DevId::Uuid(&uuid)).unwrap();
+        assert_eq!(result.uuid(), "");
+        assert_eq!(dm.device_status(&DevId::Name(name)).unwrap().uuid(), uuid);
+        assert!(dm.device_status(&DevId::Uuid(uuid)).is_ok());
+        dm.device_remove(&DevId::Name(name), DmFlags::empty())
+            .unwrap();
+    }
+
+    #[test]
     /// Test that device rename to same name fails.
     /// This is unfortunate, but appears to be true.
     fn sudo_test_rename_id() {
