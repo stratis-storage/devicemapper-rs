@@ -393,7 +393,7 @@ impl DM {
 
         let data_out = self.do_ioctl(dmi::DM_DEV_WAIT_CMD as u8, &mut hdr, None)?;
 
-        let status = Self::parse_table_status(hdr.target_count, &data_out);
+        let status = DM::parse_table_status(hdr.target_count, &data_out);
 
         Ok((DeviceInfo::new(hdr), status))
 
@@ -630,7 +630,7 @@ impl DM {
 
         let data_out = self.do_ioctl(dmi::DM_TABLE_STATUS_CMD as u8, &mut hdr, None)?;
 
-        let status = Self::parse_table_status(hdr.target_count, &data_out);
+        let status = DM::parse_table_status(hdr.target_count, &data_out);
 
         Ok((DeviceInfo::new(hdr), status))
     }
