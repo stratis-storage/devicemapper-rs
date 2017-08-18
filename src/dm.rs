@@ -257,13 +257,13 @@ impl DM {
     /// used.
     ///
     /// Valid flags: DM_DEFERRED_REMOVE
-    pub fn device_remove(&self, name: &DevId, flags: DmFlags) -> DmResult<DeviceInfo> {
+    pub fn device_remove(&self, id: &DevId, flags: DmFlags) -> DmResult<DeviceInfo> {
         let mut hdr: dmi::Struct_dm_ioctl = Default::default();
 
         let clean_flags = DM_DEFERRED_REMOVE & flags;
 
         Self::initialize_hdr(&mut hdr, clean_flags);
-        match *name {
+        match *id {
             DevId::Name(name) => Self::hdr_set_name(&mut hdr, name),
             DevId::Uuid(uuid) => Self::hdr_set_uuid(&mut hdr, uuid),
         };
@@ -334,13 +334,13 @@ impl DM {
     ///
     /// dm.device_suspend(&DevId::Name("example-dev"), DM_SUSPEND).unwrap();
     /// ```
-    pub fn device_suspend(&self, name: &DevId, flags: DmFlags) -> DmResult<DeviceInfo> {
+    pub fn device_suspend(&self, id: &DevId, flags: DmFlags) -> DmResult<DeviceInfo> {
         let mut hdr: dmi::Struct_dm_ioctl = Default::default();
 
         let clean_flags = (DM_SUSPEND | DM_NOFLUSH | DM_SKIP_LOCKFS) & flags;
 
         Self::initialize_hdr(&mut hdr, clean_flags);
-        match *name {
+        match *id {
             DevId::Name(name) => Self::hdr_set_name(&mut hdr, name),
             DevId::Uuid(uuid) => Self::hdr_set_uuid(&mut hdr, uuid),
         };
@@ -353,12 +353,12 @@ impl DM {
     /// Get DeviceInfo for a device. This is also returned by other
     /// methods, but if just the DeviceInfo is desired then this just
     /// gets it.
-    pub fn device_status(&self, name: &DevId) -> DmResult<DeviceInfo> {
+    pub fn device_status(&self, id: &DevId) -> DmResult<DeviceInfo> {
         let mut hdr: dmi::Struct_dm_ioctl = Default::default();
 
         // No flags checked so don't pass any
         Self::initialize_hdr(&mut hdr, DmFlags::empty());
-        match *name {
+        match *id {
             DevId::Name(name) => Self::hdr_set_name(&mut hdr, name),
             DevId::Uuid(uuid) => Self::hdr_set_uuid(&mut hdr, uuid),
         };
@@ -376,7 +376,7 @@ impl DM {
     /// This interface is not very friendly to monitoring multiple devices.
     /// Events are also exported via uevents, that method may be preferable.
     pub fn device_wait(&self,
-                       name: &DevId,
+                       id: &DevId,
                        flags: DmFlags)
                        -> DmResult<(DeviceInfo, Vec<TargetLine>)> {
         let mut hdr: dmi::Struct_dm_ioctl = Default::default();
@@ -384,7 +384,7 @@ impl DM {
         let clean_flags = DM_QUERY_INACTIVE_TABLE & flags;
 
         Self::initialize_hdr(&mut hdr, clean_flags);
-        match *name {
+        match *id {
             DevId::Name(name) => Self::hdr_set_name(&mut hdr, name),
             DevId::Uuid(uuid) => Self::hdr_set_uuid(&mut hdr, uuid),
         };
@@ -423,7 +423,7 @@ impl DM {
     /// dm.table_load(&DevId::Name("example-dev"), &table).unwrap();
     /// ```
     pub fn table_load<T1, T2>(&self,
-                              name: &DevId,
+                              id: &DevId,
                               targets: &[TargetLineArg<T1, T2>])
                               -> DmResult<DeviceInfo>
         where T1: AsRef<str>,
@@ -461,7 +461,7 @@ impl DM {
 
         // No flags checked so don't pass any
         Self::initialize_hdr(&mut hdr, DmFlags::empty());
-        match *name {
+        match *id {
             DevId::Name(name) => Self::hdr_set_name(&mut hdr, name),
             DevId::Uuid(uuid) => Self::hdr_set_uuid(&mut hdr, uuid),
         };
@@ -488,12 +488,12 @@ impl DM {
     }
 
     /// Clear the "inactive" table for a device.
-    pub fn table_clear(&self, name: &DevId) -> DmResult<DeviceInfo> {
+    pub fn table_clear(&self, id: &DevId) -> DmResult<DeviceInfo> {
         let mut hdr: dmi::Struct_dm_ioctl = Default::default();
 
         // No flags checked so don't pass any
         Self::initialize_hdr(&mut hdr, DmFlags::empty());
-        match *name {
+        match *id {
             DevId::Name(name) => Self::hdr_set_name(&mut hdr, name),
             DevId::Uuid(uuid) => Self::hdr_set_uuid(&mut hdr, uuid),
         };
@@ -613,7 +613,7 @@ impl DM {
     /// println!("{} {:?}", res.0.name(), res.1);
     /// ```
     pub fn table_status(&self,
-                        name: &DevId,
+                        id: &DevId,
                         flags: DmFlags)
                         -> DmResult<(DeviceInfo, Vec<TargetLine>)> {
         let mut hdr: dmi::Struct_dm_ioctl = Default::default();
@@ -621,7 +621,7 @@ impl DM {
         let clean_flags = (DM_NOFLUSH | DM_STATUS_TABLE | DM_QUERY_INACTIVE_TABLE) & flags;
 
         Self::initialize_hdr(&mut hdr, clean_flags);
-        match *name {
+        match *id {
             DevId::Name(name) => Self::hdr_set_name(&mut hdr, name),
             DevId::Uuid(uuid) => Self::hdr_set_uuid(&mut hdr, uuid),
         };
@@ -675,7 +675,7 @@ impl DM {
     /// not needed use 0.  DM-wide messages start with '@', and may
     /// return a string; targets do not.
     pub fn target_msg(&self,
-                      name: &DevId,
+                      id: &DevId,
                       sector: Sectors,
                       msg: &str)
                       -> DmResult<(DeviceInfo, Option<String>)> {
@@ -683,7 +683,7 @@ impl DM {
 
         // No flags checked so don't pass any
         Self::initialize_hdr(&mut hdr, DmFlags::empty());
-        match *name {
+        match *id {
             DevId::Name(name) => Self::hdr_set_name(&mut hdr, name),
             DevId::Uuid(uuid) => Self::hdr_set_uuid(&mut hdr, uuid),
         };
