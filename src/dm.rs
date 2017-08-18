@@ -726,6 +726,8 @@ impl DM {
 
 #[cfg(test)]
 mod tests {
+    use uuid::Uuid;
+
     use {DevId, DM};
     use consts::{DmFlags, DM_STATUS_TABLE};
 
@@ -776,6 +778,20 @@ mod tests {
         let name = "example-dev";
         let result = dm.device_create(name, None, DmFlags::empty()).unwrap();
         assert!(result.name() == name);
+        dm.device_remove(&DevId::Name(name), DmFlags::empty())
+            .unwrap();
+    }
+
+    #[test]
+    /// Verify that creation with a UUID results in correct name and UUID.
+    fn sudo_test_create_uuid() {
+        let dm = DM::new().unwrap();
+        let name = "example-dev";
+        let uuid = Uuid::nil();
+        let result = dm.device_create(name, Some(&uuid), DmFlags::empty())
+            .unwrap();
+        assert_eq!(result.name(), name);
+        assert_eq!(Uuid::parse_str(result.uuid()).unwrap(), uuid);
         dm.device_remove(&DevId::Name(name), DmFlags::empty())
             .unwrap();
     }
