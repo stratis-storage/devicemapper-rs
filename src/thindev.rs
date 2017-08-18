@@ -68,7 +68,7 @@ impl<'de> serde::Deserialize<'de> for ThinDevId {
 
 /// DM construct for a thin block device
 pub struct ThinDev {
-    dev_info: DeviceInfo,
+    dev_info: Box<DeviceInfo>,
     thin_id: ThinDevId,
     size: Sectors,
     thinpool_dstr: String,
@@ -123,11 +123,11 @@ impl ThinDev {
 
         let dev_info = if device_exists(dm, name)? {
             // TODO: Verify that kernel's model matches arguments.
-            dm.device_status(&id)?
+            Box::new(dm.device_status(&id)?)
         } else {
             dm.device_create(name, None, DmFlags::empty())?;
             let table = ThinDev::dm_table(&thin_pool_dstr, thin_id, length);
-            table_load(dm, &id, &table)?
+            Box::new(table_load(dm, &id, &table)?)
         };
 
         DM::wait_for_dm();

@@ -27,7 +27,7 @@ const MAX_RECOMMENDED_METADATA_SIZE: Sectors = Sectors(32 * IEC::Mi); // 16 GiB
 
 /// DM construct to contain thin provisioned devices
 pub struct ThinPoolDev {
-    dev_info: DeviceInfo,
+    dev_info: Box<DeviceInfo>,
     meta_dev: LinearDev,
     data_dev: LinearDev,
     data_block_size: Sectors,
@@ -96,12 +96,12 @@ impl ThinPoolDev {
         let id = DevId::Name(name);
         let dev_info = if device_exists(dm, name)? {
             // TODO: Verify that kernel table matches our table.
-            dm.device_status(&id)?
+            Box::new(dm.device_status(&id)?)
         } else {
             dm.device_create(name, None, DmFlags::empty())?;
             let table =
                 ThinPoolDev::dm_table(data.size()?, data_block_size, low_water_mark, &meta, &data);
-            table_load(dm, &id, &table)?
+            Box::new(table_load(dm, &id, &table)?)
         };
 
         DM::wait_for_dm();
