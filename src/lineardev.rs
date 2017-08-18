@@ -138,8 +138,8 @@ impl LinearDev {
 
     /// Set the name for this LinearDev.
     pub fn set_name(&mut self, dm: &DM, name: &DmName) -> DmResult<()> {
-        self.dev_info = Box::new(dm.device_rename(self.dev_info.name(), name)?);
-
+        dm.device_rename(self.dev_info.name(), name)?;
+        self.dev_info = Box::new(dm.device_status(&DevId::Name(name))?);
         Ok(())
     }
 
@@ -187,6 +187,23 @@ mod tests {
     /// Verify that a new linear dev with 0 segments fails.
     fn test_empty(_paths: &[&Path]) -> () {
         assert!(LinearDev::new("new", &DM::new().unwrap(), vec![]).is_err());
+    }
+
+    /// Verify that after a rename, the device has the new name.
+    fn test_rename(paths: &[&Path]) -> () {
+        assert!(paths.len() >= 1);
+
+        let dm = DM::new().unwrap();
+        let name = "name";
+        let dev = Device::from_str(&paths[0].to_string_lossy()).unwrap();
+        let mut ld = LinearDev::new(name, &dm, vec![Segment::new(dev, Sectors(0), Sectors(1))])
+            .unwrap();
+
+        let new_name = "new_name";
+        ld.set_name(&dm, new_name).unwrap();
+        assert_eq!(ld.name(), new_name);
+
+        ld.teardown(&dm).unwrap();
     }
 
     /// Verify that passing the same segments two times gets two segments.
@@ -283,6 +300,11 @@ mod tests {
     #[test]
     fn loop_test_empty() {
         test_with_spec(0, test_empty);
+    }
+
+    #[test]
+    fn loop_test_rename() {
+        test_with_spec(1, test_rename);
     }
 
     #[test]
