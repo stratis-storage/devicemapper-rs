@@ -8,6 +8,7 @@ use dm_ioctl as dmi;
 
 use consts::{DM_NAME_LEN, DmFlags, DM_UUID_LEN};
 use device::Device;
+use dm::{DmName, DmUuid};
 use util::slice_to_null;
 
 /// Contains information about the device.
@@ -44,7 +45,7 @@ impl DeviceInfo {
     }
 
     /// The device's name.
-    pub fn name(&self) -> &str {
+    pub fn name(&self) -> &DmName {
         let name: &[u8; DM_NAME_LEN] = unsafe { transmute(&self.hdr.name) };
         // no chance not null-terminated
         let slc = slice_to_null(name).unwrap();
@@ -53,7 +54,7 @@ impl DeviceInfo {
     }
 
     /// The device's UUID.
-    pub fn uuid(&self) -> &str {
+    pub fn uuid(&self) -> &DmUuid {
         let uuid: &[u8; DM_UUID_LEN] = unsafe { transmute(&self.hdr.uuid) };
         // no chance not null-terminated
         let slc = slice_to_null(uuid).unwrap();

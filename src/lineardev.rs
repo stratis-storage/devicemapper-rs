@@ -8,7 +8,7 @@ use std::path::PathBuf;
 
 use consts::DmFlags;
 use deviceinfo::DeviceInfo;
-use dm::{DM, DevId};
+use dm::{DM, DevId, DmName};
 use result::{DmResult, DmError, ErrorEnum};
 use segment::Segment;
 use shared::{device_exists, table_load, table_reload};
@@ -39,7 +39,7 @@ impl LinearDev {
     /// undefined.
     /// TODO: If the linear device already exists, verify that the kernel's
     /// model matches the segments argument.
-    pub fn new(name: &str, dm: &DM, segments: Vec<Segment>) -> DmResult<LinearDev> {
+    pub fn new(name: &DmName, dm: &DM, segments: Vec<Segment>) -> DmResult<LinearDev> {
         if segments.is_empty() {
             return Err(DmError::Dm(ErrorEnum::Invalid,
                                    "linear device must have at least one segment".into()));
@@ -132,12 +132,12 @@ impl LinearDev {
     }
 
     /// DM name - from the DeviceInfo struct
-    pub fn name(&self) -> &str {
+    pub fn name(&self) -> &DmName {
         self.dev_info.name()
     }
 
     /// Set the name for this LinearDev.
-    pub fn set_name(&mut self, dm: &DM, name: &str) -> DmResult<()> {
+    pub fn set_name(&mut self, dm: &DM, name: &DmName) -> DmResult<()> {
         self.dev_info = Box::new(dm.device_rename(self.dev_info.name(), name, DmFlags::empty())?);
 
         Ok(())

@@ -8,7 +8,7 @@ use std::process::Command;
 
 use consts::{DmFlags, IEC};
 use deviceinfo::DeviceInfo;
-use dm::{DM, DevId};
+use dm::{DM, DevId, DmName};
 use lineardev::LinearDev;
 use result::{DmResult, DmError, ErrorEnum};
 use segment::Segment;
@@ -86,7 +86,7 @@ impl ThinPoolDev {
     /// Construct a new ThinPoolDev with the given data and meta devs.
     /// TODO: If the device already exists, verify that kernel's model
     /// matches arguments.
-    pub fn new(name: &str,
+    pub fn new(name: &DmName,
                dm: &DM,
                data_block_size: Sectors,
                low_water_mark: DataBlocks,
@@ -132,7 +132,7 @@ impl ThinPoolDev {
     /// Set up an existing ThinPoolDev.
     /// By "existing" is here meant that metadata for the thinpool already
     /// exists on the thinpool's metadata device.
-    pub fn setup(name: &str,
+    pub fn setup(name: &DmName,
                  dm: &DM,
                  data_block_size: Sectors,
                  low_water_mark: DataBlocks,
@@ -178,7 +178,7 @@ impl ThinPoolDev {
     }
 
     /// name of the thin pool device
-    pub fn name(&self) -> &str {
+    pub fn name(&self) -> &DmName {
         self.dev_info.name()
     }
 

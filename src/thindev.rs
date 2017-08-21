@@ -9,8 +9,8 @@ use serde;
 
 use consts::DmFlags;
 use deviceinfo::DeviceInfo;
-use dm::{DM, DevId};
-use result::{DmResult, DmError, ErrorEnum};
+use dm::{DM, DevId, DmName};
+use result::{DmError, DmResult, ErrorEnum};
 use shared::{device_exists, table_load, table_reload};
 use thinpooldev::ThinPoolDev;
 use types::TargetLine;
@@ -94,7 +94,7 @@ pub enum ThinStatus {
 impl ThinDev {
     /// Use the given ThinPoolDev as backing space for a newly constructed
     /// thin provisioned ThinDev returned by new().
-    pub fn new(name: &str,
+    pub fn new(name: &DmName,
                dm: &DM,
                thin_pool: &ThinPoolDev,
                thin_id: ThinDevId,
@@ -111,7 +111,7 @@ impl ThinDev {
     /// on the metadata device for its thin pool.
     /// TODO: If the device is already known to the kernel, verify that kernel
     /// model matches arguments.
-    pub fn setup(name: &str,
+    pub fn setup(name: &DmName,
                  dm: &DM,
                  thin_pool: &ThinPoolDev,
                  thin_id: ThinDevId,
@@ -151,7 +151,7 @@ impl ThinDev {
     }
 
     /// name of the thin device
-    pub fn name(&self) -> &str {
+    pub fn name(&self) -> &DmName {
         self.dev_info.name()
     }
 

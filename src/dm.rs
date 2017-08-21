@@ -27,13 +27,25 @@ use result::{DmError, DmResult, ErrorEnum};
 use types::{Sectors, TargetLine, TargetLineArg};
 use util::slice_to_null;
 
+/// A devicemapper name. Really just a string, but also the argument type of
+/// DevId::Name. Used in function arguments to indicate that the function takes
+/// only a name, not a devicemapper uuid.
+pub type DmNameBuf = String;
+pub type DmName = str;
+
+/// A devicemapper uuid. A devicemapper uuid does not have the format of any
+/// standard UUID.
+#[allow(dead_code)]
+pub type DmUuidBuf = String;
+pub type DmUuid = str;
+
 /// Used as a parameter for functions that take either a Device name
 /// or a Device UUID.
 pub enum DevId<'a> {
     /// The parameter is the device's name
-    Name(&'a str),
+    Name(&'a DmName),
     /// The parameter is the device's UUID
-    Uuid(&'a str),
+    Uuid(&'a DmUuid),
 }
 
 /// Context needed for communicating with devicemapper.
@@ -63,13 +75,13 @@ impl DM {
         hdr.data_start = size_of::<dmi::Struct_dm_ioctl>() as u32;
     }
 
-    fn hdr_set_name(hdr: &mut dmi::Struct_dm_ioctl, name: &str) -> () {
+    fn hdr_set_name(hdr: &mut dmi::Struct_dm_ioctl, name: &DmName) -> () {
         let name_dest: &mut [u8; DM_NAME_LEN] = unsafe { transmute(&mut hdr.name) };
         let len = name.as_bytes().len();
         name_dest[..len].clone_from_slice(name.as_bytes());
     }
 
-    fn hdr_set_uuid(hdr: &mut dmi::Struct_dm_ioctl, uuid: &str) -> () {
+    fn hdr_set_uuid(hdr: &mut dmi::Struct_dm_ioctl, uuid: &DmUuid) -> () {
         let uuid_dest: &mut [u8; DM_UUID_LEN] = unsafe { transmute(&mut hdr.uuid) };
         let len = uuid.as_bytes().len();
         uuid_dest[..len].clone_from_slice(uuid.as_bytes());
@@ -179,7 +191,7 @@ impl DM {
 
     /// Returns a list of tuples containing DM device names and a
     /// Device, which holds their major and minor device numbers.
-    pub fn list_devices(&self) -> DmResult<Vec<(String, Device)>> {
+    pub fn list_devices(&self) -> DmResult<Vec<(DmNameBuf, Device)>> {
         let mut hdr: dmi::Struct_dm_ioctl = Default::default();
 
         // No flags checked so don't pass any
@@ -229,8 +241,8 @@ impl DM {
     /// let dev = dm.device_create("example-dev", None, DmFlags::empty()).unwrap();
     /// ```
     pub fn device_create(&self,
-                         name: &str,
-                         uuid: Option<&str>,
+                         name: &DmName,
+                         uuid: Option<&DmUuid>,
                          flags: DmFlags)
                          -> DmResult<DeviceInfo> {
         let mut hdr: dmi::Struct_dm_ioctl = Default::default();
