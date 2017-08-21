@@ -284,44 +284,36 @@ impl DM {
         Ok(DeviceInfo::new(hdr))
     }
 
-    /// Set the devicemapper uuid of a device which does not yet have one.
-    /// Fails if a uuid is already assigned.
-    /// DeviceInfo contains the old uuid value: "".
-    pub fn device_set_uuid(&self, name: &DmName, uuid: &DmUuid) -> DmResult<DeviceInfo> {
-        if uuid.as_bytes().len() > DM_UUID_LEN - 1 {
-            return Err(DmError::Dm(ErrorEnum::Invalid,
-                                   format!("uuid value {} too long", uuid).into()));
-        }
-        let mut hdr: dmi::Struct_dm_ioctl = Default::default();
-        Self::initialize_hdr(&mut hdr, DM_UUID);
-        Self::hdr_set_name(&mut hdr, name);
-
-        let mut data_in = uuid.as_bytes().to_vec();
-        data_in.push(b'\0');
-
-        self.do_ioctl(dmi::DM_DEV_RENAME_CMD as u8, &mut hdr, Some(&data_in))?;
-
-        Ok(DeviceInfo::new(hdr))
-
-    }
-
-    /// Change a DM device's name.
+    /// Change a DM device's name OR set the device's uuid for the first time.
     ///
-    /// Prerequisite: old_name != new_name
-    /// Note: Possibly surprisingly, returned DeviceInfo's name field
-    /// contains the previous name, not the new name.
-    pub fn device_rename(&self, old_name: &DmName, new_name: &DmName) -> DmResult<DeviceInfo> {
-        if new_name.as_bytes().len() > DM_NAME_LEN - 1 {
-            return Err(DmError::Dm(ErrorEnum::Invalid,
-                                   format!("New name {} too long", new_name).into()));
-        }
-
+    /// Prerequisite: if new == DevId::Name(new_name), old_name != new_name
+    /// Prerequisite: if new == DevId::Uuid(uuid), device's current uuid
+    /// must be "".
+    /// Note: Possibly surprisingly, returned DeviceInfo's uuid or name field
+    /// contains the previous value, not the newly set value.
+    pub fn device_rename(&self, old_name: &DmName, new: &DevId) -> DmResult<DeviceInfo> {
         let mut hdr: dmi::Struct_dm_ioctl = Default::default();
-        Self::initialize_hdr(&mut hdr, DmFlags::empty());
-        Self::hdr_set_name(&mut hdr, old_name);
-
-        let mut data_in = new_name.as_bytes().to_vec();
+        let mut data_in = match *new {
+            DevId::Name(name) => {
+                if name.as_bytes().len() > DM_NAME_LEN - 1 {
+                    return Err(DmError::Dm(ErrorEnum::Invalid,
+                                           format!("New name {} too long", name).into()));
+                }
+                Self::initialize_hdr(&mut hdr, DmFlags::empty());
+                name.as_bytes().to_vec()
+            }
+            DevId::Uuid(uuid) => {
+                if uuid.as_bytes().len() > DM_UUID_LEN - 1 {
+                    return Err(DmError::Dm(ErrorEnum::Invalid,
+                                           format!("Uuid {} too long", uuid).into()));
+                }
+                Self::initialize_hdr(&mut hdr, DM_UUID);
+                uuid.as_bytes().to_vec()
+            }
+        };
         data_in.push(b'\0');
+
+        Self::hdr_set_name(&mut hdr, old_name);
 
         self.do_ioctl(dmi::DM_DEV_RENAME_CMD as u8, &mut hdr, Some(&data_in))?;
 
@@ -820,7 +812,8 @@ mod tests {
         let uuid = "stratis-363333333333333";
         dm.device_create(name, Some(uuid), DmFlags::empty())
             .unwrap();
-        assert!(dm.device_set_uuid(name, "stratis-9999999999").is_err());
+        assert!(dm.device_rename(name, &DevId::Uuid("stratis-9999999999"))
+                    .is_err());
         dm.device_remove(&DevId::Name(name), DmFlags::empty())
             .unwrap();
     }
@@ -833,7 +826,7 @@ mod tests {
         let uuid = "stratis-363333333333333";
         dm.device_create(name, Some(uuid), DmFlags::empty())
             .unwrap();
-        assert!(dm.device_set_uuid(name, &uuid).is_err());
+        assert!(dm.device_rename(name, &DevId::Uuid(uuid)).is_err());
         dm.device_remove(&DevId::Name(name), DmFlags::empty())
             .unwrap();
     }
@@ -847,7 +840,7 @@ mod tests {
         dm.device_create(name, None, DmFlags::empty()).unwrap();
 
         let uuid = "stratis-363333333333333";
-        let result = dm.device_set_uuid(name, &uuid).unwrap();
+        let result = dm.device_rename(name, &DevId::Uuid(uuid)).unwrap();
         assert_eq!(result.uuid(), "");
         assert_eq!(dm.device_status(&DevId::Name(name)).unwrap().uuid(), uuid);
         assert!(dm.device_status(&DevId::Uuid(uuid)).is_ok());
@@ -863,7 +856,7 @@ mod tests {
         let name = "example-dev";
         dm.device_create(name, None, DmFlags::empty()).unwrap();
         DM::wait_for_dm();
-        assert!(dm.device_rename(name, name).is_err());
+        assert!(dm.device_rename(name, &DevId::Name(name)).is_err());
         dm.device_remove(&DevId::Name(name), DmFlags::empty())
             .unwrap();
     }
@@ -879,7 +872,7 @@ mod tests {
 
         let new_name = "example-dev-2";
         loop {
-            if dm.device_rename(name, new_name).is_ok() {
+            if dm.device_rename(name, &DevId::Name(new_name)).is_ok() {
                 break;
             }
         }
@@ -900,7 +893,7 @@ mod tests {
     fn sudo_test_rename_non_existant() {
         assert!(DM::new()
                     .unwrap()
-                    .device_rename("old_name", "new_name")
+                    .device_rename("old_name", &DevId::Name("new_name"))
                     .is_err());
     }
 
