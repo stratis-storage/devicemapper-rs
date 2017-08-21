@@ -286,6 +286,7 @@ impl DM {
 
     /// Set the devicemapper uuid of a device which does not yet have one.
     /// Fails if a uuid is already assigned.
+    /// DeviceInfo contains the old uuid value: "".
     pub fn device_set_uuid(&self, name: &DmName, uuid: &DmUuid) -> DmResult<DeviceInfo> {
         if uuid.as_bytes().len() > DM_UUID_LEN - 1 {
             return Err(DmError::Dm(ErrorEnum::Invalid,
@@ -306,10 +307,10 @@ impl DM {
 
     /// Change a DM device's name.
     ///
-    /// Prerequisite: if id == DevId::Name(old_name), old_name != new_name
+    /// Prerequisite: old_name != new_name
     /// Note: Possibly surprisingly, returned DeviceInfo's name field
     /// contains the previous name, not the new name.
-    pub fn device_rename(&self, id: &DevId, new_name: &DmName) -> DmResult<DeviceInfo> {
+    pub fn device_rename(&self, old_name: &DmName, new_name: &DmName) -> DmResult<DeviceInfo> {
         if new_name.as_bytes().len() > DM_NAME_LEN - 1 {
             return Err(DmError::Dm(ErrorEnum::Invalid,
                                    format!("New name {} too long", new_name).into()));
@@ -317,11 +318,7 @@ impl DM {
 
         let mut hdr: dmi::Struct_dm_ioctl = Default::default();
         Self::initialize_hdr(&mut hdr, DmFlags::empty());
-        match *id {
-            DevId::Name(name) => Self::hdr_set_name(&mut hdr, name),
-            DevId::Uuid(uuid) => Self::hdr_set_uuid(&mut hdr, uuid),
-        };
-
+        Self::hdr_set_name(&mut hdr, old_name);
 
         let mut data_in = new_name.as_bytes().to_vec();
         data_in.push(b'\0');
@@ -842,33 +839,6 @@ mod tests {
     }
 
     #[test]
-    /// Verify that resetting name, specifying device w/ uuid, succeeds.
-    fn sudo_test_rename_w_uuid() {
-        let dm = DM::new().unwrap();
-        let name = "example-dev";
-        let uuid = "stratis-363333333333333";
-        dm.device_create(name, Some(uuid), DmFlags::empty())
-            .unwrap();
-
-        let new_name = "new_name";
-        loop {
-            if dm.device_rename(&DevId::Uuid(uuid), new_name).is_ok() {
-                break;
-            }
-        }
-
-        assert!(dm.device_status(&DevId::Name(name)).is_err());
-        assert!(dm.device_status(&DevId::Name(new_name)).is_ok());
-
-        let devices = dm.list_devices().unwrap();
-        assert_eq!(devices.len(), 1);
-        assert_eq!(devices[0].0, new_name);
-
-        dm.device_remove(&DevId::Uuid(uuid), DmFlags::empty())
-            .unwrap();
-    }
-
-    #[test]
     /// Verify that setting a new uuid succeeds.
     /// Note that the uuid is not set in the returned dev_info.
     fn sudo_test_set_uuid() {
@@ -893,7 +863,7 @@ mod tests {
         let name = "example-dev";
         dm.device_create(name, None, DmFlags::empty()).unwrap();
         DM::wait_for_dm();
-        assert!(dm.device_rename(&DevId::Name(name), name).is_err());
+        assert!(dm.device_rename(name, name).is_err());
         dm.device_remove(&DevId::Name(name), DmFlags::empty())
             .unwrap();
     }
@@ -909,7 +879,7 @@ mod tests {
 
         let new_name = "example-dev-2";
         loop {
-            if dm.device_rename(&DevId::Name(name), new_name).is_ok() {
+            if dm.device_rename(name, new_name).is_ok() {
                 break;
             }
         }
@@ -930,7 +900,7 @@ mod tests {
     fn sudo_test_rename_non_existant() {
         assert!(DM::new()
                     .unwrap()
-                    .device_rename(&DevId::Name("old_name"), "new_name")
+                    .device_rename("old_name", "new_name")
                     .is_err());
     }
 

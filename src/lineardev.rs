@@ -138,7 +138,7 @@ impl LinearDev {
 
     /// Set the name for this LinearDev.
     pub fn set_name(&mut self, dm: &DM, name: &DmName) -> DmResult<()> {
-        self.dev_info = Box::new(dm.device_rename(&DevId::Name(self.dev_info.name()), name)?);
+        self.dev_info = Box::new(dm.device_rename(self.dev_info.name(), name)?);
 
         Ok(())
     }
