@@ -86,7 +86,7 @@ impl ThinPoolDev {
     /// Construct a new ThinPoolDev with the given data and meta devs.
     /// TODO: If the device already exists, verify that kernel's model
     /// matches arguments.
-    pub fn new(name: &DmName,
+    pub fn new(name: DmName,
                dm: &DM,
                data_block_size: Sectors,
                low_water_mark: DataBlocks,
@@ -96,12 +96,12 @@ impl ThinPoolDev {
         let id = DevId::Name(name);
         let dev_info = if device_exists(dm, name)? {
             // TODO: Verify that kernel table matches our table.
-            dm.device_status(&id)?
+            dm.device_status(id)?
         } else {
             dm.device_create(name, None, DmFlags::empty())?;
             let table =
                 ThinPoolDev::dm_table(data.size()?, data_block_size, low_water_mark, &meta, &data);
-            table_load(dm, &id, &table)?
+            table_load(dm, id, &table)?
         };
 
         DM::wait_for_dm();
@@ -132,7 +132,7 @@ impl ThinPoolDev {
     /// Set up an existing ThinPoolDev.
     /// By "existing" is here meant that metadata for the thinpool already
     /// exists on the thinpool's metadata device.
-    pub fn setup(name: &DmName,
+    pub fn setup(name: DmName,
                  dm: &DM,
                  data_block_size: Sectors,
                  low_water_mark: DataBlocks,
@@ -173,12 +173,12 @@ impl ThinPoolDev {
 
     /// send a message to DM thin pool
     pub fn message(&self, dm: &DM, message: &str) -> DmResult<()> {
-        dm.target_msg(&DevId::Name(self.name()), Sectors(0), message)?;
+        dm.target_msg(DevId::Name(self.name()), Sectors(0), message)?;
         Ok(())
     }
 
     /// name of the thin pool device
-    pub fn name(&self) -> &DmName {
+    pub fn name(&self) -> DmName {
         self.dev_info.name()
     }
 
@@ -207,8 +207,7 @@ impl ThinPoolDev {
     // Therefore, an error in parsing can only result from a change in the
     // kernel. We assume that Stratis will know in advance about such changes.
     pub fn status(&self, dm: &DM) -> DmResult<ThinPoolStatus> {
-        let (_, mut status) =
-            dm.table_status(&DevId::Name(self.dev_info.name()), DmFlags::empty())?;
+        let (_, mut status) = dm.table_status(DevId::Name(self.name()), DmFlags::empty())?;
 
         assert_eq!(status.len(),
                    1,
@@ -264,7 +263,7 @@ impl ThinPoolDev {
     pub fn extend_meta(&mut self, dm: &DM, new_segs: Vec<Segment>) -> DmResult<()> {
         self.meta_dev.extend(new_segs)?;
         table_reload(dm,
-                     &DevId::Name(self.name()),
+                     DevId::Name(self.name()),
                      &ThinPoolDev::dm_table(self.data_dev.size()?,
                                             self.data_block_size,
                                             self.low_water_mark,
@@ -277,7 +276,7 @@ impl ThinPoolDev {
     pub fn extend_data(&mut self, dm: &DM, new_segs: Vec<Segment>) -> DmResult<()> {
         self.data_dev.extend(new_segs)?;
         table_reload(dm,
-                     &DevId::Name(self.name()),
+                     DevId::Name(self.name()),
                      &ThinPoolDev::dm_table(self.data_dev.size()?,
                                             self.data_block_size,
                                             self.low_water_mark,
@@ -288,7 +287,7 @@ impl ThinPoolDev {
 
     /// Remove the device from DM
     pub fn teardown(self, dm: &DM) -> DmResult<()> {
-        dm.device_remove(&DevId::Name(self.name()), DmFlags::empty())?;
+        dm.device_remove(DevId::Name(self.name()), DmFlags::empty())?;
         self.data_dev.teardown(dm)?;
         self.meta_dev.teardown(dm)?;
         Ok(())
