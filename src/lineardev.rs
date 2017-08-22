@@ -170,11 +170,10 @@ impl LinearDev {
 mod tests {
     use std::fs::OpenOptions;
     use std::path::Path;
-    use std::str::FromStr;
 
     use super::super::consts::DM_STATUS_TABLE;
     use super::super::device::Device;
-    use super::super::loopbacked::test_with_spec;
+    use super::super::loopbacked::{devnode_to_devno, test_with_spec};
 
     use super::*;
 
@@ -192,7 +191,7 @@ mod tests {
 
         let dm = DM::new().unwrap();
         let name = "name";
-        let dev = Device::from_str(&paths[0].to_string_lossy()).unwrap();
+        let dev = Device::from(devnode_to_devno(&paths[0]).unwrap());
         let mut ld = LinearDev::new(DmName::new(name).expect("valid format"),
                                     &dm,
                                     vec![Segment::new(dev, Sectors(0), Sectors(1))])
@@ -211,7 +210,7 @@ mod tests {
 
         let dm = DM::new().unwrap();
         let name = "name";
-        let dev = Device::from_str(&paths[0].to_string_lossy()).unwrap();
+        let dev = Device::from(devnode_to_devno(&paths[0]).unwrap());
         let mut ld = LinearDev::new(DmName::new(name).expect("valid format"),
                                     &dm,
                                     vec![Segment::new(dev, Sectors(0), Sectors(1))])
@@ -233,7 +232,7 @@ mod tests {
 
         let dm = DM::new().unwrap();
         let name = "name";
-        let dev = Device::from_str(&paths[0].to_string_lossy()).unwrap();
+        let dev = Device::from(devnode_to_devno(&paths[0]).unwrap());
         let segments = vec![Segment::new(dev, Sectors(0), Sectors(1)),
                             Segment::new(dev, Sectors(0), Sectors(1))];
         let range: Sectors = segments.iter().map(|s| s.length).sum();
@@ -264,7 +263,7 @@ mod tests {
 
         let dm = DM::new().unwrap();
         let name = "name";
-        let dev = Device::from_str(&paths[0].to_string_lossy()).unwrap();
+        let dev = Device::from(devnode_to_devno(&paths[0]).unwrap());
         let segments = vec![Segment::new(dev, Sectors(0), Sectors(1))];
         let table = LinearDev::dm_table(&segments);
         let ld = LinearDev::new(DmName::new(name).expect("valid format"),
@@ -289,7 +288,7 @@ mod tests {
         assert!(paths.len() >= 1);
 
         let dm = DM::new().unwrap();
-        let dev = Device::from_str(&paths[0].to_string_lossy()).unwrap();
+        let dev = Device::from(devnode_to_devno(&paths[0]).unwrap());
         let ld = LinearDev::new(DmName::new("name").expect("valid format"),
                                 &dm,
                                 vec![Segment::new(dev, Sectors(0), Sectors(1))])
@@ -309,7 +308,7 @@ mod tests {
 
         let dm = DM::new().unwrap();
         let name = "name";
-        let dev = Device::from_str(&paths[0].to_string_lossy()).unwrap();
+        let dev = Device::from(devnode_to_devno(&paths[0]).unwrap());
         let segments = vec![Segment::new(dev, Sectors(0), Sectors(1))];
         let table = LinearDev::dm_table(&segments);
         let ld = LinearDev::new(DmName::new(name).expect("valid format"), &dm, segments).unwrap();

@@ -2,12 +2,8 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 use std::fs::File;
-use std::io;
-use std::io::{Error, BufReader, BufRead};
-use std::path::{Path, PathBuf};
-use std::str::FromStr;
-use std::io::ErrorKind::InvalidInput;
-use std::os::unix::fs::MetadataExt;
+use std::io::{BufReader, BufRead};
+use std::path::PathBuf;
 
 /// A struct containing the device's major and minor numbers
 ///
@@ -44,28 +40,6 @@ impl Device {
     /// "<major>:<minor>" format.
     pub fn dstr(&self) -> String {
         format!("{}:{}", self.major, self.minor)
-    }
-}
-
-impl FromStr for Device {
-    type Err = Error;
-    fn from_str(s: &str) -> io::Result<Device> {
-        match s.parse::<i64>() {
-            Ok(x) => Ok(Device::from(x as u64)),
-            Err(_) => {
-                match Path::new(s).metadata() {
-                    Ok(x) => {
-                        if x.mode() & 0x6000 == 0x6000 {
-                            // S_IFBLK
-                            Ok(Device::from(x.rdev()))
-                        } else {
-                            Err(Error::new(InvalidInput, format!("{} not block device", s)))
-                        }
-                    }
-                    Err(x) => Err(x),
-                }
-            }
-        }
     }
 }
 

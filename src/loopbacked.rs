@@ -5,13 +5,27 @@
 use std::fs::OpenOptions;
 use std::io;
 use std::io::{Seek, SeekFrom, Write};
+use std::os::linux::fs::MetadataExt;
 use std::path::{Path, PathBuf};
 
 use loopdev::{LoopControl, LoopDevice};
+use nix::sys::stat::{S_IFBLK, S_IFMT};
 use tempdir::TempDir;
 
 use super::consts::{IEC, SECTOR_SIZE};
 use super::types::{Bytes, Sectors};
+
+/// Get a device number from a device node.
+/// Return None if the device is not a block device; devicemapper is not
+/// interested in other sorts of devices.
+pub fn devnode_to_devno(path: &Path) -> Option<u64> {
+    let metadata = path.metadata().unwrap();
+    if metadata.st_mode() & S_IFMT.bits() == S_IFBLK.bits() {
+        Some(metadata.st_rdev())
+    } else {
+        None
+    }
+}
 
 /// Write buf at offset length times.
 fn write_sectors<P: AsRef<Path>>(path: P,
