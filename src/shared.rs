@@ -16,7 +16,7 @@ use super::types::TargetLineArg;
 /// A trait capturing some shared properties of DM devices.
 pub trait DmDevice {
     /// The device's device node.
-    fn devnode(&self) -> DmResult<PathBuf>;
+    fn devnode(&self) -> PathBuf;
 
     /// The device's number, formatted as a string <maj:min>.
     fn dstr(&self) -> String;

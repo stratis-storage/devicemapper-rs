@@ -41,7 +41,7 @@ impl fmt::Debug for ThinPoolDev {
 }
 
 impl DmDevice for ThinPoolDev {
-    fn devnode(&self) -> DmResult<PathBuf> {
+    fn devnode(&self) -> PathBuf {
         devnode!(self)
     }
 
@@ -162,7 +162,7 @@ impl ThinPoolDev {
                  -> DmResult<ThinPoolDev> {
         if !Command::new("thin_check")
                 .arg("-q")
-                .arg(&meta.devnode()?)
+                .arg(&meta.devnode())
                 .status()?
                 .success() {
             return Err(DmError::Dm(ErrorEnum::CheckFailed(meta, data),

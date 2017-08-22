@@ -19,13 +19,6 @@ macro_rules! dstr {
 
 macro_rules! devnode {
     ($s: ident) => {
-        $s.dev_info
-          .device()
-          .devnode()
-          .ok_or_else(|| {
-                          DmError::Dm(ErrorEnum::NotFound,
-                                      "No path associated with dev_info".into())
-                      })
-
+        ["/dev", &format!("dm-{}", $s.dev_info.device().minor)].iter().collect()
     }
 }

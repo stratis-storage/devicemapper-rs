@@ -29,7 +29,7 @@ impl fmt::Debug for LinearDev {
 }
 
 impl DmDevice for LinearDev {
-    fn devnode(&self) -> DmResult<PathBuf> {
+    fn devnode(&self) -> PathBuf {
         devnode!(self)
     }
 
@@ -161,7 +161,7 @@ impl LinearDev {
 
     /// return the total size of the linear device
     pub fn size(&self) -> DmResult<Sectors> {
-        let f = File::open(self.devnode()?)?;
+        let f = File::open(self.devnode())?;
         Ok(blkdev_size(&f)?.sectors())
     }
 }
@@ -246,7 +246,7 @@ mod tests {
                    count);
         assert_eq!(blkdev_size(&OpenOptions::new()
                                     .read(true)
-                                    .open(ld.devnode().unwrap())
+                                    .open(ld.devnode())
                                     .unwrap())
                            .unwrap()
                            .sectors(),

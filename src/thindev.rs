@@ -81,7 +81,7 @@ impl fmt::Debug for ThinDev {
 }
 
 impl DmDevice for ThinDev {
-    fn devnode(&self) -> DmResult<PathBuf> {
+    fn devnode(&self) -> PathBuf {
         devnode!(self)
     }
 
