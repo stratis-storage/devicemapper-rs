@@ -88,7 +88,6 @@ impl ThinPoolDev {
     /// matches arguments.
     pub fn new(name: &str,
                dm: &DM,
-               length: Sectors,
                data_block_size: Sectors,
                low_water_mark: DataBlocks,
                meta: LinearDev,
@@ -101,7 +100,7 @@ impl ThinPoolDev {
         } else {
             dm.device_create(name, None, DmFlags::empty())?;
             let table =
-                ThinPoolDev::dm_table(length, data_block_size, low_water_mark, &meta, &data);
+                ThinPoolDev::dm_table(data.size()?, data_block_size, low_water_mark, &meta, &data);
             table_load(dm, &id, &table)?
         };
 
@@ -135,7 +134,6 @@ impl ThinPoolDev {
     /// exists on the thinpool's metadata device.
     pub fn setup(name: &str,
                  dm: &DM,
-                 length: Sectors,
                  data_block_size: Sectors,
                  low_water_mark: DataBlocks,
                  meta: LinearDev,
@@ -150,13 +148,7 @@ impl ThinPoolDev {
                                    "thin_check failed, run thin_repair".into()));
         }
 
-        ThinPoolDev::new(name,
-                         dm,
-                         length,
-                         data_block_size,
-                         low_water_mark,
-                         meta,
-                         data)
+        ThinPoolDev::new(name, dm, data_block_size, low_water_mark, meta, data)
     }
 
     /// Generate a table to be passed to DM. The format of the table
@@ -268,8 +260,9 @@ impl ThinPoolDev {
         }
     }
 
-    /// Reload the device mapper table.
-    fn table_reload(&self, dm: &DM) -> DmResult<()> {
+    /// Extend an existing meta device with additional new segments.
+    pub fn extend_meta(&mut self, dm: &DM, new_segs: Vec<Segment>) -> DmResult<()> {
+        self.meta_dev.extend(new_segs)?;
         table_reload(dm,
                      &DevId::Name(self.name()),
                      &ThinPoolDev::dm_table(self.data_dev.size()?,
@@ -280,16 +273,17 @@ impl ThinPoolDev {
         Ok(())
     }
 
-    /// Extend an existing meta device with additional new segments.
-    pub fn extend_meta(&mut self, dm: &DM, new_segs: Vec<Segment>) -> DmResult<()> {
-        self.meta_dev.extend(new_segs)?;
-        self.table_reload(dm)
-    }
-
     /// Extend an existing data device with additional new segments.
     pub fn extend_data(&mut self, dm: &DM, new_segs: Vec<Segment>) -> DmResult<()> {
         self.data_dev.extend(new_segs)?;
-        self.table_reload(dm)
+        table_reload(dm,
+                     &DevId::Name(self.name()),
+                     &ThinPoolDev::dm_table(self.data_dev.size()?,
+                                            self.data_block_size,
+                                            self.low_water_mark,
+                                            &self.meta_dev,
+                                            &self.data_dev))?;
+        Ok(())
     }
 
     /// Remove the device from DM
