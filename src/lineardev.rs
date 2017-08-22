@@ -100,7 +100,7 @@ impl LinearDev {
             let line = (logical_start_offset,
                         length,
                         "linear".to_owned(),
-                        format!("{} {}", segment.device.dstr(), *physical_start_offset));
+                        format!("{} {}", segment.device, *physical_start_offset));
             debug!("dmtable line : {:?}", line);
             table.push(line);
             logical_start_offset += length;

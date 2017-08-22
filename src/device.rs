@@ -1,6 +1,8 @@
 // This Source Code Form is subject to the terms of the Mozilla Public
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
+
+use std::fmt;
 use std::fs::File;
 use std::io::{BufReader, BufRead};
 use std::path::PathBuf;
@@ -35,11 +37,12 @@ impl Device {
         }
         None
     }
+}
 
-    /// Get a string with the Device's major and minor numbers in
-    /// "<major>:<minor>" format.
-    pub fn dstr(&self) -> String {
-        format!("{}:{}", self.major, self.minor)
+/// Display format is the device number in "<major>:<minor>" format
+impl fmt::Display for Device {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{}:{}", self.major, self.minor)
     }
 }
 

@@ -13,7 +13,7 @@ macro_rules! name {
 
 macro_rules! dstr {
     ($s: ident) => {
-        $s.dev_info.device().dstr()
+        $s.dev_info.device().to_string()
     }
 }
 
