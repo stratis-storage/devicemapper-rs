@@ -3,9 +3,6 @@
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 use std::fmt;
-use std::fs::File;
-use std::io::{BufReader, BufRead};
-use std::path::PathBuf;
 
 /// A struct containing the device's major and minor numbers
 ///
@@ -16,27 +13,6 @@ pub struct Device {
     pub major: u32,
     /// Device minor number
     pub minor: u8,
-}
-
-impl Device {
-    /// Returns the path in `/dev` that corresponds with the device number/devnode.
-    pub fn devnode(&self) -> Option<PathBuf> {
-        let f = File::open("/proc/partitions").expect("Could not open /proc/partitions");
-
-        let reader = BufReader::new(f);
-
-        for line in reader.lines().skip(2) {
-            if let Ok(line) = line {
-                let spl: Vec<_> = line.split_whitespace().collect();
-
-                if spl[0].parse::<u32>().unwrap() == self.major &&
-                   spl[1].parse::<u8>().unwrap() == self.minor {
-                    return Some(["/dev", spl[3]].iter().collect::<PathBuf>());
-                }
-            }
-        }
-        None
-    }
 }
 
 /// Display format is the device number in "<major>:<minor>" format
