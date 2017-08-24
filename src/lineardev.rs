@@ -8,7 +8,7 @@ use std::path::PathBuf;
 
 use consts::DmFlags;
 use deviceinfo::DeviceInfo;
-use dm::{DM, DevId};
+use dm::{DM, DevId, DmName};
 use result::{DmResult, DmError, ErrorEnum};
 use segment::Segment;
 use shared::{device_exists, table_load, table_reload};
@@ -39,7 +39,7 @@ impl LinearDev {
     /// undefined.
     /// TODO: If the linear device already exists, verify that the kernel's
     /// model matches the segments argument.
-    pub fn new(name: &str, dm: &DM, segments: Vec<Segment>) -> DmResult<LinearDev> {
+    pub fn new(name: DmName, dm: &DM, segments: Vec<Segment>) -> DmResult<LinearDev> {
         if segments.is_empty() {
             return Err(DmError::Dm(ErrorEnum::Invalid,
                                    "linear device must have at least one segment".into()));
@@ -48,11 +48,11 @@ impl LinearDev {
         let id = DevId::Name(name);
         let dev_info = if device_exists(dm, name)? {
             // TODO: Verify that kernel's model matches up with segments.
-            Box::new(dm.device_status(&id)?)
+            Box::new(dm.device_status(id)?)
         } else {
             dm.device_create(name, None, DmFlags::empty())?;
             let table = LinearDev::dm_table(&segments);
-            Box::new(table_load(dm, &id, &table)?)
+            Box::new(table_load(dm, id, &table)?)
         };
 
         DM::wait_for_dm();
@@ -127,19 +127,22 @@ impl LinearDev {
         }
 
         let table = LinearDev::dm_table(&self.segments);
-        table_reload(&DM::new()?, &DevId::Name(self.name()), &table)?;
+        table_reload(&DM::new()?, DevId::Name(self.name()), &table)?;
         Ok(())
     }
 
     /// DM name - from the DeviceInfo struct
-    pub fn name(&self) -> &str {
+    pub fn name(&self) -> DmName {
         self.dev_info.name()
     }
 
     /// Set the name for this LinearDev.
-    pub fn set_name(&mut self, dm: &DM, name: &str) -> DmResult<()> {
-        self.dev_info = Box::new(dm.device_rename(self.dev_info.name(), name, DmFlags::empty())?);
-
+    pub fn set_name(&mut self, dm: &DM, name: DmName) -> DmResult<()> {
+        if self.name() == name {
+            return Ok(());
+        }
+        dm.device_rename(self.name(), DevId::Name(name))?;
+        self.dev_info = Box::new(dm.device_status(DevId::Name(name))?);
         Ok(())
     }
 
@@ -167,7 +170,7 @@ impl LinearDev {
 
     /// Remove the device from DM
     pub fn teardown(self, dm: &DM) -> DmResult<()> {
-        dm.device_remove(&DevId::Name(self.name()), DmFlags::empty())?;
+        dm.device_remove(DevId::Name(self.name()), DmFlags::empty())?;
         Ok(())
     }
 }
@@ -186,7 +189,49 @@ mod tests {
 
     /// Verify that a new linear dev with 0 segments fails.
     fn test_empty(_paths: &[&Path]) -> () {
-        assert!(LinearDev::new("new", &DM::new().unwrap(), vec![]).is_err());
+        assert!(LinearDev::new(DmName::new("new").expect("valid format"),
+                               &DM::new().unwrap(),
+                               vec![])
+                        .is_err());
+    }
+
+    /// Verify that id rename succeeds.
+    fn test_rename_id(paths: &[&Path]) -> () {
+        assert!(paths.len() >= 1);
+
+        let dm = DM::new().unwrap();
+        let name = "name";
+        let dev = Device::from_str(&paths[0].to_string_lossy()).unwrap();
+        let mut ld = LinearDev::new(DmName::new(name).expect("valid format"),
+                                    &dm,
+                                    vec![Segment::new(dev, Sectors(0), Sectors(1))])
+                .unwrap();
+
+        ld.set_name(&dm, DmName::new(name).expect("valid format"))
+            .unwrap();
+        assert_eq!(ld.name(), DmName::new(name).expect("valid format"));
+
+        ld.teardown(&dm).unwrap();
+    }
+
+    /// Verify that after a rename, the device has the new name.
+    fn test_rename(paths: &[&Path]) -> () {
+        assert!(paths.len() >= 1);
+
+        let dm = DM::new().unwrap();
+        let name = "name";
+        let dev = Device::from_str(&paths[0].to_string_lossy()).unwrap();
+        let mut ld = LinearDev::new(DmName::new(name).expect("valid format"),
+                                    &dm,
+                                    vec![Segment::new(dev, Sectors(0), Sectors(1))])
+                .unwrap();
+
+        let new_name = "new_name";
+        ld.set_name(&dm, DmName::new(new_name).expect("valid format"))
+            .unwrap();
+        assert_eq!(ld.name(), DmName::new(new_name).expect("valid format"));
+
+        ld.teardown(&dm).unwrap();
     }
 
     /// Verify that passing the same segments two times gets two segments.
@@ -202,8 +247,9 @@ mod tests {
                             Segment::new(dev, Sectors(0), Sectors(1))];
         let range: Sectors = segments.iter().map(|s| s.length).sum();
         let count = segments.len();
-        let ld = LinearDev::new(name, &dm, segments).unwrap();
-        assert_eq!(dm.table_status(&DevId::Name(name), DM_STATUS_TABLE)
+        let ld = LinearDev::new(DmName::new(name).expect("valid format"), &dm, segments).unwrap();
+        assert_eq!(dm.table_status(DevId::Name(DmName::new(name).expect("valid format")),
+                                   DM_STATUS_TABLE)
                        .unwrap()
                        .1
                        .len(),
@@ -230,11 +276,17 @@ mod tests {
         let dev = Device::from_str(&paths[0].to_string_lossy()).unwrap();
         let segments = vec![Segment::new(dev, Sectors(0), Sectors(1))];
         let table = LinearDev::dm_table(&segments);
-        let ld = LinearDev::new(name, &dm, vec![Segment::new(dev, Sectors(0), Sectors(1))])
-            .unwrap();
-        assert!(LinearDev::new(name, &dm, vec![Segment::new(dev, Sectors(1), Sectors(1))]).is_ok());
+        let ld = LinearDev::new(DmName::new(name).expect("valid format"),
+                                &dm,
+                                vec![Segment::new(dev, Sectors(0), Sectors(1))])
+                .unwrap();
+        assert!(LinearDev::new(DmName::new(name).expect("valid format"),
+                               &dm,
+                               vec![Segment::new(dev, Sectors(1), Sectors(1))])
+                        .is_ok());
         assert_eq!(table,
-                   dm.table_status(&DevId::Name(name), DM_STATUS_TABLE)
+                   dm.table_status(DevId::Name(DmName::new(name).expect("valid format")),
+                                   DM_STATUS_TABLE)
                        .unwrap()
                        .1);
 
@@ -247,9 +299,11 @@ mod tests {
 
         let dm = DM::new().unwrap();
         let dev = Device::from_str(&paths[0].to_string_lossy()).unwrap();
-        let ld = LinearDev::new("name", &dm, vec![Segment::new(dev, Sectors(0), Sectors(1))])
-            .unwrap();
-        let ld2 = LinearDev::new("ersatz",
+        let ld = LinearDev::new(DmName::new("name").expect("valid format"),
+                                &dm,
+                                vec![Segment::new(dev, Sectors(0), Sectors(1))])
+                .unwrap();
+        let ld2 = LinearDev::new(DmName::new("ersatz").expect("valid format"),
                                  &dm,
                                  vec![Segment::new(dev, Sectors(0), Sectors(1))]);
         assert!(ld2.is_ok());
@@ -267,9 +321,10 @@ mod tests {
         let dev = Device::from_str(&paths[0].to_string_lossy()).unwrap();
         let segments = vec![Segment::new(dev, Sectors(0), Sectors(1))];
         let table = LinearDev::dm_table(&segments);
-        let ld = LinearDev::new(name, &dm, segments).unwrap();
+        let ld = LinearDev::new(DmName::new(name).expect("valid format"), &dm, segments).unwrap();
         assert_eq!(table,
-                   dm.table_status(&DevId::Name(name), DM_STATUS_TABLE)
+                   dm.table_status(DevId::Name(DmName::new(name).expect("valid format")),
+                                   DM_STATUS_TABLE)
                        .unwrap()
                        .1);
         ld.teardown(&dm).unwrap();
@@ -283,6 +338,16 @@ mod tests {
     #[test]
     fn loop_test_empty() {
         test_with_spec(0, test_empty);
+    }
+
+    #[test]
+    fn loop_test_rename() {
+        test_with_spec(1, test_rename);
+    }
+
+    #[test]
+    fn loop_test_rename_id() {
+        test_with_spec(1, test_rename_id);
     }
 
     #[test]

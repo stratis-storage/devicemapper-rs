@@ -95,7 +95,7 @@ mod shared;
 mod loopbacked;
 
 
-pub use dm::{DM, DevId};
+pub use dm::{DM, DevId, DmName, DmNameBuf, DmUuid, DmUuidBuf};
 pub use device::Device;
 pub use lineardev::LinearDev;
 pub use result::{DmResult, DmError, ErrorEnum};

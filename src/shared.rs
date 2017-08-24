@@ -7,13 +7,13 @@
 
 use super::consts::{DmFlags, DM_SUSPEND};
 use super::deviceinfo::DeviceInfo;
-use super::dm::{DevId, DM};
+use super::dm::{DevId, DM, DmName};
 use super::result::DmResult;
 use super::types::TargetLineArg;
 
 /// Load the table for a device.
 pub fn table_load<T1, T2>(dm: &DM,
-                          id: &DevId,
+                          id: DevId,
                           table: &[TargetLineArg<T1, T2>])
                           -> DmResult<DeviceInfo>
     where T1: AsRef<str>,
@@ -27,7 +27,7 @@ pub fn table_load<T1, T2>(dm: &DM,
 
 /// Reload the table for a device
 pub fn table_reload<T1, T2>(dm: &DM,
-                            id: &DevId,
+                            id: DevId,
                             table: &[TargetLineArg<T1, T2>])
                             -> DmResult<DeviceInfo>
     where T1: AsRef<str>,
@@ -40,7 +40,7 @@ pub fn table_reload<T1, T2>(dm: &DM,
 }
 
 /// Check if a device of the given name exists.
-pub fn device_exists(dm: &DM, name: &str) -> DmResult<bool> {
+pub fn device_exists(dm: &DM, name: DmName) -> DmResult<bool> {
     Ok(dm.list_devices()
-           .map(|l| l.iter().any(|&(ref n, _)| n == name))?)
+           .map(|l| l.iter().any(|&(ref n, _)| n.as_ref() == name))?)
 }
