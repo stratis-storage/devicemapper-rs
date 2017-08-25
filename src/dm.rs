@@ -48,12 +48,17 @@ fn dev_id_check(value: &str, max_allowed_chars: usize) -> DmResult<()> {
 }
 
 macro_rules! dev_id {
-    ($T: ident, $MAX: ident) => {
+    ($T: ident, $B: ident, $MAX: ident) => {
         impl<'a> $T<'a> {
             /// Create a new $T from a str reference.
             pub fn new(value: &'a str) -> DmResult<$T<'a>> {
                 dev_id_check(value, $MAX - 1)?;
                 Ok($T { value: value })
+            }
+
+            /// Create a $B from a $T.
+            pub fn to_buf(&self) -> $B {
+                $B { value: self.value.to_string() }
             }
         }
 
@@ -102,7 +107,7 @@ macro_rules! dev_id_buf {
 pub struct DmName<'a> {
     value: &'a str,
 }
-dev_id!(DmName, DM_NAME_LEN);
+dev_id!(DmName, DmNameBuf, DM_NAME_LEN);
 
 /// The owned version of DmName.
 #[derive(Debug, PartialEq, Eq)]
@@ -116,7 +121,7 @@ dev_id_buf!(DmNameBuf, DmName, DM_NAME_LEN);
 pub struct DmUuid<'a> {
     value: &'a str,
 }
-dev_id!(DmUuid, DM_UUID_LEN);
+dev_id!(DmUuid, DmUuidBuf, DM_UUID_LEN);
 
 /// The owned version of DmUuid.
 #[derive(Debug, PartialEq, Eq)]
