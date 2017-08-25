@@ -3,6 +3,7 @@
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 use std::ascii::AsciiExt;
+use std::borrow::Borrow;
 use std::fmt;
 use std::fs::File;
 use std::io::Error;
@@ -48,92 +49,104 @@ fn dev_id_check(value: &str, max_allowed_chars: usize) -> DmResult<()> {
     Ok(())
 }
 
+/// Define borrowed and owned versions of string types that guarantee
+/// conformance to DM restrictions, such as maximum length.
+// This implementation follows the example of Path/PathBuf as closely as
+// possible.
 macro_rules! dev_id {
-    ($T: ident, $MAX: ident) => {
-        impl<'a> $T<'a> {
-            /// Create a new $T from a str reference.
-            pub fn new(value: &'a str) -> DmResult<$T<'a>> {
+    ($B: ident, $O: ident, $MAX: ident) => {
+        /// The borrowed version of the DM identifier.
+        #[derive(Debug, PartialEq, Eq)]
+        pub struct $B {
+            inner: str,
+        }
+
+        /// The owned version of the DM identifier.
+        #[derive(Debug, Clone, PartialEq, Eq)]
+        pub struct $O {
+            inner: String,
+        }
+
+        impl $B {
+            /// Create a new borrowed identifier from a `&str`.
+            pub fn new(value: &str) -> DmResult<&$B> {
                 dev_id_check(value, $MAX - 1)?;
-                Ok($T { value: value })
+                Ok(unsafe { transmute(value) })
             }
         }
 
-        impl<'a> Deref for $T<'a> {
+        impl ToOwned for $B {
+            type Owned = $O;
+            fn to_owned(&self) -> $O {
+                $O { inner: self.inner.to_owned() }
+            }
+        }
+
+        impl AsRef<str> for $B {
+            fn as_ref(&self) -> &str {
+                &self.inner
+            }
+        }
+
+        impl Deref for $B {
             type Target = str;
             fn deref(&self) -> &str {
-                self.value
+                &self.inner
             }
         }
 
-        impl<'a> AsRef<str> for $T<'a> {
-            fn as_ref(&self) -> &str {
-                self.value
-            }
-        }
-
-        impl<'a> fmt::Display for $T<'a> {
+        impl fmt::Display for $B {
             fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-                write!(f, "{}", self.value)
+                write!(f, "{}", &self.inner)
             }
         }
-    }
-}
 
-macro_rules! dev_id_buf {
-    ($T: ident, $R: ident, $MAX: ident) => {
-        impl $T {
-            /// Construct a new *Buf struct.
-            pub fn new(value: String) -> DmResult<$T> {
+        impl $O {
+            /// Construct a new owned identifier.
+            pub fn new(value: String) -> DmResult<$O> {
                 dev_id_check(&value, $MAX - 1)?;
-                Ok($T { value: value })
+                Ok($O { inner: value })
             }
+        }
 
-            /// Return a *Buf as a *.
-            pub fn as_ref(&self) -> $R {
-                $R { value: &self.value }
+        impl AsRef<$B> for $O {
+            fn as_ref(&self) -> &$B {
+                self
+            }
+        }
+
+        impl Borrow<$B> for $O {
+            fn borrow(&self) -> &$B {
+                self.deref()
+            }
+        }
+
+        impl Deref for $O {
+            type Target = $B;
+            fn deref(&self) -> &$B {
+                $B::new(&self.inner).expect("inner satisfies all correctness criteria for $B::new")
             }
         }
     }
 }
 
 /// A devicemapper name. Really just a string, but also the argument type of
-/// DevId::Name. Used in function arguments to indicate that the function takes
-/// only a name, not a devicemapper uuid.
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub struct DmName<'a> {
-    value: &'a str,
-}
-dev_id!(DmName, DM_NAME_LEN);
+/// DevId::Name. Used in function arguments to indicate that the function
+/// takes only a name, not a devicemapper uuid.
+dev_id!(DmName, DmNameBuf, DM_NAME_LEN);
 
-/// The owned version of DmName.
-#[derive(Debug, PartialEq, Eq)]
-pub struct DmNameBuf {
-    value: String,
-}
-dev_id_buf!(DmNameBuf, DmName, DM_NAME_LEN);
-
-/// A devicemapper uuid. A devicemapper uuid has a devicemapper specific format.
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub struct DmUuid<'a> {
-    value: &'a str,
-}
-dev_id!(DmUuid, DM_UUID_LEN);
-
-/// The owned version of DmUuid.
-#[derive(Debug, PartialEq, Eq)]
-pub struct DmUuidBuf {
-    value: String,
-}
-dev_id_buf!(DmUuidBuf, DmUuid, DM_NAME_LEN);
+/// A devicemapper uuid. A devicemapper uuid has a devicemapper-specific
+/// format.
+dev_id!(DmUuid, DmUuidBuf, DM_UUID_LEN);
 
 /// Used as a parameter for functions that take either a Device name
 /// or a Device UUID.
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq)]
 pub enum DevId<'a> {
     /// The parameter is the device's name
-    Name(DmName<'a>),
+    Name(&'a DmName),
     /// The parameter is the device's devicemapper uuid
-    Uuid(DmUuid<'a>),
+    Uuid(&'a DmUuid),
 }
 
 /// Context needed for communicating with devicemapper.
@@ -163,13 +176,13 @@ impl DM {
         hdr.data_start = size_of::<dmi::Struct_dm_ioctl>() as u32;
     }
 
-    fn hdr_set_name(hdr: &mut dmi::Struct_dm_ioctl, name: DmName) -> () {
+    fn hdr_set_name(hdr: &mut dmi::Struct_dm_ioctl, name: &DmName) -> () {
         let name_dest: &mut [u8; DM_NAME_LEN] = unsafe { transmute(&mut hdr.name) };
         let bytes = name.as_bytes();
         name_dest[..bytes.len()].clone_from_slice(bytes);
     }
 
-    fn hdr_set_uuid(hdr: &mut dmi::Struct_dm_ioctl, uuid: DmUuid) -> () {
+    fn hdr_set_uuid(hdr: &mut dmi::Struct_dm_ioctl, uuid: &DmUuid) -> () {
         let uuid_dest: &mut [u8; DM_UUID_LEN] = unsafe { transmute(&mut hdr.uuid) };
         let bytes = uuid.as_bytes();
         uuid_dest[..bytes.len()].clone_from_slice(bytes);
@@ -333,8 +346,8 @@ impl DM {
     /// let dev = dm.device_create(name, None, DmFlags::empty()).unwrap();
     /// ```
     pub fn device_create(&self,
-                         name: DmName,
-                         uuid: Option<DmUuid>,
+                         name: &DmName,
+                         uuid: Option<&DmUuid>,
                          flags: DmFlags)
                          -> DmResult<DeviceInfo> {
         let mut hdr: dmi::Struct_dm_ioctl = Default::default();
@@ -360,13 +373,13 @@ impl DM {
     /// used.
     ///
     /// Valid flags: DM_DEFERRED_REMOVE
-    pub fn device_remove(&self, id: DevId, flags: DmFlags) -> DmResult<DeviceInfo> {
+    pub fn device_remove(&self, id: &DevId, flags: DmFlags) -> DmResult<DeviceInfo> {
         let mut hdr: dmi::Struct_dm_ioctl = Default::default();
 
         let clean_flags = DM_DEFERRED_REMOVE & flags;
 
         Self::initialize_hdr(&mut hdr, clean_flags);
-        match id {
+        match *id {
             DevId::Name(name) => Self::hdr_set_name(&mut hdr, name),
             DevId::Uuid(uuid) => Self::hdr_set_uuid(&mut hdr, uuid),
         };
@@ -383,9 +396,9 @@ impl DM {
     /// must be "".
     /// Note: Possibly surprisingly, returned DeviceInfo's uuid or name field
     /// contains the previous value, not the newly set value.
-    pub fn device_rename(&self, old_name: DmName, new: DevId) -> DmResult<DeviceInfo> {
+    pub fn device_rename(&self, old_name: &DmName, new: &DevId) -> DmResult<DeviceInfo> {
         let mut hdr: dmi::Struct_dm_ioctl = Default::default();
-        let mut data_in = match new {
+        let mut data_in = match *new {
             DevId::Name(name) => {
                 Self::initialize_hdr(&mut hdr, DmFlags::empty());
                 name.as_bytes().to_vec()
@@ -427,15 +440,15 @@ impl DM {
     ///
     /// let name = DmName::new("example-dev").expect("is valid DM name");
     /// let id = DevId::Name(name);
-    /// dm.device_suspend(id, DM_SUSPEND).unwrap();
+    /// dm.device_suspend(&id, DM_SUSPEND).unwrap();
     /// ```
-    pub fn device_suspend(&self, id: DevId, flags: DmFlags) -> DmResult<DeviceInfo> {
+    pub fn device_suspend(&self, id: &DevId, flags: DmFlags) -> DmResult<DeviceInfo> {
         let mut hdr: dmi::Struct_dm_ioctl = Default::default();
 
         let clean_flags = (DM_SUSPEND | DM_NOFLUSH | DM_SKIP_LOCKFS) & flags;
 
         Self::initialize_hdr(&mut hdr, clean_flags);
-        match id {
+        match *id {
             DevId::Name(name) => Self::hdr_set_name(&mut hdr, name),
             DevId::Uuid(uuid) => Self::hdr_set_uuid(&mut hdr, uuid),
         };
@@ -448,12 +461,12 @@ impl DM {
     /// Get DeviceInfo for a device. This is also returned by other
     /// methods, but if just the DeviceInfo is desired then this just
     /// gets it.
-    pub fn device_status(&self, id: DevId) -> DmResult<DeviceInfo> {
+    pub fn device_status(&self, id: &DevId) -> DmResult<DeviceInfo> {
         let mut hdr: dmi::Struct_dm_ioctl = Default::default();
 
         // No flags checked so don't pass any
         Self::initialize_hdr(&mut hdr, DmFlags::empty());
-        match id {
+        match *id {
             DevId::Name(name) => Self::hdr_set_name(&mut hdr, name),
             DevId::Uuid(uuid) => Self::hdr_set_uuid(&mut hdr, uuid),
         };
@@ -471,7 +484,7 @@ impl DM {
     /// This interface is not very friendly to monitoring multiple devices.
     /// Events are also exported via uevents, that method may be preferable.
     pub fn device_wait(&self,
-                       id: DevId,
+                       id: &DevId,
                        flags: DmFlags)
                        -> DmResult<(DeviceInfo, Vec<TargetLine>)> {
         let mut hdr: dmi::Struct_dm_ioctl = Default::default();
@@ -479,7 +492,7 @@ impl DM {
         let clean_flags = DM_QUERY_INACTIVE_TABLE & flags;
 
         Self::initialize_hdr(&mut hdr, clean_flags);
-        match id {
+        match *id {
             DevId::Name(name) => Self::hdr_set_name(&mut hdr, name),
             DevId::Uuid(uuid) => Self::hdr_set_uuid(&mut hdr, uuid),
         };
@@ -517,10 +530,10 @@ impl DM {
     ///
     /// let name = DmName::new("example-dev").expect("is valid DM name");
     /// let id = DevId::Name(name);
-    /// dm.table_load(id, &table).unwrap();
+    /// dm.table_load(&id, &table).unwrap();
     /// ```
     pub fn table_load<T1, T2>(&self,
-                              id: DevId,
+                              id: &DevId,
                               targets: &[TargetLineArg<T1, T2>])
                               -> DmResult<DeviceInfo>
         where T1: AsRef<str>,
@@ -558,7 +571,7 @@ impl DM {
 
         // No flags checked so don't pass any
         Self::initialize_hdr(&mut hdr, DmFlags::empty());
-        match id {
+        match *id {
             DevId::Name(name) => Self::hdr_set_name(&mut hdr, name),
             DevId::Uuid(uuid) => Self::hdr_set_uuid(&mut hdr, uuid),
         };
@@ -585,12 +598,12 @@ impl DM {
     }
 
     /// Clear the "inactive" table for a device.
-    pub fn table_clear(&self, id: DevId) -> DmResult<DeviceInfo> {
+    pub fn table_clear(&self, id: &DevId) -> DmResult<DeviceInfo> {
         let mut hdr: dmi::Struct_dm_ioctl = Default::default();
 
         // No flags checked so don't pass any
         Self::initialize_hdr(&mut hdr, DmFlags::empty());
-        match id {
+        match *id {
             DevId::Name(name) => Self::hdr_set_name(&mut hdr, name),
             DevId::Uuid(uuid) => Self::hdr_set_uuid(&mut hdr, uuid),
         };
@@ -710,11 +723,11 @@ impl DM {
     ///
     /// let name = DmName::new("example-dev").expect("is valid DM name");
     /// let id = DevId::Name(name);
-    /// let res = dm.table_status(id, DM_STATUS_TABLE).unwrap();
+    /// let res = dm.table_status(&id, DM_STATUS_TABLE).unwrap();
     /// println!("{} {:?}", res.0.name(), res.1);
     /// ```
     pub fn table_status(&self,
-                        id: DevId,
+                        id: &DevId,
                         flags: DmFlags)
                         -> DmResult<(DeviceInfo, Vec<TargetLine>)> {
         let mut hdr: dmi::Struct_dm_ioctl = Default::default();
@@ -722,7 +735,7 @@ impl DM {
         let clean_flags = (DM_NOFLUSH | DM_STATUS_TABLE | DM_QUERY_INACTIVE_TABLE) & flags;
 
         Self::initialize_hdr(&mut hdr, clean_flags);
-        match id {
+        match *id {
             DevId::Name(name) => Self::hdr_set_name(&mut hdr, name),
             DevId::Uuid(uuid) => Self::hdr_set_uuid(&mut hdr, uuid),
         };
@@ -776,7 +789,7 @@ impl DM {
     /// not needed use 0.  DM-wide messages start with '@', and may
     /// return a string; targets do not.
     pub fn target_msg(&self,
-                      id: DevId,
+                      id: &DevId,
                       sector: Sectors,
                       msg: &str)
                       -> DmResult<(DeviceInfo, Option<String>)> {
@@ -784,7 +797,7 @@ impl DM {
 
         // No flags checked so don't pass any
         Self::initialize_hdr(&mut hdr, DmFlags::empty());
-        match id {
+        match *id {
             DevId::Name(name) => Self::hdr_set_name(&mut hdr, name),
             DevId::Uuid(uuid) => Self::hdr_set_uuid(&mut hdr, uuid),
         };
@@ -869,7 +882,7 @@ mod tests {
 
         assert_eq!(devices.len(), 1);
         assert_eq!(devices[0].0.as_ref(), name);
-        dm.device_remove(DevId::Name(name), DmFlags::empty())
+        dm.device_remove(&DevId::Name(name), DmFlags::empty())
             .unwrap();
     }
 
@@ -880,7 +893,7 @@ mod tests {
         let name = DmName::new("example-dev").expect("is valid DM name");
         let result = dm.device_create(name, None, DmFlags::empty()).unwrap();
         assert!(result.name() == name);
-        dm.device_remove(DevId::Name(name), DmFlags::empty())
+        dm.device_remove(&DevId::Name(name), DmFlags::empty())
             .unwrap();
     }
 
@@ -894,7 +907,7 @@ mod tests {
             .unwrap();
         assert_eq!(result.name(), name);
         assert_eq!(result.uuid(), uuid);
-        dm.device_remove(DevId::Name(name), DmFlags::empty())
+        dm.device_remove(&DevId::Name(name), DmFlags::empty())
             .unwrap();
     }
 
@@ -908,8 +921,8 @@ mod tests {
             .unwrap();
 
         let new_uuid = DmUuid::new("example-9999999999").expect("is valid DM uuid");
-        assert!(dm.device_rename(name, DevId::Uuid(new_uuid)).is_err());
-        dm.device_remove(DevId::Name(name), DmFlags::empty())
+        assert!(dm.device_rename(name, &DevId::Uuid(new_uuid)).is_err());
+        dm.device_remove(&DevId::Name(name), DmFlags::empty())
             .unwrap();
     }
 
@@ -921,8 +934,8 @@ mod tests {
         let uuid = DmUuid::new("example-363333333333333").expect("is valid DM uuid");
         dm.device_create(name, Some(uuid), DmFlags::empty())
             .unwrap();
-        assert!(dm.device_rename(name, DevId::Uuid(uuid)).is_err());
-        dm.device_remove(DevId::Name(name), DmFlags::empty())
+        assert!(dm.device_rename(name, &DevId::Uuid(uuid)).is_err());
+        dm.device_remove(&DevId::Name(name), DmFlags::empty())
             .unwrap();
     }
 
@@ -935,11 +948,11 @@ mod tests {
         dm.device_create(name, None, DmFlags::empty()).unwrap();
 
         let uuid = DmUuid::new("example-363333333333333").expect("is valid DM uuid");
-        let result = dm.device_rename(name, DevId::Uuid(uuid)).unwrap();
+        let result = dm.device_rename(name, &DevId::Uuid(uuid)).unwrap();
         assert_eq!(result.uuid(), DmUuid::new("").expect("is valid DM uuid"));
-        assert_eq!(dm.device_status(DevId::Name(name)).unwrap().uuid(), uuid);
-        assert!(dm.device_status(DevId::Uuid(uuid)).is_ok());
-        dm.device_remove(DevId::Name(name), DmFlags::empty())
+        assert_eq!(dm.device_status(&DevId::Name(name)).unwrap().uuid(), uuid);
+        assert!(dm.device_status(&DevId::Uuid(uuid)).is_ok());
+        dm.device_remove(&DevId::Name(name), DmFlags::empty())
             .unwrap();
     }
 
@@ -951,8 +964,8 @@ mod tests {
         let name = DmName::new("example-dev").expect("is valid DM name");
         dm.device_create(name, None, DmFlags::empty()).unwrap();
         DM::wait_for_dm();
-        assert!(dm.device_rename(name, DevId::Name(name)).is_err());
-        dm.device_remove(DevId::Name(name), DmFlags::empty())
+        assert!(dm.device_rename(name, &DevId::Name(name)).is_err());
+        dm.device_remove(&DevId::Name(name), DmFlags::empty())
             .unwrap();
     }
 
@@ -967,19 +980,19 @@ mod tests {
 
         let new_name = DmName::new("example-dev-2").expect("is valid DM name");
         loop {
-            if dm.device_rename(name, DevId::Name(new_name)).is_ok() {
+            if dm.device_rename(name, &DevId::Name(new_name)).is_ok() {
                 break;
             }
         }
 
-        assert!(dm.device_status(DevId::Name(name)).is_err());
-        assert!(dm.device_status(DevId::Name(new_name)).is_ok());
+        assert!(dm.device_status(&DevId::Name(name)).is_err());
+        assert!(dm.device_status(&DevId::Name(new_name)).is_ok());
 
         let devices = dm.list_devices().unwrap();
         assert_eq!(devices.len(), 1);
         assert_eq!(devices[0].0.as_ref(), new_name);
 
-        dm.device_remove(DevId::Name(new_name), DmFlags::empty())
+        dm.device_remove(&DevId::Name(new_name), DmFlags::empty())
             .unwrap();
     }
 
@@ -989,7 +1002,7 @@ mod tests {
         assert!(DM::new()
                     .unwrap()
                     .device_rename(DmName::new("old_name").expect("is valid DM name"),
-                                   DevId::Name(DmName::new("new_name").expect("is valid DM name")))
+                                   &DevId::Name(DmName::new("new_name").expect("is valid DM name")))
                     .is_err());
     }
 
@@ -998,7 +1011,7 @@ mod tests {
     fn sudo_test_remove_non_existant() {
         assert!(DM::new()
                     .unwrap()
-                    .device_remove(DevId::Name(DmName::new("junk").expect("is valid DM name")),
+                    .device_remove(&DevId::Name(DmName::new("junk").expect("is valid DM name")),
                                    DmFlags::empty())
                     .is_err());
     }
@@ -1020,7 +1033,7 @@ mod tests {
         }
 
         assert!(deps.is_empty());
-        dm.device_remove(DevId::Name(name), DmFlags::empty())
+        dm.device_remove(&DevId::Name(name), DmFlags::empty())
             .unwrap();
     }
 
@@ -1029,7 +1042,7 @@ mod tests {
     fn sudo_test_table_status_non_existant() {
         assert!(DM::new()
                     .unwrap()
-                    .table_status(DevId::Name(DmName::new("junk").expect("is valid DM name")),
+                    .table_status(&DevId::Name(DmName::new("junk").expect("is valid DM name")),
                                   DmFlags::empty())
                     .is_err());
     }
@@ -1040,7 +1053,7 @@ mod tests {
         let name = DmName::new("junk").expect("is valid DM name");
         assert!(DM::new()
                     .unwrap()
-                    .table_status(DevId::Name(name), DM_STATUS_TABLE)
+                    .table_status(&DevId::Name(name), DM_STATUS_TABLE)
                     .is_err());
     }
 
@@ -1055,14 +1068,14 @@ mod tests {
 
         let status;
         loop {
-            if let Ok(info) = dm.table_status(DevId::Name(name), DmFlags::empty()) {
+            if let Ok(info) = dm.table_status(&DevId::Name(name), DmFlags::empty()) {
                 status = info;
                 break;
             }
         }
 
         assert!(status.1.is_empty());
-        dm.device_remove(DevId::Name(name), DmFlags::empty())
+        dm.device_remove(&DevId::Name(name), DmFlags::empty())
             .unwrap();
     }
 
@@ -1073,7 +1086,7 @@ mod tests {
         let name = DmName::new("example_dev").expect("is valid DM name");
         assert!(DM::new()
                     .unwrap()
-                    .device_status(DevId::Name(name))
+                    .device_status(&DevId::Name(name))
                     .is_err());
     }
 
@@ -1084,7 +1097,7 @@ mod tests {
         let name = DmName::new("example-dev").expect("is valid DM name");
         dm.device_create(name, None, DmFlags::empty()).unwrap();
         assert!(dm.device_create(name, None, DmFlags::empty()).is_err());
-        dm.device_remove(DevId::Name(name), DmFlags::empty())
+        dm.device_remove(&DevId::Name(name), DmFlags::empty())
             .unwrap();
     }
 }
