@@ -38,7 +38,7 @@ impl LinearDev {
     /// undefined.
     /// TODO: If the linear device already exists, verify that the kernel's
     /// model matches the segments argument.
-    pub fn new(name: DmName, dm: &DM, segments: Vec<Segment>) -> DmResult<LinearDev> {
+    pub fn new(name: &DmName, dm: &DM, segments: Vec<Segment>) -> DmResult<LinearDev> {
         if segments.is_empty() {
             return Err(DmError::Dm(ErrorEnum::Invalid,
                                    "linear device must have at least one segment".into()));
@@ -47,11 +47,11 @@ impl LinearDev {
         let id = DevId::Name(name);
         let dev_info = if device_exists(dm, name)? {
             // TODO: Verify that kernel's model matches up with segments.
-            Box::new(dm.device_status(id)?)
+            Box::new(dm.device_status(&id)?)
         } else {
             dm.device_create(name, None, DmFlags::empty())?;
             let table = LinearDev::dm_table(&segments);
-            Box::new(table_load(dm, id, &table)?)
+            Box::new(table_load(dm, &id, &table)?)
         };
 
         DM::wait_for_dm();
@@ -126,22 +126,22 @@ impl LinearDev {
         }
 
         let table = LinearDev::dm_table(&self.segments);
-        table_reload(&DM::new()?, DevId::Name(self.name()), &table)?;
+        table_reload(&DM::new()?, &DevId::Name(self.name()), &table)?;
         Ok(())
     }
 
     /// DM name - from the DeviceInfo struct
-    pub fn name(&self) -> DmName {
+    pub fn name(&self) -> &DmName {
         self.dev_info.name()
     }
 
     /// Set the name for this LinearDev.
-    pub fn set_name(&mut self, dm: &DM, name: DmName) -> DmResult<()> {
+    pub fn set_name(&mut self, dm: &DM, name: &DmName) -> DmResult<()> {
         if self.name() == name {
             return Ok(());
         }
-        dm.device_rename(self.name(), DevId::Name(name))?;
-        self.dev_info = Box::new(dm.device_status(DevId::Name(name))?);
+        dm.device_rename(self.name(), &DevId::Name(name))?;
+        self.dev_info = Box::new(dm.device_status(&DevId::Name(name))?);
         Ok(())
     }
 
@@ -169,7 +169,7 @@ impl LinearDev {
 
     /// Remove the device from DM
     pub fn teardown(self, dm: &DM) -> DmResult<()> {
-        dm.device_remove(DevId::Name(self.name()), DmFlags::empty())?;
+        dm.device_remove(&DevId::Name(self.name()), DmFlags::empty())?;
         Ok(())
     }
 }
@@ -247,7 +247,7 @@ mod tests {
         let range: Sectors = segments.iter().map(|s| s.length).sum();
         let count = segments.len();
         let ld = LinearDev::new(DmName::new(name).expect("valid format"), &dm, segments).unwrap();
-        assert_eq!(dm.table_status(DevId::Name(DmName::new(name).expect("valid format")),
+        assert_eq!(dm.table_status(&DevId::Name(DmName::new(name).expect("valid format")),
                                    DM_STATUS_TABLE)
                        .unwrap()
                        .1
@@ -284,7 +284,7 @@ mod tests {
                                vec![Segment::new(dev, Sectors(1), Sectors(1))])
                         .is_ok());
         assert_eq!(table,
-                   dm.table_status(DevId::Name(DmName::new(name).expect("valid format")),
+                   dm.table_status(&DevId::Name(DmName::new(name).expect("valid format")),
                                    DM_STATUS_TABLE)
                        .unwrap()
                        .1);
@@ -322,7 +322,7 @@ mod tests {
         let table = LinearDev::dm_table(&segments);
         let ld = LinearDev::new(DmName::new(name).expect("valid format"), &dm, segments).unwrap();
         assert_eq!(table,
-                   dm.table_status(DevId::Name(DmName::new(name).expect("valid format")),
+                   dm.table_status(&DevId::Name(DmName::new(name).expect("valid format")),
                                    DM_STATUS_TABLE)
                        .unwrap()
                        .1);

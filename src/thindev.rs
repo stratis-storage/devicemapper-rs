@@ -94,7 +94,7 @@ pub enum ThinStatus {
 impl ThinDev {
     /// Use the given ThinPoolDev as backing space for a newly constructed
     /// thin provisioned ThinDev returned by new().
-    pub fn new(name: DmName,
+    pub fn new(name: &DmName,
                dm: &DM,
                thin_pool: &ThinPoolDev,
                thin_id: ThinDevId,
@@ -111,7 +111,7 @@ impl ThinDev {
     /// on the metadata device for its thin pool.
     /// TODO: If the device is already known to the kernel, verify that kernel
     /// model matches arguments.
-    pub fn setup(name: DmName,
+    pub fn setup(name: &DmName,
                  dm: &DM,
                  thin_pool: &ThinPoolDev,
                  thin_id: ThinDevId,
@@ -123,11 +123,11 @@ impl ThinDev {
 
         let dev_info = if device_exists(dm, name)? {
             // TODO: Verify that kernel's model matches arguments.
-            dm.device_status(id)?
+            dm.device_status(&id)?
         } else {
             dm.device_create(name, None, DmFlags::empty())?;
             let table = ThinDev::dm_table(&thin_pool_dstr, thin_id, length);
-            table_load(dm, id, &table)?
+            table_load(dm, &id, &table)?
         };
 
         DM::wait_for_dm();
@@ -151,7 +151,7 @@ impl ThinDev {
     }
 
     /// name of the thin device
-    pub fn name(&self) -> DmName {
+    pub fn name(&self) -> &DmName {
         self.dev_info.name()
     }
 
@@ -184,7 +184,7 @@ impl ThinDev {
 
     /// Get the current status of the thin device.
     pub fn status(&self, dm: &DM) -> DmResult<ThinStatus> {
-        let (_, mut status) = dm.table_status(DevId::Name(self.name()), DmFlags::empty())?;
+        let (_, mut status) = dm.table_status(&DevId::Name(self.name()), DmFlags::empty())?;
 
         assert_eq!(status.len(),
                    1,
@@ -213,7 +213,7 @@ impl ThinDev {
         self.size += sectors;
 
         table_reload(dm,
-                     DevId::Name(self.name()),
+                     &DevId::Name(self.name()),
                      &ThinDev::dm_table(&self.thinpool_dstr, self.thin_id, self.size))?;
 
         Ok(())
@@ -231,7 +231,7 @@ impl ThinDev {
 
     /// Tear down the DM device.
     pub fn teardown(self, dm: &DM) -> DmResult<()> {
-        dm.device_remove(DevId::Name(self.name()), DmFlags::empty())?;
+        dm.device_remove(&DevId::Name(self.name()), DmFlags::empty())?;
         Ok(())
     }
 }

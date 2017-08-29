@@ -45,7 +45,7 @@ impl DeviceInfo {
     }
 
     /// The device's name.
-    pub fn name(&self) -> DmName {
+    pub fn name(&self) -> &DmName {
         let name: &[u8; DM_NAME_LEN] = unsafe { transmute(&self.hdr.name) };
         let slc = slice_to_null(name).expect("kernel ensures null-terminated");
         let name = from_utf8(slc).expect("kernel ensures ASCII characters");
@@ -53,7 +53,7 @@ impl DeviceInfo {
     }
 
     /// The device's devicemapper uuid.
-    pub fn uuid(&self) -> DmUuid {
+    pub fn uuid(&self) -> &DmUuid {
         let uuid: &[u8; DM_UUID_LEN] = unsafe { transmute(&self.hdr.uuid) };
         let slc = slice_to_null(uuid).expect("kernel ensures null-terminated");
         let uuid = from_utf8(slc).expect("kernel ensures ASCII characters");
