@@ -619,13 +619,16 @@ impl DM {
     /// inactive table.
     ///
     /// Valid flags: DM_QUERY_INACTIVE_TABLE
-    pub fn table_deps(&self, dev: Device, flags: DmFlags) -> DmResult<Vec<Device>> {
+    pub fn table_deps(&self, id: &DevId, flags: DmFlags) -> DmResult<Vec<Device>> {
         let mut hdr: dmi::Struct_dm_ioctl = Default::default();
 
         let clean_flags = DM_QUERY_INACTIVE_TABLE & flags;
 
         Self::initialize_hdr(&mut hdr, clean_flags);
-        hdr.dev = dev.into();
+        match *id {
+            DevId::Name(name) => Self::hdr_set_name(&mut hdr, name),
+            DevId::Uuid(uuid) => Self::hdr_set_uuid(&mut hdr, uuid),
+        };
 
         let data_out = self.do_ioctl(dmi::DM_TABLE_DEPS_CMD as u8, &mut hdr, None)?;
 
@@ -1005,12 +1008,11 @@ mod tests {
     fn sudo_test_empty_deps() {
         let dm = DM::new().unwrap();
         let name = DmName::new("example-dev").expect("is valid DM name");
-        let result = dm.device_create(name, None, DmFlags::empty()).unwrap();
-        let device = result.device();
+        dm.device_create(name, None, DmFlags::empty()).unwrap();
 
         let deps;
         loop {
-            if let Ok(list) = dm.table_deps(device, DmFlags::empty()) {
+            if let Ok(list) = dm.table_deps(&DevId::Name(name), DmFlags::empty()) {
                 deps = list;
                 break;
             }
