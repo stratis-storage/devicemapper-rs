@@ -110,7 +110,7 @@ fn get_devices(count: u8, dir: &TempDir) -> Vec<LoopTestDev> {
 pub fn test_with_spec<F>(count: u8, test: F) -> ()
     where F: Fn(&[&Path]) -> ()
 {
-    let tmpdir = TempDir::new("stratis").unwrap();
+    let tmpdir = TempDir::new("devicemapper").unwrap();
     let loop_devices: Vec<LoopTestDev> = get_devices(count, &tmpdir);
     let device_paths: Vec<PathBuf> = loop_devices.iter().map(|x| x.get_path()).collect();
     let device_paths: Vec<&Path> = device_paths.iter().map(|x| x.as_path()).collect();

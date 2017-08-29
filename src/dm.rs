@@ -1,6 +1,7 @@
 // This Source Code Form is subject to the terms of the Mozilla Public
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
+
 use std::ascii::AsciiExt;
 use std::fmt;
 use std::fs::File;
@@ -641,10 +642,12 @@ impl DM {
     /// Panics if there is an error parsing the table.
     /// Trims trailing white space off final entry on each line. This
     /// canonicalization makes checking identity of tables easier.
-    // The justification for this is that if there was no error in obtaining
-    // the table the data is correct and complete. Therefore, an error in
-    // parsing can only result from a change in the kernel. We assume that
-    // Stratis will know in advance about such changes.
+    // Justification: If the ioctl succeeded, the data is correct and
+    // complete. An error in parsing can only result from a change in the
+    // kernel. We rely on DM's interface versioning system. Kernel changes
+    // will either be backwards-compatible, or will increment
+    // DM_VERSION_MAJOR.  Since calls made with a non-matching major version
+    // will fail, this protects against callers parsing unknown formats.
     fn parse_table_status(count: u32, buf: &[u8]) -> Vec<TargetLine> {
         let mut targets = Vec::new();
         if !buf.is_empty() {
@@ -886,7 +889,7 @@ mod tests {
     fn sudo_test_create_uuid() {
         let dm = DM::new().unwrap();
         let name = DmName::new("example-dev").expect("is valid DM name");
-        let uuid = DmUuid::new("stratis-363333333333333").expect("is valid DM uuid");
+        let uuid = DmUuid::new("example-363333333333333").expect("is valid DM uuid");
         let result = dm.device_create(name, Some(uuid), DmFlags::empty())
             .unwrap();
         assert_eq!(result.name(), name);
@@ -900,11 +903,11 @@ mod tests {
     fn sudo_test_rename_uuid() {
         let dm = DM::new().unwrap();
         let name = DmName::new("example-dev").expect("is valid DM name");
-        let uuid = DmUuid::new("stratis-363333333333333").expect("is valid DM uuid");
+        let uuid = DmUuid::new("example-363333333333333").expect("is valid DM uuid");
         dm.device_create(name, Some(uuid), DmFlags::empty())
             .unwrap();
 
-        let new_uuid = DmUuid::new("stratis-9999999999").expect("is valid DM uuid");
+        let new_uuid = DmUuid::new("example-9999999999").expect("is valid DM uuid");
         assert!(dm.device_rename(name, DevId::Uuid(new_uuid)).is_err());
         dm.device_remove(DevId::Name(name), DmFlags::empty())
             .unwrap();
@@ -915,7 +918,7 @@ mod tests {
     fn sudo_test_rename_uuid_id() {
         let dm = DM::new().unwrap();
         let name = DmName::new("example-dev").expect("is valid DM name");
-        let uuid = DmUuid::new("stratis-363333333333333").expect("is valid DM uuid");
+        let uuid = DmUuid::new("example-363333333333333").expect("is valid DM uuid");
         dm.device_create(name, Some(uuid), DmFlags::empty())
             .unwrap();
         assert!(dm.device_rename(name, DevId::Uuid(uuid)).is_err());
@@ -931,7 +934,7 @@ mod tests {
         let name = DmName::new("example-dev").expect("is valid DM name");
         dm.device_create(name, None, DmFlags::empty()).unwrap();
 
-        let uuid = DmUuid::new("stratis-363333333333333").expect("is valid DM uuid");
+        let uuid = DmUuid::new("example-363333333333333").expect("is valid DM uuid");
         let result = dm.device_rename(name, DevId::Uuid(uuid)).unwrap();
         assert_eq!(result.uuid(), DmUuid::new("").expect("is valid DM uuid"));
         assert_eq!(dm.device_status(DevId::Name(name)).unwrap().uuid(), uuid);

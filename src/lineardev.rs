@@ -32,8 +32,7 @@ impl fmt::Debug for LinearDev {
 /// linear block device of continuous sectors.
 impl LinearDev {
     /// Construct a new block device by concatenating the given segments
-    /// into linear space.  Use DM to reserve enough space for the stratis
-    /// metadata on each DmDev.
+    /// into linear space.
     /// Warning: If the segments overlap, this method will succeed. However,
     /// the behavior of the linear device in that case should be treated as
     /// undefined.
