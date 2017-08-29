@@ -121,7 +121,7 @@ impl ThinPoolDev {
         } else {
             dm.device_create(name, None, DmFlags::empty())?;
             let table =
-                ThinPoolDev::dm_table(data.size()?, data_block_size, low_water_mark, &meta, &data);
+                ThinPoolDev::dm_table(data.size(), data_block_size, low_water_mark, &meta, &data);
             Box::new(table_load(dm, &id, &table)?)
         };
 
@@ -260,7 +260,7 @@ impl ThinPoolDev {
         self.meta_dev.extend(new_segs)?;
         table_reload(dm,
                      &DevId::Name(self.name()),
-                     &ThinPoolDev::dm_table(self.data_dev.size()?,
+                     &ThinPoolDev::dm_table(self.data_dev.size(),
                                             self.data_block_size,
                                             self.low_water_mark,
                                             &self.meta_dev,
@@ -273,7 +273,7 @@ impl ThinPoolDev {
         self.data_dev.extend(new_segs)?;
         table_reload(dm,
                      &DevId::Name(self.name()),
-                     &ThinPoolDev::dm_table(self.data_dev.size()?,
+                     &ThinPoolDev::dm_table(self.data_dev.size(),
                                             self.data_block_size,
                                             self.low_water_mark,
                                             &self.meta_dev,

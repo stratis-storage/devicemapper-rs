@@ -10,6 +10,7 @@ use std::fs::File;
 use std::os::unix::prelude::AsRawFd;
 
 /// send IOCTL via blkgetsize64
+#[allow(dead_code)]
 ioctl!(read blkgetsize64 with 0x12, 114; u64);
 
 /// The smallest number divisible by `align_to` and at least `num`.
@@ -22,6 +23,7 @@ pub fn align_to(num: usize, align_to: usize) -> usize {
 }
 
 /// get the size of a given block device file
+#[allow(dead_code)]
 pub fn blkdev_size(file: &File) -> DmResult<Bytes> {
     let mut val: u64 = 0;
 

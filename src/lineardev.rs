@@ -3,7 +3,6 @@
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 use std::fmt;
-use std::fs::File;
 use std::path::PathBuf;
 
 use consts::DmFlags;
@@ -13,7 +12,6 @@ use result::{DmResult, DmError, ErrorEnum};
 use segment::Segment;
 use shared::{DmDevice, device_exists, table_load, table_reload};
 use types::{Sectors, TargetLine};
-use util::blkdev_size;
 
 /// A DM construct of combined Segments
 pub struct LinearDev {
@@ -160,9 +158,8 @@ impl LinearDev {
     }
 
     /// return the total size of the linear device
-    pub fn size(&self) -> DmResult<Sectors> {
-        let f = File::open(self.devnode())?;
-        Ok(blkdev_size(&f)?.sectors())
+    pub fn size(&self) -> Sectors {
+        self.segments.iter().map(|s| s.length).sum()
     }
 }
 
@@ -174,6 +171,7 @@ mod tests {
     use super::super::consts::DM_STATUS_TABLE;
     use super::super::device::Device;
     use super::super::loopbacked::{devnode_to_devno, test_with_spec};
+    use super::super::util::blkdev_size;
 
     use super::*;
 
