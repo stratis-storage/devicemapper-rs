@@ -93,6 +93,10 @@ impl DmDevice for ThinDev {
         name!(self)
     }
 
+    fn size(&self) -> Sectors {
+        self.size
+    }
+
     fn teardown(self, dm: &DM) -> DmResult<()> {
         dm.device_remove(&DevId::Name(self.name()), DmFlags::empty())?;
         Ok(())
@@ -167,11 +171,6 @@ impl ThinDev {
     fn dm_table(thin_pool_dstr: &str, thin_id: ThinDevId, length: Sectors) -> Vec<TargetLine> {
         let params = format!("{} {}", thin_pool_dstr, thin_id);
         vec![(Sectors::default(), length, "thin".to_owned(), params)]
-    }
-
-    /// return the total size of the linear device
-    pub fn size(&self) -> Sectors {
-        self.size
     }
 
     /// return the thin id of the linear device

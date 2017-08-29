@@ -53,6 +53,10 @@ impl DmDevice for ThinPoolDev {
         name!(self)
     }
 
+    fn size(&self) -> Sectors {
+        self.data_dev.size()
+    }
+
     fn teardown(self, dm: &DM) -> DmResult<()> {
         dm.device_remove(&DevId::Name(self.name()), DmFlags::empty())?;
         self.data_dev.teardown(dm)?;

@@ -11,7 +11,7 @@ use super::consts::{DmFlags, DM_SUSPEND};
 use super::deviceinfo::DeviceInfo;
 use super::dm::{DevId, DM, DmName};
 use super::result::DmResult;
-use super::types::TargetLineArg;
+use super::types::{Sectors, TargetLineArg};
 
 /// A trait capturing some shared properties of DM devices.
 pub trait DmDevice {
@@ -23,6 +23,9 @@ pub trait DmDevice {
 
     /// The device's name.
     fn name(&self) -> &DmName;
+
+    /// The number of sectors available for user data.
+    fn size(&self) -> Sectors;
 
     /// Erase the kernel's memory of this device.
     fn teardown(self, dm: &DM) -> DmResult<()>;

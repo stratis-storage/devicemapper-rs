@@ -39,6 +39,10 @@ impl DmDevice for LinearDev {
         name!(self)
     }
 
+    fn size(&self) -> Sectors {
+        self.segments.iter().map(|s| s.length).sum()
+    }
+
     fn teardown(self, dm: &DM) -> DmResult<()> {
         dm.device_remove(&DevId::Name(self.name()), DmFlags::empty())?;
         Ok(())
@@ -155,11 +159,6 @@ impl LinearDev {
         dm.device_rename(self.name(), &DevId::Name(name))?;
         self.dev_info = Box::new(dm.device_status(&DevId::Name(name))?);
         Ok(())
-    }
-
-    /// return the total size of the linear device
-    pub fn size(&self) -> Sectors {
-        self.segments.iter().map(|s| s.length).sum()
     }
 }
 
