@@ -11,7 +11,6 @@ use std::ops::Deref;
 use std::os::unix::io::AsRawFd;
 use std::mem::{size_of, transmute};
 use std::slice;
-use std::collections::BTreeSet;
 use std::cmp;
 use std::thread;
 use std::time::Duration;
@@ -820,21 +819,6 @@ impl DM {
             } else {
                 None
             }))
-    }
-
-    /// Recursively walk DM deps to see if `dev` might be its own dependency.
-    pub fn depends_on(&self, dev: Device, dm_majors: &BTreeSet<u32>) -> DmResult<bool> {
-        if !dm_majors.contains(&dev.major) {
-            return Ok(false);
-        }
-
-        for d in self.table_deps(dev, DmFlags::empty())? {
-            if d == dev || self.depends_on(d, dm_majors)? {
-                return Ok(true);
-            }
-        }
-
-        Ok(false)
     }
 }
 
