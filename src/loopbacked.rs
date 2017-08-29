@@ -2,10 +2,11 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-use std::fs::OpenOptions;
+use std::fs::{File, OpenOptions};
 use std::io;
 use std::io::{Seek, SeekFrom, Write};
 use std::os::linux::fs::MetadataExt;
+use std::os::unix::prelude::AsRawFd;
 use std::path::{Path, PathBuf};
 
 use loopdev::{LoopControl, LoopDevice};
@@ -14,6 +15,20 @@ use tempdir::TempDir;
 
 use super::consts::{IEC, SECTOR_SIZE};
 use super::types::{Bytes, Sectors};
+
+
+/// send IOCTL via blkgetsize64
+#[allow(dead_code)]
+ioctl!(read blkgetsize64 with 0x12, 114; u64);
+
+/// get the size of a given block device file
+#[allow(dead_code)]
+pub fn blkdev_size(file: &File) -> Bytes {
+    let mut val: u64 = 0;
+
+    unsafe { blkgetsize64(file.as_raw_fd(), &mut val) }.unwrap();
+    Bytes(val)
+}
 
 /// Get a device number from a device node.
 /// Return None if the device is not a block device; devicemapper is not

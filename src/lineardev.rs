@@ -170,8 +170,7 @@ mod tests {
 
     use super::super::consts::DM_STATUS_TABLE;
     use super::super::device::Device;
-    use super::super::loopbacked::{devnode_to_devno, test_with_spec};
-    use super::super::util::blkdev_size;
+    use super::super::loopbacked::{blkdev_size, devnode_to_devno, test_with_spec};
 
     use super::*;
 
@@ -246,7 +245,6 @@ mod tests {
                                     .read(true)
                                     .open(ld.devnode())
                                     .unwrap())
-                           .unwrap()
                            .sectors(),
                    range);
 
