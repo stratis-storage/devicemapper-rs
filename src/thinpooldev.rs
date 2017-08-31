@@ -12,7 +12,7 @@ use dm::{DM, DevId, DmName};
 use lineardev::LinearDev;
 use result::{DmResult, DmError, ErrorEnum};
 use segment::Segment;
-use shared::{device_exists, table_load, table_reload};
+use shared::{DmDevice, device_exists, table_load, table_reload};
 use types::{DataBlocks, MetaBlocks, Sectors, TargetLine};
 
 /// Values are explicitly stated in the device-mapper kernel documentation.
@@ -27,7 +27,7 @@ const MAX_RECOMMENDED_METADATA_SIZE: Sectors = Sectors(32 * IEC::Mi); // 16 GiB
 
 /// DM construct to contain thin provisioned devices
 pub struct ThinPoolDev {
-    dev_info: DeviceInfo,
+    dev_info: Box<DeviceInfo>,
     meta_dev: LinearDev,
     data_dev: LinearDev,
     data_block_size: Sectors,
@@ -37,6 +37,31 @@ pub struct ThinPoolDev {
 impl fmt::Debug for ThinPoolDev {
     fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
         write!(f, "{}", self.name())
+    }
+}
+
+impl DmDevice for ThinPoolDev {
+    fn devnode(&self) -> PathBuf {
+        devnode!(self)
+    }
+
+    fn dstr(&self) -> String {
+        dstr!(self)
+    }
+
+    fn name(&self) -> &DmName {
+        name!(self)
+    }
+
+    fn size(&self) -> Sectors {
+        self.data_dev.size()
+    }
+
+    fn teardown(self, dm: &DM) -> DmResult<()> {
+        dm.device_remove(&DevId::Name(self.name()), DmFlags::empty())?;
+        self.data_dev.teardown(dm)?;
+        self.meta_dev.teardown(dm)?;
+        Ok(())
     }
 }
 
@@ -96,12 +121,12 @@ impl ThinPoolDev {
         let id = DevId::Name(name);
         let dev_info = if device_exists(dm, name)? {
             // TODO: Verify that kernel table matches our table.
-            dm.device_status(&id)?
+            Box::new(dm.device_status(&id)?)
         } else {
             dm.device_create(name, None, DmFlags::empty())?;
             let table =
-                ThinPoolDev::dm_table(data.size()?, data_block_size, low_water_mark, &meta, &data);
-            table_load(dm, &id, &table)?
+                ThinPoolDev::dm_table(data.size(), data_block_size, low_water_mark, &meta, &data);
+            Box::new(table_load(dm, &id, &table)?)
         };
 
         DM::wait_for_dm();
@@ -141,7 +166,7 @@ impl ThinPoolDev {
                  -> DmResult<ThinPoolDev> {
         if !Command::new("thin_check")
                 .arg("-q")
-                .arg(&meta.devnode()?)
+                .arg(&meta.devnode())
                 .status()?
                 .success() {
             return Err(DmError::Dm(ErrorEnum::CheckFailed(meta, data),
@@ -175,28 +200,6 @@ impl ThinPoolDev {
     pub fn message(&self, dm: &DM, message: &str) -> DmResult<()> {
         dm.target_msg(&DevId::Name(self.name()), Sectors(0), message)?;
         Ok(())
-    }
-
-    /// name of the thin pool device
-    pub fn name(&self) -> &DmName {
-        self.dev_info.name()
-    }
-
-    /// Get the "x:y" device string for this LinearDev
-    pub fn dstr(&self) -> String {
-        self.dev_info.device().dstr()
-    }
-
-    /// path of the device node
-    pub fn devnode(&self) -> DmResult<PathBuf> {
-        self.dev_info
-            .device()
-            .devnode()
-            .ok_or_else(|| {
-                            DmError::Dm(ErrorEnum::NotFound,
-                                        "No path associated with dev_info".into())
-                        })
-
     }
 
     /// Get the current status of the thinpool.
@@ -261,7 +264,7 @@ impl ThinPoolDev {
         self.meta_dev.extend(new_segs)?;
         table_reload(dm,
                      &DevId::Name(self.name()),
-                     &ThinPoolDev::dm_table(self.data_dev.size()?,
+                     &ThinPoolDev::dm_table(self.data_dev.size(),
                                             self.data_block_size,
                                             self.low_water_mark,
                                             &self.meta_dev,
@@ -274,19 +277,11 @@ impl ThinPoolDev {
         self.data_dev.extend(new_segs)?;
         table_reload(dm,
                      &DevId::Name(self.name()),
-                     &ThinPoolDev::dm_table(self.data_dev.size()?,
+                     &ThinPoolDev::dm_table(self.data_dev.size(),
                                             self.data_block_size,
                                             self.low_water_mark,
                                             &self.meta_dev,
                                             &self.data_dev))?;
-        Ok(())
-    }
-
-    /// Remove the device from DM
-    pub fn teardown(self, dm: &DM) -> DmResult<()> {
-        dm.device_remove(&DevId::Name(self.name()), DmFlags::empty())?;
-        self.data_dev.teardown(dm)?;
-        self.meta_dev.teardown(dm)?;
         Ok(())
     }
 }

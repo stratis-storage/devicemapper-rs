@@ -11,7 +11,6 @@ use std::ops::Deref;
 use std::os::unix::io::AsRawFd;
 use std::mem::{size_of, transmute};
 use std::slice;
-use std::collections::BTreeSet;
 use std::cmp;
 use std::thread;
 use std::time::Duration;
@@ -620,13 +619,16 @@ impl DM {
     /// inactive table.
     ///
     /// Valid flags: DM_QUERY_INACTIVE_TABLE
-    pub fn table_deps(&self, dev: Device, flags: DmFlags) -> DmResult<Vec<Device>> {
+    pub fn table_deps(&self, id: &DevId, flags: DmFlags) -> DmResult<Vec<Device>> {
         let mut hdr: dmi::Struct_dm_ioctl = Default::default();
 
         let clean_flags = DM_QUERY_INACTIVE_TABLE & flags;
 
         Self::initialize_hdr(&mut hdr, clean_flags);
-        hdr.dev = dev.into();
+        match *id {
+            DevId::Name(name) => Self::hdr_set_name(&mut hdr, name),
+            DevId::Uuid(uuid) => Self::hdr_set_uuid(&mut hdr, uuid),
+        };
 
         let data_out = self.do_ioctl(dmi::DM_TABLE_DEPS_CMD as u8, &mut hdr, None)?;
 
@@ -821,21 +823,6 @@ impl DM {
                 None
             }))
     }
-
-    /// Recursively walk DM deps to see if `dev` might be its own dependency.
-    pub fn depends_on(&self, dev: Device, dm_majors: &BTreeSet<u32>) -> DmResult<bool> {
-        if !dm_majors.contains(&dev.major) {
-            return Ok(false);
-        }
-
-        for d in self.table_deps(dev, DmFlags::empty())? {
-            if d == dev || self.depends_on(d, dm_majors)? {
-                return Ok(true);
-            }
-        }
-
-        Ok(false)
-    }
 }
 
 #[cfg(test)]
@@ -1021,12 +1008,11 @@ mod tests {
     fn sudo_test_empty_deps() {
         let dm = DM::new().unwrap();
         let name = DmName::new("example-dev").expect("is valid DM name");
-        let result = dm.device_create(name, None, DmFlags::empty()).unwrap();
-        let device = result.device();
+        dm.device_create(name, None, DmFlags::empty()).unwrap();
 
         let deps;
         loop {
-            if let Ok(list) = dm.table_deps(device, DmFlags::empty()) {
+            if let Ok(list) = dm.table_deps(&DevId::Name(name), DmFlags::empty()) {
                 deps = list;
                 break;
             }

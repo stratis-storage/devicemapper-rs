@@ -3,7 +3,6 @@
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 use std::fmt;
-use std::fs::File;
 use std::path::PathBuf;
 
 use consts::DmFlags;
@@ -11,9 +10,8 @@ use deviceinfo::DeviceInfo;
 use dm::{DM, DevId, DmName};
 use result::{DmResult, DmError, ErrorEnum};
 use segment::Segment;
-use shared::{device_exists, table_load, table_reload};
+use shared::{DmDevice, device_exists, table_load, table_reload};
 use types::{Sectors, TargetLine};
-use util::blkdev_size;
 
 /// A DM construct of combined Segments
 pub struct LinearDev {
@@ -25,6 +23,29 @@ pub struct LinearDev {
 impl fmt::Debug for LinearDev {
     fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
         write!(f, "{}", self.name())
+    }
+}
+
+impl DmDevice for LinearDev {
+    fn devnode(&self) -> PathBuf {
+        devnode!(self)
+    }
+
+    fn dstr(&self) -> String {
+        dstr!(self)
+    }
+
+    fn name(&self) -> &DmName {
+        name!(self)
+    }
+
+    fn size(&self) -> Sectors {
+        self.segments.iter().map(|s| s.length).sum()
+    }
+
+    fn teardown(self, dm: &DM) -> DmResult<()> {
+        dm.device_remove(&DevId::Name(self.name()), DmFlags::empty())?;
+        Ok(())
     }
 }
 
@@ -81,7 +102,7 @@ impl LinearDev {
             let line = (logical_start_offset,
                         length,
                         "linear".to_owned(),
-                        format!("{} {}", segment.device.dstr(), *physical_start_offset));
+                        format!("{} {}", segment.device, *physical_start_offset));
             debug!("dmtable line : {:?}", line);
             table.push(line);
             logical_start_offset += length;
@@ -130,11 +151,6 @@ impl LinearDev {
         Ok(())
     }
 
-    /// DM name - from the DeviceInfo struct
-    pub fn name(&self) -> &DmName {
-        self.dev_info.name()
-    }
-
     /// Set the name for this LinearDev.
     pub fn set_name(&mut self, dm: &DM, name: &DmName) -> DmResult<()> {
         if self.name() == name {
@@ -144,45 +160,16 @@ impl LinearDev {
         self.dev_info = Box::new(dm.device_status(&DevId::Name(name))?);
         Ok(())
     }
-
-    /// Get the "x:y" device string for this LinearDev
-    pub fn dstr(&self) -> String {
-        self.dev_info.device().dstr()
-    }
-
-    /// return the total size of the linear device
-    pub fn size(&self) -> DmResult<Sectors> {
-        let f = File::open(self.devnode()?)?;
-        Ok(blkdev_size(&f)?.sectors())
-    }
-
-    /// path of the device node
-    pub fn devnode(&self) -> DmResult<PathBuf> {
-        self.dev_info
-            .device()
-            .devnode()
-            .ok_or_else(|| {
-                            DmError::Dm(ErrorEnum::NotFound,
-                                        "No path associated with dev_info".into())
-                        })
-    }
-
-    /// Remove the device from DM
-    pub fn teardown(self, dm: &DM) -> DmResult<()> {
-        dm.device_remove(&DevId::Name(self.name()), DmFlags::empty())?;
-        Ok(())
-    }
 }
 
 #[cfg(test)]
 mod tests {
     use std::fs::OpenOptions;
     use std::path::Path;
-    use std::str::FromStr;
 
     use super::super::consts::DM_STATUS_TABLE;
     use super::super::device::Device;
-    use super::super::loopbacked::test_with_spec;
+    use super::super::loopbacked::{blkdev_size, devnode_to_devno, test_with_spec};
 
     use super::*;
 
@@ -200,7 +187,7 @@ mod tests {
 
         let dm = DM::new().unwrap();
         let name = "name";
-        let dev = Device::from_str(&paths[0].to_string_lossy()).unwrap();
+        let dev = Device::from(devnode_to_devno(&paths[0]).unwrap());
         let mut ld = LinearDev::new(DmName::new(name).expect("valid format"),
                                     &dm,
                                     vec![Segment::new(dev, Sectors(0), Sectors(1))])
@@ -219,7 +206,7 @@ mod tests {
 
         let dm = DM::new().unwrap();
         let name = "name";
-        let dev = Device::from_str(&paths[0].to_string_lossy()).unwrap();
+        let dev = Device::from(devnode_to_devno(&paths[0]).unwrap());
         let mut ld = LinearDev::new(DmName::new(name).expect("valid format"),
                                     &dm,
                                     vec![Segment::new(dev, Sectors(0), Sectors(1))])
@@ -241,7 +228,7 @@ mod tests {
 
         let dm = DM::new().unwrap();
         let name = "name";
-        let dev = Device::from_str(&paths[0].to_string_lossy()).unwrap();
+        let dev = Device::from(devnode_to_devno(&paths[0]).unwrap());
         let segments = vec![Segment::new(dev, Sectors(0), Sectors(1)),
                             Segment::new(dev, Sectors(0), Sectors(1))];
         let range: Sectors = segments.iter().map(|s| s.length).sum();
@@ -255,9 +242,8 @@ mod tests {
                    count);
         assert_eq!(blkdev_size(&OpenOptions::new()
                                     .read(true)
-                                    .open(ld.devnode().unwrap())
+                                    .open(ld.devnode())
                                     .unwrap())
-                           .unwrap()
                            .sectors(),
                    range);
 
@@ -272,7 +258,7 @@ mod tests {
 
         let dm = DM::new().unwrap();
         let name = "name";
-        let dev = Device::from_str(&paths[0].to_string_lossy()).unwrap();
+        let dev = Device::from(devnode_to_devno(&paths[0]).unwrap());
         let segments = vec![Segment::new(dev, Sectors(0), Sectors(1))];
         let table = LinearDev::dm_table(&segments);
         let ld = LinearDev::new(DmName::new(name).expect("valid format"),
@@ -297,7 +283,7 @@ mod tests {
         assert!(paths.len() >= 1);
 
         let dm = DM::new().unwrap();
-        let dev = Device::from_str(&paths[0].to_string_lossy()).unwrap();
+        let dev = Device::from(devnode_to_devno(&paths[0]).unwrap());
         let ld = LinearDev::new(DmName::new("name").expect("valid format"),
                                 &dm,
                                 vec![Segment::new(dev, Sectors(0), Sectors(1))])
@@ -317,7 +303,7 @@ mod tests {
 
         let dm = DM::new().unwrap();
         let name = "name";
-        let dev = Device::from_str(&paths[0].to_string_lossy()).unwrap();
+        let dev = Device::from(devnode_to_devno(&paths[0]).unwrap());
         let segments = vec![Segment::new(dev, Sectors(0), Sectors(1))];
         let table = LinearDev::dm_table(&segments);
         let ld = LinearDev::new(DmName::new(name).expect("valid format"), &dm, segments).unwrap();
