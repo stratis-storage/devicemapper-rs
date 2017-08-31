@@ -80,6 +80,6 @@ impl From<u64> for Device {
 
 impl From<Device> for u64 {
     fn from(dev: Device) -> u64 {
-        ((dev.major << 8) ^ (dev.minor as u32 & 0xff)) as u64
+        u64::from((dev.major << 8) ^ (u32::from(dev.minor) & 0xff))
     }
 }

@@ -2,6 +2,16 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
+// Allow the clippy error cast_lossless in this module.
+// Otherwise, clippy will suggest that "as u64" be converted to "64::from".
+// Unfortunately, the locations it suggests are all in macros, and u64
+// does not implement From<usize>. It is preferable to use the macros
+// uniformly for both usize and the other u* types.
+// I don't think that casting from usize to u64 could be lossy, unless the
+// code is running on a machine with 128 bit pointers, so this is not a
+// pressing worry.
+#![allow(cast_lossless)]
+
 use consts::SECTOR_SIZE;
 
 use std::fmt;
@@ -249,3 +259,15 @@ pub type TargetLine = (Sectors, Sectors, String, String);
 /// The same as TargetLine, except generalized for argument rather than
 /// return type.
 pub type TargetLineArg<T1, T2> = (Sectors, Sectors, T1, T2);
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    /// Verify that Sectors can be multiplied by a usize.
+    /// The real test is that this tests compiles at all.
+    fn test_usize() {
+        assert_eq!(Sectors(0) * 32usize, Sectors(0));
+    }
+}
