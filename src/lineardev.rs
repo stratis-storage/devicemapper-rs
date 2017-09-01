@@ -10,7 +10,7 @@ use deviceinfo::DeviceInfo;
 use dm::{DM, DevId, DmName};
 use result::{DmResult, DmError, ErrorEnum};
 use segment::Segment;
-use shared::{DmDevice, device_exists, table_load, table_reload};
+use shared::{DmDevice, device_create, device_exists, table_reload};
 use types::{Sectors, TargetLine};
 
 /// A DM construct of combined Segments
@@ -70,9 +70,8 @@ impl LinearDev {
             // TODO: Verify that kernel's model matches up with segments.
             Box::new(dm.device_status(&id)?)
         } else {
-            dm.device_create(name, None, DmFlags::empty())?;
             let table = LinearDev::dm_table(&segments);
-            Box::new(table_load(dm, &id, &table)?)
+            Box::new(device_create(dm, name, &id, &table)?)
         };
 
         DM::wait_for_dm();

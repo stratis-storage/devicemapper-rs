@@ -31,18 +31,26 @@ pub trait DmDevice {
     fn teardown(self, dm: &DM) -> DmResult<()>;
 }
 
-/// Load the table for a device.
-pub fn table_load<T1, T2>(dm: &DM,
-                          id: &DevId,
-                          table: &[TargetLineArg<T1, T2>])
-                          -> DmResult<DeviceInfo>
+/// Create a device, load a table, and resume it.
+pub fn device_create<T1, T2>(dm: &DM,
+                             name: &DmName,
+                             id: &DevId,
+                             table: &[TargetLineArg<T1, T2>])
+                             -> DmResult<DeviceInfo>
     where T1: AsRef<str>,
           T2: AsRef<str>
 {
-    let dev_info = dm.table_load(id, table)?;
+    dm.device_create(name, None, DmFlags::empty())?;
+    let dev_info = match dm.table_load(id, table) {
+        Err(e) => {
+            dm.device_remove(id, DmFlags::empty())?;
+            return Err(e);
+        }
+        Ok(dev_info) => dev_info,
+    };
     dm.device_suspend(id, DmFlags::empty())?;
-    Ok(dev_info)
 
+    Ok(dev_info)
 }
 
 /// Reload the table for a device

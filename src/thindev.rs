@@ -11,7 +11,7 @@ use consts::DmFlags;
 use deviceinfo::DeviceInfo;
 use dm::{DM, DevId, DmName};
 use result::{DmError, DmResult, ErrorEnum};
-use shared::{DmDevice, device_exists, table_load, table_reload};
+use shared::{DmDevice, device_create, device_exists, table_reload};
 use thinpooldev::ThinPoolDev;
 use types::TargetLine;
 
@@ -148,9 +148,8 @@ impl ThinDev {
             // TODO: Verify that kernel's model matches arguments.
             Box::new(dm.device_status(&id)?)
         } else {
-            dm.device_create(name, None, DmFlags::empty())?;
             let table = ThinDev::dm_table(&thin_pool_dstr, thin_id, length);
-            Box::new(table_load(dm, &id, &table)?)
+            Box::new(device_create(dm, name, &id, &table)?)
         };
 
         DM::wait_for_dm();
