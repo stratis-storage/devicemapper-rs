@@ -12,7 +12,7 @@ use dm::{DM, DevId, DmName};
 use lineardev::LinearDev;
 use result::{DmResult, DmError, ErrorEnum};
 use segment::Segment;
-use shared::{DmDevice, device_exists, table_load, table_reload};
+use shared::{DmDevice, device_create, device_exists, table_reload};
 use types::{DataBlocks, MetaBlocks, Sectors, TargetLine};
 
 /// Values are explicitly stated in the device-mapper kernel documentation.
@@ -123,10 +123,9 @@ impl ThinPoolDev {
             // TODO: Verify that kernel table matches our table.
             Box::new(dm.device_status(&id)?)
         } else {
-            dm.device_create(name, None, DmFlags::empty())?;
             let table =
                 ThinPoolDev::dm_table(data.size(), data_block_size, low_water_mark, &meta, &data);
-            Box::new(table_load(dm, &id, &table)?)
+            Box::new(device_create(dm, name, &id, &table)?)
         };
 
         DM::wait_for_dm();
