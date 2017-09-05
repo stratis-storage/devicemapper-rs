@@ -138,6 +138,12 @@ unsigned_mul!(u16, DataBlocks);
 unsigned_mul!(u8, DataBlocks);
 unsigned_mul!(usize, DataBlocks);
 
+impl Display for DataBlocks {
+    fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
+        write!(f, "{} data blocks", self.0)
+    }
+}
+
 custom_derive! {
     #[derive(NewtypeAdd, NewtypeAddAssign,
              NewtypeDeref,
@@ -164,6 +170,12 @@ unsigned_mul!(u32, MetaBlocks);
 unsigned_mul!(u16, MetaBlocks);
 unsigned_mul!(u8, MetaBlocks);
 unsigned_mul!(usize, MetaBlocks);
+
+impl Display for MetaBlocks {
+    fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
+        write!(f, "{} meta blocks", self.0)
+    }
+}
 
 custom_derive! {
     #[derive(NewtypeAdd, NewtypeAddAssign,
