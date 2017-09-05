@@ -8,6 +8,7 @@
 use std::path::PathBuf;
 
 use super::consts::{DmFlags, DM_SUSPEND};
+use super::device::Device;
 use super::deviceinfo::DeviceInfo;
 use super::dm::{DevId, DM, DmName};
 use super::result::DmResult;
@@ -18,8 +19,8 @@ pub trait DmDevice {
     /// The device's device node.
     fn devnode(&self) -> PathBuf;
 
-    /// The device's number, formatted as a string <maj:min>.
-    fn dstr(&self) -> String;
+    /// The device.
+    fn device(&self) -> Device;
 
     /// The device's name.
     fn name(&self) -> &DmName;

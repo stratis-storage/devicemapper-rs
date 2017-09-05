@@ -8,6 +8,7 @@ use std::path::PathBuf;
 use serde;
 
 use consts::DmFlags;
+use device::Device;
 use deviceinfo::DeviceInfo;
 use dm::{DM, DevId, DmName};
 use result::{DmError, DmResult, ErrorEnum};
@@ -71,7 +72,7 @@ pub struct ThinDev {
     dev_info: Box<DeviceInfo>,
     thin_id: ThinDevId,
     size: Sectors,
-    thinpool_dstr: String,
+    thinpool: Device,
 }
 
 impl fmt::Debug for ThinDev {
@@ -81,12 +82,12 @@ impl fmt::Debug for ThinDev {
 }
 
 impl DmDevice for ThinDev {
-    fn devnode(&self) -> PathBuf {
-        devnode!(self)
+    fn device(&self) -> Device {
+        device!(self)
     }
 
-    fn dstr(&self) -> String {
-        dstr!(self)
+    fn devnode(&self) -> PathBuf {
+        devnode!(self)
     }
 
     fn name(&self) -> &DmName {
@@ -142,13 +143,13 @@ impl ThinDev {
                  -> DmResult<ThinDev> {
 
         let id = DevId::Name(name);
-        let thin_pool_dstr = thin_pool.dstr();
+        let thin_pool_device = thin_pool.device();
 
         let dev_info = if device_exists(dm, name)? {
             // TODO: Verify that kernel's model matches arguments.
             Box::new(dm.device_status(&id)?)
         } else {
-            let table = ThinDev::dm_table(&thin_pool_dstr, thin_id, length);
+            let table = ThinDev::dm_table(thin_pool_device, thin_id, length);
             Box::new(device_create(dm, name, &id, &table)?)
         };
 
@@ -157,7 +158,7 @@ impl ThinDev {
                dev_info: dev_info,
                thin_id: thin_id,
                size: length,
-               thinpool_dstr: thin_pool_dstr,
+               thinpool: thin_pool_device,
            })
     }
 
@@ -167,8 +168,8 @@ impl ThinDev {
     /// where the thin device specific string has the format:
     /// <thinpool maj:min> <thin_id>
     /// There is exactly one entry in the table.
-    fn dm_table(thin_pool_dstr: &str, thin_id: ThinDevId, length: Sectors) -> Vec<TargetLine> {
-        let params = format!("{} {}", thin_pool_dstr, thin_id);
+    fn dm_table(thin_pool: Device, thin_id: ThinDevId, length: Sectors) -> Vec<TargetLine> {
+        let params = format!("{} {}", thin_pool, thin_id);
         vec![(Sectors::default(), length, "thin".to_owned(), params)]
     }
 
@@ -209,7 +210,7 @@ impl ThinDev {
 
         table_reload(dm,
                      &DevId::Name(self.name()),
-                     &ThinDev::dm_table(&self.thinpool_dstr, self.thin_id, self.size))?;
+                     &ThinDev::dm_table(self.thinpool, self.thin_id, self.size))?;
 
         Ok(())
     }
