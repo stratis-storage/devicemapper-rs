@@ -7,6 +7,7 @@ use std::path::PathBuf;
 use std::process::Command;
 
 use consts::{DmFlags, IEC};
+use device::Device;
 use deviceinfo::DeviceInfo;
 use dm::{DM, DevId, DmName};
 use lineardev::LinearDev;
@@ -41,12 +42,12 @@ impl fmt::Debug for ThinPoolDev {
 }
 
 impl DmDevice for ThinPoolDev {
-    fn devnode(&self) -> PathBuf {
-        devnode!(self)
+    fn device(&self) -> Device {
+        device!(self)
     }
 
-    fn dstr(&self) -> String {
-        dstr!(self)
+    fn devnode(&self) -> PathBuf {
+        devnode!(self)
     }
 
     fn name(&self) -> &DmName {
@@ -188,8 +189,8 @@ impl ThinPoolDev {
                 data: &LinearDev)
                 -> Vec<TargetLine> {
         let params = format!("{} {} {} {} 1 skip_block_zeroing",
-                             meta.dstr(),
-                             data.dstr(),
+                             meta.device(),
+                             data.device(),
                              *data_block_size,
                              *low_water_mark);
         vec![(Sectors::default(), length, "thin-pool".to_owned(), params)]

@@ -5,15 +5,15 @@
 /// A module to contain functionality shared among the various types of
 /// devices and implemented by means of macros.
 
-macro_rules! name {
+macro_rules! device {
     ($s: ident) => {
-        $s.dev_info.name()
+        $s.dev_info.device()
     }
 }
 
-macro_rules! dstr {
+macro_rules! name {
     ($s: ident) => {
-        $s.dev_info.device().to_string()
+        $s.dev_info.name()
     }
 }
 

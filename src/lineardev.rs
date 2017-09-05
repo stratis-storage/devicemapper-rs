@@ -6,6 +6,7 @@ use std::fmt;
 use std::path::PathBuf;
 
 use consts::DmFlags;
+use device::Device;
 use deviceinfo::DeviceInfo;
 use dm::{DM, DevId, DmName};
 use result::{DmResult, DmError, ErrorEnum};
@@ -27,12 +28,12 @@ impl fmt::Debug for LinearDev {
 }
 
 impl DmDevice for LinearDev {
-    fn devnode(&self) -> PathBuf {
-        devnode!(self)
+    fn device(&self) -> Device {
+        device!(self)
     }
 
-    fn dstr(&self) -> String {
-        dstr!(self)
+    fn devnode(&self) -> PathBuf {
+        devnode!(self)
     }
 
     fn name(&self) -> &DmName {
