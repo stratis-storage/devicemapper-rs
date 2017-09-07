@@ -18,11 +18,9 @@ use super::types::{Bytes, Sectors};
 
 
 /// send IOCTL via blkgetsize64
-#[allow(dead_code)]
 ioctl!(read blkgetsize64 with 0x12, 114; u64);
 
 /// get the size of a given block device file
-#[allow(dead_code)]
 pub fn blkdev_size(file: &File) -> Bytes {
     let mut val: u64 = 0;
 
