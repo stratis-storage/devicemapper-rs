@@ -109,7 +109,7 @@ impl DmDevice for ThinDev {
 pub enum ThinStatus {
     /// Thin device is good. Includes number of mapped sectors, and
     /// highest mapped sector.
-    Good((Sectors, Sectors)),
+    Good((Sectors, Option<Sectors>)),
     /// Thin device is failed.
     Fail,
 }
@@ -195,12 +195,19 @@ impl ThinDev {
         assert!(status_vals.len() >= 2,
                 "Kernel must return at least 2 values from thin pool status");
 
-        Ok(ThinStatus::Good((Sectors(status_vals[0]
-                                         .parse::<u64>()
-                                         .expect("mapped sector count value must be valid")),
-                             Sectors(status_vals[1]
-                                         .parse::<u64>()
-                                         .expect("highest mapped sector value must be valid")))))
+        let count = status_vals[0]
+            .parse::<u64>()
+            .expect("Kernel always returns a parseable u64 for sector count");
+
+        let highest = if count == 0 {
+            None
+        } else {
+            Some(Sectors(status_vals[1]
+                             .parse::<u64>()
+                             .expect("Kernel always returns a parseable u64 when count > 0")))
+        };
+
+        Ok(ThinStatus::Good((Sectors(count), highest)))
     }
 
     /// Extend the thin device's (virtual) size by the number of
