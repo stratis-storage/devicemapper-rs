@@ -229,6 +229,11 @@ impl Sectors {
         Bytes(self.0 * SECTOR_SIZE as u64)
     }
 
+    /// The number of whole metablocks contained in these sectors.
+    pub fn metablocks(&self) -> MetaBlocks {
+        MetaBlocks(*self / META_BLOCK_SIZE)
+    }
+
     checked_add!(Sectors);
 }
 
