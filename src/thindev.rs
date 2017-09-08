@@ -142,15 +142,15 @@ impl ThinDev {
                  length: Sectors)
                  -> DmResult<ThinDev> {
 
-        let id = DevId::Name(name);
         let thin_pool_device = thin_pool.device();
 
         let dev_info = if device_exists(dm, name)? {
+            let id = DevId::Name(name);
             // TODO: Verify that kernel's model matches arguments.
             Box::new(dm.device_status(&id)?)
         } else {
             let table = ThinDev::dm_table(thin_pool_device, thin_id, length);
-            Box::new(device_create(dm, name, &id, &table)?)
+            Box::new(device_create(dm, name, &table)?)
         };
 
         DM::wait_for_dm();
