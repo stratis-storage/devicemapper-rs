@@ -5,7 +5,7 @@
 use std::fmt;
 use std::path::PathBuf;
 
-use consts::DmFlags;
+use consts::{DM_STATUS_TABLE, DmFlags};
 use device::Device;
 use deviceinfo::DeviceInfo;
 use dm::{DM, DevId, DmName};
@@ -55,23 +55,37 @@ impl DmDevice for LinearDev {
 impl LinearDev {
     /// Construct a new block device by concatenating the given segments
     /// into linear space.
+    /// If the device is already known to the kernel, just verifies that the
+    /// segments argument passed exactly matches the kernel data.
+    ///
     /// Warning: If the segments overlap, this method will succeed. However,
     /// the behavior of the linear device in that case should be treated as
     /// undefined.
-    /// TODO: If the linear device already exists, verify that the kernel's
-    /// model matches the segments argument.
-    pub fn new(name: &DmName, dm: &DM, segments: Vec<Segment>) -> DmResult<LinearDev> {
+    ///
+    /// Note: A linear device is just a mapping in the kernel from locations
+    /// in that device to locations on other devices which are specified by
+    /// their device number. There is usually a device node so that data can
+    /// be read from and written to the device. Other than that, it really
+    /// has no existence. Consequently, there is no conflict in overloading
+    /// this method to mean both "make a wholly new device" and "establish
+    /// the existence of the requested device". Of course, a linear device
+    /// is usually expected to hold data, so it is important to get the
+    /// mapping just right.
+    pub fn setup(name: &DmName, dm: &DM, segments: Vec<Segment>) -> DmResult<LinearDev> {
         if segments.is_empty() {
             return Err(DmError::Dm(ErrorEnum::Invalid,
                                    "linear device must have at least one segment".into()));
         }
 
         let id = DevId::Name(name);
+        let table = LinearDev::dm_table(&segments);
         let dev_info = if device_exists(dm, name)? {
-            // TODO: Verify that kernel's model matches up with segments.
+            if dm.table_status(&id, DM_STATUS_TABLE)?.1 != table {
+                let err_msg = "Specified data does not match kernel data";
+                return Err(DmError::Dm(ErrorEnum::Invalid, err_msg.into()));
+            }
             Box::new(dm.device_status(&id)?)
         } else {
-            let table = LinearDev::dm_table(&segments);
             Box::new(device_create(dm, name, &id, &table)?)
         };
 
@@ -175,9 +189,9 @@ mod tests {
 
     /// Verify that a new linear dev with 0 segments fails.
     fn test_empty(_paths: &[&Path]) -> () {
-        assert!(LinearDev::new(DmName::new("new").expect("valid format"),
-                               &DM::new().unwrap(),
-                               vec![])
+        assert!(LinearDev::setup(DmName::new("new").expect("valid format"),
+                                 &DM::new().unwrap(),
+                                 vec![])
                         .is_err());
     }
 
@@ -188,9 +202,9 @@ mod tests {
         let dm = DM::new().unwrap();
         let name = "name";
         let dev = Device::from(devnode_to_devno(&paths[0]).unwrap());
-        let mut ld = LinearDev::new(DmName::new(name).expect("valid format"),
-                                    &dm,
-                                    vec![Segment::new(dev, Sectors(0), Sectors(1))])
+        let mut ld = LinearDev::setup(DmName::new(name).expect("valid format"),
+                                      &dm,
+                                      vec![Segment::new(dev, Sectors(0), Sectors(1))])
                 .unwrap();
 
         ld.set_name(&dm, DmName::new(name).expect("valid format"))
@@ -207,9 +221,9 @@ mod tests {
         let dm = DM::new().unwrap();
         let name = "name";
         let dev = Device::from(devnode_to_devno(&paths[0]).unwrap());
-        let mut ld = LinearDev::new(DmName::new(name).expect("valid format"),
-                                    &dm,
-                                    vec![Segment::new(dev, Sectors(0), Sectors(1))])
+        let mut ld = LinearDev::setup(DmName::new(name).expect("valid format"),
+                                      &dm,
+                                      vec![Segment::new(dev, Sectors(0), Sectors(1))])
                 .unwrap();
 
         let new_name = "new_name";
@@ -233,7 +247,7 @@ mod tests {
                             Segment::new(dev, Sectors(0), Sectors(1))];
         let range: Sectors = segments.iter().map(|s| s.length).sum();
         let count = segments.len();
-        let ld = LinearDev::new(DmName::new(name).expect("valid format"), &dm, segments).unwrap();
+        let ld = LinearDev::setup(DmName::new(name).expect("valid format"), &dm, segments).unwrap();
         assert_eq!(dm.table_status(&DevId::Name(DmName::new(name).expect("valid format")),
                                    DM_STATUS_TABLE)
                        .unwrap()
@@ -250,9 +264,8 @@ mod tests {
         ld.teardown(&dm).unwrap();
     }
 
-    /// Verify that constructing a second dev with the same name succeeds.
-    /// Verify that the segment table is, however, the segment table of the
-    /// previously constructed device.
+    /// Verify that constructing a second dev with the same name succeeds
+    /// only if it has the same list of segments.
     fn test_same_name(paths: &[&Path]) -> () {
         assert!(paths.len() >= 1);
 
@@ -261,14 +274,15 @@ mod tests {
         let dev = Device::from(devnode_to_devno(&paths[0]).unwrap());
         let segments = vec![Segment::new(dev, Sectors(0), Sectors(1))];
         let table = LinearDev::dm_table(&segments);
-        let ld = LinearDev::new(DmName::new(name).expect("valid format"),
-                                &dm,
-                                vec![Segment::new(dev, Sectors(0), Sectors(1))])
+        let ld = LinearDev::setup(DmName::new(name).expect("valid format"),
+                                  &dm,
+                                  segments.iter().cloned().collect())
                 .unwrap();
-        assert!(LinearDev::new(DmName::new(name).expect("valid format"),
-                               &dm,
-                               vec![Segment::new(dev, Sectors(1), Sectors(1))])
-                        .is_ok());
+        assert!(LinearDev::setup(DmName::new(name).expect("valid format"),
+                                 &dm,
+                                 vec![Segment::new(dev, Sectors(1), Sectors(1))])
+                        .is_err());
+        assert!(LinearDev::setup(DmName::new(name).expect("valid format"), &dm, segments).is_ok());
         assert_eq!(table,
                    dm.table_status(&DevId::Name(DmName::new(name).expect("valid format")),
                                    DM_STATUS_TABLE)
@@ -284,13 +298,12 @@ mod tests {
 
         let dm = DM::new().unwrap();
         let dev = Device::from(devnode_to_devno(&paths[0]).unwrap());
-        let ld = LinearDev::new(DmName::new("name").expect("valid format"),
-                                &dm,
-                                vec![Segment::new(dev, Sectors(0), Sectors(1))])
+        let segments = vec![Segment::new(dev, Sectors(0), Sectors(1))];
+        let ld = LinearDev::setup(DmName::new("name").expect("valid format"),
+                                  &dm,
+                                  segments.iter().cloned().collect())
                 .unwrap();
-        let ld2 = LinearDev::new(DmName::new("ersatz").expect("valid format"),
-                                 &dm,
-                                 vec![Segment::new(dev, Sectors(0), Sectors(1))]);
+        let ld2 = LinearDev::setup(DmName::new("ersatz").expect("valid format"), &dm, segments);
         assert!(ld2.is_ok());
 
         ld2.unwrap().teardown(&dm).unwrap();
@@ -306,7 +319,7 @@ mod tests {
         let dev = Device::from(devnode_to_devno(&paths[0]).unwrap());
         let segments = vec![Segment::new(dev, Sectors(0), Sectors(1))];
         let table = LinearDev::dm_table(&segments);
-        let ld = LinearDev::new(DmName::new(name).expect("valid format"), &dm, segments).unwrap();
+        let ld = LinearDev::setup(DmName::new(name).expect("valid format"), &dm, segments).unwrap();
         assert_eq!(table,
                    dm.table_status(&DevId::Name(DmName::new(name).expect("valid format")),
                                    DM_STATUS_TABLE)

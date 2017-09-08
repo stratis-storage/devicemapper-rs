@@ -300,16 +300,17 @@ impl ThinPoolDev {
 #[cfg(test)]
 pub fn minimal_thinpool(dm: &DM, path: &Path) -> ThinPoolDev {
     let dev = Device::from(devnode_to_devno(path).unwrap());
-    let meta = LinearDev::new(DmName::new("meta").expect("valid format"),
-                              dm,
-                              vec![Segment::new(dev, Sectors(0), MIN_RECOMMENDED_METADATA_SIZE)])
+    let meta = LinearDev::setup(DmName::new("meta").expect("valid format"),
+                                dm,
+                                vec![Segment::new(dev, Sectors(0), MIN_RECOMMENDED_METADATA_SIZE)])
             .unwrap();
 
-    let data =
-        LinearDev::new(DmName::new("data").expect("valid format"),
-                       dm,
-                       vec![Segment::new(dev, MIN_RECOMMENDED_METADATA_SIZE, MIN_DATA_BLOCK_SIZE)])
-                .unwrap();
+    let data = LinearDev::setup(DmName::new("data").expect("valid format"),
+                                dm,
+                                vec![Segment::new(dev,
+                                                  MIN_RECOMMENDED_METADATA_SIZE,
+                                                  MIN_DATA_BLOCK_SIZE)])
+            .unwrap();
 
     ThinPoolDev::new(DmName::new("pool").expect("valid format"),
                      dm,
