@@ -77,16 +77,16 @@ impl LinearDev {
                                    "linear device must have at least one segment".into()));
         }
 
-        let id = DevId::Name(name);
         let table = LinearDev::dm_table(&segments);
         let dev_info = if device_exists(dm, name)? {
+            let id = DevId::Name(name);
             if dm.table_status(&id, DM_STATUS_TABLE)?.1 != table {
                 let err_msg = "Specified data does not match kernel data";
                 return Err(DmError::Dm(ErrorEnum::Invalid, err_msg.into()));
             }
             Box::new(dm.device_status(&id)?)
         } else {
-            Box::new(device_create(dm, name, &id, &table)?)
+            Box::new(device_create(dm, name, &table)?)
         };
 
         DM::wait_for_dm();

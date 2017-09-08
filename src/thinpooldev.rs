@@ -124,14 +124,14 @@ impl ThinPoolDev {
                meta: LinearDev,
                data: LinearDev)
                -> DmResult<ThinPoolDev> {
-        let id = DevId::Name(name);
         let dev_info = if device_exists(dm, name)? {
+            let id = DevId::Name(name);
             // TODO: Verify that kernel table matches our table.
             Box::new(dm.device_status(&id)?)
         } else {
             let table =
                 ThinPoolDev::dm_table(data.size(), data_block_size, low_water_mark, &meta, &data);
-            Box::new(device_create(dm, name, &id, &table)?)
+            Box::new(device_create(dm, name, &table)?)
         };
 
         DM::wait_for_dm();
