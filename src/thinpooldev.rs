@@ -16,6 +16,11 @@ use segment::Segment;
 use shared::{DmDevice, device_create, device_exists, table_reload};
 use types::{DataBlocks, MetaBlocks, Sectors, TargetLine};
 
+#[cfg(test)]
+use std::path::Path;
+#[cfg(test)]
+use super::loopbacked::devnode_to_devno;
+
 /// Values are explicitly stated in the device-mapper kernel documentation.
 #[allow(dead_code)]
 const MIN_DATA_BLOCK_SIZE: Sectors = Sectors(128); // 64 KiB
@@ -289,5 +294,65 @@ impl ThinPoolDev {
                                             &self.meta_dev,
                                             &self.data_dev))?;
         Ok(())
+    }
+}
+
+#[cfg(test)]
+pub fn minimal_thinpool(dm: &DM, path: &Path) -> ThinPoolDev {
+    let dev = Device::from(devnode_to_devno(path).unwrap());
+    let meta = LinearDev::new(DmName::new("meta").expect("valid format"),
+                              dm,
+                              vec![Segment::new(dev, Sectors(0), MIN_RECOMMENDED_METADATA_SIZE)])
+            .unwrap();
+
+    let data =
+        LinearDev::new(DmName::new("data").expect("valid format"),
+                       dm,
+                       vec![Segment::new(dev, MIN_RECOMMENDED_METADATA_SIZE, MIN_DATA_BLOCK_SIZE)])
+                .unwrap();
+
+    ThinPoolDev::new(DmName::new("pool").expect("valid format"),
+                     dm,
+                     MIN_DATA_BLOCK_SIZE,
+                     DataBlocks(1),
+                     meta,
+                     data)
+            .unwrap()
+}
+
+#[cfg(test)]
+mod tests {
+    use std::path::Path;
+
+    use super::super::loopbacked::test_with_spec;
+
+    use super::*;
+
+    /// Verify success when constructing a new ThinPoolDev with minimum values
+    /// for data block size and metadata device. Check that the status of the
+    /// device is as expected.
+    fn test_minimum_values(paths: &[&Path]) -> () {
+        assert!(paths.len() >= 1);
+
+        let dm = DM::new().unwrap();
+        let tp = minimal_thinpool(&dm, paths[0]);
+        match tp.status(&dm).unwrap() {
+            ThinPoolStatus::Good(ThinPoolWorkingStatus::Good, tpbu) => {
+                // Even an empty thinpool requires some metadata.
+                assert!(tpbu.used_meta > MetaBlocks(0));
+                assert_eq!(tpbu.total_meta, tp.meta_dev().size().metablocks());
+                assert_eq!(tpbu.used_data, DataBlocks(0));
+                assert_eq!(tpbu.total_data,
+                           DataBlocks(tp.data_dev().size() / tp.data_block_size()));
+            }
+            _ => assert!(false),
+        }
+
+        tp.teardown(&dm).unwrap();
+    }
+
+    #[test]
+    fn loop_test_basic() {
+        test_with_spec(1, test_minimum_values);
     }
 }

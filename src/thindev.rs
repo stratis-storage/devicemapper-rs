@@ -109,7 +109,7 @@ impl DmDevice for ThinDev {
 pub enum ThinStatus {
     /// Thin device is good. Includes number of mapped sectors, and
     /// highest mapped sector.
-    Good((Sectors, Sectors)),
+    Good((Sectors, Option<Sectors>)),
     /// Thin device is failed.
     Fail,
 }
@@ -195,12 +195,19 @@ impl ThinDev {
         assert!(status_vals.len() >= 2,
                 "Kernel must return at least 2 values from thin pool status");
 
-        Ok(ThinStatus::Good((Sectors(status_vals[0]
-                                         .parse::<u64>()
-                                         .expect("mapped sector count value must be valid")),
-                             Sectors(status_vals[1]
-                                         .parse::<u64>()
-                                         .expect("highest mapped sector value must be valid")))))
+        let count = status_vals[0]
+            .parse::<u64>()
+            .expect("Kernel always returns a parseable u64 for sector count");
+
+        let highest = if count == 0 {
+            None
+        } else {
+            Some(Sectors(status_vals[1]
+                             .parse::<u64>()
+                             .expect("Kernel always returns a parseable u64 when count > 0")))
+        };
+
+        Ok(ThinStatus::Good((Sectors(count), highest)))
     }
 
     /// Extend the thin device's (virtual) size by the number of
@@ -229,12 +236,109 @@ impl ThinDev {
 #[cfg(test)]
 mod tests {
 
-    use super::{THIN_DEV_ID_LIMIT, ThinDevId};
+    use std::fs::OpenOptions;
+    use std::path::Path;
+
+    use super::super::loopbacked::{blkdev_size, test_with_spec};
+    use super::super::thinpooldev::minimal_thinpool;
+
+    use super::*;
+
+    const MIN_THIN_DEV_SIZE: Sectors = Sectors(1);
 
     #[test]
     /// Verify that new_checked_u64 discriminates.
     fn test_new_checked_u64() {
         assert!(ThinDevId::new_u64(2u64.pow(32)).is_err());
         assert!(ThinDevId::new_u64(THIN_DEV_ID_LIMIT - 1).is_ok());
+    }
+
+    /// Verify that specifying a size of 0 Sectors will cause a failure.
+    fn test_zero_size(paths: &[&Path]) -> () {
+        assert!(paths.len() >= 1);
+
+        let dm = DM::new().unwrap();
+        let tp = minimal_thinpool(&dm, paths[0]);
+
+        assert!(ThinDev::new(&DmName::new("name").expect("is valid DM name"),
+                             &dm,
+                             &tp,
+                             ThinDevId::new_u64(0).expect("is below limit"),
+                             Sectors(0))
+                        .is_err());
+        tp.teardown(&dm).unwrap();
+    }
+
+    /// Verify success when constructing a new ThinDev. Check that the
+    /// status of the device is as expected.
+    fn test_basic(paths: &[&Path]) -> () {
+        assert!(paths.len() >= 1);
+
+        let dm = DM::new().unwrap();
+        let tp = minimal_thinpool(&dm, paths[0]);
+
+        let td_size = MIN_THIN_DEV_SIZE;
+        let td = ThinDev::new(&DmName::new("name").expect("is valid DM name"),
+                              &dm,
+                              &tp,
+                              ThinDevId::new_u64(0).expect("is below limit"),
+                              td_size)
+                .unwrap();
+
+        assert!(match td.status(&dm).unwrap() {
+                    ThinStatus::Fail => false,
+                    _ => true,
+                });
+
+        assert_eq!(blkdev_size(&OpenOptions::new()
+                                    .read(true)
+                                    .open(td.devnode())
+                                    .unwrap()),
+                   td_size.bytes());
+
+        td.teardown(&dm).unwrap();
+        tp.teardown(&dm).unwrap();
+    }
+
+    /// Verify that constructing a thin device with an already in use id
+    /// fails.
+    fn test_twice(paths: &[&Path]) -> () {
+        assert!(paths.len() >= 1);
+
+        let dm = DM::new().unwrap();
+        let tp = minimal_thinpool(&dm, paths[0]);
+        let id = ThinDevId::new_u64(0).expect("is below limit");
+
+        let td = ThinDev::new(&DmName::new("name1").expect("is valid DM name"),
+                              &dm,
+                              &tp,
+                              id,
+                              MIN_THIN_DEV_SIZE)
+                .unwrap();
+
+        assert!(ThinDev::new(&DmName::new("name2").expect("is valid DM name"),
+                             &dm,
+                             &tp,
+                             id,
+                             MIN_THIN_DEV_SIZE)
+                        .is_err());
+
+        td.teardown(&dm).unwrap();
+        tp.teardown(&dm).unwrap();
+    }
+
+    #[test]
+    fn loop_test_basic() {
+        test_with_spec(1, test_basic);
+    }
+
+    #[test]
+    fn loop_test_twice() {
+        test_with_spec(1, test_twice);
+    }
+
+    #[test]
+    fn loop_test_zero_size() {
+        test_with_spec(1, test_zero_size);
     }
 }
