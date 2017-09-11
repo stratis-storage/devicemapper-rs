@@ -270,20 +270,19 @@ mod tests {
     }
 
     /// Verify success when constructing a new ThinDev. Check that the
-    /// status of the device is as expected.
+    /// status of the device is as expected. Verify that it is now possible
+    /// to call setup() on the thin dev specifying the same name and id.
+    /// Verify that calling new for the second time fails.
     fn test_basic(paths: &[&Path]) -> () {
         assert!(paths.len() >= 1);
 
         let dm = DM::new().unwrap();
         let tp = minimal_thinpool(&dm, paths[0]);
+        let thin_id = ThinDevId::new_u64(0).expect("is below limit");
+        let id = DmName::new("name").expect("is valid DM name");
 
         let td_size = MIN_THIN_DEV_SIZE;
-        let td = ThinDev::new(&DmName::new("name").expect("is valid DM name"),
-                              &dm,
-                              &tp,
-                              ThinDevId::new_u64(0).expect("is below limit"),
-                              td_size)
-                .unwrap();
+        let td = ThinDev::new(&id, &dm, &tp, thin_id, td_size).unwrap();
 
         assert!(match td.status(&dm).unwrap() {
                     ThinStatus::Fail => false,
@@ -296,45 +295,19 @@ mod tests {
                                     .unwrap()),
                    td_size.bytes());
 
-        td.teardown(&dm).unwrap();
-        tp.teardown(&dm).unwrap();
-    }
+        // New thindev w/ same id fails.
+        assert!(ThinDev::new(&id, &dm, &tp, thin_id, td_size).is_err());
 
-    /// Verify that constructing a thin device with an already in use id
-    /// fails.
-    fn test_twice(paths: &[&Path]) -> () {
-        assert!(paths.len() >= 1);
+        // Setting up the just created thin dev succeeds.
+        assert!(ThinDev::setup(&id, &dm, &tp, thin_id, td_size).is_ok());
 
-        let dm = DM::new().unwrap();
-        let tp = minimal_thinpool(&dm, paths[0]);
-        let id = ThinDevId::new_u64(0).expect("is below limit");
-
-        let td = ThinDev::new(&DmName::new("name1").expect("is valid DM name"),
-                              &dm,
-                              &tp,
-                              id,
-                              MIN_THIN_DEV_SIZE)
-                .unwrap();
-
-        assert!(ThinDev::new(&DmName::new("name2").expect("is valid DM name"),
-                             &dm,
-                             &tp,
-                             id,
-                             MIN_THIN_DEV_SIZE)
-                        .is_err());
-
-        td.teardown(&dm).unwrap();
+        td.destroy(&dm, &tp).unwrap();
         tp.teardown(&dm).unwrap();
     }
 
     #[test]
     fn loop_test_basic() {
         test_with_spec(1, test_basic);
-    }
-
-    #[test]
-    fn loop_test_twice() {
-        test_with_spec(1, test_twice);
     }
 
     #[test]

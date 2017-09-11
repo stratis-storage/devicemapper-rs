@@ -49,15 +49,19 @@ impl DeviceInfo {
         let name: &[u8; DM_NAME_LEN] = unsafe { transmute(&self.hdr.name) };
         let slc = slice_to_null(name).expect("kernel ensures null-terminated");
         let name = from_utf8(slc).expect("kernel ensures ASCII characters");
+        assert!(!name.is_empty());
         DmName::new(name).expect(".len() < DM_NAME_LEN")
     }
 
     /// The device's devicemapper uuid.
-    pub fn uuid(&self) -> &DmUuid {
+    pub fn uuid(&self) -> Option<&DmUuid> {
         let uuid: &[u8; DM_UUID_LEN] = unsafe { transmute(&self.hdr.uuid) };
         let slc = slice_to_null(uuid).expect("kernel ensures null-terminated");
         let uuid = from_utf8(slc).expect("kernel ensures ASCII characters");
-        DmUuid::new(uuid).expect(".len() < DM_UUID_LEN")
+        if uuid.is_empty() {
+            return None;
+        }
+        Some(DmUuid::new(uuid).expect(".len() < DM_UUID_LEN"))
     }
 
     /// The flags returned from the device.

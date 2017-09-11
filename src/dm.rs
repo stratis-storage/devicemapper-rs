@@ -38,6 +38,9 @@ fn dev_id_check(value: &str, max_allowed_chars: usize) -> DmResult<()> {
         return Err(DmError::Dm(ErrorEnum::Invalid, err_msg));
     }
     let num_chars = value.len();
+    if num_chars == 0 {
+        return Err(DmError::Dm(ErrorEnum::Invalid, "value has zero characters".into()));
+    }
     if num_chars > max_allowed_chars {
         let err_msg = format!("value {} has {} chars which is greater than maximum allowed {}",
                               value,
@@ -834,6 +837,12 @@ mod tests {
     use super::*;
 
     #[test]
+    /// Verify that creating an empty DmName is an error.
+    pub fn test_empty_name() {
+        assert!(DmName::new("").is_err());
+    }
+
+    #[test]
     /// Test that some version can be obtained.
     fn sudo_test_version() {
         assert!(DM::new().unwrap().version().is_ok());
@@ -893,7 +902,7 @@ mod tests {
         let result = dm.device_create(name, Some(uuid), DmFlags::empty())
             .unwrap();
         assert_eq!(result.name(), name);
-        assert_eq!(result.uuid(), uuid);
+        assert_eq!(result.uuid().unwrap(), uuid);
         dm.device_remove(&DevId::Name(name), DmFlags::empty())
             .unwrap();
     }
@@ -936,8 +945,12 @@ mod tests {
 
         let uuid = DmUuid::new("example-363333333333333").expect("is valid DM uuid");
         let result = dm.device_rename(name, &DevId::Uuid(uuid)).unwrap();
-        assert_eq!(result.uuid(), DmUuid::new("").expect("is valid DM uuid"));
-        assert_eq!(dm.device_status(&DevId::Name(name)).unwrap().uuid(), uuid);
+        assert_eq!(result.uuid(), None);
+        assert_eq!(dm.device_status(&DevId::Name(name))
+                       .unwrap()
+                       .uuid()
+                       .unwrap(),
+                   uuid);
         assert!(dm.device_status(&DevId::Uuid(uuid)).is_ok());
         dm.device_remove(&DevId::Name(name), DmFlags::empty())
             .unwrap();
@@ -979,6 +992,14 @@ mod tests {
         assert_eq!(devices.len(), 1);
         assert_eq!(devices[0].0.as_ref(), new_name);
 
+        let third_name = DmName::new("example-dev-3").expect("is valid DM name");
+        dm.device_create(third_name, None, DmFlags::empty())
+            .unwrap();
+        assert!(dm.device_rename(new_name, &DevId::Name(third_name))
+                    .is_err());
+
+        dm.device_remove(&DevId::Name(third_name), DmFlags::empty())
+            .unwrap();
         dm.device_remove(&DevId::Name(new_name), DmFlags::empty())
             .unwrap();
     }
@@ -1078,11 +1099,24 @@ mod tests {
 
     #[test]
     /// Verify that creating a device with the same name twice fails.
+    /// Verify that creating a device with the same uuid twice fails.
     fn sudo_test_double_creation() {
         let dm = DM::new().unwrap();
         let name = DmName::new("example-dev").expect("is valid DM name");
-        dm.device_create(name, None, DmFlags::empty()).unwrap();
+        let uuid = DmUuid::new("uuid").expect("is valid DM UUID");
+
+        let name_alt = DmName::new("name-alt").expect("is valid DM name");
+        let uuid_alt = DmUuid::new("uuid-alt").expect("is valid DM UUID");
+
+        dm.device_create(name, Some(uuid), DmFlags::empty())
+            .unwrap();
+        assert!(dm.device_create(name, Some(uuid), DmFlags::empty())
+                    .is_err());
         assert!(dm.device_create(name, None, DmFlags::empty()).is_err());
+        assert!(dm.device_create(name, Some(uuid_alt), DmFlags::empty())
+                    .is_err());
+        assert!(dm.device_create(name_alt, Some(uuid), DmFlags::empty())
+                    .is_err());
         dm.device_remove(&DevId::Name(name), DmFlags::empty())
             .unwrap();
     }
