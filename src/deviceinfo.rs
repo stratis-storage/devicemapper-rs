@@ -49,6 +49,7 @@ impl DeviceInfo {
         let name: &[u8; DM_NAME_LEN] = unsafe { transmute(&self.hdr.name) };
         let slc = slice_to_null(name).expect("kernel ensures null-terminated");
         let name = from_utf8(slc).expect("kernel ensures ASCII characters");
+        assert!(!name.is_empty());
         DmName::new(name).expect(".len() < DM_NAME_LEN")
     }
 
