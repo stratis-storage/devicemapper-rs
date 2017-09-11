@@ -7,7 +7,7 @@ use std::path::PathBuf;
 use super::consts::IEC;
 use super::device::Device;
 use super::deviceinfo::DeviceInfo;
-use super::dm::{DM, DevId, DmFlags, DmName};
+use super::dm::{DM, DevId, DmFlags, DmName, DmUuid};
 use super::lineardev::LinearDev;
 use super::result::{DmResult, DmError, ErrorEnum};
 use super::segment::Segment;
@@ -111,6 +111,7 @@ impl ThinPoolDev {
     /// Returns an error if the device is already known to the kernel.
     /// Precondition: the metadata device does not contain any pool metadata.
     pub fn new(name: &DmName,
+               uuid: Option<&DmUuid>,
                dm: &DM,
                data_block_size: Sectors,
                low_water_mark: DataBlocks,
@@ -124,7 +125,7 @@ impl ThinPoolDev {
 
         let table =
             ThinPoolDev::dm_table(data.size(), data_block_size, low_water_mark, &meta, &data);
-        let dev_info = device_create(dm, name, None, &table)?;
+        let dev_info = device_create(dm, name, uuid, &table)?;
 
         DM::wait_for_dm();
         Ok(ThinPoolDev {
@@ -157,6 +158,7 @@ impl ThinPoolDev {
     /// errors will result, so it is expected that the metadata is
     /// well-formed and consistent with the data on the data device.
     pub fn setup(name: &DmName,
+                 uuid: Option<&DmUuid>,
                  dm: &DM,
                  data_block_size: Sectors,
                  low_water_mark: DataBlocks,
@@ -165,7 +167,7 @@ impl ThinPoolDev {
                  -> DmResult<ThinPoolDev> {
         let table =
             ThinPoolDev::dm_table(data.size(), data_block_size, low_water_mark, &meta, &data);
-        let dev_info = device_setup(dm, name, None, &table)?;
+        let dev_info = device_setup(dm, name, uuid, &table)?;
 
         DM::wait_for_dm();
         Ok(ThinPoolDev {
@@ -291,17 +293,20 @@ impl ThinPoolDev {
 pub fn minimal_thinpool(dm: &DM, path: &Path) -> ThinPoolDev {
     let dev = Device::from(devnode_to_devno(path).unwrap());
     let meta = LinearDev::setup(DmName::new("meta").expect("valid format"),
+                                None,
                                 dm,
                                 &[Segment::new(dev, Sectors(0), MIN_RECOMMENDED_METADATA_SIZE)])
             .unwrap();
 
     let data =
         LinearDev::setup(DmName::new("data").expect("valid format"),
+                         None,
                          dm,
                          &[Segment::new(dev, MIN_RECOMMENDED_METADATA_SIZE, MIN_DATA_BLOCK_SIZE)])
                 .unwrap();
 
     ThinPoolDev::new(DmName::new("pool").expect("valid format"),
+                     None,
                      dm,
                      MIN_DATA_BLOCK_SIZE,
                      DataBlocks(1),
