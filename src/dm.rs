@@ -992,6 +992,14 @@ mod tests {
         assert_eq!(devices.len(), 1);
         assert_eq!(devices[0].0.as_ref(), new_name);
 
+        let third_name = DmName::new("example-dev-3").expect("is valid DM name");
+        dm.device_create(third_name, None, DmFlags::empty())
+            .unwrap();
+        assert!(dm.device_rename(new_name, &DevId::Name(third_name))
+                    .is_err());
+
+        dm.device_remove(&DevId::Name(third_name), DmFlags::empty())
+            .unwrap();
         dm.device_remove(&DevId::Name(new_name), DmFlags::empty())
             .unwrap();
     }
