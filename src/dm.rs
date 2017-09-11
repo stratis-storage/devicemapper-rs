@@ -38,6 +38,9 @@ fn dev_id_check(value: &str, max_allowed_chars: usize) -> DmResult<()> {
         return Err(DmError::Dm(ErrorEnum::Invalid, err_msg));
     }
     let num_chars = value.len();
+    if num_chars == 0 {
+        return Err(DmError::Dm(ErrorEnum::Invalid, "value has zero characters".into()));
+    }
     if num_chars > max_allowed_chars {
         let err_msg = format!("value {} has {} chars which is greater than maximum allowed {}",
                               value,
@@ -832,6 +835,12 @@ mod tests {
     use consts::{DmFlags, DM_STATUS_TABLE};
 
     use super::*;
+
+    #[test]
+    /// Verify that creating an empty DmName is an error.
+    pub fn test_empty_name() {
+        assert!(DmName::new("").is_err());
+    }
 
     #[test]
     /// Test that some version can be obtained.
