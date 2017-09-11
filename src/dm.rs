@@ -893,7 +893,7 @@ mod tests {
         let result = dm.device_create(name, Some(uuid), DmFlags::empty())
             .unwrap();
         assert_eq!(result.name(), name);
-        assert_eq!(result.uuid(), uuid);
+        assert_eq!(result.uuid().unwrap(), uuid);
         dm.device_remove(&DevId::Name(name), DmFlags::empty())
             .unwrap();
     }
@@ -936,8 +936,12 @@ mod tests {
 
         let uuid = DmUuid::new("example-363333333333333").expect("is valid DM uuid");
         let result = dm.device_rename(name, &DevId::Uuid(uuid)).unwrap();
-        assert_eq!(result.uuid(), DmUuid::new("").expect("is valid DM uuid"));
-        assert_eq!(dm.device_status(&DevId::Name(name)).unwrap().uuid(), uuid);
+        assert_eq!(result.uuid(), None);
+        assert_eq!(dm.device_status(&DevId::Name(name))
+                       .unwrap()
+                       .uuid()
+                       .unwrap(),
+                   uuid);
         assert!(dm.device_status(&DevId::Uuid(uuid)).is_ok());
         dm.device_remove(&DevId::Name(name), DmFlags::empty())
             .unwrap();
