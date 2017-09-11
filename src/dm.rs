@@ -1091,11 +1091,24 @@ mod tests {
 
     #[test]
     /// Verify that creating a device with the same name twice fails.
+    /// Verify that creating a device with the same uuid twice fails.
     fn sudo_test_double_creation() {
         let dm = DM::new().unwrap();
         let name = DmName::new("example-dev").expect("is valid DM name");
-        dm.device_create(name, None, DmFlags::empty()).unwrap();
+        let uuid = DmUuid::new("uuid").expect("is valid DM UUID");
+
+        let name_alt = DmName::new("name-alt").expect("is valid DM name");
+        let uuid_alt = DmUuid::new("uuid-alt").expect("is valid DM UUID");
+
+        dm.device_create(name, Some(uuid), DmFlags::empty())
+            .unwrap();
+        assert!(dm.device_create(name, Some(uuid), DmFlags::empty())
+                    .is_err());
         assert!(dm.device_create(name, None, DmFlags::empty()).is_err());
+        assert!(dm.device_create(name, Some(uuid_alt), DmFlags::empty())
+                    .is_err());
+        assert!(dm.device_create(name_alt, Some(uuid), DmFlags::empty())
+                    .is_err());
         dm.device_remove(&DevId::Name(name), DmFlags::empty())
             .unwrap();
     }
