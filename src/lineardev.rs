@@ -71,7 +71,7 @@ impl LinearDev {
         }
 
         let table = LinearDev::dm_table(segments);
-        let dev_info = device_setup(dm, name, &table)?;
+        let dev_info = device_setup(dm, name, None, &table)?;
 
         DM::wait_for_dm();
         Ok(LinearDev {
