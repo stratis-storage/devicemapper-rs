@@ -18,18 +18,18 @@ use std::time::Duration;
 use nix::libc::ioctl as nix_ioctl;
 use nix::libc::c_ulong;
 
-use dm_ioctl as dmi;
-use util::align_to;
 
-use consts::{DM_NAME_LEN, DM_UUID_LEN, MIN_BUF_SIZE, DM_IOCTL, DmFlags, DM_CTL_PATH,
-             DM_VERSION_MAJOR, DM_VERSION_MINOR, DM_VERSION_PATCHLEVEL, DM_READONLY, DM_SUSPEND,
-             DM_PERSISTENT_DEV, DM_STATUS_TABLE, DM_BUFFER_FULL, DM_SKIP_LOCKFS, DM_NOFLUSH,
-             DM_QUERY_INACTIVE_TABLE, DM_UUID, DM_DATA_OUT, DM_DEFERRED_REMOVE};
-use device::Device;
-use deviceinfo::DeviceInfo;
-use result::{DmError, DmResult, ErrorEnum};
-use types::{Sectors, TargetLine, TargetLineArg};
-use util::slice_to_null;
+use super::consts::{DM_NAME_LEN, DM_UUID_LEN, MIN_BUF_SIZE, DM_IOCTL, DmFlags, DM_CTL_PATH,
+                    DM_VERSION_MAJOR, DM_VERSION_MINOR, DM_VERSION_PATCHLEVEL, DM_READONLY,
+                    DM_SUSPEND, DM_PERSISTENT_DEV, DM_STATUS_TABLE, DM_BUFFER_FULL,
+                    DM_SKIP_LOCKFS, DM_NOFLUSH, DM_QUERY_INACTIVE_TABLE, DM_UUID, DM_DATA_OUT,
+                    DM_DEFERRED_REMOVE};
+use super::device::Device;
+use super::deviceinfo::DeviceInfo;
+use super::dm_ioctl as dmi;
+use super::result::{DmError, DmResult, ErrorEnum};
+use super::types::{Sectors, TargetLine, TargetLineArg};
+use super::util::{align_to, slice_to_null};
 
 /// Returns an error if value is unsuitable.
 fn dev_id_check(value: &str, max_allowed_chars: usize) -> DmResult<()> {

@@ -4,12 +4,11 @@
 use std::mem::transmute;
 use std::str::from_utf8;
 
-use dm_ioctl as dmi;
-
-use consts::{DM_NAME_LEN, DmFlags, DM_UUID_LEN};
-use device::Device;
-use dm::{DmName, DmUuid};
-use util::slice_to_null;
+use super::consts::{DM_NAME_LEN, DmFlags, DM_UUID_LEN};
+use super::device::Device;
+use super::dm::{DmName, DmUuid};
+use super::dm_ioctl as dmi;
+use super::util::slice_to_null;
 
 /// Contains information about the device.
 #[derive(Clone, Copy)]

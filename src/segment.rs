@@ -4,7 +4,7 @@
 
 use types::Sectors;
 
-use device::Device;
+use super::device::Device;
 
 /// struct to represent a continuous set of sectors on a disk
 #[derive(Debug, Clone)]

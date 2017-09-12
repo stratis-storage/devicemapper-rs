@@ -5,7 +5,7 @@
 /// disk sector size in bytes
 pub const SECTOR_SIZE: usize = 512;
 
-use dm_ioctl as dmi;
+use super::dm_ioctl as dmi;
 
 #[allow(non_upper_case_globals)]
 #[allow(non_snake_case)]

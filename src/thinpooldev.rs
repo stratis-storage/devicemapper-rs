@@ -6,15 +6,15 @@ use std::fmt;
 use std::path::PathBuf;
 use std::process::Command;
 
-use consts::{DmFlags, IEC};
-use device::Device;
-use deviceinfo::DeviceInfo;
-use dm::{DM, DevId, DmName};
-use lineardev::LinearDev;
-use result::{DmResult, DmError, ErrorEnum};
-use segment::Segment;
-use shared::{DmDevice, device_create, device_exists, table_reload};
-use types::{DataBlocks, MetaBlocks, Sectors, TargetLine};
+use super::consts::{DmFlags, IEC};
+use super::device::Device;
+use super::deviceinfo::DeviceInfo;
+use super::dm::{DM, DevId, DmName};
+use super::lineardev::LinearDev;
+use super::result::{DmResult, DmError, ErrorEnum};
+use super::segment::Segment;
+use super::shared::{DmDevice, device_create, device_exists, table_reload};
+use super::types::{DataBlocks, MetaBlocks, Sectors, TargetLine};
 
 #[cfg(test)]
 use std::path::Path;
