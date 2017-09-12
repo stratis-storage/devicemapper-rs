@@ -7,10 +7,9 @@ use std::path::PathBuf;
 
 use serde;
 
-use super::consts::{DM_STATUS_TABLE, DmFlags};
 use super::device::Device;
 use super::deviceinfo::DeviceInfo;
-use super::dm::{DM, DevId, DmName};
+use super::dm::{DM, DM_STATUS_TABLE, DevId, DmFlags, DmName};
 use super::result::{DmError, DmResult, ErrorEnum};
 use super::shared::{DmDevice, device_create, device_exists, table_reload};
 use super::thinpooldev::ThinPoolDev;

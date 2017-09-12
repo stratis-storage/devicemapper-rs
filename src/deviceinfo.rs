@@ -4,11 +4,15 @@
 use std::mem::transmute;
 use std::str::from_utf8;
 
-use super::consts::{DM_NAME_LEN, DmFlags, DM_UUID_LEN};
 use super::device::Device;
-use super::dm::{DmName, DmUuid};
+use super::dm::{DmFlags, DmName, DmUuid};
 use super::dm_ioctl as dmi;
 use super::util::slice_to_null;
+
+/// Name max length
+pub const DM_NAME_LEN: usize = 128;
+/// UUID max length
+pub const DM_UUID_LEN: usize = 129;
 
 /// Contains information about the device.
 #[derive(Clone, Copy)]

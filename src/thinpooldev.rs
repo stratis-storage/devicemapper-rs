@@ -6,10 +6,10 @@ use std::fmt;
 use std::path::PathBuf;
 use std::process::Command;
 
-use super::consts::{DmFlags, IEC};
+use super::consts::IEC;
 use super::device::Device;
 use super::deviceinfo::DeviceInfo;
-use super::dm::{DM, DevId, DmName};
+use super::dm::{DM, DevId, DmFlags, DmName};
 use super::lineardev::LinearDev;
 use super::result::{DmResult, DmError, ErrorEnum};
 use super::segment::Segment;

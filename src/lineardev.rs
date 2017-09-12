@@ -5,10 +5,9 @@
 use std::fmt;
 use std::path::PathBuf;
 
-use super::consts::{DM_STATUS_TABLE, DmFlags};
 use super::device::Device;
 use super::deviceinfo::DeviceInfo;
-use super::dm::{DM, DevId, DmName};
+use super::dm::{DM, DM_STATUS_TABLE, DevId, DmFlags, DmName};
 use super::result::{DmResult, DmError, ErrorEnum};
 use super::segment::Segment;
 use super::shared::{DmDevice, device_create, device_exists, table_reload};
@@ -181,7 +180,6 @@ mod tests {
     use std::fs::OpenOptions;
     use std::path::Path;
 
-    use super::super::consts::DM_STATUS_TABLE;
     use super::super::device::Device;
     use super::super::loopbacked::{blkdev_size, devnode_to_devno, test_with_spec};
 
