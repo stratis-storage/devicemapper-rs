@@ -7,16 +7,14 @@ use std::path::PathBuf;
 
 use serde;
 
-use consts::DmFlags;
-use device::Device;
-use deviceinfo::DeviceInfo;
-use dm::{DM, DevId, DmName};
-use result::{DmError, DmResult, ErrorEnum};
-use shared::{DmDevice, device_create, device_exists, table_reload};
-use thinpooldev::ThinPoolDev;
-use types::TargetLine;
-
-use types::Sectors;
+use super::consts::DmFlags;
+use super::device::Device;
+use super::deviceinfo::DeviceInfo;
+use super::dm::{DM, DevId, DmName};
+use super::result::{DmError, DmResult, ErrorEnum};
+use super::shared::{DmDevice, device_create, device_exists, table_reload};
+use super::thinpooldev::ThinPoolDev;
+use super::types::{Sectors, TargetLine};
 
 const THIN_DEV_ID_LIMIT: u64 = 0x1_000_000; // 2 ^ 24
 
