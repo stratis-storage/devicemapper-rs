@@ -7,10 +7,11 @@ use std::path::PathBuf;
 use super::device::Device;
 use super::deviceinfo::DeviceInfo;
 use super::dm::{DM, DevId, DmFlags, DmName};
-use super::result::{DmResult, DmError, ErrorEnum};
+use super::errors::{ErrorKind, Result};
 use super::segment::Segment;
 use super::shared::{DmDevice, device_create, device_exists, device_setup, table_reload};
 use super::types::{Sectors, TargetLine};
+
 
 /// A DM construct of combined Segments
 #[derive(Debug)]
@@ -37,7 +38,7 @@ impl DmDevice for LinearDev {
         self.segments.iter().map(|s| s.length).sum()
     }
 
-    fn teardown(self, dm: &DM) -> DmResult<()> {
+    fn teardown(self, dm: &DM) -> Result<()> {
         dm.device_remove(&DevId::Name(self.name()), DmFlags::empty())?;
         Ok(())
     }
@@ -64,10 +65,10 @@ impl LinearDev {
     /// the existence of the requested device". Of course, a linear device
     /// is usually expected to hold data, so it is important to get the
     /// mapping just right.
-    pub fn setup(name: &DmName, dm: &DM, segments: &[Segment]) -> DmResult<LinearDev> {
+    pub fn setup(name: &DmName, dm: &DM, segments: &[Segment]) -> Result<LinearDev> {
         if segments.is_empty() {
-            return Err(DmError::Dm(ErrorEnum::Invalid,
-                                   "linear device must have at least one segment".into()));
+            let err_msg = "linear device must have at lest one segment";
+            return Err(ErrorKind::InvalidArgument(err_msg.into()).into());
         }
 
         let table = LinearDev::dm_table(segments);
@@ -121,7 +122,7 @@ impl LinearDev {
     /// segments already in the device, this method will succeed. However,
     /// the behavior of the linear device in that case should be treated as
     /// undefined.
-    pub fn extend(&mut self, dm: &DM, new_segs: &[Segment]) -> DmResult<()> {
+    pub fn extend(&mut self, dm: &DM, new_segs: &[Segment]) -> Result<()> {
         if new_segs.is_empty() {
             return Ok(());
         }
@@ -154,7 +155,7 @@ impl LinearDev {
     }
 
     /// Set the name for this LinearDev.
-    pub fn set_name(&mut self, dm: &DM, name: &DmName) -> DmResult<()> {
+    pub fn set_name(&mut self, dm: &DM, name: &DmName) -> Result<()> {
         if self.name() == name {
             return Ok(());
         }

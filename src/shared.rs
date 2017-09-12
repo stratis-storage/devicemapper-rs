@@ -10,8 +10,9 @@ use std::path::PathBuf;
 use super::device::Device;
 use super::deviceinfo::DeviceInfo;
 use super::dm::{DevId, DM, DM_STATUS_TABLE, DM_SUSPEND, DmFlags, DmName};
-use super::result::{DmError, DmResult, ErrorEnum};
+use super::errors::{ErrorKind, Result, ResultExt};
 use super::types::{Sectors, TargetLineArg};
+
 
 /// A trait capturing some shared properties of DM devices.
 pub trait DmDevice {
@@ -28,24 +29,26 @@ pub trait DmDevice {
     fn size(&self) -> Sectors;
 
     /// Erase the kernel's memory of this device.
-    fn teardown(self, dm: &DM) -> DmResult<()>;
+    fn teardown(self, dm: &DM) -> Result<()>;
 }
 
 /// Create a device, load a table, and resume it.
 pub fn device_create<T1, T2>(dm: &DM,
                              name: &DmName,
                              table: &[TargetLineArg<T1, T2>])
-                             -> DmResult<DeviceInfo>
+                             -> Result<DeviceInfo>
     where T1: AsRef<str>,
           T2: AsRef<str>
 {
-    dm.device_create(name, None, DmFlags::empty())?;
+    dm.device_create(name, None, DmFlags::empty())
+        .chain_err(|| ErrorKind::DeviceCreationError(name.to_owned()))?;
 
     let id = DevId::Name(name);
     let dev_info = match dm.table_load(&id, table) {
-        Err(e) => {
-            dm.device_remove(&id, DmFlags::empty())?;
-            return Err(e);
+        Err(err) => {
+            // TODO: record the cleanup failure appropriately
+            let _ = dm.device_remove(&id, DmFlags::empty());
+            return Err(err.chain_err(|| ErrorKind::DeviceCreationError(name.to_owned())));
         }
         Ok(dev_info) => dev_info,
     };
@@ -60,10 +63,10 @@ pub fn device_create<T1, T2>(dm: &DM,
 pub fn device_setup(dm: &DM,
                     id: &DevId,
                     table: &[TargetLineArg<String, String>])
-                    -> DmResult<DeviceInfo> {
+                    -> Result<DeviceInfo> {
     if dm.table_status(id, DM_STATUS_TABLE)?.1 != table {
         let err_msg = "Specified data does not match kernel data";
-        return Err(DmError::Dm(ErrorEnum::Invalid, err_msg.into()));
+        return Err(ErrorKind::InvalidArgument(err_msg.into()).into());
     }
     Ok(dm.device_status(id)?)
 }
@@ -72,7 +75,7 @@ pub fn device_setup(dm: &DM,
 pub fn table_reload<T1, T2>(dm: &DM,
                             id: &DevId,
                             table: &[TargetLineArg<T1, T2>])
-                            -> DmResult<DeviceInfo>
+                            -> Result<DeviceInfo>
     where T1: AsRef<str>,
           T2: AsRef<str>
 {
@@ -83,9 +86,12 @@ pub fn table_reload<T1, T2>(dm: &DM,
 }
 
 /// Check if a device of the given name exists.
-pub fn device_exists(dm: &DM, name: &DmName) -> DmResult<bool> {
+pub fn device_exists(dm: &DM, name: &DmName) -> Result<bool> {
     // TODO: Why do we have to call .as_ref() here instead of relying on deref
     // coercion?
     Ok(dm.list_devices()
+           .map_err(|e| {
+                        e.chain_err(|| format!("can not determine whether device {} exists", name))
+                    })
            .map(|l| l.iter().any(|&(ref n, _)| n.as_ref() == name))?)
 }

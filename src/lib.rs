@@ -45,6 +45,9 @@
 #![warn(missing_docs)]
 
 #[macro_use]
+extern crate error_chain;
+
+#[macro_use]
 extern crate custom_derive;
 #[macro_use]
 extern crate newtype_derive;
@@ -66,6 +69,8 @@ extern crate tempdir;
 
 #[allow(dead_code, non_camel_case_types)]
 mod dm_ioctl;
+/// errors
+mod errors;
 /// public utilities
 mod util;
 /// basic types (Bytes, Sectors, DataBlocks)
@@ -83,8 +88,6 @@ mod thindev;
 mod thinpooldev;
 /// struct to represent a location, offset and size of a set of disk sectors
 mod segment;
-/// return results container
-mod result;
 /// wrapper for C interface for DM
 mod deviceinfo;
 /// contains device major/minor and associated functions
@@ -110,8 +113,8 @@ pub use dm::{DM_READONLY, DM_SUSPEND, DM_PERSISTENT_DEV, DM_STATUS_TABLE, DM_ACT
              DM_DEFERRED_REMOVE, DM_INTERNAL_SUSPEND};
 
 pub use device::Device;
+pub use errors::{Error, ErrorKind, Result};
 pub use lineardev::LinearDev;
-pub use result::{DmResult, DmError, ErrorEnum};
 pub use segment::Segment;
 pub use shared::DmDevice;
 pub use thinpooldev::{ThinPoolBlockUsage, ThinPoolDev, ThinPoolStatus, ThinPoolWorkingStatus};

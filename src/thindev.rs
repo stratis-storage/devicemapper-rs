@@ -4,16 +4,18 @@
 
 use std::fmt;
 use std::path::PathBuf;
+use std::result;
 
 use serde;
 
 use super::device::Device;
 use super::deviceinfo::DeviceInfo;
 use super::dm::{DM, DevId, DmFlags, DmName};
-use super::result::{DmError, DmResult, ErrorEnum};
+use super::errors::{ErrorKind, Result};
 use super::shared::{DmDevice, device_create, device_exists, device_setup, table_reload};
 use super::thinpooldev::ThinPoolDev;
 use super::types::{Sectors, TargetLine};
+
 
 const THIN_DEV_ID_LIMIT: u64 = 0x1_000_000; // 2 ^ 24
 
@@ -26,12 +28,11 @@ pub struct ThinDevId {
 impl ThinDevId {
     /// Make a new ThinDevId.
     /// Return an error if value is too large to represent in 24 bits.
-    pub fn new_u64(value: u64) -> DmResult<ThinDevId> {
+    pub fn new_u64(value: u64) -> Result<ThinDevId> {
         if value < THIN_DEV_ID_LIMIT {
             Ok(ThinDevId { value: value as u32 })
         } else {
-            Err(DmError::Dm(ErrorEnum::Invalid,
-                            format!("argument {} unrepresentable in 24 bits", value)))
+            Err(ErrorKind::InvalidArgument(format!("{} unrepresentable in 24 bits", value)).into())
         }
     }
 }
@@ -49,7 +50,7 @@ impl fmt::Display for ThinDevId {
 }
 
 impl serde::Serialize for ThinDevId {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    fn serialize<S>(&self, serializer: S) -> result::Result<S::Ok, S::Error>
         where S: serde::Serializer
     {
         serializer.serialize_u32(self.value)
@@ -57,7 +58,7 @@ impl serde::Serialize for ThinDevId {
 }
 
 impl<'de> serde::Deserialize<'de> for ThinDevId {
-    fn deserialize<D>(deserializer: D) -> Result<ThinDevId, D::Error>
+    fn deserialize<D>(deserializer: D) -> result::Result<ThinDevId, D::Error>
         where D: serde::de::Deserializer<'de>
     {
         Ok(ThinDevId { value: serde::Deserialize::deserialize(deserializer)? })
@@ -90,7 +91,7 @@ impl DmDevice for ThinDev {
         self.size
     }
 
-    fn teardown(self, dm: &DM) -> DmResult<()> {
+    fn teardown(self, dm: &DM) -> Result<()> {
         dm.device_remove(&DevId::Name(self.name()), DmFlags::empty())?;
         Ok(())
     }
@@ -117,14 +118,14 @@ impl ThinDev {
                thin_pool: &ThinPoolDev,
                thin_id: ThinDevId,
                length: Sectors)
-               -> DmResult<ThinDev> {
+               -> Result<ThinDev> {
 
         thin_pool
             .message(dm, &format!("create_thin {}", thin_id))?;
 
         if device_exists(dm, name)? {
             let err_msg = "Uncreated device should not be known to kernel";
-            return Err(DmError::Dm(ErrorEnum::Invalid, err_msg.into()));
+            return Err(ErrorKind::InvalidArgument(err_msg.into()).into());
         }
 
         let thin_pool_device = thin_pool.device();
@@ -154,7 +155,7 @@ impl ThinDev {
                  thin_pool: &ThinPoolDev,
                  thin_id: ThinDevId,
                  length: Sectors)
-                 -> DmResult<ThinDev> {
+                 -> Result<ThinDev> {
 
         let thin_pool_device = thin_pool.device();
         let table = ThinDev::dm_table(thin_pool_device, thin_id, length);
@@ -191,9 +192,8 @@ impl ThinDev {
     }
 
     /// Get the current status of the thin device.
-    pub fn status(&self, dm: &DM) -> DmResult<ThinStatus> {
+    pub fn status(&self, dm: &DM) -> Result<ThinStatus> {
         let (_, table) = dm.table_status(&DevId::Name(self.name()), DmFlags::empty())?;
-
         assert_eq!(table.len(),
                    1,
                    "Kernel must return 1 line table for thin status");
@@ -224,7 +224,7 @@ impl ThinDev {
 
     /// Extend the thin device's (virtual) size by the number of
     /// sectors given.
-    pub fn extend(&mut self, dm: &DM, sectors: Sectors) -> DmResult<()> {
+    pub fn extend(&mut self, dm: &DM, sectors: Sectors) -> Result<()> {
         let new_size = self.size + sectors;
         table_reload(dm,
                      &DevId::Name(self.name()),
@@ -235,7 +235,7 @@ impl ThinDev {
 
     /// Tear down the DM device, and also delete resources associated
     /// with its thin id from the thinpool.
-    pub fn destroy(self, dm: &DM, thin_pool: &ThinPoolDev) -> DmResult<()> {
+    pub fn destroy(self, dm: &DM, thin_pool: &ThinPoolDev) -> Result<()> {
         let thin_id = self.thin_id;
         self.teardown(dm)?;
         thin_pool.message(dm, &format!("delete {}", thin_id))?;
