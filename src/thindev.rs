@@ -7,7 +7,7 @@ use std::path::PathBuf;
 
 use serde;
 
-use super::consts::DmFlags;
+use super::consts::{DM_STATUS_TABLE, DmFlags};
 use super::device::Device;
 use super::deviceinfo::DeviceInfo;
 use super::dm::{DM, DevId, DmName};
@@ -114,8 +114,10 @@ pub enum ThinStatus {
 
 /// support use of DM for thin provisioned devices over pools
 impl ThinDev {
-    /// Use the given ThinPoolDev as backing space for a newly constructed
-    /// thin provisioned ThinDev returned by new().
+    /// Create a ThinDev using thin_pool as the backing store.
+    /// If the specified thin_id is already in use by the thin pool an error
+    /// is returned. If the device is already among the list of devices that
+    /// dm is aware of, return an error.
     pub fn new(name: &DmName,
                dm: &DM,
                thin_pool: &ThinPoolDev,
@@ -125,14 +127,34 @@ impl ThinDev {
 
         thin_pool
             .message(dm, &format!("create_thin {}", thin_id))?;
-        ThinDev::setup(name, dm, thin_pool, thin_id, length)
+
+        if device_exists(dm, name)? {
+            let err_msg = "Uncreated device should not be known to kernel";
+            return Err(DmError::Dm(ErrorEnum::Invalid, err_msg.into()));
+        }
+
+        let thin_pool_device = thin_pool.device();
+        let table = ThinDev::dm_table(thin_pool_device, thin_id, length);
+        let dev_info = Box::new(device_create(dm, name, &table)?);
+
+        DM::wait_for_dm();
+        Ok(ThinDev {
+               dev_info: dev_info,
+               thin_id: thin_id,
+               size: length,
+               thinpool: thin_pool_device,
+           })
     }
 
-    /// Set up an existing thindev.
-    /// By "existing" is here meant that metadata for this thin device exists
-    /// on the metadata device for its thin pool.
-    /// TODO: If the device is already known to the kernel, verify that kernel
-    /// model matches arguments.
+    /// Set up a thin device which already belongs to the given thin_pool.
+    /// The thin device is identified by the thin_id, which is already
+    /// known to the pool.
+    ///
+    /// If the device is already known to kernel, just verify that specified
+    /// data matches and return an error if it does not.
+    ///
+    /// If the device has no thin id already registered with the thin pool
+    /// an error is returned.
     pub fn setup(name: &DmName,
                  dm: &DM,
                  thin_pool: &ThinPoolDev,
@@ -141,13 +163,16 @@ impl ThinDev {
                  -> DmResult<ThinDev> {
 
         let thin_pool_device = thin_pool.device();
+        let table = ThinDev::dm_table(thin_pool_device, thin_id, length);
 
         let dev_info = if device_exists(dm, name)? {
             let id = DevId::Name(name);
-            // TODO: Verify that kernel's model matches arguments.
+            if dm.table_status(&id, DM_STATUS_TABLE)?.1 != table {
+                let err_msg = "Specified data does not match kernel data";
+                return Err(DmError::Dm(ErrorEnum::Invalid, err_msg.into()));
+            }
             Box::new(dm.device_status(&id)?)
         } else {
-            let table = ThinDev::dm_table(thin_pool_device, thin_id, length);
             Box::new(device_create(dm, name, &table)?)
         };
 
@@ -267,10 +292,32 @@ mod tests {
         tp.teardown(&dm).unwrap();
     }
 
+    /// Verify that setting up a thin device without first calling new()
+    /// causes an error.
+    fn test_setup_without_new(paths: &[&Path]) -> () {
+        assert!(paths.len() >= 1);
+
+        let dm = DM::new().unwrap();
+        let tp = minimal_thinpool(&dm, paths[0]);
+
+        let td_size = MIN_THIN_DEV_SIZE;
+        assert!(ThinDev::setup(&DmName::new("name").expect("is valid DM name"),
+                               &dm,
+                               &tp,
+                               ThinDevId::new_u64(0).expect("is below limit"),
+                               td_size)
+                        .is_err());
+
+        tp.teardown(&dm).unwrap();
+    }
+
     /// Verify success when constructing a new ThinDev. Check that the
     /// status of the device is as expected. Verify that it is now possible
     /// to call setup() on the thin dev specifying the same name and id.
-    /// Verify that calling new for the second time fails.
+    /// Verify that calling new() for the second time fails. Verify that
+    /// setup() is idempotent, calling setup() twice in succession succeeds.
+    /// Verify that setup() succeeds on an existing device, whether or not
+    /// it has been torn down.
     fn test_basic(paths: &[&Path]) -> () {
         assert!(paths.len() >= 1);
 
@@ -299,7 +346,15 @@ mod tests {
         // Setting up the just created thin dev succeeds.
         assert!(ThinDev::setup(&id, &dm, &tp, thin_id, td_size).is_ok());
 
-        td.destroy(&dm, &tp).unwrap();
+        // Setting up the just created thin dev once more succeeds.
+        assert!(ThinDev::setup(&id, &dm, &tp, thin_id, td_size).is_ok());
+
+        // Teardown the thindev, then set it back up.
+        td.teardown(&dm).unwrap();
+        let td = ThinDev::setup(&id, &dm, &tp, thin_id, td_size);
+        assert!(td.is_ok());
+
+        td.unwrap().destroy(&dm, &tp).unwrap();
         tp.teardown(&dm).unwrap();
     }
 
@@ -311,5 +366,10 @@ mod tests {
     #[test]
     fn loop_test_zero_size() {
         test_with_spec(1, test_zero_size);
+    }
+
+    #[test]
+    fn loop_test_setup_without_new() {
+        test_with_spec(1, test_setup_without_new);
     }
 }
