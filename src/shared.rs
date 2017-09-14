@@ -7,10 +7,9 @@
 
 use std::path::PathBuf;
 
-use super::consts::{DmFlags, DM_SUSPEND};
 use super::device::Device;
 use super::deviceinfo::DeviceInfo;
-use super::dm::{DevId, DM, DmName};
+use super::dm::{DevId, DM, DM_SUSPEND, DmFlags, DmName};
 use super::result::DmResult;
 use super::types::{Sectors, TargetLineArg};
 
