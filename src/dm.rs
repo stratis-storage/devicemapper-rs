@@ -204,6 +204,15 @@ pub enum DevId<'a> {
     Uuid(&'a DmUuid),
 }
 
+impl<'a> fmt::Display for DevId<'a> {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match *self {
+            DevId::Name(name) => write!(f, "{}", name),
+            DevId::Uuid(uuid) => write!(f, "{}", uuid),
+        }
+    }
+}
+
 /// Context needed for communicating with devicemapper.
 pub struct DM {
     file: File,
