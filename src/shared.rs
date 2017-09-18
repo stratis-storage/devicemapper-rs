@@ -9,8 +9,8 @@ use std::path::PathBuf;
 
 use super::device::Device;
 use super::deviceinfo::DeviceInfo;
-use super::dm::{DevId, DM, DM_SUSPEND, DmFlags, DmName};
-use super::result::DmResult;
+use super::dm::{DevId, DM, DM_STATUS_TABLE, DM_SUSPEND, DmFlags, DmName};
+use super::result::{DmError, DmResult, ErrorEnum};
 use super::types::{Sectors, TargetLineArg};
 
 /// A trait capturing some shared properties of DM devices.
@@ -52,6 +52,20 @@ pub fn device_create<T1, T2>(dm: &DM,
     dm.device_suspend(&id, DmFlags::empty())?;
 
     Ok(dev_info)
+}
+
+/// Setup a device that is already known to the kernel.
+/// Verify that kernel data matches arguments passed.
+/// Return the status of the device.
+pub fn device_setup(dm: &DM,
+                    id: &DevId,
+                    table: &[TargetLineArg<String, String>])
+                    -> DmResult<DeviceInfo> {
+    if dm.table_status(id, DM_STATUS_TABLE)?.1 != table {
+        let err_msg = "Specified data does not match kernel data";
+        return Err(DmError::Dm(ErrorEnum::Invalid, err_msg.into()));
+    }
+    Ok(dm.device_status(id)?)
 }
 
 /// Reload the table for a device
