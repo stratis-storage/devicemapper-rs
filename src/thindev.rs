@@ -9,9 +9,9 @@ use serde;
 
 use super::device::Device;
 use super::deviceinfo::DeviceInfo;
-use super::dm::{DM, DM_STATUS_TABLE, DevId, DmFlags, DmName};
+use super::dm::{DM, DevId, DmFlags, DmName};
 use super::result::{DmError, DmResult, ErrorEnum};
-use super::shared::{DmDevice, device_create, device_exists, table_reload};
+use super::shared::{DmDevice, device_create, device_exists, device_match, table_reload};
 use super::thinpooldev::ThinPoolDev;
 use super::types::{Sectors, TargetLine};
 
@@ -129,11 +129,11 @@ impl ThinDev {
 
         let thin_pool_device = thin_pool.device();
         let table = ThinDev::dm_table(thin_pool_device, thin_id, length);
-        let dev_info = Box::new(device_create(dm, name, &table)?);
+        let dev_info = device_create(dm, name, &table)?;
 
         DM::wait_for_dm();
         Ok(ThinDev {
-               dev_info: dev_info,
+               dev_info: Box::new(dev_info),
                thin_id: thin_id,
                size: length,
                thinpool: thin_pool_device,
@@ -160,19 +160,14 @@ impl ThinDev {
         let table = ThinDev::dm_table(thin_pool_device, thin_id, length);
 
         let dev_info = if device_exists(dm, name)? {
-            let id = DevId::Name(name);
-            if dm.table_status(&id, DM_STATUS_TABLE)?.1 != table {
-                let err_msg = "Specified data does not match kernel data";
-                return Err(DmError::Dm(ErrorEnum::Invalid, err_msg.into()));
-            }
-            Box::new(dm.device_status(&id)?)
+            device_match(dm, &DevId::Name(name), &table)?
         } else {
-            Box::new(device_create(dm, name, &table)?)
+            device_create(dm, name, &table)?
         };
 
         DM::wait_for_dm();
         Ok(ThinDev {
-               dev_info: dev_info,
+               dev_info: Box::new(dev_info),
                thin_id: thin_id,
                size: length,
                thinpool: thin_pool_device,
