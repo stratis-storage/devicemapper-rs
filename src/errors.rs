@@ -2,7 +2,6 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-use super::dm::DmNameBuf;
 use super::lineardev::LinearDev;
 
 error_chain! {
@@ -11,12 +10,6 @@ error_chain! {
         ContextInitError {
             description("DM context not initialized")
             display("DM context not initialized")
-        }
-
-        /// An error returned on a device creation failure.
-        DeviceCreationError(name: DmNameBuf) {
-            description("failure to create a device")
-            display("failed to create device '{}'", name.as_ref())
         }
 
         /// This is a generic error that can be returned when a method

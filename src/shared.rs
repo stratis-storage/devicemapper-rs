@@ -10,7 +10,7 @@ use std::path::PathBuf;
 use super::device::Device;
 use super::deviceinfo::DeviceInfo;
 use super::dm::{DevId, DM, DM_STATUS_TABLE, DM_SUSPEND, DmFlags, DmName};
-use super::errors::{ErrorKind, Result, ResultExt};
+use super::errors::{Error, Result};
 use super::types::{Sectors, TargetLineArg};
 
 
@@ -33,6 +33,7 @@ pub trait DmDevice {
 }
 
 /// Create a device, load a table, and resume it.
+/// Returns a DeviceCreation error on failure.
 pub fn device_create<T1, T2>(dm: &DM,
                              name: &DmName,
                              table: &[TargetLineArg<T1, T2>])
@@ -40,21 +41,23 @@ pub fn device_create<T1, T2>(dm: &DM,
     where T1: AsRef<str>,
           T2: AsRef<str>
 {
-    dm.device_create(name, None, DmFlags::empty())
-        .chain_err(|| ErrorKind::DeviceCreationError(name.to_owned()))?;
+    let f = || {
+        dm.device_create(name, None, DmFlags::empty())?;
 
-    let id = DevId::Name(name);
-    let dev_info = match dm.table_load(&id, table) {
-        Err(err) => {
-            // TODO: record the cleanup failure appropriately
-            let _ = dm.device_remove(&id, DmFlags::empty());
-            return Err(err.chain_err(|| ErrorKind::DeviceCreationError(name.to_owned())));
-        }
-        Ok(dev_info) => dev_info,
+        let id = DevId::Name(name);
+        let dev_info = match dm.table_load(&id, table) {
+            Err(err) => {
+                // TODO: record the cleanup failure appropriately
+                let _ = dm.device_remove(&id, DmFlags::empty());
+                return Err(err);
+            }
+            Ok(dev_info) => dev_info,
+        };
+        dm.device_suspend(&id, DmFlags::empty())?;
+        Ok(dev_info)
     };
-    dm.device_suspend(&id, DmFlags::empty())?;
 
-    Ok(dev_info)
+    f().map_err(|e| Error::with_chain(e, format!("failed to create device {}", name.as_ref())))
 }
 
 /// Setup a device that is already known to the kernel.
@@ -64,11 +67,13 @@ pub fn device_setup(dm: &DM,
                     id: &DevId,
                     table: &[TargetLineArg<String, String>])
                     -> Result<DeviceInfo> {
-    if dm.table_status(id, DM_STATUS_TABLE)?.1 != table {
-        let err_msg = "Specified data does not match kernel data";
-        return Err(ErrorKind::InvalidArgument(err_msg.into()).into());
-    }
-    Ok(dm.device_status(id)?)
+    let f = || -> Result<DeviceInfo> {
+        if dm.table_status(id, DM_STATUS_TABLE)?.1 != table {
+            return Err("Specified data does not match kernel data".into());
+        }
+        Ok(dm.device_status(id)?)
+    };
+    f().map_err(|e| Error::with_chain(e, format!("Failed to set up device {}", id)))
 }
 
 /// Reload the table for a device
@@ -79,19 +84,27 @@ pub fn table_reload<T1, T2>(dm: &DM,
     where T1: AsRef<str>,
           T2: AsRef<str>
 {
-    let dev_info = dm.table_load(id, table)?;
-    dm.device_suspend(id, DM_SUSPEND)?;
-    dm.device_suspend(id, DmFlags::empty())?;
-    Ok(dev_info)
+    let f = || -> Result<DeviceInfo> {
+        let dev_info = dm.table_load(id, table)?;
+        dm.device_suspend(id, DM_SUSPEND)?;
+        dm.device_suspend(id, DmFlags::empty())?;
+        Ok(dev_info)
+    };
+
+    f().map_err(|e| Error::with_chain(e, "Failed to reload table."))
 }
 
 /// Check if a device of the given name exists.
 pub fn device_exists(dm: &DM, name: &DmName) -> Result<bool> {
     // TODO: Why do we have to call .as_ref() here instead of relying on deref
     // coercion?
-    Ok(dm.list_devices()
-           .map_err(|e| {
-                        e.chain_err(|| format!("can not determine whether device {} exists", name))
-                    })
-           .map(|l| l.iter().any(|&(ref n, _)| n.as_ref() == name))?)
+    let f = || -> Result<bool> {
+        Ok(dm.list_devices()
+               .map(|l| l.iter().any(|&(ref n, _)| n.as_ref() == name))?)
+    };
+
+    f().map_err(|e| {
+                    Error::with_chain(e,
+                                      format!("Can not determine whether device {} exists", name))
+                })
 }
