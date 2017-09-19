@@ -1,6 +1,7 @@
 // This Source Code Form is subject to the terms of the Mozilla Public
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
+use std::fmt;
 use std::mem::transmute;
 use std::str::from_utf8;
 
@@ -20,6 +21,12 @@ pub struct DeviceInfo {
     /// ioctl argument consists of a single chunk of memory, with this
     /// structure at the start.
     hdr: dmi::Struct_dm_ioctl,
+}
+
+impl fmt::Debug for DeviceInfo {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "DeviceInfo {{ hdr: <Struct_dm_ioctl> }}")
+    }
 }
 
 impl DeviceInfo {
