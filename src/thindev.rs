@@ -15,6 +15,7 @@ use super::errors::{ErrorKind, Result};
 use super::shared::{DmDevice, device_create, device_exists, device_setup, table_reload};
 use super::thinpooldev::ThinPoolDev;
 use super::types::{Sectors, TargetLine};
+use super::util::chain_error;
 
 
 const THIN_DEV_ID_LIMIT: u64 = 0x1_000_000; // 2 ^ 24
@@ -120,21 +121,24 @@ impl ThinDev {
                length: Sectors)
                -> Result<ThinDev> {
 
-        thin_pool
-            .message(dm, &format!("create_thin {}", thin_id))?;
-
-        if device_exists(dm, name)? {
-            let err_msg = "Uncreated device should not be known to kernel";
-            return Err(ErrorKind::InvalidArgument(err_msg.into()).into());
-        }
-
         let thin_pool_device = thin_pool.device();
-        let table = ThinDev::dm_table(thin_pool_device, thin_id, length);
-        let dev_info = Box::new(device_create(dm, name, &table)?);
+        let dev_info = chain_error(|| {
+            thin_pool
+                .message(dm, &format!("create_thin {}", thin_id))?;
+
+            if device_exists(dm, name)? {
+                let err_msg = "Uncreated device should not be known to kernel";
+                return Err(ErrorKind::InvalidArgument(err_msg.into()).into());
+            }
+
+            let table = ThinDev::dm_table(thin_pool_device, thin_id, length);
+            device_create(dm, name, &table)
+        },
+                                   || format!("Failed to create new thindev {}", name).into())?;
 
         DM::wait_for_dm();
         Ok(ThinDev {
-               dev_info: dev_info,
+               dev_info: Box::new(dev_info),
                thin_id: thin_id,
                size: length,
                thinpool: thin_pool_device,
@@ -160,15 +164,16 @@ impl ThinDev {
         let thin_pool_device = thin_pool.device();
         let table = ThinDev::dm_table(thin_pool_device, thin_id, length);
 
-        let dev_info = if device_exists(dm, name)? {
-            Box::new(device_setup(dm, &DevId::Name(name), &table)?)
-        } else {
-            Box::new(device_create(dm, name, &table)?)
-        };
+        let dev_info = chain_error(|| if device_exists(dm, name)? {
+                                       device_setup(dm, &DevId::Name(name), &table)
+                                   } else {
+                                       device_create(dm, name, &table)
+                                   },
+                                   || format!("Failed to setup thindev {}", name).into())?;
 
         DM::wait_for_dm();
         Ok(ThinDev {
-               dev_info: dev_info,
+               dev_info: Box::new(dev_info),
                thin_id: thin_id,
                size: length,
                thinpool: thin_pool_device,
@@ -193,10 +198,17 @@ impl ThinDev {
 
     /// Get the current status of the thin device.
     pub fn status(&self, dm: &DM) -> Result<ThinStatus> {
-        let (_, table) = dm.table_status(&DevId::Name(self.name()), DmFlags::empty())?;
+        let table =
+            chain_error(|| {
+                            let (_, table) = dm.table_status(&DevId::Name(self.name()),
+                                                             DmFlags::empty())?;
+                            Ok(table)
+                        },
+                        || format!("Failed to get status for thindev {}", self.name()).into())?;
+
         assert_eq!(table.len(),
                    1,
-                   "Kernel must return 1 line table for thin status");
+                   "Kernel must return 1 line table from thin status");
 
         let status_line = &table.first().expect("assertion above holds").3;
         if status_line.starts_with("Fail") {
@@ -226,9 +238,12 @@ impl ThinDev {
     /// sectors given.
     pub fn extend(&mut self, dm: &DM, sectors: Sectors) -> Result<()> {
         let new_size = self.size + sectors;
-        table_reload(dm,
-                     &DevId::Name(self.name()),
-                     &ThinDev::dm_table(self.thinpool, self.thin_id, new_size))?;
+        chain_error(|| {
+                        table_reload(dm,
+                                     &DevId::Name(self.name()),
+                                     &ThinDev::dm_table(self.thinpool, self.thin_id, self.size))
+                    },
+                    || format!("Failed to extend thindev {} by {}", self.name(), sectors).into())?;
         self.size = new_size;
         Ok(())
     }

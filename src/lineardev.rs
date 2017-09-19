@@ -7,10 +7,11 @@ use std::path::PathBuf;
 use super::device::Device;
 use super::deviceinfo::DeviceInfo;
 use super::dm::{DM, DevId, DmFlags, DmName};
-use super::errors::{ErrorKind, Result};
+use super::errors::{Error, ErrorKind, Result};
 use super::segment::Segment;
 use super::shared::{DmDevice, device_create, device_exists, device_setup, table_reload};
 use super::types::{Sectors, TargetLine};
+use super::util::chain_error;
 
 
 /// A DM construct of combined Segments
@@ -66,21 +67,24 @@ impl LinearDev {
     /// is usually expected to hold data, so it is important to get the
     /// mapping just right.
     pub fn setup(name: &DmName, dm: &DM, segments: &[Segment]) -> Result<LinearDev> {
-        if segments.is_empty() {
-            let err_msg = "linear device must have at lest one segment";
-            return Err(ErrorKind::InvalidArgument(err_msg.into()).into());
-        }
-
-        let table = LinearDev::dm_table(segments);
-        let dev_info = if device_exists(dm, name)? {
-            Box::new(device_setup(dm, &DevId::Name(name), &table)?)
-        } else {
-            Box::new(device_create(dm, name, &table)?)
-        };
+        let dev_info =
+            chain_error(|| {
+                if segments.is_empty() {
+                    let err_msg = "linear device must have at least one segment";
+                    return Err(Error::from_kind(ErrorKind::InvalidArgument(err_msg.into()).into()));
+                }
+                let table = LinearDev::dm_table(segments);
+                if device_exists(dm, name)? {
+                    device_setup(dm, &DevId::Name(name), &table)
+                } else {
+                    device_create(dm, name, &table)
+                }
+            },
+                        || format!("Failed to create or setup linear device {}", name).into())?;
 
         DM::wait_for_dm();
         Ok(LinearDev {
-               dev_info: dev_info,
+               dev_info: Box::new(dev_info),
                segments: segments.to_vec(),
            })
     }
@@ -150,17 +154,24 @@ impl LinearDev {
         }
 
         let table = LinearDev::dm_table(&self.segments);
-        table_reload(dm, &DevId::Name(self.name()), &table)?;
+        chain_error(|| table_reload(dm, &DevId::Name(self.name()), &table),
+                    || "Failed to extend linear device with new segments".into())?;
         Ok(())
     }
 
     /// Set the name for this LinearDev.
     pub fn set_name(&mut self, dm: &DM, name: &DmName) -> Result<()> {
-        if self.name() == name {
+        let old_name = self.name().to_owned();
+        if old_name.as_ref() == name {
             return Ok(());
         }
-        dm.device_rename(self.name(), &DevId::Name(name))?;
-        self.dev_info = Box::new(dm.device_status(&DevId::Name(name))?);
+        chain_error(|| {
+                        dm.device_rename(&old_name, &DevId::Name(name))?;
+                        Ok(self.dev_info = Box::new(dm.device_status(&DevId::Name(name))?))
+                    },
+                    || {
+                        format!("Failed to rename device {} to {}", old_name.as_ref(), name).into()
+                    })?;
         Ok(())
     }
 }
