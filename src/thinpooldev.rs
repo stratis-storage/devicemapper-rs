@@ -116,35 +116,22 @@ impl ThinPoolDev {
                meta: LinearDev,
                data: LinearDev)
                -> Result<ThinPoolDev> {
-        let exists = device_exists(dm, name);
-        let exists = match exists {
-            Ok(exists) => exists,
-            Err(err) => {
-                return Err(err.chain_err(|| ErrorKind::ThinPoolInitError(meta, data)));
-            }
-        };
-
         let table =
             ThinPoolDev::dm_table(data.size(), data_block_size, low_water_mark, &meta, &data);
-        let dev_info = if exists {
-            match device_setup(dm, &DevId::Name(name), &table) {
-                Ok(info) => Box::new(info),
-                Err(err) => {
-                    return Err(err.chain_err(|| ErrorKind::ThinPoolInitError(meta, data)));
-                }
-            }
+        let f = || if device_exists(dm, name)? {
+            device_setup(dm, &DevId::Name(name), &table)
         } else {
-            match device_create(dm, name, &table) {
-                Ok(info) => Box::new(info),
-                Err(err) => {
-                    return Err(err.chain_err(|| ErrorKind::ThinPoolInitError(meta, data)));
-                }
-            }
+            device_create(dm, name, &table)
+        };
+
+        let dev_info = match f() {
+            Err(err) => return Err(err.chain_err(|| ErrorKind::ThinPoolInitError(meta, data))),
+            Ok(info) => info,
         };
 
         DM::wait_for_dm();
         Ok(ThinPoolDev {
-               dev_info: dev_info,
+               dev_info: Box::new(dev_info),
                meta_dev: meta,
                data_dev: data,
                data_block_size: data_block_size,
