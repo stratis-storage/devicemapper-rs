@@ -10,8 +10,9 @@ use std::path::PathBuf;
 use super::device::Device;
 use super::deviceinfo::DeviceInfo;
 use super::dm::{DevId, DM, DM_STATUS_TABLE, DM_SUSPEND, DmFlags, DmName};
-use super::errors::{Error, Result};
+use super::errors::Result;
 use super::types::{Sectors, TargetLineArg};
+use super::util::chain_error;
 
 
 /// A trait capturing some shared properties of DM devices.
@@ -41,7 +42,7 @@ pub fn device_create<T1, T2>(dm: &DM,
     where T1: AsRef<str>,
           T2: AsRef<str>
 {
-    let f = || {
+    chain_error(|| {
         dm.device_create(name, None, DmFlags::empty())?;
 
         let id = DevId::Name(name);
@@ -55,9 +56,8 @@ pub fn device_create<T1, T2>(dm: &DM,
         };
         dm.device_suspend(&id, DmFlags::empty())?;
         Ok(dev_info)
-    };
-
-    f().map_err(|e| Error::with_chain(e, format!("failed to create device {}", name.as_ref())))
+    },
+                || format!("failed to create device {}", name.as_ref()).into())
 }
 
 /// Setup a device that is already known to the kernel.
@@ -67,13 +67,13 @@ pub fn device_setup(dm: &DM,
                     id: &DevId,
                     table: &[TargetLineArg<String, String>])
                     -> Result<DeviceInfo> {
-    let f = || -> Result<DeviceInfo> {
-        if dm.table_status(id, DM_STATUS_TABLE)?.1 != table {
-            return Err("Specified data does not match kernel data".into());
-        }
-        Ok(dm.device_status(id)?)
-    };
-    f().map_err(|e| Error::with_chain(e, format!("Failed to set up device {}", id)))
+    chain_error(|| {
+                    if dm.table_status(id, DM_STATUS_TABLE)?.1 != table {
+                        return Err("Specified data does not match kernel data".into());
+                    }
+                    Ok(dm.device_status(id)?)
+                },
+                || format!("Failed to set up device {}", id).into())
 }
 
 /// Reload the table for a device
@@ -84,27 +84,22 @@ pub fn table_reload<T1, T2>(dm: &DM,
     where T1: AsRef<str>,
           T2: AsRef<str>
 {
-    let f = || -> Result<DeviceInfo> {
-        let dev_info = dm.table_load(id, table)?;
-        dm.device_suspend(id, DM_SUSPEND)?;
-        dm.device_suspend(id, DmFlags::empty())?;
-        Ok(dev_info)
-    };
-
-    f().map_err(|e| Error::with_chain(e, "Failed to reload table."))
+    chain_error(|| {
+                    let dev_info = dm.table_load(id, table)?;
+                    dm.device_suspend(id, DM_SUSPEND)?;
+                    dm.device_suspend(id, DmFlags::empty())?;
+                    Ok(dev_info)
+                },
+                || "Failed to reload table.".into())
 }
 
 /// Check if a device of the given name exists.
 pub fn device_exists(dm: &DM, name: &DmName) -> Result<bool> {
     // TODO: Why do we have to call .as_ref() here instead of relying on deref
     // coercion?
-    let f = || -> Result<bool> {
-        Ok(dm.list_devices()
-               .map(|l| l.iter().any(|&(ref n, _)| n.as_ref() == name))?)
-    };
-
-    f().map_err(|e| {
-                    Error::with_chain(e,
-                                      format!("Can not determine whether device {} exists", name))
-                })
+    chain_error(|| {
+                    Ok(dm.list_devices()
+                           .map(|l| l.iter().any(|&(ref n, _)| n.as_ref() == name))?)
+                },
+                || format!("Can not determine whether device {} exists", name).into())
 }
