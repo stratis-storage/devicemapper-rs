@@ -272,7 +272,7 @@ impl ThinPoolDev {
 
     /// Extend an existing meta device with additional new segments.
     pub fn extend_meta(&mut self, dm: &DM, new_segs: Vec<Segment>) -> DmResult<()> {
-        self.meta_dev.extend(new_segs)?;
+        self.meta_dev.extend(dm, new_segs)?;
         table_reload(dm,
                      &DevId::Name(self.name()),
                      &ThinPoolDev::dm_table(self.data_dev.size(),
@@ -285,7 +285,7 @@ impl ThinPoolDev {
 
     /// Extend an existing data device with additional new segments.
     pub fn extend_data(&mut self, dm: &DM, new_segs: Vec<Segment>) -> DmResult<()> {
-        self.data_dev.extend(new_segs)?;
+        self.data_dev.extend(dm, new_segs)?;
         table_reload(dm,
                      &DevId::Name(self.name()),
                      &ThinPoolDev::dm_table(self.data_dev.size(),

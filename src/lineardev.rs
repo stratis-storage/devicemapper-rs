@@ -132,7 +132,7 @@ impl LinearDev {
     /// segments already in the device, this method will succeed. However,
     /// the behavior of the linear device in that case should be treated as
     /// undefined.
-    pub fn extend(&mut self, new_segs: Vec<Segment>) -> DmResult<()> {
+    pub fn extend(&mut self, dm: &DM, new_segs: Vec<Segment>) -> DmResult<()> {
         if new_segs.is_empty() {
             return Ok(());
         }
@@ -160,7 +160,7 @@ impl LinearDev {
         }
 
         let table = LinearDev::dm_table(&self.segments);
-        table_reload(&DM::new()?, &DevId::Name(self.name()), &table)?;
+        table_reload(dm, &DevId::Name(self.name()), &table)?;
         Ok(())
     }
 
