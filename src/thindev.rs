@@ -202,13 +202,13 @@ impl ThinDev {
 
     /// Get the current status of the thin device.
     pub fn status(&self, dm: &DM) -> DmResult<ThinStatus> {
-        let (_, mut status) = dm.table_status(&DevId::Name(self.name()), DmFlags::empty())?;
+        let (_, table) = dm.table_status(&DevId::Name(self.name()), DmFlags::empty())?;
 
-        assert_eq!(status.len(),
+        assert_eq!(table.len(),
                    1,
-                   "Kernel must return 1 line from thin status");
+                   "Kernel must return 1 line table for thin status");
 
-        let status_line = status.pop().expect("assertion above holds").3;
+        let status_line = &table.first().expect("assertion above holds").3;
         if status_line.starts_with("Fail") {
             return Ok(ThinStatus::Fail);
         }
