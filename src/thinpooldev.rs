@@ -265,7 +265,7 @@ impl ThinPoolDev {
     }
 
     /// Extend an existing meta device with additional new segments.
-    pub fn extend_meta(&mut self, dm: &DM, new_segs: Vec<Segment>) -> DmResult<()> {
+    pub fn extend_meta(&mut self, dm: &DM, new_segs: &[Segment]) -> DmResult<()> {
         self.meta_dev.extend(dm, new_segs)?;
         table_reload(dm,
                      &DevId::Name(self.name()),
@@ -278,7 +278,7 @@ impl ThinPoolDev {
     }
 
     /// Extend an existing data device with additional new segments.
-    pub fn extend_data(&mut self, dm: &DM, new_segs: Vec<Segment>) -> DmResult<()> {
+    pub fn extend_data(&mut self, dm: &DM, new_segs: &[Segment]) -> DmResult<()> {
         self.data_dev.extend(dm, new_segs)?;
         table_reload(dm,
                      &DevId::Name(self.name()),
@@ -296,15 +296,14 @@ pub fn minimal_thinpool(dm: &DM, path: &Path) -> ThinPoolDev {
     let dev = Device::from(devnode_to_devno(path).unwrap());
     let meta = LinearDev::setup(DmName::new("meta").expect("valid format"),
                                 dm,
-                                vec![Segment::new(dev, Sectors(0), MIN_RECOMMENDED_METADATA_SIZE)])
+                                &[Segment::new(dev, Sectors(0), MIN_RECOMMENDED_METADATA_SIZE)])
             .unwrap();
 
-    let data = LinearDev::setup(DmName::new("data").expect("valid format"),
-                                dm,
-                                vec![Segment::new(dev,
-                                                  MIN_RECOMMENDED_METADATA_SIZE,
-                                                  MIN_DATA_BLOCK_SIZE)])
-            .unwrap();
+    let data =
+        LinearDev::setup(DmName::new("data").expect("valid format"),
+                         dm,
+                         &[Segment::new(dev, MIN_RECOMMENDED_METADATA_SIZE, MIN_DATA_BLOCK_SIZE)])
+                .unwrap();
 
     ThinPoolDev::new(DmName::new("pool").expect("valid format"),
                      dm,
