@@ -888,8 +888,6 @@ impl DM {
 #[cfg(test)]
 mod tests {
 
-    use {DevId, DM};
-
     use super::*;
 
     #[test]
