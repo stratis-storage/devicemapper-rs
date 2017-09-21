@@ -12,7 +12,7 @@ use super::dm::{DM, DevId, DmFlags, DmName};
 use super::lineardev::LinearDev;
 use super::result::{DmResult, DmError, ErrorEnum};
 use super::segment::Segment;
-use super::shared::{DmDevice, device_create, device_exists, table_reload};
+use super::shared::{DmDevice, device_create, device_exists, device_match, table_reload};
 use super::types::{DataBlocks, MetaBlocks, Sectors, TargetLine};
 
 #[cfg(test)]
@@ -109,8 +109,8 @@ pub enum ThinPoolWorkingStatus {
 /// https://www.kernel.org/doc/Documentation/device-mapper/thin-provisioning.txt
 impl ThinPoolDev {
     /// Construct a new ThinPoolDev with the given data and meta devs.
-    /// TODO: If the device already exists, verify that kernel's model
-    /// matches arguments.
+    /// Returns an error if the device is already known to the kernel.
+    /// Precondition: the metadata device does not contain any pool metadata.
     pub fn new(name: &DmName,
                dm: &DM,
                data_block_size: Sectors,
@@ -118,19 +118,18 @@ impl ThinPoolDev {
                meta: LinearDev,
                data: LinearDev)
                -> DmResult<ThinPoolDev> {
-        let dev_info = if device_exists(dm, name)? {
-            let id = DevId::Name(name);
-            // TODO: Verify that kernel table matches our table.
-            Box::new(dm.device_status(&id)?)
-        } else {
-            let table =
-                ThinPoolDev::dm_table(data.size(), data_block_size, low_water_mark, &meta, &data);
-            Box::new(device_create(dm, name, &table)?)
-        };
+        if device_exists(dm, name)? {
+            let err_msg = format!("thinpooldev {} already exists", name);
+            return Err(DmError::Dm(ErrorEnum::Invalid, err_msg.into()));
+        }
+
+        let table =
+            ThinPoolDev::dm_table(data.size(), data_block_size, low_water_mark, &meta, &data);
+        let dev_info = device_create(dm, name, &table)?;
 
         DM::wait_for_dm();
         Ok(ThinPoolDev {
-               dev_info: dev_info,
+               dev_info: Box::new(dev_info),
                meta_dev: meta,
                data_dev: data,
                data_block_size: data_block_size,
@@ -159,6 +158,8 @@ impl ThinPoolDev {
     /// Returns an error if the "thin_check" command fails.
     /// If there is no metadata on the metadata device, "thin_check" will
     /// return an error, so this method returns an error in that case.
+    /// This implies that the device must already have been created, in
+    /// particular, that there must be data on the metadata device.
     // Our best proxy for "busy" at this time is if the device is known to
     // the kernel.
     pub fn setup(name: &DmName,
@@ -168,17 +169,30 @@ impl ThinPoolDev {
                  meta: LinearDev,
                  data: LinearDev)
                  -> DmResult<ThinPoolDev> {
-        if !device_exists(dm, name)? &&
-           !Command::new("thin_check")
-                .arg("-q")
-                .arg(&meta.devnode())
-                .status()?
-                .success() {
-            return Err(DmError::Dm(ErrorEnum::CheckFailed(meta, data),
-                                   "thin_check failed, run thin_repair".into()));
-        }
+        let table =
+            ThinPoolDev::dm_table(data.size(), data_block_size, low_water_mark, &meta, &data);
+        let dev_info = if device_exists(dm, name)? {
+            device_match(dm, &DevId::Name(name), &table)?
+        } else {
+            if !Command::new("thin_check")
+                    .arg("-q")
+                    .arg(&meta.devnode())
+                    .status()?
+                    .success() {
+                return Err(DmError::Dm(ErrorEnum::CheckFailed(meta, data),
+                                       "thin_check failed, run thin_repair".into()));
+            }
+            device_create(dm, name, &table)?
+        };
 
-        ThinPoolDev::new(name, dm, data_block_size, low_water_mark, meta, data)
+        DM::wait_for_dm();
+        Ok(ThinPoolDev {
+               dev_info: Box::new(dev_info),
+               meta_dev: meta,
+               data_dev: data,
+               data_block_size: data_block_size,
+               low_water_mark: low_water_mark,
+           })
     }
 
     /// Generate a table to be passed to DM. The format of the table
