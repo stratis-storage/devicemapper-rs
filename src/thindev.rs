@@ -65,17 +65,12 @@ impl<'de> serde::Deserialize<'de> for ThinDevId {
 }
 
 /// DM construct for a thin block device
+#[derive(Debug)]
 pub struct ThinDev {
     dev_info: Box<DeviceInfo>,
     thin_id: ThinDevId,
     size: Sectors,
     thinpool: Device,
-}
-
-impl fmt::Debug for ThinDev {
-    fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
-        write!(f, "{}", self.name())
-    }
 }
 
 impl DmDevice for ThinDev {
