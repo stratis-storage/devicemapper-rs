@@ -15,7 +15,6 @@
 use consts::SECTOR_SIZE;
 
 use std::fmt;
-use std::fmt::Display;
 use std::iter::Sum;
 use std::ops::{Div, Mul, Rem, Add};
 
@@ -138,8 +137,8 @@ unsigned_mul!(u16, DataBlocks);
 unsigned_mul!(u8, DataBlocks);
 unsigned_mul!(usize, DataBlocks);
 
-impl Display for DataBlocks {
-    fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
+impl fmt::Display for DataBlocks {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{} data blocks", self.0)
     }
 }
@@ -171,8 +170,8 @@ unsigned_mul!(u16, MetaBlocks);
 unsigned_mul!(u8, MetaBlocks);
 unsigned_mul!(usize, MetaBlocks);
 
-impl Display for MetaBlocks {
-    fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
+impl fmt::Display for MetaBlocks {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{} meta blocks", self.0)
     }
 }
@@ -206,8 +205,8 @@ unsigned_mul!(u16, Bytes);
 unsigned_mul!(u8, Bytes);
 unsigned_mul!(usize, Bytes);
 
-impl Display for Bytes {
-    fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
+impl fmt::Display for Bytes {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{} bytes", self.0)
     }
 }
@@ -260,8 +259,8 @@ unsigned_rem!(u16, Sectors);
 unsigned_rem!(u8, Sectors);
 unsigned_rem!(usize, Sectors);
 
-impl Display for Sectors {
-    fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
+impl fmt::Display for Sectors {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{} sectors", self.0)
     }
 }
