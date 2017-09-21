@@ -9,10 +9,10 @@ use super::consts::IEC;
 use super::device::Device;
 use super::deviceinfo::DeviceInfo;
 use super::dm::{DM, DevId, DmFlags, DmName};
+use super::errors::{Error, ErrorKind, Result};
 use super::lineardev::LinearDev;
-use super::result::{DmResult, DmError, ErrorEnum};
 use super::segment::Segment;
-use super::shared::{DmDevice, device_create, device_exists, table_reload};
+use super::shared::{DmDevice, device_create, device_exists, device_setup, table_reload};
 use super::types::{DataBlocks, MetaBlocks, Sectors, TargetLine};
 
 #[cfg(test)]
@@ -57,7 +57,7 @@ impl DmDevice for ThinPoolDev {
         self.data_dev.size()
     }
 
-    fn teardown(self, dm: &DM) -> DmResult<()> {
+    fn teardown(self, dm: &DM) -> Result<()> {
         dm.device_remove(&DevId::Name(self.name()), DmFlags::empty())?;
         self.data_dev.teardown(dm)?;
         self.meta_dev.teardown(dm)?;
@@ -109,28 +109,29 @@ pub enum ThinPoolWorkingStatus {
 /// https://www.kernel.org/doc/Documentation/device-mapper/thin-provisioning.txt
 impl ThinPoolDev {
     /// Construct a new ThinPoolDev with the given data and meta devs.
-    /// TODO: If the device already exists, verify that kernel's model
-    /// matches arguments.
     pub fn new(name: &DmName,
                dm: &DM,
                data_block_size: Sectors,
                low_water_mark: DataBlocks,
                meta: LinearDev,
                data: LinearDev)
-               -> DmResult<ThinPoolDev> {
-        let dev_info = if device_exists(dm, name)? {
-            let id = DevId::Name(name);
-            // TODO: Verify that kernel table matches our table.
-            Box::new(dm.device_status(&id)?)
+               -> Result<ThinPoolDev> {
+        let table =
+            ThinPoolDev::dm_table(data.size(), data_block_size, low_water_mark, &meta, &data);
+        let f = || if device_exists(dm, name)? {
+            device_setup(dm, &DevId::Name(name), &table)
         } else {
-            let table =
-                ThinPoolDev::dm_table(data.size(), data_block_size, low_water_mark, &meta, &data);
-            Box::new(device_create(dm, name, &table)?)
+            device_create(dm, name, &table)
+        };
+
+        let dev_info = match f() {
+            Err(err) => return Err(err.chain_err(|| ErrorKind::ThinPoolInitError(meta, data))),
+            Ok(info) => info,
         };
 
         DM::wait_for_dm();
         Ok(ThinPoolDev {
-               dev_info: dev_info,
+               dev_info: Box::new(dev_info),
                meta_dev: meta,
                data_dev: data,
                data_block_size: data_block_size,
@@ -167,18 +168,58 @@ impl ThinPoolDev {
                  low_water_mark: DataBlocks,
                  meta: LinearDev,
                  data: LinearDev)
-                 -> DmResult<ThinPoolDev> {
-        if !device_exists(dm, name)? &&
-           !Command::new("thin_check")
-                .arg("-q")
-                .arg(&meta.devnode())
-                .status()?
-                .success() {
-            return Err(DmError::Dm(ErrorEnum::CheckFailed(meta, data),
-                                   "thin_check failed, run thin_repair".into()));
-        }
+                 -> Result<ThinPoolDev> {
 
-        ThinPoolDev::new(name, dm, data_block_size, low_water_mark, meta, data)
+        let exists = device_exists(dm, name);
+        let exists = match exists {
+            Ok(exists) => exists,
+            Err(err) => {
+                return Err(err.chain_err(|| ErrorKind::ThinPoolInitError(meta, data)));
+            }
+        };
+
+        let table =
+            ThinPoolDev::dm_table(data.size(), data_block_size, low_water_mark, &meta, &data);
+        let dev_info = if exists {
+            match device_setup(dm, &DevId::Name(name), &table) {
+                Ok(info) => Box::new(info),
+                Err(err) => {
+                    return Err(err.chain_err(|| ErrorKind::ThinPoolInitError(meta, data)));
+                }
+            }
+        } else {
+            match Command::new("thin_check")
+                      .arg("-q")
+                      .arg(&meta.devnode())
+                      .status() {
+                Ok(result) => {
+                    if !result.success() {
+                        return Err(Error::from_kind(ErrorKind::ThinCheckError)
+                                   .chain_err(|| ErrorKind::ThinPoolInitError(meta, data)));
+                    }
+                }
+                Err(err) => {
+                    return Err(Error::with_chain(err, ErrorKind::ThinCheckError)
+                               .chain_err(|| ErrorKind::ThinPoolInitError(meta, data)));
+                }
+            }
+            match device_create(dm, name, &table) {
+                Ok(info) => Box::new(info),
+                Err(err) => {
+                    return Err(err.chain_err(|| ErrorKind::ThinPoolInitError(meta, data)));
+                }
+            }
+        };
+
+        DM::wait_for_dm();
+
+        Ok(ThinPoolDev {
+               dev_info: dev_info,
+               meta_dev: meta,
+               data_dev: data,
+               data_block_size: data_block_size,
+               low_water_mark: low_water_mark,
+           })
     }
 
     /// Generate a table to be passed to DM. The format of the table
@@ -202,7 +243,7 @@ impl ThinPoolDev {
     }
 
     /// send a message to DM thin pool
-    pub fn message(&self, dm: &DM, message: &str) -> DmResult<()> {
+    pub fn message(&self, dm: &DM, message: &str) -> Result<()> {
         dm.target_msg(&DevId::Name(self.name()), Sectors(0), message)?;
         Ok(())
     }
@@ -211,7 +252,7 @@ impl ThinPoolDev {
     /// Returns an error if there was an error getting the status value.
     /// Panics if there is an error parsing the status value.
     // Justification: see comment above DM::parse_table_status.
-    pub fn status(&self, dm: &DM) -> DmResult<ThinPoolStatus> {
+    pub fn status(&self, dm: &DM) -> Result<ThinPoolStatus> {
         let (_, mut status) = dm.table_status(&DevId::Name(self.name()), DmFlags::empty())?;
 
         assert_eq!(status.len(),
@@ -265,7 +306,7 @@ impl ThinPoolDev {
     }
 
     /// Extend an existing meta device with additional new segments.
-    pub fn extend_meta(&mut self, dm: &DM, new_segs: &[Segment]) -> DmResult<()> {
+    pub fn extend_meta(&mut self, dm: &DM, new_segs: &[Segment]) -> Result<()> {
         self.meta_dev.extend(dm, new_segs)?;
         table_reload(dm,
                      &DevId::Name(self.name()),
@@ -278,7 +319,7 @@ impl ThinPoolDev {
     }
 
     /// Extend an existing data device with additional new segments.
-    pub fn extend_data(&mut self, dm: &DM, new_segs: &[Segment]) -> DmResult<()> {
+    pub fn extend_data(&mut self, dm: &DM, new_segs: &[Segment]) -> Result<()> {
         self.data_dev.extend(dm, new_segs)?;
         table_reload(dm,
                      &DevId::Name(self.name()),

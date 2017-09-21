@@ -4,16 +4,19 @@
 
 use std::fmt;
 use std::path::PathBuf;
+use std::result;
 
 use serde;
 
 use super::device::Device;
 use super::deviceinfo::DeviceInfo;
-use super::dm::{DM, DM_STATUS_TABLE, DevId, DmFlags, DmName};
-use super::result::{DmError, DmResult, ErrorEnum};
-use super::shared::{DmDevice, device_create, device_exists, table_reload};
+use super::dm::{DM, DevId, DmFlags, DmName};
+use super::errors::{ErrorKind, Result};
+use super::shared::{DmDevice, device_create, device_exists, device_setup, table_reload};
 use super::thinpooldev::ThinPoolDev;
 use super::types::{Sectors, TargetLine};
+use super::util::chain_error;
+
 
 const THIN_DEV_ID_LIMIT: u64 = 0x1_000_000; // 2 ^ 24
 
@@ -26,12 +29,11 @@ pub struct ThinDevId {
 impl ThinDevId {
     /// Make a new ThinDevId.
     /// Return an error if value is too large to represent in 24 bits.
-    pub fn new_u64(value: u64) -> DmResult<ThinDevId> {
+    pub fn new_u64(value: u64) -> Result<ThinDevId> {
         if value < THIN_DEV_ID_LIMIT {
             Ok(ThinDevId { value: value as u32 })
         } else {
-            Err(DmError::Dm(ErrorEnum::Invalid,
-                            format!("argument {} unrepresentable in 24 bits", value)))
+            Err(ErrorKind::InvalidArgument(format!("{} unrepresentable in 24 bits", value)).into())
         }
     }
 }
@@ -49,7 +51,7 @@ impl fmt::Display for ThinDevId {
 }
 
 impl serde::Serialize for ThinDevId {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    fn serialize<S>(&self, serializer: S) -> result::Result<S::Ok, S::Error>
         where S: serde::Serializer
     {
         serializer.serialize_u32(self.value)
@@ -57,7 +59,7 @@ impl serde::Serialize for ThinDevId {
 }
 
 impl<'de> serde::Deserialize<'de> for ThinDevId {
-    fn deserialize<D>(deserializer: D) -> Result<ThinDevId, D::Error>
+    fn deserialize<D>(deserializer: D) -> result::Result<ThinDevId, D::Error>
         where D: serde::de::Deserializer<'de>
     {
         Ok(ThinDevId { value: serde::Deserialize::deserialize(deserializer)? })
@@ -90,7 +92,7 @@ impl DmDevice for ThinDev {
         self.size
     }
 
-    fn teardown(self, dm: &DM) -> DmResult<()> {
+    fn teardown(self, dm: &DM) -> Result<()> {
         dm.device_remove(&DevId::Name(self.name()), DmFlags::empty())?;
         Ok(())
     }
@@ -117,23 +119,26 @@ impl ThinDev {
                thin_pool: &ThinPoolDev,
                thin_id: ThinDevId,
                length: Sectors)
-               -> DmResult<ThinDev> {
-
-        thin_pool
-            .message(dm, &format!("create_thin {}", thin_id))?;
-
-        if device_exists(dm, name)? {
-            let err_msg = "Uncreated device should not be known to kernel";
-            return Err(DmError::Dm(ErrorEnum::Invalid, err_msg.into()));
-        }
+               -> Result<ThinDev> {
 
         let thin_pool_device = thin_pool.device();
-        let table = ThinDev::dm_table(thin_pool_device, thin_id, length);
-        let dev_info = Box::new(device_create(dm, name, &table)?);
+        let dev_info = chain_error(|| {
+            thin_pool
+                .message(dm, &format!("create_thin {}", thin_id))?;
+
+            if device_exists(dm, name)? {
+                let err_msg = "Uncreated device should not be known to kernel";
+                return Err(ErrorKind::InvalidArgument(err_msg.into()).into());
+            }
+
+            let table = ThinDev::dm_table(thin_pool_device, thin_id, length);
+            device_create(dm, name, &table)
+        },
+                                   || format!("Failed to create new thindev {}", name).into())?;
 
         DM::wait_for_dm();
         Ok(ThinDev {
-               dev_info: dev_info,
+               dev_info: Box::new(dev_info),
                thin_id: thin_id,
                size: length,
                thinpool: thin_pool_device,
@@ -154,25 +159,21 @@ impl ThinDev {
                  thin_pool: &ThinPoolDev,
                  thin_id: ThinDevId,
                  length: Sectors)
-                 -> DmResult<ThinDev> {
+                 -> Result<ThinDev> {
 
         let thin_pool_device = thin_pool.device();
         let table = ThinDev::dm_table(thin_pool_device, thin_id, length);
 
-        let dev_info = if device_exists(dm, name)? {
-            let id = DevId::Name(name);
-            if dm.table_status(&id, DM_STATUS_TABLE)?.1 != table {
-                let err_msg = "Specified data does not match kernel data";
-                return Err(DmError::Dm(ErrorEnum::Invalid, err_msg.into()));
-            }
-            Box::new(dm.device_status(&id)?)
-        } else {
-            Box::new(device_create(dm, name, &table)?)
-        };
+        let dev_info = chain_error(|| if device_exists(dm, name)? {
+                                       device_setup(dm, &DevId::Name(name), &table)
+                                   } else {
+                                       device_create(dm, name, &table)
+                                   },
+                                   || format!("Failed to setup thindev {}", name).into())?;
 
         DM::wait_for_dm();
         Ok(ThinDev {
-               dev_info: dev_info,
+               dev_info: Box::new(dev_info),
                thin_id: thin_id,
                size: length,
                thinpool: thin_pool_device,
@@ -196,12 +197,18 @@ impl ThinDev {
     }
 
     /// Get the current status of the thin device.
-    pub fn status(&self, dm: &DM) -> DmResult<ThinStatus> {
-        let (_, table) = dm.table_status(&DevId::Name(self.name()), DmFlags::empty())?;
+    pub fn status(&self, dm: &DM) -> Result<ThinStatus> {
+        let table =
+            chain_error(|| {
+                            let (_, table) = dm.table_status(&DevId::Name(self.name()),
+                                                             DmFlags::empty())?;
+                            Ok(table)
+                        },
+                        || format!("Failed to get status for thindev {}", self.name()).into())?;
 
         assert_eq!(table.len(),
                    1,
-                   "Kernel must return 1 line table for thin status");
+                   "Kernel must return 1 line table from thin status");
 
         let status_line = &table.first().expect("assertion above holds").3;
         if status_line.starts_with("Fail") {
@@ -229,18 +236,21 @@ impl ThinDev {
 
     /// Extend the thin device's (virtual) size by the number of
     /// sectors given.
-    pub fn extend(&mut self, dm: &DM, sectors: Sectors) -> DmResult<()> {
+    pub fn extend(&mut self, dm: &DM, sectors: Sectors) -> Result<()> {
         let new_size = self.size + sectors;
-        table_reload(dm,
-                     &DevId::Name(self.name()),
-                     &ThinDev::dm_table(self.thinpool, self.thin_id, new_size))?;
+        chain_error(|| {
+                        table_reload(dm,
+                                     &DevId::Name(self.name()),
+                                     &ThinDev::dm_table(self.thinpool, self.thin_id, self.size))
+                    },
+                    || format!("Failed to extend thindev {} by {}", self.name(), sectors).into())?;
         self.size = new_size;
         Ok(())
     }
 
     /// Tear down the DM device, and also delete resources associated
     /// with its thin id from the thinpool.
-    pub fn destroy(self, dm: &DM, thin_pool: &ThinPoolDev) -> DmResult<()> {
+    pub fn destroy(self, dm: &DM, thin_pool: &ThinPoolDev) -> Result<()> {
         let thin_id = self.thin_id;
         self.teardown(dm)?;
         thin_pool.message(dm, &format!("delete {}", thin_id))?;

@@ -6,7 +6,7 @@ use std::ascii::AsciiExt;
 use std::borrow::Borrow;
 use std::fmt;
 use std::fs::File;
-use std::io::Error;
+use std::io;
 use std::ops::Deref;
 use std::os::unix::io::AsRawFd;
 use std::mem::{size_of, transmute};
@@ -21,7 +21,8 @@ use nix::libc::c_ulong;
 use super::device::Device;
 use super::deviceinfo::{DM_NAME_LEN, DM_UUID_LEN, DeviceInfo};
 use super::dm_ioctl as dmi;
-use super::result::{DmError, DmResult, ErrorEnum};
+use super::errors::Result;
+use super::errors::dm::{Error, ErrorKind};
 use super::types::{Sectors, TargetLine, TargetLineArg};
 use super::util::{align_to, slice_to_null};
 
@@ -84,22 +85,24 @@ bitflags! {
     }
 }
 
-/// Returns an error if value is unsuitable.
-fn dev_id_check(value: &str, max_allowed_chars: usize) -> DmResult<()> {
+/// Returns InvalidArgument if value is unsuitable.
+fn dev_id_check(value: &str, max_allowed_chars: usize) -> Result<()> {
     if !value.is_ascii() {
         let err_msg = format!("value {} has some non-ascii characters", value);
-        return Err(DmError::Dm(ErrorEnum::Invalid, err_msg));
+        return Err(Error::from_kind(ErrorKind::InvalidArgument(err_msg.into())).into());
     }
     let num_chars = value.len();
     if num_chars == 0 {
-        return Err(DmError::Dm(ErrorEnum::Invalid, "value has zero characters".into()));
+        return Err(Error::from_kind(ErrorKind::InvalidArgument("value has zero characters"
+                                                                   .into()))
+                           .into());
     }
     if num_chars > max_allowed_chars {
         let err_msg = format!("value {} has {} chars which is greater than maximum allowed {}",
                               value,
                               num_chars,
                               max_allowed_chars);
-        return Err(DmError::Dm(ErrorEnum::Invalid, err_msg));
+        return Err(Error::from_kind(ErrorKind::InvalidArgument(err_msg.into())).into());
     }
     Ok(())
 }
@@ -124,7 +127,8 @@ macro_rules! dev_id {
 
         impl $B {
             /// Create a new borrowed identifier from a `&str`.
-            pub fn new(value: &str) -> DmResult<&$B> {
+            /// Returns InvalidArgument if value is not valid.
+            pub fn new(value: &str) -> Result<&$B> {
                 dev_id_check(value, $MAX - 1)?;
                 Ok(unsafe { transmute(value) })
             }
@@ -158,7 +162,8 @@ macro_rules! dev_id {
 
         impl $O {
             /// Construct a new owned identifier.
-            pub fn new(value: String) -> DmResult<$O> {
+            /// Returns InvalidArgument if value is not valid.
+            pub fn new(value: String) -> Result<$O> {
                 dev_id_check(&value, $MAX - 1)?;
                 Ok($O { inner: value })
             }
@@ -220,8 +225,12 @@ pub struct DM {
 
 impl DM {
     /// Create a new context for communicating with DM.
-    pub fn new() -> DmResult<DM> {
-        Ok(DM { file: File::open(DM_CTL_PATH)? })
+    /// Returns ContextInitError if context can not be initialized.
+    pub fn new() -> Result<DM> {
+        Ok(DM {
+               file: File::open(DM_CTL_PATH)
+                   .map_err(|e| Error::with_chain(e, ErrorKind::ContextInitError))?,
+           })
     }
 
     /// The /dev/mapper/<name> device is not immediately available for use.
@@ -254,12 +263,12 @@ impl DM {
 
     // Give this a filled-in header and optionally add'l stuff.
     // Does the ioctl and maybe returns stuff. Handles BUFFER_FULL flag.
-    //
+    // Returns IoctlError on failure.
     fn do_ioctl(&self,
                 ioctl: u8,
                 hdr: &mut dmi::Struct_dm_ioctl,
                 in_data: Option<&[u8]>)
-                -> DmResult<Vec<u8>> {
+                -> Result<Vec<u8>> {
         // Create in-buf by copying hdr and any in-data into a linear
         // Vec v.  'hdr_slc' also aliases hdr as a &[u8], used first
         // to copy the hdr into v, and later to update the
@@ -291,7 +300,8 @@ impl DM {
         loop {
             if unsafe { convert_ioctl_res!(nix_ioctl(self.file.as_raw_fd(), op, v.as_mut_ptr())) }
                    .is_err() {
-                return Err(DmError::Io(Error::last_os_error()));
+                return Err(Error::with_chain(io::Error::last_os_error(), ErrorKind::IoctlError)
+                               .into());
             }
 
             let hdr = unsafe {
@@ -324,7 +334,7 @@ impl DM {
     }
 
     /// Devicemapper version information: Major, Minor, and patchlevel versions.
-    pub fn version(&self) -> DmResult<(u32, u32, u32)> {
+    pub fn version(&self) -> Result<(u32, u32, u32)> {
         let mut hdr: dmi::Struct_dm_ioctl = Default::default();
 
         // No flags checked so don't pass any
@@ -342,7 +352,7 @@ impl DM {
     /// in-use devices, and they will be removed when released.
     ///
     /// Valid flags: DM_DEFERRED_REMOVE
-    pub fn remove_all(&self, flags: DmFlags) -> DmResult<()> {
+    pub fn remove_all(&self, flags: DmFlags) -> Result<()> {
         let mut hdr: dmi::Struct_dm_ioctl = Default::default();
 
         let clean_flags = DM_DEFERRED_REMOVE & flags;
@@ -356,7 +366,7 @@ impl DM {
 
     /// Returns a list of tuples containing DM device names and a
     /// Device, which holds their major and minor device numbers.
-    pub fn list_devices(&self) -> DmResult<Vec<(DmNameBuf, Device)>> {
+    pub fn list_devices(&self) -> Result<Vec<(DmNameBuf, Device)>> {
         let mut hdr: dmi::Struct_dm_ioctl = Default::default();
 
         // No flags checked so don't pass any
@@ -411,7 +421,7 @@ impl DM {
                          name: &DmName,
                          uuid: Option<&DmUuid>,
                          flags: DmFlags)
-                         -> DmResult<DeviceInfo> {
+                         -> Result<DeviceInfo> {
         let mut hdr: dmi::Struct_dm_ioctl = Default::default();
 
         let clean_flags = (DM_READONLY | DM_PERSISTENT_DEV) & flags;
@@ -435,7 +445,7 @@ impl DM {
     /// used.
     ///
     /// Valid flags: DM_DEFERRED_REMOVE
-    pub fn device_remove(&self, id: &DevId, flags: DmFlags) -> DmResult<DeviceInfo> {
+    pub fn device_remove(&self, id: &DevId, flags: DmFlags) -> Result<DeviceInfo> {
         let mut hdr: dmi::Struct_dm_ioctl = Default::default();
 
         let clean_flags = DM_DEFERRED_REMOVE & flags;
@@ -458,7 +468,7 @@ impl DM {
     /// must be "".
     /// Note: Possibly surprisingly, returned DeviceInfo's uuid or name field
     /// contains the previous value, not the newly set value.
-    pub fn device_rename(&self, old_name: &DmName, new: &DevId) -> DmResult<DeviceInfo> {
+    pub fn device_rename(&self, old_name: &DmName, new: &DevId) -> Result<DeviceInfo> {
         let mut hdr: dmi::Struct_dm_ioctl = Default::default();
         let mut data_in = match *new {
             DevId::Name(name) => {
@@ -503,7 +513,7 @@ impl DM {
     /// let id = DevId::Name(name);
     /// dm.device_suspend(&id, DM_SUSPEND).unwrap();
     /// ```
-    pub fn device_suspend(&self, id: &DevId, flags: DmFlags) -> DmResult<DeviceInfo> {
+    pub fn device_suspend(&self, id: &DevId, flags: DmFlags) -> Result<DeviceInfo> {
         let mut hdr: dmi::Struct_dm_ioctl = Default::default();
 
         let clean_flags = (DM_SUSPEND | DM_NOFLUSH | DM_SKIP_LOCKFS) & flags;
@@ -522,7 +532,7 @@ impl DM {
     /// Get DeviceInfo for a device. This is also returned by other
     /// methods, but if just the DeviceInfo is desired then this just
     /// gets it.
-    pub fn device_status(&self, id: &DevId) -> DmResult<DeviceInfo> {
+    pub fn device_status(&self, id: &DevId) -> Result<DeviceInfo> {
         let mut hdr: dmi::Struct_dm_ioctl = Default::default();
 
         // No flags checked so don't pass any
@@ -544,10 +554,7 @@ impl DM {
     ///
     /// This interface is not very friendly to monitoring multiple devices.
     /// Events are also exported via uevents, that method may be preferable.
-    pub fn device_wait(&self,
-                       id: &DevId,
-                       flags: DmFlags)
-                       -> DmResult<(DeviceInfo, Vec<TargetLine>)> {
+    pub fn device_wait(&self, id: &DevId, flags: DmFlags) -> Result<(DeviceInfo, Vec<TargetLine>)> {
         let mut hdr: dmi::Struct_dm_ioctl = Default::default();
 
         let clean_flags = DM_QUERY_INACTIVE_TABLE & flags;
@@ -595,7 +602,7 @@ impl DM {
     pub fn table_load<T1, T2>(&self,
                               id: &DevId,
                               targets: &[TargetLineArg<T1, T2>])
-                              -> DmResult<DeviceInfo>
+                              -> Result<DeviceInfo>
         where T1: AsRef<str>,
               T2: AsRef<str>
     {
@@ -613,7 +620,8 @@ impl DM {
             let ttyp = t.2.as_ref();
             let ttyp_len = ttyp.len();
             if ttyp_len > dst.len() {
-                return Err(DmError::Dm(ErrorEnum::Invalid, "target type too long".into()));
+                let err_msg = "target type too long";
+                return Err(Error::from_kind(ErrorKind::InvalidArgument(err_msg.into())).into());
             }
             dst[..ttyp_len].clone_from_slice(ttyp.as_bytes());
 
@@ -658,7 +666,7 @@ impl DM {
     }
 
     /// Clear the "inactive" table for a device.
-    pub fn table_clear(&self, id: &DevId) -> DmResult<DeviceInfo> {
+    pub fn table_clear(&self, id: &DevId) -> Result<DeviceInfo> {
         let mut hdr: dmi::Struct_dm_ioctl = Default::default();
 
         // No flags checked so don't pass any
@@ -680,7 +688,7 @@ impl DM {
     /// inactive table.
     ///
     /// Valid flags: DM_QUERY_INACTIVE_TABLE
-    pub fn table_deps(&self, id: &DevId, flags: DmFlags) -> DmResult<Vec<Device>> {
+    pub fn table_deps(&self, id: &DevId, flags: DmFlags) -> Result<Vec<Device>> {
         let mut hdr: dmi::Struct_dm_ioctl = Default::default();
 
         let clean_flags = DM_QUERY_INACTIVE_TABLE & flags;
@@ -791,7 +799,7 @@ impl DM {
     pub fn table_status(&self,
                         id: &DevId,
                         flags: DmFlags)
-                        -> DmResult<(DeviceInfo, Vec<TargetLine>)> {
+                        -> Result<(DeviceInfo, Vec<TargetLine>)> {
         let mut hdr: dmi::Struct_dm_ioctl = Default::default();
 
         let clean_flags = (DM_NOFLUSH | DM_STATUS_TABLE | DM_QUERY_INACTIVE_TABLE) & flags;
@@ -811,7 +819,7 @@ impl DM {
 
     /// Returns a list of each loaded target type with its name, and
     /// version broken into major, minor, and patchlevel.
-    pub fn list_versions(&self) -> DmResult<Vec<(String, u32, u32, u32)>> {
+    pub fn list_versions(&self) -> Result<Vec<(String, u32, u32, u32)>> {
         let mut hdr: dmi::Struct_dm_ioctl = Default::default();
 
         // No flags checked so don't pass any
@@ -854,7 +862,7 @@ impl DM {
                       id: &DevId,
                       sector: Sectors,
                       msg: &str)
-                      -> DmResult<(DeviceInfo, Option<String>)> {
+                      -> Result<(DeviceInfo, Option<String>)> {
         let mut hdr: dmi::Struct_dm_ioctl = Default::default();
 
         // No flags checked so don't pass any
@@ -888,12 +896,17 @@ impl DM {
 #[cfg(test)]
 mod tests {
 
+    use super::super::errors;
+
     use super::*;
 
     #[test]
     /// Verify that creating an empty DmName is an error.
     pub fn test_empty_name() {
-        assert!(DmName::new("").is_err());
+        assert!(match *DmName::new("").unwrap_err().kind() {
+                    errors::ErrorKind::Dm(ErrorKind::InvalidArgument(_)) => true,
+                    _ => false,
+                })
     }
 
     #[test]
@@ -971,7 +984,13 @@ mod tests {
             .unwrap();
 
         let new_uuid = DmUuid::new("example-9999999999").expect("is valid DM uuid");
-        assert!(dm.device_rename(name, &DevId::Uuid(new_uuid)).is_err());
+        assert!(match *dm.device_rename(name, &DevId::Uuid(new_uuid))
+                           .unwrap_err()
+                           .kind() {
+                    errors::ErrorKind::Dm(ErrorKind::IoctlError) => true,
+                    _ => false,
+                });
+
         dm.device_remove(&DevId::Name(name), DmFlags::empty())
             .unwrap();
     }
@@ -984,7 +1003,12 @@ mod tests {
         let uuid = DmUuid::new("example-363333333333333").expect("is valid DM uuid");
         dm.device_create(name, Some(uuid), DmFlags::empty())
             .unwrap();
-        assert!(dm.device_rename(name, &DevId::Uuid(uuid)).is_err());
+        assert!(match *dm.device_rename(name, &DevId::Uuid(uuid))
+                           .unwrap_err()
+                           .kind() {
+                    errors::ErrorKind::Dm(ErrorKind::IoctlError) => true,
+                    _ => false,
+                });
         dm.device_remove(&DevId::Name(name), DmFlags::empty())
             .unwrap();
     }
@@ -1018,7 +1042,12 @@ mod tests {
         let name = DmName::new("example-dev").expect("is valid DM name");
         dm.device_create(name, None, DmFlags::empty()).unwrap();
         DM::wait_for_dm();
-        assert!(dm.device_rename(name, &DevId::Name(name)).is_err());
+        assert!(match *dm.device_rename(name, &DevId::Name(name))
+                           .unwrap_err()
+                           .kind() {
+                    errors::ErrorKind::Dm(ErrorKind::IoctlError) => true,
+                    _ => false,
+                });
         dm.device_remove(&DevId::Name(name), DmFlags::empty())
             .unwrap();
     }
@@ -1039,7 +1068,10 @@ mod tests {
             }
         }
 
-        assert!(dm.device_status(&DevId::Name(name)).is_err());
+        assert!(match *dm.device_status(&DevId::Name(name)).unwrap_err().kind() {
+                    errors::ErrorKind::Dm(ErrorKind::IoctlError) => true,
+                    _ => false,
+                });
         assert!(dm.device_status(&DevId::Name(new_name)).is_ok());
 
         let devices = dm.list_devices().unwrap();
@@ -1049,8 +1081,12 @@ mod tests {
         let third_name = DmName::new("example-dev-3").expect("is valid DM name");
         dm.device_create(third_name, None, DmFlags::empty())
             .unwrap();
-        assert!(dm.device_rename(new_name, &DevId::Name(third_name))
-                    .is_err());
+        assert!(match *dm.device_rename(new_name, &DevId::Name(third_name))
+                           .unwrap_err()
+                           .kind() {
+                    errors::ErrorKind::Dm(ErrorKind::IoctlError) => true,
+                    _ => false,
+                });
 
         dm.device_remove(&DevId::Name(third_name), DmFlags::empty())
             .unwrap();
@@ -1061,21 +1097,29 @@ mod tests {
     #[test]
     /// Renaming a device that does not exist yields an error.
     fn sudo_test_rename_non_existant() {
-        assert!(DM::new()
-                    .unwrap()
-                    .device_rename(DmName::new("old_name").expect("is valid DM name"),
-                                   &DevId::Name(DmName::new("new_name").expect("is valid DM name")))
-                    .is_err());
+        assert!(match *DM::new()
+                .unwrap()
+                .device_rename(DmName::new("old_name").expect("is valid Dm name"),
+                               &DevId::Name(DmName::new("new_name").expect("is valid DM name")))
+                          .unwrap_err()
+                          .kind() {
+                    errors::ErrorKind::Dm(ErrorKind::IoctlError) => true,
+                    _ => false,
+                });
     }
 
     #[test]
     /// Removing a device that does not exist yields an error, unfortunately.
     fn sudo_test_remove_non_existant() {
-        assert!(DM::new()
-                    .unwrap()
-                    .device_remove(&DevId::Name(DmName::new("junk").expect("is valid DM name")),
-                                   DmFlags::empty())
-                    .is_err());
+        assert!(match *DM::new()
+                .unwrap()
+                .device_remove(&DevId::Name(DmName::new("junk").expect("is valid Dm name")),
+                DmFlags::empty())
+                          .unwrap_err()
+                          .kind() {
+                    errors::ErrorKind::Dm(ErrorKind::IoctlError) => true,
+                    _ => false,
+                });
     }
 
     #[test]
@@ -1101,21 +1145,29 @@ mod tests {
     #[test]
     /// Table status on a non-existant name should return an error.
     fn sudo_test_table_status_non_existant() {
-        assert!(DM::new()
-                    .unwrap()
-                    .table_status(&DevId::Name(DmName::new("junk").expect("is valid DM name")),
-                                  DmFlags::empty())
-                    .is_err());
+        assert!(match *DM::new()
+                .unwrap()
+                .table_status(&DevId::Name(DmName::new("junk").expect("is valid Dm name")),
+                DmFlags::empty())
+                          .unwrap_err()
+                          .kind() {
+                    errors::ErrorKind::Dm(ErrorKind::IoctlError) => true,
+                    _ => false,
+                });
     }
 
     #[test]
     /// Table status on a non-existant name with TABLE_STATUS flag errors.
     fn sudo_test_table_status_non_existant_table() {
         let name = DmName::new("junk").expect("is valid DM name");
-        assert!(DM::new()
-                    .unwrap()
-                    .table_status(&DevId::Name(name), DM_STATUS_TABLE)
-                    .is_err());
+        assert!(match *DM::new()
+                           .unwrap()
+                           .table_status(&DevId::Name(name), DM_STATUS_TABLE)
+                           .unwrap_err()
+                           .kind() {
+                    errors::ErrorKind::Dm(ErrorKind::IoctlError) => true,
+                    _ => false,
+                });
     }
 
     #[test]
@@ -1145,10 +1197,14 @@ mod tests {
     /// by name returns an error.
     fn sudo_status_no_name() {
         let name = DmName::new("example_dev").expect("is valid DM name");
-        assert!(DM::new()
-                    .unwrap()
-                    .device_status(&DevId::Name(name))
-                    .is_err());
+        assert!(match *DM::new()
+                           .unwrap()
+                           .device_status(&DevId::Name(name))
+                           .unwrap_err()
+                           .kind() {
+                    errors::ErrorKind::Dm(ErrorKind::IoctlError) => true,
+                    _ => false,
+                });
     }
 
     #[test]
@@ -1164,13 +1220,30 @@ mod tests {
 
         dm.device_create(name, Some(uuid), DmFlags::empty())
             .unwrap();
-        assert!(dm.device_create(name, Some(uuid), DmFlags::empty())
-                    .is_err());
-        assert!(dm.device_create(name, None, DmFlags::empty()).is_err());
-        assert!(dm.device_create(name, Some(uuid_alt), DmFlags::empty())
-                    .is_err());
-        assert!(dm.device_create(name_alt, Some(uuid), DmFlags::empty())
-                    .is_err());
+        assert!(match *dm.device_create(name, Some(uuid), DmFlags::empty())
+                           .unwrap_err()
+                           .kind() {
+                    errors::ErrorKind::Dm(ErrorKind::IoctlError) => true,
+                    _ => false,
+                });
+        assert!(match *dm.device_create(name, None, DmFlags::empty())
+                           .unwrap_err()
+                           .kind() {
+                    errors::ErrorKind::Dm(ErrorKind::IoctlError) => true,
+                    _ => false,
+                });
+        assert!(match *dm.device_create(name, Some(uuid_alt), DmFlags::empty())
+                           .unwrap_err()
+                           .kind() {
+                    errors::ErrorKind::Dm(ErrorKind::IoctlError) => true,
+                    _ => false,
+                });
+        assert!(match *dm.device_create(name_alt, Some(uuid), DmFlags::empty())
+                           .unwrap_err()
+                           .kind() {
+                    errors::ErrorKind::Dm(ErrorKind::IoctlError) => true,
+                    _ => false,
+                });
         dm.device_remove(&DevId::Name(name), DmFlags::empty())
             .unwrap();
     }

@@ -6,11 +6,13 @@ use std::path::PathBuf;
 
 use super::device::Device;
 use super::deviceinfo::DeviceInfo;
-use super::dm::{DM, DM_STATUS_TABLE, DevId, DmFlags, DmName};
-use super::result::{DmResult, DmError, ErrorEnum};
+use super::dm::{DM, DevId, DmFlags, DmName};
+use super::errors::{Error, ErrorKind, Result};
 use super::segment::Segment;
-use super::shared::{DmDevice, device_create, device_exists, table_reload};
+use super::shared::{DmDevice, device_create, device_exists, device_setup, table_reload};
 use super::types::{Sectors, TargetLine};
+use super::util::chain_error;
+
 
 /// A DM construct of combined Segments
 #[derive(Debug)]
@@ -37,7 +39,7 @@ impl DmDevice for LinearDev {
         self.segments.iter().map(|s| s.length).sum()
     }
 
-    fn teardown(self, dm: &DM) -> DmResult<()> {
+    fn teardown(self, dm: &DM) -> Result<()> {
         dm.device_remove(&DevId::Name(self.name()), DmFlags::empty())?;
         Ok(())
     }
@@ -64,27 +66,25 @@ impl LinearDev {
     /// the existence of the requested device". Of course, a linear device
     /// is usually expected to hold data, so it is important to get the
     /// mapping just right.
-    pub fn setup(name: &DmName, dm: &DM, segments: &[Segment]) -> DmResult<LinearDev> {
-        if segments.is_empty() {
-            return Err(DmError::Dm(ErrorEnum::Invalid,
-                                   "linear device must have at least one segment".into()));
-        }
-
-        let table = LinearDev::dm_table(segments);
-        let dev_info = if device_exists(dm, name)? {
-            let id = DevId::Name(name);
-            if dm.table_status(&id, DM_STATUS_TABLE)?.1 != table {
-                let err_msg = "Specified data does not match kernel data";
-                return Err(DmError::Dm(ErrorEnum::Invalid, err_msg.into()));
-            }
-            Box::new(dm.device_status(&id)?)
-        } else {
-            Box::new(device_create(dm, name, &table)?)
-        };
+    pub fn setup(name: &DmName, dm: &DM, segments: &[Segment]) -> Result<LinearDev> {
+        let dev_info =
+            chain_error(|| {
+                if segments.is_empty() {
+                    let err_msg = "linear device must have at least one segment";
+                    return Err(Error::from_kind(ErrorKind::InvalidArgument(err_msg.into()).into()));
+                }
+                let table = LinearDev::dm_table(segments);
+                if device_exists(dm, name)? {
+                    device_setup(dm, &DevId::Name(name), &table)
+                } else {
+                    device_create(dm, name, &table)
+                }
+            },
+                        || format!("Failed to create or setup linear device {}", name).into())?;
 
         DM::wait_for_dm();
         Ok(LinearDev {
-               dev_info: dev_info,
+               dev_info: Box::new(dev_info),
                segments: segments.to_vec(),
            })
     }
@@ -126,7 +126,7 @@ impl LinearDev {
     /// segments already in the device, this method will succeed. However,
     /// the behavior of the linear device in that case should be treated as
     /// undefined.
-    pub fn extend(&mut self, dm: &DM, new_segs: &[Segment]) -> DmResult<()> {
+    pub fn extend(&mut self, dm: &DM, new_segs: &[Segment]) -> Result<()> {
         if new_segs.is_empty() {
             return Ok(());
         }
@@ -154,17 +154,24 @@ impl LinearDev {
         }
 
         let table = LinearDev::dm_table(&self.segments);
-        table_reload(dm, &DevId::Name(self.name()), &table)?;
+        chain_error(|| table_reload(dm, &DevId::Name(self.name()), &table),
+                    || "Failed to extend linear device with new segments".into())?;
         Ok(())
     }
 
     /// Set the name for this LinearDev.
-    pub fn set_name(&mut self, dm: &DM, name: &DmName) -> DmResult<()> {
-        if self.name() == name {
+    pub fn set_name(&mut self, dm: &DM, name: &DmName) -> Result<()> {
+        let old_name = self.name().to_owned();
+        if old_name.as_ref() == name {
             return Ok(());
         }
-        dm.device_rename(self.name(), &DevId::Name(name))?;
-        self.dev_info = Box::new(dm.device_status(&DevId::Name(name))?);
+        chain_error(|| {
+                        dm.device_rename(&old_name, &DevId::Name(name))?;
+                        Ok(self.dev_info = Box::new(dm.device_status(&DevId::Name(name))?))
+                    },
+                    || {
+                        format!("Failed to rename device {} to {}", old_name.as_ref(), name).into()
+                    })?;
         Ok(())
     }
 }
@@ -175,6 +182,7 @@ mod tests {
     use std::path::Path;
 
     use super::super::device::Device;
+    use super::super::dm::DM_STATUS_TABLE;
     use super::super::loopbacked::{blkdev_size, devnode_to_devno, test_with_spec};
 
     use super::*;
