@@ -235,12 +235,11 @@ impl ThinDev {
     /// Extend the thin device's (virtual) size by the number of
     /// sectors given.
     pub fn extend(&mut self, dm: &DM, sectors: Sectors) -> DmResult<()> {
-        self.size += sectors;
-
+        let new_size = self.size + sectors;
         table_reload(dm,
                      &DevId::Name(self.name()),
-                     &ThinDev::dm_table(self.thinpool, self.thin_id, self.size))?;
-
+                     &ThinDev::dm_table(self.thinpool, self.thin_id, new_size))?;
+        self.size = new_size;
         Ok(())
     }
 
