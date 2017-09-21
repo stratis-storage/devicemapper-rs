@@ -9,7 +9,7 @@ use serde;
 
 use super::device::Device;
 use super::deviceinfo::DeviceInfo;
-use super::dm::{DM, DevId, DmFlags, DmName};
+use super::dm::{DM, DM_SUSPEND, DevId, DmFlags, DmName};
 use super::result::{DmError, DmResult, ErrorEnum};
 use super::shared::{DmDevice, device_create, device_exists, device_setup, table_reload};
 use super::thinpooldev::ThinPoolDev;
@@ -166,6 +166,35 @@ impl ThinDev {
                thin_id: thin_id,
                size: length,
                thinpool: thin_pool_device,
+           })
+    }
+
+    /// Create a snapshot of a ThinDev.  Once created a snapshot
+    /// is the same as any other thin provisioned device.  There is
+    /// no need to track any connection between the source and the
+    /// snapshot.
+    pub fn snapshot(&self,
+                    dm: &DM,
+                    thin_pool: &ThinPoolDev,
+                    snapshot_name: &DmName,
+                    snapshot_thin_id: ThinDevId)
+                    -> DmResult<ThinDev> {
+        let source_id = DevId::Name(self.name());
+        dm.device_suspend(&source_id, DM_SUSPEND)?;
+        thin_pool
+            .message(dm,
+                     &format!("create_snap {} {}", snapshot_thin_id, self.thin_id))?;
+        dm.device_suspend(&source_id, DmFlags::empty())?;
+        let dev_info = Box::new(device_create(dm,
+                                              snapshot_name,
+                                              &ThinDev::dm_table(thin_pool.device(),
+                                                                 snapshot_thin_id,
+                                                                 self.size()))?);
+        Ok(ThinDev {
+               dev_info: dev_info,
+               thin_id: snapshot_thin_id,
+               size: self.size(),
+               thinpool: thin_pool.device(),
            })
     }
 
