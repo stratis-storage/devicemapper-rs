@@ -2,7 +2,6 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-use std::fmt;
 use std::path::PathBuf;
 use std::process::Command;
 
@@ -32,18 +31,13 @@ const MIN_RECOMMENDED_METADATA_SIZE: Sectors = Sectors(4 * IEC::Ki); // 2 MiB
 const MAX_RECOMMENDED_METADATA_SIZE: Sectors = Sectors(32 * IEC::Mi); // 16 GiB
 
 /// DM construct to contain thin provisioned devices
+#[derive(Debug)]
 pub struct ThinPoolDev {
     dev_info: Box<DeviceInfo>,
     meta_dev: LinearDev,
     data_dev: LinearDev,
     data_block_size: Sectors,
     low_water_mark: DataBlocks,
-}
-
-impl fmt::Debug for ThinPoolDev {
-    fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
-        write!(f, "{}", self.name())
-    }
 }
 
 impl DmDevice for ThinPoolDev {

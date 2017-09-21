@@ -2,7 +2,6 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-use std::fmt;
 use std::path::PathBuf;
 
 use super::device::Device;
@@ -14,16 +13,11 @@ use super::shared::{DmDevice, device_create, device_exists, table_reload};
 use super::types::{Sectors, TargetLine};
 
 /// A DM construct of combined Segments
+#[derive(Debug)]
 pub struct LinearDev {
     /// Data about the device
     dev_info: Box<DeviceInfo>,
     segments: Vec<Segment>,
-}
-
-impl fmt::Debug for LinearDev {
-    fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
-        write!(f, "{}", self.name())
-    }
 }
 
 impl DmDevice for LinearDev {
