@@ -3,7 +3,6 @@
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 use std::path::PathBuf;
-use std::process::Command;
 
 use super::consts::IEC;
 use super::device::Device;
@@ -153,15 +152,10 @@ impl ThinPoolDev {
     }
 
     /// Set up a thin pool from the given metadata and data device.
-    /// If the pool is not busy, runs the "thin_check" command to verify
-    /// the correctness of the metadata.
-    /// Returns an error if the "thin_check" command fails.
-    /// If there is no metadata on the metadata device, "thin_check" will
-    /// return an error, so this method returns an error in that case.
-    /// This implies that the device must already have been created, in
-    /// particular, that there must be data on the metadata device.
-    // Our best proxy for "busy" at this time is if the device is known to
-    // the kernel.
+    /// Precondition: There is existing metadata for this thinpool device
+    /// on the metadata device. If the metadata is corrupted, subsequent
+    /// errors will result, so it is expected that the metadata is
+    /// well-formed and consistent with the data on the data device.
     pub fn setup(name: &DmName,
                  dm: &DM,
                  data_block_size: Sectors,
@@ -174,14 +168,6 @@ impl ThinPoolDev {
         let dev_info = if device_exists(dm, name)? {
             device_match(dm, &DevId::Name(name), &table)?
         } else {
-            if !Command::new("thin_check")
-                    .arg("-q")
-                    .arg(&meta.devnode())
-                    .status()?
-                    .success() {
-                return Err(DmError::Dm(ErrorEnum::CheckFailed(meta, data),
-                                       "thin_check failed, run thin_repair".into()));
-            }
             device_create(dm, name, &table)?
         };
 
