@@ -119,9 +119,6 @@ impl ThinDev {
                length: Sectors)
                -> DmResult<ThinDev> {
 
-        thin_pool
-            .message(dm, &format!("create_thin {}", thin_id))?;
-
         if device_exists(dm, name)? {
             let err_msg = "Uncreated device should not be known to kernel";
             return Err(DmError::Dm(ErrorEnum::Invalid, err_msg.into()));
@@ -130,6 +127,9 @@ impl ThinDev {
         let thin_pool_device = thin_pool.device();
         let table = ThinDev::dm_table(thin_pool_device, thin_id, length);
         let dev_info = Box::new(device_create(dm, name, &table)?);
+
+        thin_pool
+            .message(dm, &format!("create_thin {}", thin_id))?;
 
         DM::wait_for_dm();
         Ok(ThinDev {
