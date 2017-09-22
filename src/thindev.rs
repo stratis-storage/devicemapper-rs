@@ -11,7 +11,7 @@ use super::device::Device;
 use super::deviceinfo::DeviceInfo;
 use super::dm::{DM, DevId, DmFlags, DmName};
 use super::result::{DmError, DmResult, ErrorEnum};
-use super::shared::{DmDevice, device_create, device_exists, device_match, table_reload};
+use super::shared::{DmDevice, device_create, device_exists, device_setup, table_reload};
 use super::thinpooldev::ThinPoolDev;
 use super::types::{Sectors, TargetLine};
 
@@ -158,12 +158,7 @@ impl ThinDev {
 
         let thin_pool_device = thin_pool.device();
         let table = ThinDev::dm_table(thin_pool_device, thin_id, length);
-
-        let dev_info = if device_exists(dm, name)? {
-            device_match(dm, &DevId::Name(name), &table)?
-        } else {
-            device_create(dm, name, &table)?
-        };
+        let dev_info = device_setup(dm, name, &table)?;
 
         DM::wait_for_dm();
         Ok(ThinDev {

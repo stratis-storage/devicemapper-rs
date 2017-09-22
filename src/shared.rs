@@ -56,15 +56,30 @@ pub fn device_create<T1, T2>(dm: &DM,
 
 /// Verify that kernel data matches arguments passed.
 /// Return the status of the device.
-pub fn device_match(dm: &DM,
-                    id: &DevId,
-                    table: &[TargetLineArg<String, String>])
-                    -> DmResult<DeviceInfo> {
+fn device_match(dm: &DM,
+                id: &DevId,
+                table: &[TargetLineArg<String, String>])
+                -> DmResult<DeviceInfo> {
     if dm.table_status(id, DM_STATUS_TABLE)?.1 != table {
         let err_msg = "Specified data does not match kernel data";
         return Err(DmError::Dm(ErrorEnum::Invalid, err_msg.into()));
     }
     Ok(dm.device_status(id)?)
+}
+
+/// Setup a device.
+/// If the device is already known to the kernel, verify that the table
+/// passed agrees with the kernel's. If the device is unknown to the kernel
+/// just load the table.
+pub fn device_setup(dm: &DM,
+                    name: &DmName,
+                    table: &[TargetLineArg<String, String>])
+                    -> DmResult<DeviceInfo> {
+    if device_exists(dm, name)? {
+        device_match(dm, &DevId::Name(name), table)
+    } else {
+        device_create(dm, name, table)
+    }
 }
 
 /// Reload the table for a device

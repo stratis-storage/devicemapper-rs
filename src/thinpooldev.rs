@@ -11,7 +11,7 @@ use super::dm::{DM, DevId, DmFlags, DmName};
 use super::lineardev::LinearDev;
 use super::result::{DmResult, DmError, ErrorEnum};
 use super::segment::Segment;
-use super::shared::{DmDevice, device_create, device_exists, device_match, table_reload};
+use super::shared::{DmDevice, device_create, device_exists, device_setup, table_reload};
 use super::types::{DataBlocks, MetaBlocks, Sectors, TargetLine};
 
 #[cfg(test)]
@@ -165,11 +165,7 @@ impl ThinPoolDev {
                  -> DmResult<ThinPoolDev> {
         let table =
             ThinPoolDev::dm_table(data.size(), data_block_size, low_water_mark, &meta, &data);
-        let dev_info = if device_exists(dm, name)? {
-            device_match(dm, &DevId::Name(name), &table)?
-        } else {
-            device_create(dm, name, &table)?
-        };
+        let dev_info = device_setup(dm, name, &table)?;
 
         DM::wait_for_dm();
         Ok(ThinPoolDev {

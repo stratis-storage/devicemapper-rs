@@ -9,7 +9,7 @@ use super::deviceinfo::DeviceInfo;
 use super::dm::{DM, DevId, DmFlags, DmName};
 use super::result::{DmResult, DmError, ErrorEnum};
 use super::segment::Segment;
-use super::shared::{DmDevice, device_create, device_exists, device_match, table_reload};
+use super::shared::{DmDevice, device_setup, table_reload};
 use super::types::{Sectors, TargetLine};
 
 /// A DM construct of combined Segments
@@ -71,11 +71,7 @@ impl LinearDev {
         }
 
         let table = LinearDev::dm_table(segments);
-        let dev_info = if device_exists(dm, name)? {
-            device_match(dm, &DevId::Name(name), &table)?
-        } else {
-            device_create(dm, name, &table)?
-        };
+        let dev_info = device_setup(dm, name, &table)?;
 
         DM::wait_for_dm();
         Ok(LinearDev {
