@@ -6,10 +6,10 @@ use std::path::PathBuf;
 
 use super::device::Device;
 use super::deviceinfo::DeviceInfo;
-use super::dm::{DM, DM_STATUS_TABLE, DevId, DmFlags, DmName};
+use super::dm::{DM, DevId, DmFlags, DmName};
 use super::result::{DmResult, DmError, ErrorEnum};
 use super::segment::Segment;
-use super::shared::{DmDevice, device_create, device_exists, table_reload};
+use super::shared::{DmDevice, device_setup, table_reload};
 use super::types::{Sectors, TargetLine};
 
 /// A DM construct of combined Segments
@@ -71,20 +71,11 @@ impl LinearDev {
         }
 
         let table = LinearDev::dm_table(segments);
-        let dev_info = if device_exists(dm, name)? {
-            let id = DevId::Name(name);
-            if dm.table_status(&id, DM_STATUS_TABLE)?.1 != table {
-                let err_msg = "Specified data does not match kernel data";
-                return Err(DmError::Dm(ErrorEnum::Invalid, err_msg.into()));
-            }
-            Box::new(dm.device_status(&id)?)
-        } else {
-            Box::new(device_create(dm, name, &table)?)
-        };
+        let dev_info = device_setup(dm, name, &table)?;
 
         DM::wait_for_dm();
         Ok(LinearDev {
-               dev_info: dev_info,
+               dev_info: Box::new(dev_info),
                segments: segments.to_vec(),
            })
     }
@@ -175,6 +166,7 @@ mod tests {
     use std::path::Path;
 
     use super::super::device::Device;
+    use super::super::dm::DM_STATUS_TABLE;
     use super::super::loopbacked::{blkdev_size, devnode_to_devno, test_with_spec};
 
     use super::*;

@@ -7,8 +7,6 @@ use std::fmt;
 use std::io;
 use nix;
 
-use super::LinearDev;
-
 ///
 #[derive(Debug)]
 pub enum ErrorEnum {
@@ -18,8 +16,6 @@ pub enum ErrorEnum {
     Invalid,
     /// something not found
     NotFound,
-    /// Check failed
-    CheckFailed(LinearDev, LinearDev),
 }
 
 impl fmt::Display for ErrorEnum {

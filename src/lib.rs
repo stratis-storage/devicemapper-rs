@@ -113,7 +113,7 @@ pub use device::Device;
 pub use lineardev::LinearDev;
 pub use result::{DmResult, DmError, ErrorEnum};
 pub use segment::Segment;
-pub use shared::DmDevice;
+pub use shared::{DmDevice, device_exists};
 pub use thinpooldev::{ThinPoolBlockUsage, ThinPoolDev, ThinPoolStatus, ThinPoolWorkingStatus};
 pub use thindev::{ThinDev, ThinDevId, ThinStatus};
 pub use types::{Bytes, DataBlocks, MetaBlocks, Sectors};
