@@ -9,7 +9,7 @@ use serde;
 
 use super::device::Device;
 use super::deviceinfo::DeviceInfo;
-use super::dm::{DM, DevId, DmFlags, DmName};
+use super::dm::{DM, DM_SUSPEND, DevId, DmFlags, DmName};
 use super::result::{DmError, DmResult, ErrorEnum};
 use super::shared::{DmDevice, device_create, device_exists, device_setup, table_reload};
 use super::thinpooldev::ThinPoolDev;
@@ -166,6 +166,35 @@ impl ThinDev {
                thin_id: thin_id,
                size: length,
                thinpool: thin_pool_device,
+           })
+    }
+
+    /// Create a snapshot of a ThinDev.  Once created a snapshot
+    /// is the same as any other thin provisioned device.  There is
+    /// no need to track any connection between the source and the
+    /// snapshot.
+    pub fn snapshot(&self,
+                    dm: &DM,
+                    thin_pool: &ThinPoolDev,
+                    snapshot_name: &DmName,
+                    snapshot_thin_id: ThinDevId)
+                    -> DmResult<ThinDev> {
+        let source_id = DevId::Name(self.name());
+        dm.device_suspend(&source_id, DM_SUSPEND)?;
+        thin_pool
+            .message(dm,
+                     &format!("create_snap {} {}", snapshot_thin_id, self.thin_id))?;
+        dm.device_suspend(&source_id, DmFlags::empty())?;
+        let dev_info = Box::new(device_create(dm,
+                                              snapshot_name,
+                                              &ThinDev::dm_table(thin_pool.device(),
+                                                                 snapshot_thin_id,
+                                                                 self.size()))?);
+        Ok(ThinDev {
+               dev_info: dev_info,
+               thin_id: snapshot_thin_id,
+               size: self.size(),
+               thinpool: thin_pool.device(),
            })
     }
 
@@ -341,6 +370,32 @@ mod tests {
         tp.teardown(&dm).unwrap();
     }
 
+    /// Verify success when taking a snapshot of a ThinDev.  Check that
+    /// the size of the snapshot is the same as the source.
+    fn test_snapshot(paths: &[&Path]) -> () {
+        assert!(paths.len() >= 1);
+        let td_size = MIN_THIN_DEV_SIZE;
+        let dm = DM::new().unwrap();
+        let tp = minimal_thinpool(&dm, paths[0]);
+
+        // Create new ThinDev as source for snapshot
+        let thin_id = ThinDevId::new_u64(0).expect("is below limit");
+        let thin_name = DmName::new("name").expect("is valid DM name");
+        let td = ThinDev::new(&thin_name, &dm, &tp, thin_id, td_size).unwrap();
+
+        // Create a snapshot of the source
+        let ss_id = ThinDevId::new_u64(1).expect("is below limit");
+        let ss_name = DmName::new("snap_name").expect("is valid DM name");
+        let ss = td.snapshot(&dm, &tp, ss_name, ss_id).unwrap();
+
+        // Verify the source and the snapshot are the same size.
+        assert_eq!(td.size(), ss.size());
+
+        ss.destroy(&dm, &tp).unwrap();
+        td.destroy(&dm, &tp).unwrap();
+        tp.teardown(&dm).unwrap();
+    }
+
     #[test]
     fn loop_test_basic() {
         test_with_spec(1, test_basic);
@@ -354,5 +409,9 @@ mod tests {
     #[test]
     fn loop_test_setup_without_new() {
         test_with_spec(1, test_setup_without_new);
+    }
+    #[test]
+    fn loop_test_snapshot() {
+        test_with_spec(1, test_snapshot);
     }
 }
