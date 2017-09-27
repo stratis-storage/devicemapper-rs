@@ -58,9 +58,6 @@ extern crate bitflags;
 #[macro_use]
 extern crate error_chain;
 
-#[macro_use]
-extern crate log;
-
 #[cfg(test)]
 extern crate loopdev;
 #[cfg(test)]
