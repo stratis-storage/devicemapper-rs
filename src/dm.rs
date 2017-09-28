@@ -224,6 +224,11 @@ impl DM {
         Ok(DM { file: File::open(DM_CTL_PATH)? })
     }
 
+    /// Get the file within the DM context, likely for polling purposes.
+    pub fn into_file(self) -> File {
+        self.file
+    }
+
     /// The /dev/mapper/<name> device is not immediately available for use.
     /// TODO: Implement wait for event or poll.
     pub fn wait_for_dm() {
