@@ -60,8 +60,12 @@ fn device_match(dm: &DM,
                 id: &DevId,
                 table: &[TargetLineArg<String, String>])
                 -> DmResult<DeviceInfo> {
-    if dm.table_status(id, DM_STATUS_TABLE)?.1 != table {
-        let err_msg = "Specified data does not match kernel data";
+    let table_status = dm.table_status(id, DM_STATUS_TABLE)?;
+    if table_status.1 != table {
+        let err_msg = format!("Specified new table \"{:?}\" does not match kernel table \"{:?}\"",
+                              table,
+                              table_status.1);
+
         return Err(DmError::Dm(ErrorEnum::Invalid, err_msg.into()));
     }
     Ok(dm.device_status(id)?)
