@@ -296,7 +296,8 @@ mod tests {
         let dm = DM::new().unwrap();
         let name = "name";
         let dev = Device::from(devnode_to_devno(&paths[0]).unwrap());
-        let segments = &[Segment::new(dev, Sectors(0), Sectors(1))];
+        let segments = &[Segment::new(dev, Sectors(0), Sectors(1)),
+                         Segment::new(dev, Sectors(1), Sectors(1))];
         let table = LinearDev::dm_table(segments);
         let ld = LinearDev::setup(DmName::new(name).expect("valid format"), &dm, segments).unwrap();
         assert_eq!(table,
