@@ -79,6 +79,8 @@ mod shared_macros;
 mod lineardev;
 /// allocate a device from a pool
 mod thindev;
+/// the id the pool uses to track its devices
+mod thindevid;
 /// thinpooldev is shared space for  other thin provisioned devices to use
 mod thinpooldev;
 /// struct to represent a location, offset and size of a set of disk sectors
@@ -115,5 +117,6 @@ pub use result::{DmResult, DmError, ErrorEnum};
 pub use segment::Segment;
 pub use shared::{DmDevice, device_exists};
 pub use thinpooldev::{ThinPoolBlockUsage, ThinPoolDev, ThinPoolStatus, ThinPoolWorkingStatus};
-pub use thindev::{ThinDev, ThinDevId, ThinStatus};
+pub use thindev::{ThinDev, ThinStatus};
+pub use thindevid::ThinDevId;
 pub use types::{Bytes, DataBlocks, MetaBlocks, Sectors};
