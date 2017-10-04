@@ -59,6 +59,7 @@ pub fn device_create<T1, T2>(dm: &DM,
 /// Return the status of the device.
 fn device_match(dm: &DM,
                 name: &DmName,
+                uuid: Option<&DmUuid>,
                 table: &[TargetLineArg<String, String>])
                 -> DmResult<DeviceInfo> {
     let table_status = dm.table_status(&DevId::Name(name), DM_STATUS_TABLE)?;
@@ -69,7 +70,15 @@ fn device_match(dm: &DM,
 
         return Err(DmError::Dm(ErrorEnum::Invalid, err_msg.into()));
     }
-    Ok(table_status.0)
+    let status = table_status.0;
+    if status.uuid() != uuid {
+        let err_msg = format!("Specified uuid \"{:?}\" does not match kernel uuuid \"{:?}\"",
+                              uuid,
+                              status.uuid());
+
+        return Err(DmError::Dm(ErrorEnum::Invalid, err_msg.into()));
+    }
+    Ok(status)
 }
 
 /// Setup a device.
@@ -81,7 +90,7 @@ pub fn device_setup(dm: &DM,
                     table: &[TargetLineArg<String, String>])
                     -> DmResult<DeviceInfo> {
     if device_exists(dm, name)? {
-        device_match(dm, name, table)
+        device_match(dm, name, None, table)
     } else {
         device_create(dm, name, None, table)
     }
