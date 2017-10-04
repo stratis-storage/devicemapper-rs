@@ -69,7 +69,7 @@ fn device_match(dm: &DM,
 
         return Err(DmError::Dm(ErrorEnum::Invalid, err_msg.into()));
     }
-    Ok(dm.device_status(id)?)
+    Ok(table_status.0)
 }
 
 /// Setup a device.
