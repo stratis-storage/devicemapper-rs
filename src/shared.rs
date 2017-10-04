@@ -87,12 +87,13 @@ fn device_match(dm: &DM,
 /// just load the table.
 pub fn device_setup(dm: &DM,
                     name: &DmName,
+                    uuid: Option<&DmUuid>,
                     table: &[TargetLineArg<String, String>])
                     -> DmResult<DeviceInfo> {
     if device_exists(dm, name)? {
-        device_match(dm, name, None, table)
+        device_match(dm, name, uuid, table)
     } else {
-        device_create(dm, name, None, table)
+        device_create(dm, name, uuid, table)
     }
 }
 
