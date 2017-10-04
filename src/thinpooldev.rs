@@ -124,7 +124,7 @@ impl ThinPoolDev {
 
         let table =
             ThinPoolDev::dm_table(data.size(), data_block_size, low_water_mark, &meta, &data);
-        let dev_info = device_create(dm, name, &table)?;
+        let dev_info = device_create(dm, name, None, &table)?;
 
         DM::wait_for_dm();
         Ok(ThinPoolDev {
