@@ -9,7 +9,7 @@ use serde;
 
 use super::device::Device;
 use super::deviceinfo::DeviceInfo;
-use super::dm::{DM, DM_SUSPEND, DevId, DmFlags, DmName};
+use super::dm::{DM, DM_SUSPEND, DevId, DmFlags, DmName, DmUuid};
 use super::result::{DmError, DmResult, ErrorEnum};
 use super::shared::{DmDevice, device_create, device_exists, device_setup, table_reload};
 use super::thinpooldev::ThinPoolDev;
@@ -114,6 +114,7 @@ impl ThinDev {
     /// dm is aware of, return an error.
     pub fn new(dm: &DM,
                name: &DmName,
+               uuid: Option<&DmUuid>,
                thin_pool: &ThinPoolDev,
                thin_id: ThinDevId,
                length: Sectors)
@@ -129,7 +130,7 @@ impl ThinDev {
 
         let thin_pool_device = thin_pool.device();
         let table = ThinDev::dm_table(thin_pool_device, thin_id, length);
-        let dev_info = device_create(dm, name, None, &table)?;
+        let dev_info = device_create(dm, name, uuid, &table)?;
 
         DM::wait_for_dm();
         Ok(ThinDev {
@@ -298,6 +299,7 @@ mod tests {
 
         assert!(ThinDev::new(&dm,
                              &DmName::new("name").expect("is valid DM name"),
+                             None,
                              &tp,
                              ThinDevId::new_u64(0).expect("is below limit"),
                              Sectors(0))
@@ -340,7 +342,7 @@ mod tests {
         let id = DmName::new("name").expect("is valid DM name");
 
         let td_size = MIN_THIN_DEV_SIZE;
-        let td = ThinDev::new(&dm, &id, &tp, thin_id, td_size).unwrap();
+        let td = ThinDev::new(&dm, &id, None, &tp, thin_id, td_size).unwrap();
 
         assert!(match td.status(&dm).unwrap() {
                     ThinStatus::Fail => false,
@@ -354,7 +356,7 @@ mod tests {
                    td_size.bytes());
 
         // New thindev w/ same id fails.
-        assert!(ThinDev::new(&dm, &id, &tp, thin_id, td_size).is_err());
+        assert!(ThinDev::new(&dm, &id, None, &tp, thin_id, td_size).is_err());
 
         // Setting up the just created thin dev succeeds.
         assert!(ThinDev::setup(&dm, &id, &tp, thin_id, td_size).is_ok());
@@ -382,7 +384,7 @@ mod tests {
         // Create new ThinDev as source for snapshot
         let thin_id = ThinDevId::new_u64(0).expect("is below limit");
         let thin_name = DmName::new("name").expect("is valid DM name");
-        let td = ThinDev::new(&dm, &thin_name, &tp, thin_id, td_size).unwrap();
+        let td = ThinDev::new(&dm, &thin_name, None, &tp, thin_id, td_size).unwrap();
 
         // Create a snapshot of the source
         let ss_id = ThinDevId::new_u64(1).expect("is below limit");
