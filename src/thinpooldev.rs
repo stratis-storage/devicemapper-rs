@@ -7,7 +7,7 @@ use std::path::PathBuf;
 use super::consts::IEC;
 use super::device::Device;
 use super::deviceinfo::DeviceInfo;
-use super::dm::{DM, DevId, DmFlags, DmName};
+use super::dm::{DM, DevId, DmFlags, DmName, DmUuid};
 use super::lineardev::LinearDev;
 use super::result::{DmResult, DmError, ErrorEnum};
 use super::segment::Segment;
@@ -112,6 +112,7 @@ impl ThinPoolDev {
     /// Precondition: the metadata device does not contain any pool metadata.
     pub fn new(dm: &DM,
                name: &DmName,
+               uuid: Option<&DmUuid>,
                data_block_size: Sectors,
                low_water_mark: DataBlocks,
                meta: LinearDev,
@@ -124,7 +125,7 @@ impl ThinPoolDev {
 
         let table =
             ThinPoolDev::dm_table(data.size(), data_block_size, low_water_mark, &meta, &data);
-        let dev_info = device_create(dm, name, None, &table)?;
+        let dev_info = device_create(dm, name, uuid, &table)?;
 
         DM::wait_for_dm();
         Ok(ThinPoolDev {
@@ -303,6 +304,7 @@ pub fn minimal_thinpool(dm: &DM, path: &Path) -> ThinPoolDev {
 
     ThinPoolDev::new(dm,
                      DmName::new("pool").expect("valid format"),
+                     None,
                      MIN_DATA_BLOCK_SIZE,
                      DataBlocks(1),
                      meta,
