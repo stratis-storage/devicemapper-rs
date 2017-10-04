@@ -58,10 +58,10 @@ pub fn device_create<T1, T2>(dm: &DM,
 /// Verify that kernel data matches arguments passed.
 /// Return the status of the device.
 fn device_match(dm: &DM,
-                id: &DevId,
+                name: &DmName,
                 table: &[TargetLineArg<String, String>])
                 -> DmResult<DeviceInfo> {
-    let table_status = dm.table_status(id, DM_STATUS_TABLE)?;
+    let table_status = dm.table_status(&DevId::Name(name), DM_STATUS_TABLE)?;
     if table_status.1 != table {
         let err_msg = format!("Specified new table \"{:?}\" does not match kernel table \"{:?}\"",
                               table,
@@ -81,7 +81,7 @@ pub fn device_setup(dm: &DM,
                     table: &[TargetLineArg<String, String>])
                     -> DmResult<DeviceInfo> {
     if device_exists(dm, name)? {
-        device_match(dm, &DevId::Name(name), table)
+        device_match(dm, name, table)
     } else {
         device_create(dm, name, None, table)
     }
