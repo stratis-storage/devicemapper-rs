@@ -110,8 +110,8 @@ impl ThinPoolDev {
     /// Construct a new ThinPoolDev with the given data and meta devs.
     /// Returns an error if the device is already known to the kernel.
     /// Precondition: the metadata device does not contain any pool metadata.
-    pub fn new(name: &DmName,
-               dm: &DM,
+    pub fn new(dm: &DM,
+               name: &DmName,
                data_block_size: Sectors,
                low_water_mark: DataBlocks,
                meta: LinearDev,
@@ -156,8 +156,8 @@ impl ThinPoolDev {
     /// on the metadata device. If the metadata is corrupted, subsequent
     /// errors will result, so it is expected that the metadata is
     /// well-formed and consistent with the data on the data device.
-    pub fn setup(name: &DmName,
-                 dm: &DM,
+    pub fn setup(dm: &DM,
+                 name: &DmName,
                  data_block_size: Sectors,
                  low_water_mark: DataBlocks,
                  meta: LinearDev,
@@ -290,19 +290,19 @@ impl ThinPoolDev {
 #[cfg(test)]
 pub fn minimal_thinpool(dm: &DM, path: &Path) -> ThinPoolDev {
     let dev = Device::from(devnode_to_devno(path).unwrap());
-    let meta = LinearDev::setup(DmName::new("meta").expect("valid format"),
-                                dm,
+    let meta = LinearDev::setup(dm,
+                                DmName::new("meta").expect("valid format"),
                                 &[Segment::new(dev, Sectors(0), MIN_RECOMMENDED_METADATA_SIZE)])
             .unwrap();
 
     let data =
-        LinearDev::setup(DmName::new("data").expect("valid format"),
-                         dm,
+        LinearDev::setup(dm,
+                         DmName::new("data").expect("valid format"),
                          &[Segment::new(dev, MIN_RECOMMENDED_METADATA_SIZE, MIN_DATA_BLOCK_SIZE)])
                 .unwrap();
 
-    ThinPoolDev::new(DmName::new("pool").expect("valid format"),
-                     dm,
+    ThinPoolDev::new(dm,
+                     DmName::new("pool").expect("valid format"),
                      MIN_DATA_BLOCK_SIZE,
                      DataBlocks(1),
                      meta,
