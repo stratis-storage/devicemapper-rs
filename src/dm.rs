@@ -111,13 +111,13 @@ fn dev_id_check(value: &str, max_allowed_chars: usize) -> DmResult<()> {
 macro_rules! dev_id {
     ($B: ident, $O: ident, $MAX: ident) => {
         /// The borrowed version of the DM identifier.
-        #[derive(Debug, PartialEq, Eq)]
+        #[derive(Debug, PartialEq, Eq, Hash)]
         pub struct $B {
             inner: str,
         }
 
         /// The owned version of the DM identifier.
-        #[derive(Debug, Clone, PartialEq, Eq)]
+        #[derive(Debug, Clone, PartialEq, Eq, Hash)]
         pub struct $O {
             inner: String,
         }
