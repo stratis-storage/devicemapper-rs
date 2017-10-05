@@ -1122,10 +1122,13 @@ mod tests {
     /// The table should have an entry for a newly created device.
     /// The device has no segments, so the second part of the info should
     /// be empty.
+    /// The UUID of the returned info should be the device's UUID.
     fn sudo_test_table_status() {
         let dm = DM::new().unwrap();
         let name = DmName::new("example-dev").expect("is valid DM name");
-        dm.device_create(name, None, DmFlags::empty()).unwrap();
+        let uuid = DmUuid::new("uuid").expect("is valid DM UUID");
+        dm.device_create(name, Some(uuid), DmFlags::empty())
+            .unwrap();
 
         let status;
         loop {
@@ -1136,6 +1139,7 @@ mod tests {
         }
 
         assert!(status.1.is_empty());
+        assert_eq!(status.0.uuid(), Some(uuid));
         dm.device_remove(&DevId::Name(name), DmFlags::empty())
             .unwrap();
     }
