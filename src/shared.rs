@@ -9,7 +9,7 @@ use std::path::PathBuf;
 
 use super::device::Device;
 use super::deviceinfo::DeviceInfo;
-use super::dm::{DevId, DM, DM_STATUS_TABLE, DM_SUSPEND, DmFlags, DmName};
+use super::dm::{DevId, DM, DM_STATUS_TABLE, DM_SUSPEND, DmFlags, DmName, DmUuid};
 use super::result::{DmError, DmResult, ErrorEnum};
 use super::types::{Sectors, TargetLineArg};
 
@@ -34,12 +34,13 @@ pub trait DmDevice {
 /// Create a device, load a table, and resume it.
 pub fn device_create<T1, T2>(dm: &DM,
                              name: &DmName,
+                             uuid: Option<&DmUuid>,
                              table: &[TargetLineArg<T1, T2>])
                              -> DmResult<DeviceInfo>
     where T1: AsRef<str>,
           T2: AsRef<str>
 {
-    dm.device_create(name, None, DmFlags::empty())?;
+    dm.device_create(name, uuid, DmFlags::empty())?;
 
     let id = DevId::Name(name);
     let dev_info = match dm.table_load(&id, table) {
@@ -57,10 +58,11 @@ pub fn device_create<T1, T2>(dm: &DM,
 /// Verify that kernel data matches arguments passed.
 /// Return the status of the device.
 fn device_match(dm: &DM,
-                id: &DevId,
+                name: &DmName,
+                uuid: Option<&DmUuid>,
                 table: &[TargetLineArg<String, String>])
                 -> DmResult<DeviceInfo> {
-    let table_status = dm.table_status(id, DM_STATUS_TABLE)?;
+    let table_status = dm.table_status(&DevId::Name(name), DM_STATUS_TABLE)?;
     if table_status.1 != table {
         let err_msg = format!("Specified new table \"{:?}\" does not match kernel table \"{:?}\"",
                               table,
@@ -68,7 +70,15 @@ fn device_match(dm: &DM,
 
         return Err(DmError::Dm(ErrorEnum::Invalid, err_msg.into()));
     }
-    Ok(dm.device_status(id)?)
+    let status = table_status.0;
+    if status.uuid() != uuid {
+        let err_msg = format!("Specified uuid \"{:?}\" does not match kernel uuuid \"{:?}\"",
+                              uuid,
+                              status.uuid());
+
+        return Err(DmError::Dm(ErrorEnum::Invalid, err_msg.into()));
+    }
+    Ok(status)
 }
 
 /// Setup a device.
@@ -77,12 +87,13 @@ fn device_match(dm: &DM,
 /// just load the table.
 pub fn device_setup(dm: &DM,
                     name: &DmName,
+                    uuid: Option<&DmUuid>,
                     table: &[TargetLineArg<String, String>])
                     -> DmResult<DeviceInfo> {
     if device_exists(dm, name)? {
-        device_match(dm, &DevId::Name(name), table)
+        device_match(dm, name, uuid, table)
     } else {
-        device_create(dm, name, table)
+        device_create(dm, name, uuid, table)
     }
 }
 

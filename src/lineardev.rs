@@ -6,7 +6,7 @@ use std::path::PathBuf;
 
 use super::device::Device;
 use super::deviceinfo::DeviceInfo;
-use super::dm::{DM, DevId, DmFlags, DmName};
+use super::dm::{DM, DevId, DmFlags, DmName, DmUuid};
 use super::result::{DmResult, DmError, ErrorEnum};
 use super::segment::Segment;
 use super::shared::{DmDevice, device_setup, table_reload};
@@ -64,14 +64,18 @@ impl LinearDev {
     /// the existence of the requested device". Of course, a linear device
     /// is usually expected to hold data, so it is important to get the
     /// mapping just right.
-    pub fn setup(name: &DmName, dm: &DM, segments: &[Segment]) -> DmResult<LinearDev> {
+    pub fn setup(dm: &DM,
+                 name: &DmName,
+                 uuid: Option<&DmUuid>,
+                 segments: &[Segment])
+                 -> DmResult<LinearDev> {
         if segments.is_empty() {
             return Err(DmError::Dm(ErrorEnum::Invalid,
                                    "linear device must have at least one segment".into()));
         }
 
         let table = LinearDev::dm_table(segments);
-        let dev_info = device_setup(dm, name, &table)?;
+        let dev_info = device_setup(dm, name, uuid, &table)?;
 
         DM::wait_for_dm();
         Ok(LinearDev {
@@ -173,8 +177,9 @@ mod tests {
 
     /// Verify that a new linear dev with 0 segments fails.
     fn test_empty(_paths: &[&Path]) -> () {
-        assert!(LinearDev::setup(DmName::new("new").expect("valid format"),
-                                 &DM::new().unwrap(),
+        assert!(LinearDev::setup(&DM::new().unwrap(),
+                                 DmName::new("new").expect("valid format"),
+                                 None,
                                  &[])
                         .is_err());
     }
@@ -186,8 +191,9 @@ mod tests {
         let dm = DM::new().unwrap();
         let name = "name";
         let dev = Device::from(devnode_to_devno(&paths[0]).unwrap());
-        let mut ld = LinearDev::setup(DmName::new(name).expect("valid format"),
-                                      &dm,
+        let mut ld = LinearDev::setup(&dm,
+                                      DmName::new(name).expect("valid format"),
+                                      None,
                                       &[Segment::new(dev, Sectors(0), Sectors(1))])
                 .unwrap();
 
@@ -205,8 +211,9 @@ mod tests {
         let dm = DM::new().unwrap();
         let name = "name";
         let dev = Device::from(devnode_to_devno(&paths[0]).unwrap());
-        let mut ld = LinearDev::setup(DmName::new(name).expect("valid format"),
-                                      &dm,
+        let mut ld = LinearDev::setup(&dm,
+                                      DmName::new(name).expect("valid format"),
+                                      None,
                                       &[Segment::new(dev, Sectors(0), Sectors(1))])
                 .unwrap();
 
@@ -231,7 +238,11 @@ mod tests {
                          Segment::new(dev, Sectors(0), Sectors(1))];
         let range: Sectors = segments.iter().map(|s| s.length).sum();
         let count = segments.len();
-        let ld = LinearDev::setup(DmName::new(name).expect("valid format"), &dm, segments).unwrap();
+        let ld = LinearDev::setup(&dm,
+                                  DmName::new(name).expect("valid format"),
+                                  None,
+                                  segments)
+                .unwrap();
         assert_eq!(dm.table_status(&DevId::Name(DmName::new(name).expect("valid format")),
                                    DM_STATUS_TABLE)
                        .unwrap()
@@ -258,12 +269,21 @@ mod tests {
         let dev = Device::from(devnode_to_devno(&paths[0]).unwrap());
         let segments = &[Segment::new(dev, Sectors(0), Sectors(1))];
         let table = LinearDev::dm_table(segments);
-        let ld = LinearDev::setup(DmName::new(name).expect("valid format"), &dm, segments).unwrap();
-        assert!(LinearDev::setup(DmName::new(name).expect("valid format"),
-                                 &dm,
+        let ld = LinearDev::setup(&dm,
+                                  DmName::new(name).expect("valid format"),
+                                  None,
+                                  segments)
+                .unwrap();
+        assert!(LinearDev::setup(&dm,
+                                 DmName::new(name).expect("valid format"),
+                                 None,
                                  &[Segment::new(dev, Sectors(1), Sectors(1))])
                         .is_err());
-        assert!(LinearDev::setup(DmName::new(name).expect("valid format"), &dm, segments).is_ok());
+        assert!(LinearDev::setup(&dm,
+                                 DmName::new(name).expect("valid format"),
+                                 None,
+                                 segments)
+                        .is_ok());
         assert_eq!(table,
                    dm.table_status(&DevId::Name(DmName::new(name).expect("valid format")),
                                    DM_STATUS_TABLE)
@@ -280,9 +300,15 @@ mod tests {
         let dm = DM::new().unwrap();
         let dev = Device::from(devnode_to_devno(&paths[0]).unwrap());
         let segments = &[Segment::new(dev, Sectors(0), Sectors(1))];
-        let ld = LinearDev::setup(DmName::new("name").expect("valid format"), &dm, segments)
-            .unwrap();
-        let ld2 = LinearDev::setup(DmName::new("ersatz").expect("valid format"), &dm, segments);
+        let ld = LinearDev::setup(&dm,
+                                  DmName::new("name").expect("valid format"),
+                                  None,
+                                  segments)
+                .unwrap();
+        let ld2 = LinearDev::setup(&dm,
+                                   DmName::new("ersatz").expect("valid format"),
+                                   None,
+                                   segments);
         assert!(ld2.is_ok());
 
         ld2.unwrap().teardown(&dm).unwrap();
@@ -299,7 +325,11 @@ mod tests {
         let segments = &[Segment::new(dev, Sectors(0), Sectors(1)),
                          Segment::new(dev, Sectors(1), Sectors(1))];
         let table = LinearDev::dm_table(segments);
-        let ld = LinearDev::setup(DmName::new(name).expect("valid format"), &dm, segments).unwrap();
+        let ld = LinearDev::setup(&dm,
+                                  DmName::new(name).expect("valid format"),
+                                  None,
+                                  segments)
+                .unwrap();
         assert_eq!(table,
                    dm.table_status(&DevId::Name(DmName::new(name).expect("valid format")),
                                    DM_STATUS_TABLE)
