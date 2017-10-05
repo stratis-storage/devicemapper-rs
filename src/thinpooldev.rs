@@ -159,6 +159,7 @@ impl ThinPoolDev {
     /// well-formed and consistent with the data on the data device.
     pub fn setup(dm: &DM,
                  name: &DmName,
+                 uuid: Option<&DmUuid>,
                  data_block_size: Sectors,
                  low_water_mark: DataBlocks,
                  meta: LinearDev,
@@ -166,7 +167,7 @@ impl ThinPoolDev {
                  -> DmResult<ThinPoolDev> {
         let table =
             ThinPoolDev::dm_table(data.size(), data_block_size, low_water_mark, &meta, &data);
-        let dev_info = device_setup(dm, name, None, &table)?;
+        let dev_info = device_setup(dm, name, uuid, &table)?;
 
         DM::wait_for_dm();
         Ok(ThinPoolDev {
@@ -293,12 +294,14 @@ pub fn minimal_thinpool(dm: &DM, path: &Path) -> ThinPoolDev {
     let dev = Device::from(devnode_to_devno(path).unwrap());
     let meta = LinearDev::setup(dm,
                                 DmName::new("meta").expect("valid format"),
+                                None,
                                 &[Segment::new(dev, Sectors(0), MIN_RECOMMENDED_METADATA_SIZE)])
             .unwrap();
 
     let data =
         LinearDev::setup(dm,
                          DmName::new("data").expect("valid format"),
+                         None,
                          &[Segment::new(dev, MIN_RECOMMENDED_METADATA_SIZE, MIN_DATA_BLOCK_SIZE)])
                 .unwrap();
 
