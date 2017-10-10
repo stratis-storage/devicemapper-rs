@@ -395,7 +395,8 @@ impl DM {
                             if minor == 36 {
                                 // A bug in minor version 36 was corrected in
                                 // subsequent versions. See thread:
-                                // https://www.redhat.com/archives/dm-devel/2017-September/msg00231.html
+                                // https://www.redhat.com/archives/dm-devel/
+                                // 2017-September/msg00231.html
                                 // This block is a makeshift to allow early access to
                                 // the event number value.  Once minor version 37 is
                                 // widely available, this block is to be removed and
