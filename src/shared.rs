@@ -116,5 +116,5 @@ pub fn device_exists(dm: &DM, name: &DmName) -> DmResult<bool> {
     // TODO: Why do we have to call .as_ref() here instead of relying on deref
     // coercion?
     Ok(dm.list_devices()
-           .map(|l| l.iter().any(|&(ref n, _)| n.as_ref() == name))?)
+           .map(|l| l.iter().any(|&(ref n, _, _)| n.as_ref() == name))?)
 }

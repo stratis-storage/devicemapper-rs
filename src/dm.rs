@@ -111,13 +111,13 @@ fn dev_id_check(value: &str, max_allowed_chars: usize) -> DmResult<()> {
 macro_rules! dev_id {
     ($B: ident, $O: ident, $MAX: ident) => {
         /// The borrowed version of the DM identifier.
-        #[derive(Debug, PartialEq, Eq)]
+        #[derive(Debug, PartialEq, Eq, Hash)]
         pub struct $B {
             inner: str,
         }
 
         /// The owned version of the DM identifier.
-        #[derive(Debug, Clone, PartialEq, Eq)]
+        #[derive(Debug, Clone, PartialEq, Eq, Hash)]
         pub struct $O {
             inner: String,
         }
@@ -222,6 +222,11 @@ impl DM {
     /// Create a new context for communicating with DM.
     pub fn new() -> DmResult<DM> {
         Ok(DM { file: File::open(DM_CTL_PATH)? })
+    }
+
+    /// Get the file within the DM context, likely for polling purposes.
+    pub fn into_file(self) -> File {
+        self.file
     }
 
     /// The /dev/mapper/<name> device is not immediately available for use.
@@ -354,9 +359,10 @@ impl DM {
         Ok(())
     }
 
-    /// Returns a list of tuples containing DM device names and a
-    /// Device, which holds their major and minor device numbers.
-    pub fn list_devices(&self) -> DmResult<Vec<(DmNameBuf, Device)>> {
+    /// Returns a list of tuples containing DM device names, a Device, which
+    /// holds their major and minor device numbers, and on kernels that
+    /// support it, each device's last event_nr.
+    pub fn list_devices(&self) -> DmResult<Vec<(DmNameBuf, Device, Option<u32>)>> {
         let mut hdr: dmi::Struct_dm_ioctl = Default::default();
 
         // No flags checked so don't pass any
@@ -378,8 +384,54 @@ impl DM {
                 let slc = slice_to_null(&result[size_of::<dmi::Struct_dm_name_list>()..])
                     .expect("Bad data from ioctl");
                 let dm_name = String::from_utf8_lossy(slc).into_owned();
+
+                // Get each device's event number after its name, if the kernel
+                // DM version supports it.
+                // Should match offset calc in kernel's
+                // drivers/md/dm-ioctl.c:list_devices
+                let event_nr = {
+                    match hdr.version[1] {
+                        minor @ 0...36 => {
+                            if minor == 36 {
+                                // A bug in minor version 36 was corrected in
+                                // subsequent versions. See thread:
+                                // https://www.redhat.com/archives/dm-devel/
+                                // 2017-September/msg00231.html
+                                // This block is a makeshift to allow early access to
+                                // the event number value.  Once minor version 37 is
+                                // widely available, this block is to be removed and
+                                // other necessary changes made so that event number
+                                // is None for minor version 36.
+
+                                let mut offset = size_of::<dmi::Struct_dm_name_list>();
+                                offset += slc.len() + 1; // trailing NULL char
+                                offset += 7; // ALIGN_MASK
+                                let aligned_offset = align_to(offset, size_of::<u64>());
+                                let new_slc = &result[aligned_offset..];
+                                let nr = unsafe { *(new_slc.as_ptr() as *const u32) };
+
+                                Some(nr)
+                            } else {
+                                None
+                            }
+                        }
+                        _ => {
+                            // offsetof "name" in Struct_dm_name_list.
+                            // TODO: use pointer::offset_to when stable?
+                            let mut offset = 12;
+                            offset += slc.len() + 1; // name + trailing NULL char
+                            let aligned_offset = align_to(offset, size_of::<u64>());
+                            let new_slc = &result[aligned_offset..];
+                            let nr = unsafe { *(new_slc.as_ptr() as *const u32) };
+
+                            Some(nr)
+                        }
+                    }
+                };
+
                 devs.push((DmNameBuf::new(dm_name).expect("name obtained from kernel"),
-                           device.dev.into()));
+                           device.dev.into(),
+                           event_nr));
 
                 if device.next == 0 {
                     break;
@@ -932,6 +984,7 @@ mod tests {
 
         assert_eq!(devices.len(), 1);
         assert_eq!(devices[0].0.as_ref(), name);
+        assert_eq!(devices[0].2.unwrap_or(0), 0);
         dm.device_remove(&DevId::Name(name), DmFlags::empty())
             .unwrap();
     }
