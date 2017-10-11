@@ -753,7 +753,12 @@ impl DM {
                                       target_deps.count as usize)
             };
 
-            Ok(dev_slc.iter().map(|d| Device::from(*d)).collect())
+            // Note: The DM target_deps struct reserves 64 bits for each entry
+            // but only 32 bits is used by kernel "huge" dev_t encoding.
+            Ok(dev_slc
+                   .iter()
+                   .map(|d| Device::from_kdev_t(*d as u32))
+                   .collect())
         }
     }
 

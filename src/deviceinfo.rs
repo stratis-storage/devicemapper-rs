@@ -51,7 +51,9 @@ impl DeviceInfo {
 
     /// The device's major and minor device numbers, as a Device.
     pub fn device(&self) -> Device {
-        self.hdr.dev.into()
+        // dm_ioctl struct reserves 64 bits for device but kernel "huge"
+        // encoding is only 32 bits.
+        Device::from_kdev_t(self.hdr.dev as u32)
     }
 
     /// The device's name.
