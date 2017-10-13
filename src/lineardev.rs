@@ -112,43 +112,20 @@ impl LinearDev {
         table
     }
 
-    /// Extend an existing LinearDev with additional new segments.
-    /// In the event that the first segments in new_segs is contiguous with
-    /// the device's last segment, these segments are coalesced into a single
-    /// segment.
-    /// Warning: If the segments overlap, either with each other or with the
-    /// segments already in the device, this method will succeed. However,
-    /// the behavior of the linear device in that case should be treated as
-    /// undefined.
-    pub fn extend(&mut self, dm: &DM, new_segs: &[Segment]) -> DmResult<()> {
-        if new_segs.is_empty() {
-            return Ok(());
+    /// Set the segments for this linear device.
+    /// Warning: It is the client's responsibility to make sure the designated
+    /// segments are compatible with the device's existing segments.
+    /// If they are not, this function will still succeed, but some kind of
+    /// data corruption will be the inevitable result.
+    pub fn set_segments(&mut self, dm: &DM, segments: &[Segment]) -> DmResult<()> {
+        if segments.is_empty() {
+            return Err(DmError::Dm(ErrorEnum::Invalid,
+                                   "linear device must have at least one segment".into()));
         }
 
-        // Last existing and first new may be contiguous. Coalesce into
-        // a single Segment if so.
-        let coalesced_new_first = {
-            let old_last = self.segments
-                .last_mut()
-                .expect("every LinearDev must have at least one segment");
-            let new_first = new_segs.first().expect("new_segs.is_empty() is false");
-            if old_last.device == new_first.device &&
-               (old_last.start + old_last.length == new_first.start) {
-                old_last.length += new_first.length;
-                true
-            } else {
-                false
-            }
-        };
-
-        if coalesced_new_first {
-            self.segments.extend(new_segs.iter().skip(1).cloned());
-        } else {
-            self.segments.extend(new_segs.iter().cloned());
-        }
-
-        let table = LinearDev::dm_table(&self.segments);
+        let table = LinearDev::dm_table(segments);
         table_reload(dm, &DevId::Name(self.name()), &table)?;
+        self.segments = segments.to_vec();
         Ok(())
     }
 

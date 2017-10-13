@@ -260,9 +260,13 @@ impl ThinPoolDev {
         }
     }
 
-    /// Extend an existing meta device with additional new segments.
-    pub fn extend_meta(&mut self, dm: &DM, new_segs: &[Segment]) -> DmResult<()> {
-        self.meta_dev.extend(dm, new_segs)?;
+    /// Set the segments for the existing metadata device.
+    /// Warning: It is the client's responsibility to make sure the designated
+    /// segments are compatible with the device's existing segments.
+    /// If they are not, this function will still succeed, but some kind of
+    /// data corruption will be the inevitable result.
+    pub fn set_meta_segments(&mut self, dm: &DM, segments: &[Segment]) -> DmResult<()> {
+        self.meta_dev.set_segments(dm, segments)?;
         table_reload(dm,
                      &DevId::Name(self.name()),
                      &ThinPoolDev::dm_table(self.data_dev.size(),
@@ -273,9 +277,13 @@ impl ThinPoolDev {
         Ok(())
     }
 
-    /// Extend an existing data device with additional new segments.
-    pub fn extend_data(&mut self, dm: &DM, new_segs: &[Segment]) -> DmResult<()> {
-        self.data_dev.extend(dm, new_segs)?;
+    /// Set the data device's existing segments.
+    /// Warning: It is the client's responsibility to make sure the designated
+    /// segments are compatible with the device's existing segments.
+    /// If they are not, this function will still succeed, but some kind of
+    /// data corruption will be the inevitable result.
+    pub fn set_data_segments(&mut self, dm: &DM, segments: &[Segment]) -> DmResult<()> {
+        self.data_dev.set_segments(dm, segments)?;
         table_reload(dm,
                      &DevId::Name(self.name()),
                      &ThinPoolDev::dm_table(self.data_dev.size(),
