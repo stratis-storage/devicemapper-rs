@@ -966,14 +966,7 @@ mod tests {
         let name = DmName::new("example-dev").expect("is valid DM name");
         dm.device_create(name, None, DmFlags::empty()).unwrap();
 
-        let devices;
-        loop {
-            if let Ok(list) = dm.list_devices() {
-                devices = list;
-                break;
-            }
-        }
-
+        let devices = dm.list_devices().unwrap();
         assert_eq!(devices.len(), 1);
         assert_eq!(devices[0].0.as_ref(), name);
         assert_eq!(devices[0].2.unwrap_or(0), 0);
@@ -1077,11 +1070,7 @@ mod tests {
         dm.device_create(name, None, DmFlags::empty()).unwrap();
 
         let new_name = DmName::new("example-dev-2").expect("is valid DM name");
-        loop {
-            if dm.device_rename(name, &DevId::Name(new_name)).is_ok() {
-                break;
-            }
-        }
+        dm.device_rename(name, &DevId::Name(new_name)).unwrap();
 
         assert!(dm.device_status(&DevId::Name(name)).is_err());
         assert!(dm.device_status(&DevId::Name(new_name)).is_ok());
@@ -1129,14 +1118,8 @@ mod tests {
         let name = DmName::new("example-dev").expect("is valid DM name");
         dm.device_create(name, None, DmFlags::empty()).unwrap();
 
-        let deps;
-        loop {
-            if let Ok(list) = dm.table_deps(&DevId::Name(name), DmFlags::empty()) {
-                deps = list;
-                break;
-            }
-        }
-
+        let deps = dm.table_deps(&DevId::Name(name), DmFlags::empty())
+            .unwrap();
         assert!(deps.is_empty());
         dm.device_remove(&DevId::Name(name), DmFlags::empty())
             .unwrap();
@@ -1174,14 +1157,8 @@ mod tests {
         dm.device_create(name, Some(uuid), DmFlags::empty())
             .unwrap();
 
-        let status;
-        loop {
-            if let Ok(info) = dm.table_status(&DevId::Name(name), DmFlags::empty()) {
-                status = info;
-                break;
-            }
-        }
-
+        let status = dm.table_status(&DevId::Name(name), DmFlags::empty())
+            .unwrap();
         assert!(status.1.is_empty());
         assert_eq!(status.0.uuid(), Some(uuid));
         dm.device_remove(&DevId::Name(name), DmFlags::empty())
