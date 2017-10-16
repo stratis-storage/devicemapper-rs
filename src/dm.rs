@@ -12,8 +12,6 @@ use std::os::unix::io::AsRawFd;
 use std::mem::{size_of, transmute};
 use std::slice;
 use std::cmp;
-use std::thread;
-use std::time::Duration;
 
 use nix::libc::ioctl as nix_ioctl;
 use nix::libc::c_ulong;
@@ -227,12 +225,6 @@ impl DM {
     /// Get the file within the DM context, likely for polling purposes.
     pub fn into_file(self) -> File {
         self.file
-    }
-
-    /// The /dev/mapper/<name> device is not immediately available for use.
-    /// TODO: Implement wait for event or poll.
-    pub fn wait_for_dm() {
-        thread::sleep(Duration::from_millis(500))
     }
 
     fn initialize_hdr(hdr: &mut dmi::Struct_dm_ioctl, flags: DmFlags) -> () {
@@ -1070,7 +1062,6 @@ mod tests {
         let dm = DM::new().unwrap();
         let name = DmName::new("example-dev").expect("is valid DM name");
         dm.device_create(name, None, DmFlags::empty()).unwrap();
-        DM::wait_for_dm();
         assert!(dm.device_rename(name, &DevId::Name(name)).is_err());
         dm.device_remove(&DevId::Name(name), DmFlags::empty())
             .unwrap();
