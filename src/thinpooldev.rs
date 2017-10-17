@@ -304,7 +304,7 @@ pub fn minimal_thinpool(dm: &DM, path: &Path) -> ThinPoolDev {
                                 &[Segment::new(dev, Sectors(0), MIN_RECOMMENDED_METADATA_SIZE)])
             .unwrap();
 
-    // 8 * MIN_DATA_BLOCK_SIZE should be enough to mount an xfs filesystem
+    // 512 * MIN_DATA_BLOCK_SIZE (32 MiB) should be enough for an xfs filesystem
     let data = LinearDev::setup(dm,
                                 DmName::new("data").expect("valid format"),
                                 None,
