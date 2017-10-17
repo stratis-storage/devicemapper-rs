@@ -77,7 +77,6 @@ impl LinearDev {
         let table = LinearDev::dm_table(segments);
         let dev_info = device_setup(dm, name, uuid, &table)?;
 
-        DM::wait_for_dm();
         Ok(LinearDev {
                dev_info: Box::new(dev_info),
                segments: segments.to_vec(),

@@ -81,7 +81,6 @@ impl ThinDev {
         let table = ThinDev::dm_table(thin_pool_device, thin_id, length);
         let dev_info = device_create(dm, name, uuid, &table)?;
 
-        DM::wait_for_dm();
         Ok(ThinDev {
                dev_info: Box::new(dev_info),
                thin_id: thin_id,
@@ -111,7 +110,6 @@ impl ThinDev {
         let table = ThinDev::dm_table(thin_pool_device, thin_id, length);
         let dev_info = device_setup(dm, name, uuid, &table)?;
 
-        DM::wait_for_dm();
         Ok(ThinDev {
                dev_info: Box::new(dev_info),
                thin_id: thin_id,

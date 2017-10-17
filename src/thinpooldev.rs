@@ -127,7 +127,6 @@ impl ThinPoolDev {
             ThinPoolDev::dm_table(data.size(), data_block_size, low_water_mark, &meta, &data);
         let dev_info = device_create(dm, name, uuid, &table)?;
 
-        DM::wait_for_dm();
         Ok(ThinPoolDev {
                dev_info: Box::new(dev_info),
                meta_dev: meta,
@@ -169,7 +168,6 @@ impl ThinPoolDev {
             ThinPoolDev::dm_table(data.size(), data_block_size, low_water_mark, &meta, &data);
         let dev_info = device_setup(dm, name, uuid, &table)?;
 
-        DM::wait_for_dm();
         Ok(ThinPoolDev {
                dev_info: Box::new(dev_info),
                meta_dev: meta,
