@@ -222,7 +222,12 @@ impl ThinDev {
 mod tests {
 
     use std::fs::OpenOptions;
+    use std::io::Write;
     use std::path::Path;
+    use std::process::Command;
+
+    use nix::mount::{MNT_DETACH, MsFlags, mount, umount2};
+    use tempdir::TempDir;
 
     use super::super::loopbacked::{blkdev_size, test_with_spec};
     use super::super::thinpooldev::minimal_thinpool;
@@ -341,6 +346,49 @@ mod tests {
         tp.teardown(&dm).unwrap();
     }
 
+    /// Verify no failures when creating a thindev from a pool, mounting a
+    /// filesystem on the thin device, and writing to that filesystem.
+    fn test_filesystem(paths: &[&Path]) -> () {
+        assert!(paths.len() > 0);
+
+        let dm = DM::new().unwrap();
+        let tp = minimal_thinpool(&dm, paths[0]);
+
+        let thin_id = ThinDevId::new_u64(0).expect("is below limit");
+        let thin_name = DmName::new("name").expect("is valid DM name");
+        let td = ThinDev::new(&dm, &thin_name, None, &tp, thin_id, tp.size()).unwrap();
+
+        Command::new("mkfs.xfs")
+            .arg("-f")
+            .arg("-q")
+            .arg(&td.devnode())
+            .status()
+            .unwrap();
+
+        let tmp_dir = TempDir::new("stratis_testing").unwrap();
+        mount(Some(&td.devnode()),
+              tmp_dir.path(),
+              Some("xfs"),
+              MsFlags::empty(),
+              None as Option<&str>)
+                .unwrap();
+
+        for i in 0..100 {
+            let file_path = tmp_dir.path().join(format!("stratis_test{}.txt", i));
+            writeln!(&OpenOptions::new()
+                          .create(true)
+                          .write(true)
+                          .open(file_path)
+                          .unwrap(),
+                     "data")
+                    .unwrap();
+        }
+        umount2(tmp_dir.path(), MNT_DETACH).unwrap();
+        td.teardown(&dm).unwrap();
+        tp.teardown(&dm).unwrap();
+    }
+
+
     #[test]
     fn loop_test_basic() {
         test_with_spec(1, test_basic);
@@ -355,8 +403,14 @@ mod tests {
     fn loop_test_setup_without_new() {
         test_with_spec(1, test_setup_without_new);
     }
+
     #[test]
     fn loop_test_snapshot() {
         test_with_spec(1, test_snapshot);
+    }
+
+    #[test]
+    fn loop_test_filesystem() {
+        test_with_spec(1, test_filesystem);
     }
 }

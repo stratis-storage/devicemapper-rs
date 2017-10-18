@@ -304,12 +304,14 @@ pub fn minimal_thinpool(dm: &DM, path: &Path) -> ThinPoolDev {
                                 &[Segment::new(dev, Sectors(0), MIN_RECOMMENDED_METADATA_SIZE)])
             .unwrap();
 
-    let data =
-        LinearDev::setup(dm,
-                         DmName::new("data").expect("valid format"),
-                         None,
-                         &[Segment::new(dev, MIN_RECOMMENDED_METADATA_SIZE, MIN_DATA_BLOCK_SIZE)])
-                .unwrap();
+    // 512 * MIN_DATA_BLOCK_SIZE (32 MiB) should be enough for an xfs filesystem
+    let data = LinearDev::setup(dm,
+                                DmName::new("data").expect("valid format"),
+                                None,
+                                &[Segment::new(dev,
+                                               MIN_RECOMMENDED_METADATA_SIZE,
+                                               512u64 * MIN_DATA_BLOCK_SIZE)])
+            .unwrap();
 
     ThinPoolDev::new(dm,
                      DmName::new("pool").expect("valid format"),
