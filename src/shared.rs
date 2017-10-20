@@ -68,7 +68,7 @@ fn device_match(dm: &DM,
                               table,
                               table_status.1);
 
-        return Err(DmError::Dm(ErrorEnum::Invalid, err_msg.into()));
+        return Err(DmError::Dm(ErrorEnum::Invalid, err_msg));
     }
     let status = table_status.0;
     if status.uuid() != uuid {
@@ -76,7 +76,7 @@ fn device_match(dm: &DM,
                               uuid,
                               status.uuid());
 
-        return Err(DmError::Dm(ErrorEnum::Invalid, err_msg.into()));
+        return Err(DmError::Dm(ErrorEnum::Invalid, err_msg));
     }
     Ok(status)
 }
