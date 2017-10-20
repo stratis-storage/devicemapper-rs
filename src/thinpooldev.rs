@@ -120,7 +120,7 @@ impl ThinPoolDev {
                -> DmResult<ThinPoolDev> {
         if device_exists(dm, name)? {
             let err_msg = format!("thinpooldev {} already exists", name);
-            return Err(DmError::Dm(ErrorEnum::Invalid, err_msg.into()));
+            return Err(DmError::Dm(ErrorEnum::Invalid, err_msg));
         }
 
         let table =
