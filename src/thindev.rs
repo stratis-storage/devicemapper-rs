@@ -6,12 +6,12 @@ use std::path::PathBuf;
 
 use super::device::Device;
 use super::deviceinfo::DeviceInfo;
-use super::dm::{DM, DM_SUSPEND, DevId, DmFlags, DmName, DmUuid};
+use super::dm::{DM, DM_SUSPEND, DmFlags};
 use super::result::{DmError, DmResult, ErrorEnum};
 use super::shared::{DmDevice, device_create, device_exists, device_setup, table_reload};
 use super::thindevid::ThinDevId;
 use super::thinpooldev::ThinPoolDev;
-use super::types::{Sectors, TargetLine};
+use super::types::{DevId, DmName, DmUuid, Sectors, TargetLine};
 
 /// DM construct for a thin block device
 #[derive(Debug)]

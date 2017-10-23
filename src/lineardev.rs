@@ -6,11 +6,11 @@ use std::path::PathBuf;
 
 use super::device::Device;
 use super::deviceinfo::DeviceInfo;
-use super::dm::{DM, DevId, DmFlags, DmName, DmUuid};
+use super::dm::{DM, DmFlags};
 use super::result::{DmResult, DmError, ErrorEnum};
 use super::segment::Segment;
 use super::shared::{DmDevice, device_setup, table_reload};
-use super::types::{Sectors, TargetLine};
+use super::types::{DevId, DmName, DmUuid, Sectors, TargetLine};
 
 /// A DM construct of combined Segments
 #[derive(Debug)]

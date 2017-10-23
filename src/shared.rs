@@ -9,9 +9,9 @@ use std::path::PathBuf;
 
 use super::device::Device;
 use super::deviceinfo::DeviceInfo;
-use super::dm::{DevId, DM, DM_STATUS_TABLE, DM_SUSPEND, DmFlags, DmName, DmUuid};
+use super::dm::{DM, DM_STATUS_TABLE, DM_SUSPEND, DmFlags};
 use super::result::{DmError, DmResult, ErrorEnum};
-use super::types::{Sectors, TargetLineArg};
+use super::types::{DevId, DmName, DmUuid, Sectors, TargetLineArg};
 
 /// A trait capturing some shared properties of DM devices.
 pub trait DmDevice {

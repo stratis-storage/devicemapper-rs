@@ -7,12 +7,12 @@ use std::path::PathBuf;
 use super::consts::IEC;
 use super::device::Device;
 use super::deviceinfo::DeviceInfo;
-use super::dm::{DM, DevId, DmFlags, DmName, DmUuid};
+use super::dm::{DM, DmFlags};
 use super::lineardev::LinearDev;
 use super::result::{DmResult, DmError, ErrorEnum};
 use super::segment::Segment;
 use super::shared::{DmDevice, device_create, device_exists, device_setup, table_reload};
-use super::types::{DataBlocks, MetaBlocks, Sectors, TargetLine};
+use super::types::{DataBlocks, DevId, DmName, DmUuid, MetaBlocks, Sectors, TargetLine};
 
 #[cfg(test)]
 use std::path::Path;

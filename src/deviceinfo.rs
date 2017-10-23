@@ -6,8 +6,9 @@ use std::mem::transmute;
 use std::str::from_utf8;
 
 use super::device::Device;
-use super::dm::{DmFlags, DmName, DmUuid};
+use super::dm::DmFlags;
 use super::dm_ioctl as dmi;
+use super::types::{DmName, DmUuid};
 use super::util::slice_to_null;
 
 /// Name max length

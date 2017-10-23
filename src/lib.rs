@@ -105,7 +105,7 @@ mod loopbacked;
 
 
 pub use consts::{IEC, SECTOR_SIZE};
-pub use dm::{DM, DevId, DmFlags, DmName, DmNameBuf, DmUuid, DmUuidBuf};
+pub use dm::{DM, DmFlags};
 
 // Export the DmFlags individually. In theory, they can be accessed by
 // DmFlags::DM_READONLY, but in practice this requires explicitly using
@@ -123,4 +123,5 @@ pub use shared::{DmDevice, device_exists};
 pub use thinpooldev::{ThinPoolBlockUsage, ThinPoolDev, ThinPoolStatus, ThinPoolWorkingStatus};
 pub use thindev::{ThinDev, ThinStatus};
 pub use thindevid::ThinDevId;
-pub use types::{Bytes, DataBlocks, MetaBlocks, Sectors};
+pub use types::{Bytes, DataBlocks, DevId, DmName, DmNameBuf, DmUuid, DmUuidBuf, MetaBlocks,
+                Sectors};

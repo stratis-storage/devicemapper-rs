@@ -2,12 +2,8 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-use std::ascii::AsciiExt;
-use std::borrow::Borrow;
-use std::fmt;
 use std::fs::File;
 use std::io;
-use std::ops::Deref;
 use std::os::unix::io::AsRawFd;
 use std::mem::{size_of, transmute};
 use std::slice;
@@ -21,7 +17,7 @@ use super::device::Device;
 use super::deviceinfo::{DM_NAME_LEN, DM_UUID_LEN, DeviceInfo};
 use super::dm_ioctl as dmi;
 use super::result::DmResult;
-use super::types::{Sectors, TargetLine, TargetLineArg};
+use super::types::{DevId, DmName, DmNameBuf, DmUuid, Sectors, TargetLine, TargetLineArg};
 use super::util::{align_to, slice_to_null};
 
 /// Indicator to send IOCTL to DM
@@ -80,136 +76,6 @@ bitflags! {
         const DM_DEFERRED_REMOVE      = (1 << 17);
         /// Out: Device is suspended internally.
         const DM_INTERNAL_SUSPEND     = (1 << 18);
-    }
-}
-
-/// Returns an error if value is unsuitable.
-fn dev_id_check(value: &str, max_allowed_chars: usize) -> DmResult<()> {
-    if !value.is_ascii() {
-        let err_msg = format!("value {} has some non-ascii characters", value);
-        return Err(Error::from_kind(ErrorKind::InvalidArgument(err_msg)).into());
-    }
-    let num_chars = value.len();
-    if num_chars == 0 {
-        let err_msg = "value has zero characters".into();
-        return Err(Error::from_kind(ErrorKind::InvalidArgument(err_msg)).into());
-    }
-    if num_chars > max_allowed_chars {
-        let err_msg = format!("value {} has {} chars which is greater than maximum allowed {}",
-                              value,
-                              num_chars,
-                              max_allowed_chars);
-        return Err(Error::from_kind(ErrorKind::InvalidArgument(err_msg)).into());
-    }
-    Ok(())
-}
-
-/// Define borrowed and owned versions of string types that guarantee
-/// conformance to DM restrictions, such as maximum length.
-// This implementation follows the example of Path/PathBuf as closely as
-// possible.
-macro_rules! str_id {
-    ($B: ident, $O: ident, $MAX: ident, $check: ident) => {
-        /// The borrowed version of the DM identifier.
-        #[derive(Debug, PartialEq, Eq, Hash)]
-        pub struct $B {
-            inner: str,
-        }
-
-        /// The owned version of the DM identifier.
-        #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-        pub struct $O {
-            inner: String,
-        }
-
-        impl $B {
-            /// Create a new borrowed identifier from a `&str`.
-            pub fn new(value: &str) -> DmResult<&$B> {
-                $check(value, $MAX - 1)?;
-                Ok(unsafe { transmute(value) })
-            }
-        }
-
-        impl ToOwned for $B {
-            type Owned = $O;
-            fn to_owned(&self) -> $O {
-                $O { inner: self.inner.to_owned() }
-            }
-        }
-
-        impl AsRef<str> for $B {
-            fn as_ref(&self) -> &str {
-                &self.inner
-            }
-        }
-
-        impl Deref for $B {
-            type Target = str;
-            fn deref(&self) -> &str {
-                &self.inner
-            }
-        }
-
-        impl fmt::Display for $B {
-            fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-                write!(f, "{}", &self.inner)
-            }
-        }
-
-        impl $O {
-            /// Construct a new owned identifier.
-            pub fn new(value: String) -> DmResult<$O> {
-                $check(&value, $MAX - 1)?;
-                Ok($O { inner: value })
-            }
-        }
-
-        impl AsRef<$B> for $O {
-            fn as_ref(&self) -> &$B {
-                self
-            }
-        }
-
-        impl Borrow<$B> for $O {
-            fn borrow(&self) -> &$B {
-                self.deref()
-            }
-        }
-
-        impl Deref for $O {
-            type Target = $B;
-            fn deref(&self) -> &$B {
-                $B::new(&self.inner).expect("inner satisfies all correctness criteria for $B::new")
-            }
-        }
-    }
-}
-
-/// A devicemapper name. Really just a string, but also the argument type of
-/// DevId::Name. Used in function arguments to indicate that the function
-/// takes only a name, not a devicemapper uuid.
-str_id!(DmName, DmNameBuf, DM_NAME_LEN, dev_id_check);
-
-/// A devicemapper uuid. A devicemapper uuid has a devicemapper-specific
-/// format.
-str_id!(DmUuid, DmUuidBuf, DM_UUID_LEN, dev_id_check);
-
-/// Used as a parameter for functions that take either a Device name
-/// or a Device UUID.
-#[derive(Debug, PartialEq, Eq)]
-pub enum DevId<'a> {
-    /// The parameter is the device's name
-    Name(&'a DmName),
-    /// The parameter is the device's devicemapper uuid
-    Uuid(&'a DmUuid),
-}
-
-impl<'a> fmt::Display for DevId<'a> {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        match *self {
-            DevId::Name(name) => write!(f, "{}", name),
-            DevId::Uuid(uuid) => write!(f, "{}", uuid),
-        }
     }
 }
 
