@@ -11,7 +11,7 @@ use super::device::Device;
 use super::deviceinfo::DeviceInfo;
 use super::dm::{DM, DM_STATUS_TABLE, DM_SUSPEND, DmFlags};
 use super::result::{DmError, DmResult, ErrorEnum};
-use super::types::{DevId, DmName, DmUuid, Sectors, TargetLineArg};
+use super::types::{DevId, DmName, DmUuid, Sectors, TargetLine};
 
 /// A trait capturing some shared properties of DM devices.
 pub trait DmDevice {
@@ -32,13 +32,11 @@ pub trait DmDevice {
 }
 
 /// Create a device, load a table, and resume it.
-pub fn device_create<T>(dm: &DM,
-                        name: &DmName,
-                        uuid: Option<&DmUuid>,
-                        table: &[TargetLineArg<T>])
-                        -> DmResult<DeviceInfo>
-    where T: AsRef<str>
-{
+pub fn device_create(dm: &DM,
+                     name: &DmName,
+                     uuid: Option<&DmUuid>,
+                     table: &[TargetLine])
+                     -> DmResult<DeviceInfo> {
     dm.device_create(name, uuid, DmFlags::empty())?;
 
     let id = DevId::Name(name);
@@ -59,7 +57,7 @@ pub fn device_create<T>(dm: &DM,
 fn device_match(dm: &DM,
                 name: &DmName,
                 uuid: Option<&DmUuid>,
-                table: &[TargetLineArg<String>])
+                table: &[TargetLine])
                 -> DmResult<DeviceInfo> {
     let table_status = dm.table_status(&DevId::Name(name), DM_STATUS_TABLE)?;
     if table_status.1 != table {
@@ -87,7 +85,7 @@ fn device_match(dm: &DM,
 pub fn device_setup(dm: &DM,
                     name: &DmName,
                     uuid: Option<&DmUuid>,
-                    table: &[TargetLineArg<String>])
+                    table: &[TargetLine])
                     -> DmResult<DeviceInfo> {
     if device_exists(dm, name)? {
         device_match(dm, name, uuid, table)
@@ -97,9 +95,7 @@ pub fn device_setup(dm: &DM,
 }
 
 /// Reload the table for a device
-pub fn table_reload<T>(dm: &DM, id: &DevId, table: &[TargetLineArg<T>]) -> DmResult<DeviceInfo>
-    where T: AsRef<str>
-{
+pub fn table_reload(dm: &DM, id: &DevId, table: &[TargetLine]) -> DmResult<DeviceInfo> {
     let dev_info = dm.table_load(id, table)?;
     dm.device_suspend(id, DM_SUSPEND)?;
     dm.device_suspend(id, DmFlags::empty())?;

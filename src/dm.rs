@@ -17,8 +17,7 @@ use super::device::Device;
 use super::deviceinfo::{DM_NAME_LEN, DM_UUID_LEN, DeviceInfo};
 use super::dm_ioctl as dmi;
 use super::result::DmResult;
-use super::types::{DevId, DmName, DmNameBuf, DmUuid, Sectors, TargetLine, TargetLineArg,
-                   TargetTypeBuf};
+use super::types::{DevId, DmName, DmNameBuf, DmUuid, Sectors, TargetLine, TargetTypeBuf};
 use super::util::{align_to, slice_to_null};
 
 /// Indicator to send IOCTL to DM
@@ -503,15 +502,13 @@ impl DM {
     /// let table = vec![(Sectors(0),
     ///                   Sectors(32768),
     ///                   TargetTypeBuf::new("linear".into()).expect("< length limit"),
-    ///                   "/dev/sdb1 2048")];
+    ///                   "/dev/sdb1 2048".into())];
     ///
     /// let name = DmName::new("example-dev").expect("is valid DM name");
     /// let id = DevId::Name(name);
     /// dm.table_load(&id, &table).unwrap();
     /// ```
-    pub fn table_load<T>(&self, id: &DevId, targets: &[TargetLineArg<T>]) -> DmResult<DeviceInfo>
-        where T: AsRef<str>
-    {
+    pub fn table_load(&self, id: &DevId, targets: &[TargetLine]) -> DmResult<DeviceInfo> {
         let mut targs = Vec::new();
 
         // Construct targets first, since we need to know how many & size
@@ -528,7 +525,7 @@ impl DM {
                     "TargetType max length = targ.target_type.len()");
             dst[..ttyp.len()].clone_from_slice(ttyp.as_bytes());
 
-            let mut params = t.3.as_ref().to_owned();
+            let mut params = t.3.to_owned();
             let params_len = params.len();
             let pad_bytes = align_to(params_len + 1usize, 8usize) - params_len;
             params.extend(vec!["\0"; pad_bytes]);

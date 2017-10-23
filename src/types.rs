@@ -412,10 +412,6 @@ str_id!(TargetType, TargetTypeBuf, DM_TARGET_TYPE_LEN, str_check);
 /// target type's params field.
 pub type TargetLine = (Sectors, Sectors, TargetTypeBuf, String);
 
-/// The same as TargetLine, except generalized for argument rather than
-/// return type.
-pub type TargetLineArg<T> = (Sectors, Sectors, TargetTypeBuf, T);
-
 #[cfg(test)]
 mod tests {
     use super::*;
