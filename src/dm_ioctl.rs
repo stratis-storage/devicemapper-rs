@@ -172,3 +172,4 @@ pub const DM_TABLE_STATUS_CMD: ::libc::c_uint = 12;
 pub const DM_LIST_VERSIONS_CMD: ::libc::c_uint = 13;
 pub const DM_TARGET_MSG_CMD: ::libc::c_uint = 14;
 pub const DM_DEV_SET_GEOMETRY_CMD: ::libc::c_uint = 15;
+pub const DM_DEV_ARM_POLL_CMD: ::libc::c_uint = 16;
