@@ -17,7 +17,8 @@ use super::device::Device;
 use super::deviceinfo::{DM_NAME_LEN, DM_UUID_LEN, DeviceInfo};
 use super::dm_ioctl as dmi;
 use super::result::DmResult;
-use super::types::{DevId, DmName, DmNameBuf, DmUuid, Sectors, TargetLine, TargetLineArg};
+use super::types::{DevId, DmName, DmNameBuf, DmUuid, Sectors, TargetLine, TargetLineArg,
+                   TargetTypeBuf};
 use super::util::{align_to, slice_to_null};
 
 /// Indicator to send IOCTL to DM
@@ -494,26 +495,22 @@ impl DM {
     /// # Example
     ///
     /// ```no_run
-    /// use devicemapper::{DM, DevId, DmName, Sectors};
+    /// use devicemapper::{DM, DevId, DmName, Sectors, TargetTypeBuf};
     /// let dm = DM::new().unwrap();
     ///
     /// // Create a 16MiB device (32768 512-byte sectors) that maps to /dev/sdb1
     /// // starting 1MiB into sdb1
     /// let table = vec![(Sectors(0),
     ///                   Sectors(32768),
-    ///                   "linear",
+    ///                   TargetTypeBuf::new("linear".into()).expect("< length limit"),
     ///                   "/dev/sdb1 2048")];
     ///
     /// let name = DmName::new("example-dev").expect("is valid DM name");
     /// let id = DevId::Name(name);
     /// dm.table_load(&id, &table).unwrap();
     /// ```
-    pub fn table_load<T1, T2>(&self,
-                              id: &DevId,
-                              targets: &[TargetLineArg<T1, T2>])
-                              -> DmResult<DeviceInfo>
-        where T1: AsRef<str>,
-              T2: AsRef<str>
+    pub fn table_load<T>(&self, id: &DevId, targets: &[TargetLineArg<T>]) -> DmResult<DeviceInfo>
+        where T: AsRef<str>
     {
         let mut targs = Vec::new();
 
@@ -527,12 +524,9 @@ impl DM {
 
             let dst: &mut [u8] = unsafe { transmute(&mut targ.target_type[..]) };
             let ttyp = t.2.as_ref();
-            let ttyp_len = ttyp.len();
-            if ttyp_len > dst.len() {
-                let err_msg = "target type too long".into();
-                return Err(Error::from_kind(ErrorKind::InvalidArgument(err_msg)).into());
-            }
-            dst[..ttyp_len].clone_from_slice(ttyp.as_bytes());
+            assert!(ttyp.len() <= dst.len(),
+                    "TargetType max length = targ.target_type.len()");
+            dst[..ttyp.len()].clone_from_slice(ttyp.as_bytes());
 
             let mut params = t.3.as_ref().to_owned();
             let params_len = params.len();
@@ -674,7 +668,7 @@ impl DM {
 
                 targets.push((Sectors(targ.sector_start),
                               Sectors(targ.length),
-                              target_type,
+                              TargetTypeBuf::new(target_type).expect("< sizeof target_spec"),
                               params));
 
                 next_off = targ.next as usize;

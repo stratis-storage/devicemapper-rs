@@ -272,7 +272,7 @@ impl fmt::Display for Sectors {
 }
 
 /// Returns an error if value is unsuitable.
-fn dev_id_check(value: &str, max_allowed_chars: usize) -> DmResult<()> {
+fn str_check(value: &str, max_allowed_chars: usize) -> DmResult<()> {
     if !value.is_ascii() {
         let err_msg = format!("value {} has some non-ascii characters", value);
         return Err(DmError::Dm(ErrorEnum::Invalid, err_msg));
@@ -375,11 +375,11 @@ macro_rules! str_id {
 /// A devicemapper name. Really just a string, but also the argument type of
 /// DevId::Name. Used in function arguments to indicate that the function
 /// takes only a name, not a devicemapper uuid.
-str_id!(DmName, DmNameBuf, DM_NAME_LEN, dev_id_check);
+str_id!(DmName, DmNameBuf, DM_NAME_LEN, str_check);
 
 /// A devicemapper uuid. A devicemapper uuid has a devicemapper-specific
 /// format.
-str_id!(DmUuid, DmUuidBuf, DM_UUID_LEN, dev_id_check);
+str_id!(DmUuid, DmUuidBuf, DM_UUID_LEN, str_check);
 
 /// Used as a parameter for functions that take either a Device name
 /// or a Device UUID.
@@ -400,15 +400,21 @@ impl<'a> fmt::Display for DevId<'a> {
     }
 }
 
+
+/// Number of bytes in Struct_dm_target_spec::target_type field.
+const DM_TARGET_TYPE_LEN: usize = 16;
+
+str_id!(TargetType, TargetTypeBuf, DM_TARGET_TYPE_LEN, str_check);
+
 /// This 4-tuple consists of starting offset (sectors), length
 /// (sectors), target type (string, e.g. "linear"), and
 /// params(string). See target documentation for the format of each
 /// target type's params field.
-pub type TargetLine = (Sectors, Sectors, String, String);
+pub type TargetLine = (Sectors, Sectors, TargetTypeBuf, String);
 
 /// The same as TargetLine, except generalized for argument rather than
 /// return type.
-pub type TargetLineArg<T1, T2> = (Sectors, Sectors, T1, T2);
+pub type TargetLineArg<T> = (Sectors, Sectors, TargetTypeBuf, T);
 
 #[cfg(test)]
 mod tests {

@@ -10,7 +10,7 @@ use super::dm::{DM, DmFlags};
 use super::result::{DmResult, DmError, ErrorEnum};
 use super::segment::Segment;
 use super::shared::{DmDevice, device_setup, table_reload};
-use super::types::{DevId, DmName, DmUuid, Sectors, TargetLine};
+use super::types::{DevId, DmName, DmUuid, Sectors, TargetLine, TargetTypeBuf};
 
 /// A DM construct of combined Segments
 #[derive(Debug)]
@@ -102,7 +102,7 @@ impl LinearDev {
             let (physical_start_offset, length) = (segment.start, segment.length);
             let line = (logical_start_offset,
                         length,
-                        "linear".to_owned(),
+                        TargetTypeBuf::new("linear".into()).expect("< length limit"),
                         format!("{} {}", segment.device, *physical_start_offset));
             debug!("dmtable line : {:?}", line);
             table.push(line);

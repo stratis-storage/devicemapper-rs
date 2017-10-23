@@ -32,13 +32,12 @@ pub trait DmDevice {
 }
 
 /// Create a device, load a table, and resume it.
-pub fn device_create<T1, T2>(dm: &DM,
-                             name: &DmName,
-                             uuid: Option<&DmUuid>,
-                             table: &[TargetLineArg<T1, T2>])
-                             -> DmResult<DeviceInfo>
-    where T1: AsRef<str>,
-          T2: AsRef<str>
+pub fn device_create<T>(dm: &DM,
+                        name: &DmName,
+                        uuid: Option<&DmUuid>,
+                        table: &[TargetLineArg<T>])
+                        -> DmResult<DeviceInfo>
+    where T: AsRef<str>
 {
     dm.device_create(name, uuid, DmFlags::empty())?;
 
@@ -60,7 +59,7 @@ pub fn device_create<T1, T2>(dm: &DM,
 fn device_match(dm: &DM,
                 name: &DmName,
                 uuid: Option<&DmUuid>,
-                table: &[TargetLineArg<String, String>])
+                table: &[TargetLineArg<String>])
                 -> DmResult<DeviceInfo> {
     let table_status = dm.table_status(&DevId::Name(name), DM_STATUS_TABLE)?;
     if table_status.1 != table {
@@ -88,7 +87,7 @@ fn device_match(dm: &DM,
 pub fn device_setup(dm: &DM,
                     name: &DmName,
                     uuid: Option<&DmUuid>,
-                    table: &[TargetLineArg<String, String>])
+                    table: &[TargetLineArg<String>])
                     -> DmResult<DeviceInfo> {
     if device_exists(dm, name)? {
         device_match(dm, name, uuid, table)
@@ -98,12 +97,8 @@ pub fn device_setup(dm: &DM,
 }
 
 /// Reload the table for a device
-pub fn table_reload<T1, T2>(dm: &DM,
-                            id: &DevId,
-                            table: &[TargetLineArg<T1, T2>])
-                            -> DmResult<DeviceInfo>
-    where T1: AsRef<str>,
-          T2: AsRef<str>
+pub fn table_reload<T>(dm: &DM, id: &DevId, table: &[TargetLineArg<T>]) -> DmResult<DeviceInfo>
+    where T: AsRef<str>
 {
     let dev_info = dm.table_load(id, table)?;
     dm.device_suspend(id, DM_SUSPEND)?;

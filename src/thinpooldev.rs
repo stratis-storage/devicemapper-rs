@@ -12,7 +12,8 @@ use super::lineardev::LinearDev;
 use super::result::{DmResult, DmError, ErrorEnum};
 use super::segment::Segment;
 use super::shared::{DmDevice, device_create, device_exists, device_setup, table_reload};
-use super::types::{DataBlocks, DevId, DmName, DmUuid, MetaBlocks, Sectors, TargetLine};
+use super::types::{DataBlocks, DevId, DmName, DmUuid, MetaBlocks, Sectors, TargetLine,
+                   TargetTypeBuf};
 
 #[cfg(test)]
 use std::path::Path;
@@ -194,7 +195,10 @@ impl ThinPoolDev {
                              data.device(),
                              *data_block_size,
                              *low_water_mark);
-        vec![(Sectors::default(), length, "thin-pool".to_owned(), params)]
+        vec![(Sectors::default(),
+              length,
+              TargetTypeBuf::new("thin-pool".into()).expect("< length limit"),
+              params)]
     }
 
     /// send a message to DM thin pool

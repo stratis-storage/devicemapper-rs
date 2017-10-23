@@ -11,7 +11,7 @@ use super::result::{DmError, DmResult, ErrorEnum};
 use super::shared::{DmDevice, device_create, device_exists, device_setup, table_reload};
 use super::thindevid::ThinDevId;
 use super::thinpooldev::ThinPoolDev;
-use super::types::{DevId, DmName, DmUuid, Sectors, TargetLine};
+use super::types::{DevId, DmName, DmUuid, Sectors, TargetLine, TargetTypeBuf};
 
 /// DM construct for a thin block device
 #[derive(Debug)]
@@ -156,7 +156,10 @@ impl ThinDev {
     /// There is exactly one entry in the table.
     fn dm_table(thin_pool: Device, thin_id: ThinDevId, length: Sectors) -> Vec<TargetLine> {
         let params = format!("{} {}", thin_pool, thin_id);
-        vec![(Sectors::default(), length, "thin".to_owned(), params)]
+        vec![(Sectors::default(),
+              length,
+              TargetTypeBuf::new("thin".into()).expect("< length limit"),
+              params)]
     }
 
     /// return the thin id of the linear device
