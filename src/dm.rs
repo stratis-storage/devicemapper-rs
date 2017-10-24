@@ -223,8 +223,8 @@ impl DM {
     }
 
     /// Get the file within the DM context, likely for polling purposes.
-    pub fn into_file(self) -> File {
-        self.file
+    pub fn file(&self) -> &File {
+        &self.file
     }
 
     fn initialize_hdr(hdr: &mut dmi::Struct_dm_ioctl, flags: DmFlags) -> () {
