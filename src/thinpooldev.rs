@@ -195,10 +195,12 @@ impl ThinPoolDev {
                              data.device(),
                              *data_block_size,
                              *low_water_mark);
-        vec![(Sectors::default(),
-              length,
-              TargetTypeBuf::new("thin-pool".into()).expect("< length limit"),
-              params)]
+        vec![TargetLine {
+                 start: Sectors::default(),
+                 length: length,
+                 target_type: TargetTypeBuf::new("thin-pool".into()).expect("< length limit"),
+                 params: params,
+             }]
     }
 
     /// send a message to DM thin pool
@@ -218,7 +220,7 @@ impl ThinPoolDev {
                    1,
                    "Kernel must return 1 line from thin pool status");
 
-        let status_line = status.pop().expect("assertion above holds").3;
+        let status_line = status.pop().expect("assertion above holds").params;
         if status_line.starts_with("Fail") {
             return Ok(ThinPoolStatus::Fail);
         }

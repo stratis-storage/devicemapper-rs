@@ -494,15 +494,17 @@ impl DM {
     /// # Example
     ///
     /// ```no_run
-    /// use devicemapper::{DM, DevId, DmName, Sectors, TargetTypeBuf};
+    /// use devicemapper::{DM, DevId, DmName, Sectors, TargetLine, TargetTypeBuf};
     /// let dm = DM::new().unwrap();
     ///
     /// // Create a 16MiB device (32768 512-byte sectors) that maps to /dev/sdb1
     /// // starting 1MiB into sdb1
-    /// let table = vec![(Sectors(0),
-    ///                   Sectors(32768),
-    ///                   TargetTypeBuf::new("linear".into()).expect("< length limit"),
-    ///                   "/dev/sdb1 2048".into())];
+    /// let table = vec![TargetLine{
+    ///     start: Sectors(0),
+    ///     length: Sectors(32768),
+    ///     target_type: TargetTypeBuf::new("linear".into()).expect("valid"),
+    ///     params: "/dev/sdb1 2048".into()
+    /// }];
     ///
     /// let name = DmName::new("example-dev").expect("is valid DM name");
     /// let id = DevId::Name(name);
@@ -515,17 +517,17 @@ impl DM {
         // before initializing the header.
         for t in targets {
             let mut targ: dmi::Struct_dm_target_spec = Default::default();
-            targ.sector_start = *t.0;
-            targ.length = *t.1;
+            targ.sector_start = *t.start;
+            targ.length = *t.length;
             targ.status = 0;
 
             let dst: &mut [u8] = unsafe { transmute(&mut targ.target_type[..]) };
-            let ttyp = t.2.as_ref();
+            let ttyp = t.target_type.as_ref();
             assert!(ttyp.len() <= dst.len(),
                     "TargetType max length = targ.target_type.len()");
             dst[..ttyp.len()].clone_from_slice(ttyp.as_bytes());
 
-            let mut params = t.3.to_owned();
+            let mut params = t.params.to_owned();
             let params_len = params.len();
             let pad_bytes = align_to(params_len + 1usize, 8usize) - params_len;
             params.extend(vec!["\0"; pad_bytes]);
@@ -663,10 +665,13 @@ impl DM {
                     String::from_utf8_lossy(slc).trim_right().to_owned()
                 };
 
-                targets.push((Sectors(targ.sector_start),
-                              Sectors(targ.length),
-                              TargetTypeBuf::new(target_type).expect("< sizeof target_spec"),
-                              params));
+                targets.push(TargetLine {
+                                 start: Sectors(targ.sector_start),
+                                 length: Sectors(targ.length),
+                                 target_type:
+                                     TargetTypeBuf::new(target_type).expect("< sizeof target_spec"),
+                                 params: params,
+                             });
 
                 next_off = targ.next as usize;
             }

@@ -406,11 +406,18 @@ const DM_TARGET_TYPE_LEN: usize = 16;
 
 str_id!(TargetType, TargetTypeBuf, DM_TARGET_TYPE_LEN, str_check);
 
-/// This 4-tuple consists of starting offset (sectors), length
-/// (sectors), target type (string, e.g. "linear"), and
-/// params(string). See target documentation for the format of each
-/// target type's params field.
-pub type TargetLine = (Sectors, Sectors, TargetTypeBuf, String);
+/// One line of a device mapper table.
+#[derive(Debug, PartialEq)]
+pub struct TargetLine {
+    /// The start of the segment
+    pub start: Sectors,
+    /// The length of the segment
+    pub length: Sectors,
+    /// The target type
+    pub target_type: TargetTypeBuf,
+    /// The target specific parameters
+    pub params: String,
+}
 
 #[cfg(test)]
 mod tests {
