@@ -223,8 +223,8 @@ impl DM {
     }
 
     /// Get the file within the DM context, likely for polling purposes.
-    pub fn into_file(self) -> File {
-        self.file
+    pub fn file(&self) -> &File {
+        &self.file
     }
 
     fn initialize_hdr(hdr: &mut dmi::Struct_dm_ioctl, flags: DmFlags) -> () {
@@ -931,6 +931,20 @@ impl DM {
             } else {
                 None
             }))
+    }
+
+    /// If DM is being used to poll for events, once it indicates readiness it
+    /// will continue to do so until we rearm it, which is what this method
+    /// does.
+    pub fn arm_poll(&self) -> DmResult<DeviceInfo> {
+        let mut hdr: dmi::Struct_dm_ioctl = Default::default();
+
+        // No flags checked so don't pass any
+        Self::initialize_hdr(&mut hdr, DmFlags::empty());
+
+        self.do_ioctl(dmi::DM_DEV_ARM_POLL_CMD as u8, &mut hdr, None)?;
+
+        Ok(DeviceInfo::new(hdr))
     }
 }
 
