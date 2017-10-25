@@ -294,7 +294,7 @@ impl DM {
             let hdr = unsafe {
                 (v.as_mut_ptr() as *mut dmi::Struct_dm_ioctl)
                     .as_mut()
-                    .unwrap()
+                    .expect("pointer to own structure v can not be NULL")
             };
 
             if (hdr.flags & DM_BUFFER_FULL.bits()) == 0 {
@@ -309,7 +309,7 @@ impl DM {
         let hdr = unsafe {
             (v.as_mut_ptr() as *mut dmi::Struct_dm_ioctl)
                 .as_mut()
-                .unwrap()
+                .expect("pointer to own structure v can not be NULL")
         };
 
         // hdr possibly modified so copy back
@@ -370,11 +370,11 @@ impl DM {
                 let device = unsafe {
                     (result.as_ptr() as *const dmi::Struct_dm_name_list)
                         .as_ref()
-                        .unwrap()
+                        .expect("pointer to own structure result can not be NULL")
                 };
 
                 let slc = slice_to_null(&result[size_of::<dmi::Struct_dm_name_list>()..])
-                    .expect("Bad data from ioctl");
+                    .expect("kernel data is well-formatted");
                 let dm_name = String::from_utf8_lossy(slc).into_owned();
 
                 // Get each device's event number after its name, if the kernel
@@ -744,7 +744,7 @@ impl DM {
             let target_deps = unsafe {
                 (result.as_ptr() as *const dmi::Struct_dm_target_deps)
                     .as_ref()
-                    .unwrap()
+                    .expect("pointer to own structure result can not be NULL")
             };
 
             let dev_slc = unsafe {
@@ -876,12 +876,12 @@ impl DM {
                 let tver = unsafe {
                     (result.as_ptr() as *const dmi::Struct_dm_target_versions)
                         .as_ref()
-                        .unwrap()
+                        .expect("pointer to own structure result can not be NULL")
                 };
 
                 let name_slc = slice_to_null(&result
                                                   [size_of::<dmi::Struct_dm_target_versions>()..])
-                        .expect("bad data from ioctl");
+                        .expect("kernel data is well-formatted");
                 let name = String::from_utf8_lossy(name_slc).into_owned();
                 targets.push((name, tver.version[0], tver.version[1], tver.version[2]));
 
