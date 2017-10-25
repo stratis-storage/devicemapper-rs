@@ -315,25 +315,17 @@ macro_rules! str_id {
                 $check(value, $MAX - 1)?;
                 Ok(unsafe { transmute(value) })
             }
+
+            /// Get the inner value as bytes
+            pub fn as_bytes(&self) -> &[u8] {
+                self.inner.as_bytes()
+            }
         }
 
         impl ToOwned for $B {
             type Owned = $O;
             fn to_owned(&self) -> $O {
                 $O { inner: self.inner.to_owned() }
-            }
-        }
-
-        impl AsRef<str> for $B {
-            fn as_ref(&self) -> &str {
-                &self.inner
-            }
-        }
-
-        impl Deref for $B {
-            type Target = str;
-            fn deref(&self) -> &str {
-                &self.inner
             }
         }
 

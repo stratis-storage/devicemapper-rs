@@ -522,10 +522,10 @@ impl DM {
             targ.status = 0;
 
             let dst: &mut [u8] = unsafe { transmute(&mut targ.target_type[..]) };
-            let ttyp = t.target_type.as_ref();
-            assert!(ttyp.len() <= dst.len(),
+            let bytes = t.target_type.as_bytes();
+            assert!(bytes.len() <= dst.len(),
                     "TargetType max length = targ.target_type.len()");
-            dst[..ttyp.len()].clone_from_slice(ttyp.as_bytes());
+            dst[..bytes.len()].clone_from_slice(bytes);
 
             let mut params = t.params.to_owned();
             let params_len = params.len();
