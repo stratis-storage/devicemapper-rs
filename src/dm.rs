@@ -6,7 +6,7 @@ use std::ascii::AsciiExt;
 use std::borrow::Borrow;
 use std::fmt;
 use std::fs::File;
-use std::io::Error;
+use std::io;
 use std::ops::Deref;
 use std::os::unix::io::AsRawFd;
 use std::mem::{size_of, transmute};
@@ -16,10 +16,11 @@ use std::cmp;
 use nix::libc::ioctl as nix_ioctl;
 use nix::libc::c_ulong;
 
+use super::errors::{Error, ErrorKind};
 use super::device::Device;
 use super::deviceinfo::{DM_NAME_LEN, DM_UUID_LEN, DeviceInfo};
 use super::dm_ioctl as dmi;
-use super::result::{DmError, DmResult, ErrorEnum};
+use super::result::DmResult;
 use super::types::{Sectors, TargetLine, TargetLineArg};
 use super::util::{align_to, slice_to_null};
 
@@ -86,18 +87,19 @@ bitflags! {
 fn dev_id_check(value: &str, max_allowed_chars: usize) -> DmResult<()> {
     if !value.is_ascii() {
         let err_msg = format!("value {} has some non-ascii characters", value);
-        return Err(DmError::Dm(ErrorEnum::Invalid, err_msg));
+        return Err(Error::from_kind(ErrorKind::InvalidArgument(err_msg)).into());
     }
     let num_chars = value.len();
     if num_chars == 0 {
-        return Err(DmError::Dm(ErrorEnum::Invalid, "value has zero characters".into()));
+        let err_msg = "value has zero characters".into();
+        return Err(Error::from_kind(ErrorKind::InvalidArgument(err_msg)).into());
     }
     if num_chars > max_allowed_chars {
         let err_msg = format!("value {} has {} chars which is greater than maximum allowed {}",
                               value,
                               num_chars,
                               max_allowed_chars);
-        return Err(DmError::Dm(ErrorEnum::Invalid, err_msg));
+        return Err(Error::from_kind(ErrorKind::InvalidArgument(err_msg)).into());
     }
     Ok(())
 }
@@ -219,7 +221,10 @@ pub struct DM {
 impl DM {
     /// Create a new context for communicating with DM.
     pub fn new() -> DmResult<DM> {
-        Ok(DM { file: File::open(DM_CTL_PATH)? })
+        Ok(DM {
+               file: File::open(DM_CTL_PATH)
+                   .map_err(|e| Error::with_chain(e, ErrorKind::ContextInitError))?,
+           })
     }
 
     /// Get the file within the DM context, likely for polling purposes.
@@ -288,7 +293,8 @@ impl DM {
         loop {
             if unsafe { convert_ioctl_res!(nix_ioctl(self.file.as_raw_fd(), op, v.as_mut_ptr())) }
                    .is_err() {
-                return Err(DmError::Io(Error::last_os_error()));
+                return Err(Error::with_chain(io::Error::last_os_error(), ErrorKind::IoctlError)
+                               .into());
             }
 
             let hdr = unsafe {
@@ -657,7 +663,8 @@ impl DM {
             let ttyp = t.2.as_ref();
             let ttyp_len = ttyp.len();
             if ttyp_len > dst.len() {
-                return Err(DmError::Dm(ErrorEnum::Invalid, "target type too long".into()));
+                let err_msg = "target type too long".into();
+                return Err(Error::from_kind(ErrorKind::InvalidArgument(err_msg)).into());
             }
             dst[..ttyp_len].clone_from_slice(ttyp.as_bytes());
 

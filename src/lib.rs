@@ -55,6 +55,8 @@ extern crate nix;
 extern crate serde;
 #[macro_use]
 extern crate bitflags;
+#[macro_use]
+extern crate error_chain;
 
 #[macro_use]
 extern crate log;
@@ -95,6 +97,8 @@ mod device;
 mod dm;
 /// functionality shared between devices
 mod shared;
+/// error chain errors for core dm
+mod errors;
 
 #[cfg(test)]
 mod loopbacked;
