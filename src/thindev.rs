@@ -6,12 +6,12 @@ use std::path::PathBuf;
 
 use super::device::Device;
 use super::deviceinfo::DeviceInfo;
-use super::dm::{DM, DM_SUSPEND, DevId, DmFlags, DmName, DmUuid};
+use super::dm::{DM, DM_SUSPEND, DmFlags};
 use super::result::{DmError, DmResult, ErrorEnum};
 use super::shared::{DmDevice, device_create, device_exists, device_setup, table_reload};
 use super::thindevid::ThinDevId;
 use super::thinpooldev::ThinPoolDev;
-use super::types::{Sectors, TargetLine};
+use super::types::{DevId, DmName, DmUuid, Sectors, TargetLine, TargetTypeBuf};
 
 /// DM construct for a thin block device
 #[derive(Debug)]
@@ -156,7 +156,12 @@ impl ThinDev {
     /// There is exactly one entry in the table.
     fn dm_table(thin_pool: Device, thin_id: ThinDevId, length: Sectors) -> Vec<TargetLine> {
         let params = format!("{} {}", thin_pool, thin_id);
-        vec![(Sectors::default(), length, "thin".to_owned(), params)]
+        vec![TargetLine {
+                 start: Sectors::default(),
+                 length: length,
+                 target_type: TargetTypeBuf::new("thin".into()).expect("< length limit"),
+                 params: params,
+             }]
     }
 
     /// return the thin id of the linear device
@@ -172,7 +177,7 @@ impl ThinDev {
                    1,
                    "Kernel must return 1 line table for thin status");
 
-        let status_line = &table.first().expect("assertion above holds").3;
+        let status_line = &table.first().expect("assertion above holds").params;
         if status_line.starts_with("Fail") {
             return Ok(ThinStatus::Fail);
         }

@@ -14,11 +14,17 @@
 
 use consts::SECTOR_SIZE;
 
+use std::ascii::AsciiExt;
+use std::borrow::Borrow;
 use std::fmt;
 use std::iter::Sum;
-use std::ops::{Div, Mul, Rem, Add};
+use std::mem::transmute;
+use std::ops::{Deref, Div, Mul, Rem, Add};
 
 use serde;
+
+use super::deviceinfo::{DM_NAME_LEN, DM_UUID_LEN};
+use super::result::{DmError, DmResult, ErrorEnum};
 
 /// a kernel defined block size constant for a DM meta device
 /// defined in drivers/md/persistent-data/dm-space-map-metadata.h line 12
@@ -265,16 +271,145 @@ impl fmt::Display for Sectors {
     }
 }
 
+/// Returns an error if value is unsuitable.
+fn str_check(value: &str, max_allowed_chars: usize) -> DmResult<()> {
+    if !value.is_ascii() {
+        let err_msg = format!("value {} has some non-ascii characters", value);
+        return Err(DmError::Dm(ErrorEnum::Invalid, err_msg));
+    }
+    let num_chars = value.len();
+    if num_chars == 0 {
+        return Err(DmError::Dm(ErrorEnum::Invalid, "value has zero characters".into()));
+    }
+    if num_chars > max_allowed_chars {
+        let err_msg = format!("value {} has {} chars which is greater than maximum allowed {}",
+                              value,
+                              num_chars,
+                              max_allowed_chars);
+        return Err(DmError::Dm(ErrorEnum::Invalid, err_msg));
+    }
+    Ok(())
+}
 
-/// This 4-tuple consists of starting offset (sectors), length
-/// (sectors), target type (string, e.g. "linear"), and
-/// params(string). See target documentation for the format of each
-/// target type's params field.
-pub type TargetLine = (Sectors, Sectors, String, String);
+/// Define borrowed and owned versions of string types that guarantee
+/// conformance to DM restrictions, such as maximum length.
+// This implementation follows the example of Path/PathBuf as closely as
+// possible.
+macro_rules! str_id {
+    ($B: ident, $O: ident, $MAX: ident, $check: ident) => {
+        /// The borrowed version of the DM identifier.
+        #[derive(Debug, PartialEq, Eq, Hash)]
+        pub struct $B {
+            inner: str,
+        }
 
-/// The same as TargetLine, except generalized for argument rather than
-/// return type.
-pub type TargetLineArg<T1, T2> = (Sectors, Sectors, T1, T2);
+        /// The owned version of the DM identifier.
+        #[derive(Debug, Clone, PartialEq, Eq, Hash)]
+        pub struct $O {
+            inner: String,
+        }
+
+        impl $B {
+            /// Create a new borrowed identifier from a `&str`.
+            pub fn new(value: &str) -> DmResult<&$B> {
+                $check(value, $MAX - 1)?;
+                Ok(unsafe { transmute(value) })
+            }
+
+            /// Get the inner value as bytes
+            pub fn as_bytes(&self) -> &[u8] {
+                self.inner.as_bytes()
+            }
+        }
+
+        impl ToOwned for $B {
+            type Owned = $O;
+            fn to_owned(&self) -> $O {
+                $O { inner: self.inner.to_owned() }
+            }
+        }
+
+        impl fmt::Display for $B {
+            fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+                write!(f, "{}", &self.inner)
+            }
+        }
+
+        impl $O {
+            /// Construct a new owned identifier.
+            pub fn new(value: String) -> DmResult<$O> {
+                $check(&value, $MAX - 1)?;
+                Ok($O { inner: value })
+            }
+        }
+
+        impl AsRef<$B> for $O {
+            fn as_ref(&self) -> &$B {
+                self
+            }
+        }
+
+        impl Borrow<$B> for $O {
+            fn borrow(&self) -> &$B {
+                self.deref()
+            }
+        }
+
+        impl Deref for $O {
+            type Target = $B;
+            fn deref(&self) -> &$B {
+                $B::new(&self.inner).expect("inner satisfies all correctness criteria for $B::new")
+            }
+        }
+    }
+}
+
+/// A devicemapper name. Really just a string, but also the argument type of
+/// DevId::Name. Used in function arguments to indicate that the function
+/// takes only a name, not a devicemapper uuid.
+str_id!(DmName, DmNameBuf, DM_NAME_LEN, str_check);
+
+/// A devicemapper uuid. A devicemapper uuid has a devicemapper-specific
+/// format.
+str_id!(DmUuid, DmUuidBuf, DM_UUID_LEN, str_check);
+
+/// Used as a parameter for functions that take either a Device name
+/// or a Device UUID.
+#[derive(Debug, PartialEq, Eq)]
+pub enum DevId<'a> {
+    /// The parameter is the device's name
+    Name(&'a DmName),
+    /// The parameter is the device's devicemapper uuid
+    Uuid(&'a DmUuid),
+}
+
+impl<'a> fmt::Display for DevId<'a> {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match *self {
+            DevId::Name(name) => write!(f, "{}", name),
+            DevId::Uuid(uuid) => write!(f, "{}", uuid),
+        }
+    }
+}
+
+
+/// Number of bytes in Struct_dm_target_spec::target_type field.
+const DM_TARGET_TYPE_LEN: usize = 16;
+
+str_id!(TargetType, TargetTypeBuf, DM_TARGET_TYPE_LEN, str_check);
+
+/// One line of a device mapper table.
+#[derive(Debug, PartialEq)]
+pub struct TargetLine {
+    /// The start of the segment
+    pub start: Sectors,
+    /// The length of the segment
+    pub length: Sectors,
+    /// The target type
+    pub target_type: TargetTypeBuf,
+    /// The target specific parameters
+    pub params: String,
+}
 
 #[cfg(test)]
 mod tests {

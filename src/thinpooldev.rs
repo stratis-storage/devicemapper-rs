@@ -7,12 +7,13 @@ use std::path::PathBuf;
 use super::consts::IEC;
 use super::device::Device;
 use super::deviceinfo::DeviceInfo;
-use super::dm::{DM, DevId, DmFlags, DmName, DmUuid};
+use super::dm::{DM, DmFlags};
 use super::lineardev::LinearDev;
 use super::result::{DmResult, DmError, ErrorEnum};
 use super::segment::Segment;
 use super::shared::{DmDevice, device_create, device_exists, device_setup, table_reload};
-use super::types::{DataBlocks, MetaBlocks, Sectors, TargetLine};
+use super::types::{DataBlocks, DevId, DmName, DmUuid, MetaBlocks, Sectors, TargetLine,
+                   TargetTypeBuf};
 
 #[cfg(test)]
 use std::path::Path;
@@ -194,7 +195,12 @@ impl ThinPoolDev {
                              data.device(),
                              *data_block_size,
                              *low_water_mark);
-        vec![(Sectors::default(), length, "thin-pool".to_owned(), params)]
+        vec![TargetLine {
+                 start: Sectors::default(),
+                 length: length,
+                 target_type: TargetTypeBuf::new("thin-pool".into()).expect("< length limit"),
+                 params: params,
+             }]
     }
 
     /// send a message to DM thin pool
@@ -214,7 +220,7 @@ impl ThinPoolDev {
                    1,
                    "Kernel must return 1 line from thin pool status");
 
-        let status_line = status.pop().expect("assertion above holds").3;
+        let status_line = status.pop().expect("assertion above holds").params;
         if status_line.starts_with("Fail") {
             return Ok(ThinPoolStatus::Fail);
         }

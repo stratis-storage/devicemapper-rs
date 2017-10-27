@@ -6,11 +6,11 @@ use std::path::PathBuf;
 
 use super::device::Device;
 use super::deviceinfo::DeviceInfo;
-use super::dm::{DM, DevId, DmFlags, DmName, DmUuid};
+use super::dm::{DM, DmFlags};
 use super::result::{DmResult, DmError, ErrorEnum};
 use super::segment::Segment;
 use super::shared::{DmDevice, device_setup, table_reload};
-use super::types::{Sectors, TargetLine};
+use super::types::{DevId, DmName, DmUuid, Sectors, TargetLine, TargetTypeBuf};
 
 /// A DM construct of combined Segments
 #[derive(Debug)]
@@ -100,10 +100,12 @@ impl LinearDev {
         let mut logical_start_offset = Sectors(0);
         for segment in segments {
             let (physical_start_offset, length) = (segment.start, segment.length);
-            let line = (logical_start_offset,
-                        length,
-                        "linear".to_owned(),
-                        format!("{} {}", segment.device, *physical_start_offset));
+            let line = TargetLine {
+                start: logical_start_offset,
+                length: length,
+                target_type: TargetTypeBuf::new("linear".into()).expect("< length limit"),
+                params: format!("{} {}", segment.device, *physical_start_offset),
+            };
             debug!("dmtable line : {:?}", line);
             table.push(line);
             logical_start_offset += length;
