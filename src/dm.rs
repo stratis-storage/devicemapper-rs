@@ -23,7 +23,7 @@ use super::util::{align_to, slice_to_null};
 /// Indicator to send IOCTL to DM
 const DM_IOCTL: u8 = 0xfd;
 /// Control path for user space to pass IOCTL to kernel DM
-const DM_CTL_PATH: &'static str = "/dev/mapper/control";
+const DM_CTL_PATH: &str = "/dev/mapper/control";
 /// Major version
 const DM_VERSION_MAJOR: u32 = 4;
 /// Minor version
