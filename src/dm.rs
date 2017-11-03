@@ -187,7 +187,7 @@ impl DM {
         // hdr possibly modified so copy back
         hdr_slc.clone_from_slice(&v[..hdr.data_start as usize]);
 
-        // Maybe we got some add'l data back?
+        // Return header data section.
         let new_data_off = cmp::max(hdr.data_start, hdr.data_size);
         Ok(v[hdr.data_start as usize..new_data_off as usize].to_vec())
     }
@@ -281,7 +281,7 @@ impl DM {
                         }
                         _ => {
                             // offsetof "name" in Struct_dm_name_list.
-                            // TODO: use pointer::offset_to when stable?
+                            // TODO: Consider using pointer::offset_to when stable
                             let mut offset = 12;
                             offset += slc.len() + 1; // name + trailing NULL char
                             let aligned_offset = align_to(offset, size_of::<u64>());
