@@ -159,8 +159,10 @@ impl DM {
         loop {
             if unsafe { convert_ioctl_res!(nix_ioctl(self.file.as_raw_fd(), op, v.as_mut_ptr())) }
                    .is_err() {
-                return Err(Error::with_chain(io::Error::last_os_error(), ErrorKind::IoctlError)
-                               .into());
+                let info = DeviceInfo::new(hdr.clone());
+                return Err(Error::with_chain(io::Error::last_os_error(),
+                                             ErrorKind::IoctlError(Box::new(info)))
+                                   .into());
             }
 
             let hdr = unsafe {

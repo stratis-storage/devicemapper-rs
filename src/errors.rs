@@ -4,6 +4,8 @@
 
 #![allow(dead_code)]
 
+use super::deviceinfo::DeviceInfo;
+
 error_chain! {
     errors {
         /// An error returned on failure to create a devicemapper context.
@@ -24,7 +26,7 @@ error_chain! {
         /// An error returned exclusively by DM methods.
         /// This error is initiated in DM::do_ioctl and returned by
         /// numerous wrapper methods.
-        IoctlError {
+        IoctlError(t: Box<DeviceInfo>) {
             description("low-level ioctl error")
             display("low-level ioctl error")
         }
