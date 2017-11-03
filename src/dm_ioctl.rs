@@ -72,7 +72,6 @@ pub type __sum16 = __u16;
 pub type __wsum = __u32;
 
 #[repr(C)]
-#[derive(Copy)]
 pub struct Struct_dm_ioctl {
     pub version: [__u32; 3usize],
     pub data_size: __u32,
@@ -89,7 +88,29 @@ pub struct Struct_dm_ioctl {
 }
 impl ::std::clone::Clone for Struct_dm_ioctl {
     fn clone(&self) -> Self {
-        *self
+        let mut name: [::libc::c_char; 128usize] = [0; 128usize];
+        name.copy_from_slice(&self.name);
+
+        let mut uuid: [::libc::c_char; 129usize] = [0; 129usize];
+        uuid.copy_from_slice(&self.uuid);
+
+        let mut data: [::libc::c_char; 7usize] = [0; 7usize];
+        data.copy_from_slice(&self.data);
+
+        Struct_dm_ioctl {
+            version: self.version,
+            data_size: self.data_size,
+            data_start: self.data_start,
+            target_count: self.target_count,
+            open_count: self.open_count,
+            flags: self.flags,
+            event_nr: self.event_nr,
+            padding: self.padding,
+            dev: self.dev,
+            name: name,
+            uuid: uuid,
+            data: data,
+        }
     }
 }
 impl ::std::default::Default for Struct_dm_ioctl {

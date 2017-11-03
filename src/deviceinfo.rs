@@ -16,7 +16,7 @@ pub const DM_NAME_LEN: usize = 128;
 pub const DM_UUID_LEN: usize = 129;
 
 /// Contains information about the device.
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Debug)]
 pub struct DeviceInfo {
     /// ioctl argument consists of a single chunk of memory, with this
     /// structure at the start.

@@ -794,12 +794,12 @@ impl DM {
 
         let data_out = self.do_ioctl(dmi::DM_TARGET_MSG_CMD as u8, &mut hdr, Some(&data_in))?;
 
-        Ok((DeviceInfo::new(hdr),
-            if (hdr.flags & DM_DATA_OUT.bits()) > 0 {
-                Some(String::from_utf8_lossy(&data_out[..data_out.len() - 1]).into_owned())
-            } else {
-                None
-            }))
+        let output = if (hdr.flags & DM_DATA_OUT.bits()) > 0 {
+            Some(String::from_utf8_lossy(&data_out[..data_out.len() - 1]).into_owned())
+        } else {
+            None
+        };
+        Ok((DeviceInfo::new(hdr), output))
     }
 
     /// If DM is being used to poll for events, once it indicates readiness it
