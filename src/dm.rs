@@ -895,7 +895,10 @@ mod tests {
             .unwrap();
 
         let new_uuid = DmUuid::new("example-9999999999").expect("is valid DM uuid");
-        assert!(dm.device_rename(name, &DevId::Uuid(new_uuid)).is_err());
+        assert!(match dm.device_rename(name, &DevId::Uuid(new_uuid)) {
+                    Err(DmError::Core(Error(ErrorKind::IoctlError(_), _))) => true,
+                    _ => false,
+                });
         dm.device_remove(&DevId::Name(name), DmFlags::empty())
             .unwrap();
     }
@@ -908,7 +911,10 @@ mod tests {
         let uuid = DmUuid::new("example-363333333333333").expect("is valid DM uuid");
         dm.device_create(name, Some(uuid), DmFlags::empty())
             .unwrap();
-        assert!(dm.device_rename(name, &DevId::Uuid(uuid)).is_err());
+        assert!(match dm.device_rename(name, &DevId::Uuid(uuid)) {
+                    Err(DmError::Core(Error(ErrorKind::IoctlError(_), _))) => true,
+                    _ => false,
+                });
         dm.device_remove(&DevId::Name(name), DmFlags::empty())
             .unwrap();
     }
@@ -941,7 +947,10 @@ mod tests {
         let dm = DM::new().unwrap();
         let name = DmName::new("example-dev").expect("is valid DM name");
         dm.device_create(name, None, DmFlags::empty()).unwrap();
-        assert!(dm.device_rename(name, &DevId::Name(name)).is_err());
+        assert!(match dm.device_rename(name, &DevId::Name(name)) {
+                    Err(DmError::Core(Error(ErrorKind::IoctlError(_), _))) => true,
+                    _ => false,
+                });
         dm.device_remove(&DevId::Name(name), DmFlags::empty())
             .unwrap();
     }
@@ -958,7 +967,10 @@ mod tests {
         let new_name = DmName::new("example-dev-2").expect("is valid DM name");
         dm.device_rename(name, &DevId::Name(new_name)).unwrap();
 
-        assert!(dm.device_status(&DevId::Name(name)).is_err());
+        assert!(match dm.device_status(&DevId::Name(name)) {
+                    Err(DmError::Core(Error(ErrorKind::IoctlError(_), _))) => true,
+                    _ => false,
+                });
         assert!(dm.device_status(&DevId::Name(new_name)).is_ok());
 
         let devices = dm.list_devices().unwrap();
@@ -968,9 +980,10 @@ mod tests {
         let third_name = DmName::new("example-dev-3").expect("is valid DM name");
         dm.device_create(third_name, None, DmFlags::empty())
             .unwrap();
-        assert!(dm.device_rename(new_name, &DevId::Name(third_name))
-                    .is_err());
-
+        assert!(match dm.device_rename(new_name, &DevId::Name(third_name)) {
+                    Err(DmError::Core(Error(ErrorKind::IoctlError(_), _))) => true,
+                    _ => false,
+                });
         dm.device_remove(&DevId::Name(third_name), DmFlags::empty())
             .unwrap();
         dm.device_remove(&DevId::Name(new_name), DmFlags::empty())
@@ -980,21 +993,26 @@ mod tests {
     #[test]
     /// Renaming a device that does not exist yields an error.
     fn sudo_test_rename_non_existant() {
-        assert!(DM::new()
-                    .unwrap()
-                    .device_rename(DmName::new("old_name").expect("is valid DM name"),
-                                   &DevId::Name(DmName::new("new_name").expect("is valid DM name")))
-                    .is_err());
+        let new_name = DmName::new("new_name").expect("is valid DM name");
+        assert!(match DM::new()
+                          .unwrap()
+                          .device_rename(DmName::new("old_name").expect("is valid DM name"),
+                                         &DevId::Name(&new_name)) {
+                    Err(DmError::Core(Error(ErrorKind::IoctlError(_), _))) => true,
+                    _ => false,
+                });
     }
 
     #[test]
     /// Removing a device that does not exist yields an error, unfortunately.
     fn sudo_test_remove_non_existant() {
-        assert!(DM::new()
+        assert!(match DM::new()
                     .unwrap()
                     .device_remove(&DevId::Name(DmName::new("junk").expect("is valid DM name")),
-                                   DmFlags::empty())
-                    .is_err());
+                                   DmFlags::empty()) {
+                    Err(DmError::Core(Error(ErrorKind::IoctlError(_), _))) => true,
+                    _ => false,
+                });
     }
 
     #[test]
@@ -1014,21 +1032,25 @@ mod tests {
     #[test]
     /// Table status on a non-existant name should return an error.
     fn sudo_test_table_status_non_existant() {
-        assert!(DM::new()
+        assert!(match DM::new()
                     .unwrap()
                     .table_status(&DevId::Name(DmName::new("junk").expect("is valid DM name")),
-                                  DmFlags::empty())
-                    .is_err());
+                                  DmFlags::empty()) {
+                    Err(DmError::Core(Error(ErrorKind::IoctlError(_), _))) => true,
+                    _ => false,
+                });
     }
 
     #[test]
     /// Table status on a non-existant name with TABLE_STATUS flag errors.
     fn sudo_test_table_status_non_existant_table() {
         let name = DmName::new("junk").expect("is valid DM name");
-        assert!(DM::new()
-                    .unwrap()
-                    .table_status(&DevId::Name(name), DM_STATUS_TABLE)
-                    .is_err());
+        assert!(match DM::new()
+                          .unwrap()
+                          .table_status(&DevId::Name(name), DM_STATUS_TABLE) {
+                    Err(DmError::Core(Error(ErrorKind::IoctlError(_), _))) => true,
+                    _ => false,
+                });
     }
 
     #[test]
@@ -1056,10 +1078,10 @@ mod tests {
     /// by name returns an error.
     fn sudo_status_no_name() {
         let name = DmName::new("example_dev").expect("is valid DM name");
-        assert!(DM::new()
-                    .unwrap()
-                    .device_status(&DevId::Name(name))
-                    .is_err());
+        assert!(match DM::new().unwrap().device_status(&DevId::Name(name)) {
+                    Err(DmError::Core(Error(ErrorKind::IoctlError(_), _))) => true,
+                    _ => false,
+                });
     }
 
     #[test]
@@ -1075,13 +1097,22 @@ mod tests {
 
         dm.device_create(name, Some(uuid), DmFlags::empty())
             .unwrap();
-        assert!(dm.device_create(name, Some(uuid), DmFlags::empty())
-                    .is_err());
-        assert!(dm.device_create(name, None, DmFlags::empty()).is_err());
-        assert!(dm.device_create(name, Some(uuid_alt), DmFlags::empty())
-                    .is_err());
-        assert!(dm.device_create(name_alt, Some(uuid), DmFlags::empty())
-                    .is_err());
+        assert!(match dm.device_create(name, Some(uuid), DmFlags::empty()) {
+                    Err(DmError::Core(Error(ErrorKind::IoctlError(_), _))) => true,
+                    _ => false,
+                });
+        assert!(match dm.device_create(name, None, DmFlags::empty()) {
+                    Err(DmError::Core(Error(ErrorKind::IoctlError(_), _))) => true,
+                    _ => false,
+                });
+        assert!(match dm.device_create(name, Some(uuid_alt), DmFlags::empty()) {
+                    Err(DmError::Core(Error(ErrorKind::IoctlError(_), _))) => true,
+                    _ => false,
+                });
+        assert!(match dm.device_create(name_alt, Some(uuid), DmFlags::empty()) {
+                    Err(DmError::Core(Error(ErrorKind::IoctlError(_), _))) => true,
+                    _ => false,
+                });
         dm.device_remove(&DevId::Name(name), DmFlags::empty())
             .unwrap();
     }
