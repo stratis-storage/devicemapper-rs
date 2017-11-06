@@ -14,6 +14,7 @@
 
 use consts::SECTOR_SIZE;
 
+#[allow(unused_imports)]
 use std::ascii::AsciiExt;
 use std::borrow::Borrow;
 use std::fmt;
