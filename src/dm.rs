@@ -820,13 +820,9 @@ impl DM {
 #[cfg(test)]
 mod tests {
 
-    use super::*;
+    use super::super::result::DmError;
 
-    #[test]
-    /// Verify that creating an empty DmName is an error.
-    pub fn test_empty_name() {
-        assert!(DmName::new("").is_err());
-    }
+    use super::*;
 
     #[test]
     /// Test that some version can be obtained.
