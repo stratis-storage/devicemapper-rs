@@ -198,7 +198,6 @@ impl DM {
     pub fn version(&self) -> DmResult<(u32, u32, u32)> {
         let mut hdr: dmi::Struct_dm_ioctl = Default::default();
 
-        // No flags checked so don't pass any
         Self::initialize_hdr(&mut hdr, DmFlags::empty());
 
         self.do_ioctl(dmi::DM_VERSION_CMD as u8, &mut hdr, None)?;
@@ -231,7 +230,6 @@ impl DM {
     pub fn list_devices(&self) -> DmResult<Vec<(DmNameBuf, Device, Option<u32>)>> {
         let mut hdr: dmi::Struct_dm_ioctl = Default::default();
 
-        // No flags checked so don't pass any
         Self::initialize_hdr(&mut hdr, DmFlags::empty());
 
         let data_out = self.do_ioctl(dmi::DM_LIST_DEVICES_CMD as u8, &mut hdr, None)?;
@@ -443,7 +441,6 @@ impl DM {
     pub fn device_status(&self, id: &DevId) -> DmResult<DeviceInfo> {
         let mut hdr: dmi::Struct_dm_ioctl = Default::default();
 
-        // No flags checked so don't pass any
         Self::initialize_hdr(&mut hdr, DmFlags::empty());
         match *id {
             DevId::Name(name) => Self::hdr_set_name(&mut hdr, name),
@@ -541,7 +538,6 @@ impl DM {
 
         let mut hdr: dmi::Struct_dm_ioctl = Default::default();
 
-        // No flags checked so don't pass any
         Self::initialize_hdr(&mut hdr, DmFlags::empty());
         match *id {
             DevId::Name(name) => Self::hdr_set_name(&mut hdr, name),
@@ -573,7 +569,6 @@ impl DM {
     pub fn table_clear(&self, id: &DevId) -> DmResult<DeviceInfo> {
         let mut hdr: dmi::Struct_dm_ioctl = Default::default();
 
-        // No flags checked so don't pass any
         Self::initialize_hdr(&mut hdr, DmFlags::empty());
         match *id {
             DevId::Name(name) => Self::hdr_set_name(&mut hdr, name),
@@ -734,7 +729,6 @@ impl DM {
     pub fn list_versions(&self) -> DmResult<Vec<(String, u32, u32, u32)>> {
         let mut hdr: dmi::Struct_dm_ioctl = Default::default();
 
-        // No flags checked so don't pass any
         Self::initialize_hdr(&mut hdr, DmFlags::empty());
 
         let data_out = self.do_ioctl(dmi::DM_LIST_VERSIONS_CMD as u8, &mut hdr, None)?;
@@ -777,7 +771,6 @@ impl DM {
                       -> DmResult<(DeviceInfo, Option<String>)> {
         let mut hdr: dmi::Struct_dm_ioctl = Default::default();
 
-        // No flags checked so don't pass any
         Self::initialize_hdr(&mut hdr, DmFlags::empty());
         match *id {
             DevId::Name(name) => Self::hdr_set_name(&mut hdr, name),
@@ -810,7 +803,6 @@ impl DM {
     pub fn arm_poll(&self) -> DmResult<DeviceInfo> {
         let mut hdr: dmi::Struct_dm_ioctl = Default::default();
 
-        // No flags checked so don't pass any
         Self::initialize_hdr(&mut hdr, DmFlags::empty());
 
         self.do_ioctl(dmi::DM_DEV_ARM_POLL_CMD as u8, &mut hdr, None)?;
