@@ -14,6 +14,7 @@
 
 use consts::SECTOR_SIZE;
 
+#[allow(unused_imports)]
 use std::ascii::AsciiExt;
 use std::borrow::Borrow;
 use std::fmt;
@@ -24,7 +25,8 @@ use std::ops::{Deref, Div, Mul, Rem, Add};
 use serde;
 
 use super::deviceinfo::{DM_NAME_LEN, DM_UUID_LEN};
-use super::result::{DmError, DmResult, ErrorEnum};
+use super::errors::ErrorKind;
+use super::result::{DmError, DmResult};
 
 /// a kernel defined block size constant for a DM meta device
 /// defined in drivers/md/persistent-data/dm-space-map-metadata.h line 12
@@ -275,18 +277,19 @@ impl fmt::Display for Sectors {
 fn str_check(value: &str, max_allowed_chars: usize) -> DmResult<()> {
     if !value.is_ascii() {
         let err_msg = format!("value {} has some non-ascii characters", value);
-        return Err(DmError::Dm(ErrorEnum::Invalid, err_msg));
+        return Err(DmError::Core(ErrorKind::InvalidArgument(err_msg).into()));
     }
     let num_chars = value.len();
     if num_chars == 0 {
-        return Err(DmError::Dm(ErrorEnum::Invalid, "value has zero characters".into()));
+        return Err(DmError::Core(ErrorKind::InvalidArgument("value has zero characters".into())
+                                     .into()));
     }
     if num_chars > max_allowed_chars {
         let err_msg = format!("value {} has {} chars which is greater than maximum allowed {}",
                               value,
                               num_chars,
                               max_allowed_chars);
-        return Err(DmError::Dm(ErrorEnum::Invalid, err_msg));
+        return Err(DmError::Core(ErrorKind::InvalidArgument(err_msg).into()));
     }
     Ok(())
 }
@@ -413,6 +416,8 @@ pub struct TargetLine {
 
 #[cfg(test)]
 mod tests {
+    use super::super::errors::Error;
+
     use super::*;
 
     #[test]
@@ -420,5 +425,14 @@ mod tests {
     /// The real test is that this tests compiles at all.
     fn test_usize() {
         assert_eq!(Sectors(0) * 32usize, Sectors(0));
+    }
+
+    #[test]
+    /// Verify that creating an empty DmName is an error.
+    pub fn test_empty_name() {
+        assert!(match DmName::new("") {
+                    Err(DmError::Core(Error(ErrorKind::InvalidArgument(_), _))) => true,
+                    _ => false,
+                })
     }
 }
