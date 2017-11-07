@@ -66,7 +66,7 @@ extern crate loopdev;
 #[cfg(test)]
 extern crate tempdir;
 
-#[allow(dead_code, non_camel_case_types)]
+/// rust definitions of ioctl structs and consts
 mod dm_ioctl;
 /// public utilities
 mod util;
