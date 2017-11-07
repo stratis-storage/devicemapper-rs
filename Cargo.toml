@@ -9,6 +9,7 @@ repository = "https://github.com/stratis-storage/devicemapper-rs"
 readme = "README.md"
 keywords = ["Linux", "device", "mapper", "libdm", "storage"]
 license = "MPL-2.0"
+build = "build.rs"
 
 [dependencies]
 libc = "0.2.31"
@@ -25,3 +26,6 @@ error-chain = "0.11"
 [dev-dependencies]
 loopdev = "0.1.1"
 tempdir = "0.3.5"
+
+[build-dependencies]
+bindgen = "0.31"
