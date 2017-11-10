@@ -67,7 +67,11 @@ extern crate loopdev;
 extern crate tempdir;
 
 /// rust definitions of ioctl structs and consts
-mod dm_ioctl;
+#[allow(dead_code, non_camel_case_types)]
+mod dm_ioctl {
+    include!(concat!(env!("OUT_DIR"), "/bindings.rs"));
+}
+
 /// public utilities
 mod util;
 /// basic types (Bytes, Sectors, DataBlocks)

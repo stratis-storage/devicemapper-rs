@@ -20,11 +20,11 @@ pub const DM_UUID_LEN: usize = 129;
 pub struct DeviceInfo {
     /// ioctl argument consists of a single chunk of memory, with this
     /// structure at the start.
-    hdr: dmi::Struct_dm_ioctl,
+    hdr: dmi::dm_ioctl,
 }
 
 impl DeviceInfo {
-    pub fn new(hdr: dmi::Struct_dm_ioctl) -> DeviceInfo {
+    pub fn new(hdr: dmi::dm_ioctl) -> DeviceInfo {
         DeviceInfo { hdr }
     }
 
