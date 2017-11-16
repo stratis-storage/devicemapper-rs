@@ -110,6 +110,7 @@ pub enum ThinPoolWorkingStatus {
 impl ThinPoolDev {
     /// Construct a new ThinPoolDev with the given data and meta devs.
     /// Returns an error if the device is already known to the kernel.
+    /// Returns an error if data_block_size is not within required range.
     /// Precondition: the metadata device does not contain any pool metadata.
     pub fn new(dm: &DM,
                name: &DmName,
@@ -152,6 +153,7 @@ impl ThinPoolDev {
     }
 
     /// Set up a thin pool from the given metadata and data device.
+    /// Returns an error if data_block_size is not within required range.
     /// Precondition: There is existing metadata for this thinpool device
     /// on the metadata device. If the metadata is corrupted, subsequent
     /// errors will result, so it is expected that the metadata is
@@ -328,6 +330,7 @@ pub fn minimal_thinpool(dm: &DM, path: &Path) -> ThinPoolDev {
 mod tests {
     use std::path::Path;
 
+    use super::super::errors::{Error, ErrorKind};
     use super::super::loopbacked::test_with_spec;
 
     use super::*;
@@ -358,5 +361,43 @@ mod tests {
     #[test]
     fn loop_test_basic() {
         test_with_spec(1, test_minimum_values);
+    }
+
+    /// Verify that data block size less than minimum results in a failure.
+    fn test_low_data_block_size(paths: &[&Path]) -> () {
+        assert!(paths.len() >= 1);
+        let dev = Device::from(devnode_to_devno(paths[0]).unwrap());
+
+        let dm = DM::new().unwrap();
+        let meta =
+            LinearDev::setup(&dm,
+                             DmName::new("meta").expect("valid format"),
+                             None,
+                             &[Segment::new(dev, Sectors(0), MIN_RECOMMENDED_METADATA_SIZE)])
+                    .unwrap();
+
+        let data = LinearDev::setup(&dm,
+                                    DmName::new("data").expect("valid format"),
+                                    None,
+                                    &[Segment::new(dev,
+                                                   MIN_RECOMMENDED_METADATA_SIZE,
+                                                   512u64 * MIN_DATA_BLOCK_SIZE)])
+                .unwrap();
+
+        assert!(match ThinPoolDev::new(&dm,
+                                       DmName::new("pool").expect("valid format"),
+                                       None,
+                                       MIN_DATA_BLOCK_SIZE / 2u64,
+                                       DataBlocks(1),
+                                       meta,
+                                       data) {
+                    Err(DmError::Core(Error(ErrorKind::IoctlError(_), _))) => true,
+                    _ => false,
+                });
+    }
+
+    #[test]
+    fn loop_test_low_data_block_size() {
+        test_with_spec(1, test_low_data_block_size);
     }
 }
