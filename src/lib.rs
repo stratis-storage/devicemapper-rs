@@ -85,6 +85,8 @@ mod thindev;
 mod thindevid;
 /// thinpooldev is shared space for  other thin provisioned devices to use
 mod thinpooldev;
+/// cachedev
+mod cachedev;
 /// struct to represent a location, offset and size of a set of disk sectors
 mod segment;
 /// return results container
@@ -104,6 +106,8 @@ mod errors;
 mod loopbacked;
 
 
+pub use cachedev::{CacheDev, CacheDevPerformance, CacheDevStatus, CacheDevUsage,
+                   CacheDevWorkingStatus};
 pub use consts::{IEC, SECTOR_SIZE};
 pub use dm::{DM, DmFlags};
 

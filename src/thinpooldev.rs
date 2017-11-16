@@ -324,11 +324,11 @@ impl ThinPoolDev {
         };
 
         Ok(ThinPoolStatus::Working(Box::new(ThinPoolWorkingStatus::new(transaction_id,
-                                                              usage,
-                                                              discard_passdown,
-                                                              no_space_policy,
-                                                              summary,
-                                                              needs_check))))
+                                                                       usage,
+                                                                       discard_passdown,
+                                                                       no_space_policy,
+                                                                       summary,
+                                                                       needs_check))))
     }
 
     /// Set the segments for the existing metadata device.
