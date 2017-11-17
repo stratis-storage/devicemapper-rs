@@ -761,12 +761,12 @@ impl DM {
         Ok(targets)
     }
 
-    /// Send a message to the target at a given sector. If sector is
-    /// not needed use 0.  DM-wide messages start with '@', and may
-    /// return a string; targets do not.
+    /// Send a message to the device specified by id and the sector
+    /// specified by sector. If sending to the whole device, set sector to
+    /// None.
     pub fn target_msg(&self,
                       id: &DevId,
-                      sector: Sectors,
+                      sector: Option<Sectors>,
                       msg: &str)
                       -> DmResult<(DeviceInfo, Option<String>)> {
         let mut hdr: dmi::Struct_dm_ioctl = Default::default();
@@ -778,7 +778,7 @@ impl DM {
         };
 
         let mut msg_struct: dmi::Struct_dm_target_msg = Default::default();
-        msg_struct.sector = *sector;
+        msg_struct.sector = *sector.unwrap_or_default();
         let mut data_in = unsafe {
             let ptr = &msg_struct as *const dmi::Struct_dm_target_msg as *mut u8;
             slice::from_raw_parts(ptr, size_of::<dmi::Struct_dm_target_msg>()).to_vec()
