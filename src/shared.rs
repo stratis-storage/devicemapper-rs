@@ -31,6 +31,12 @@ pub trait DmDevice {
     fn teardown(self, dm: &DM) -> DmResult<()>;
 }
 
+/// Send a message that expects no reply to target device.
+pub fn message(dm: &DM, target: &DmDevice, msg: &str) -> DmResult<()> {
+    dm.target_msg(&DevId::Name(target.name()), None, msg)?;
+    Ok(())
+}
+
 /// Create a device, load a table, and resume it.
 pub fn device_create(dm: &DM,
                      name: &DmName,
