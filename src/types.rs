@@ -130,6 +130,7 @@ custom_derive! {
     #[derive(NewtypeAdd, NewtypeAddAssign,
              NewtypeDeref,
              NewtypeFrom,
+             NewtypeRem,
              NewtypeSub, NewtypeSubAssign,
              Debug, Default, Clone, Copy, Eq, PartialEq, PartialOrd, Ord)]
     /// A type for Data Blocks as used by the thin pool.
@@ -156,6 +157,7 @@ custom_derive! {
              NewtypeDeref,
              NewtypeFrom,
              NewtypeSub,
+             NewtypeRem,
              Debug, Clone, Copy, Eq, PartialEq, PartialOrd, Ord)]
     /// A type for Meta Data blocks as used by the thin pool.
     /// MetaBlocks have a kernel defined constant size of META_BLOCK_SIZE
@@ -188,6 +190,7 @@ custom_derive! {
     #[derive(NewtypeAdd, NewtypeAddAssign,
              NewtypeDeref,
              NewtypeFrom,
+             NewtypeRem,
              NewtypeSub, NewtypeSubAssign,
              Debug, Default, Clone, Copy, Eq, PartialEq, PartialOrd, Ord)]
     /// Structure to represent bytes
@@ -223,6 +226,7 @@ custom_derive! {
     #[derive(NewtypeAdd, NewtypeAddAssign,
              NewtypeDeref,
              NewtypeFrom,
+             NewtypeRem,
              NewtypeSub, NewtypeSubAssign,
              Debug, Default, Clone, Copy, Eq, PartialEq, PartialOrd, Ord)]
     /// A separate type to store counts and offsets expressed in
