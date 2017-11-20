@@ -8,7 +8,7 @@ use super::device::Device;
 use super::deviceinfo::DeviceInfo;
 use super::dm::{DM, DM_SUSPEND, DmFlags};
 use super::result::{DmError, DmResult, ErrorEnum};
-use super::shared::{DmDevice, device_create, device_exists, device_setup, table_reload};
+use super::shared::{DmDevice, device_create, device_exists, device_setup, message, table_reload};
 use super::thindevid::ThinDevId;
 use super::thinpooldev::ThinPoolDev;
 use super::types::{DevId, DmName, DmUuid, Sectors, TargetLine, TargetTypeBuf};
@@ -69,8 +69,7 @@ impl ThinDev {
                length: Sectors)
                -> DmResult<ThinDev> {
 
-        thin_pool
-            .message(dm, &format!("create_thin {}", thin_id))?;
+        message(dm, thin_pool, &format!("create_thin {}", thin_id))?;
 
         if device_exists(dm, name)? {
             let err_msg = "Uncreated device should not be known to kernel";
@@ -130,9 +129,9 @@ impl ThinDev {
                     -> DmResult<ThinDev> {
         let source_id = DevId::Name(self.name());
         dm.device_suspend(&source_id, DM_SUSPEND)?;
-        thin_pool
-            .message(dm,
-                     &format!("create_snap {} {}", snapshot_thin_id, self.thin_id))?;
+        message(dm,
+                thin_pool,
+                &format!("create_snap {} {}", snapshot_thin_id, self.thin_id))?;
         dm.device_suspend(&source_id, DmFlags::empty())?;
         let dev_info = Box::new(device_create(dm,
                                               snapshot_name,
@@ -217,8 +216,7 @@ impl ThinDev {
     pub fn destroy(self, dm: &DM, thin_pool: &ThinPoolDev) -> DmResult<()> {
         let thin_id = self.thin_id;
         self.teardown(dm)?;
-        thin_pool.message(dm, &format!("delete {}", thin_id))?;
-
+        message(dm, thin_pool, &format!("delete {}", thin_id))?;
         Ok(())
     }
 }
