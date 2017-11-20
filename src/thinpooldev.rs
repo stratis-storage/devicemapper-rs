@@ -363,15 +363,18 @@ mod tests {
         let dev = Device::from(devnode_to_devno(paths[0]).unwrap());
 
         let dm = DM::new().unwrap();
+
+        let meta_name = DmName::new("meta").expect("valid format");
         let meta =
             LinearDev::setup(&dm,
-                             DmName::new("meta").expect("valid format"),
+                             meta_name,
                              None,
                              &[Segment::new(dev, Sectors(0), MIN_RECOMMENDED_METADATA_SIZE)])
                     .unwrap();
 
+        let data_name = DmName::new("data").expect("valid format");
         let data = LinearDev::setup(&dm,
-                                    DmName::new("data").expect("valid format"),
+                                    data_name,
                                     None,
                                     &[Segment::new(dev,
                                                    MIN_RECOMMENDED_METADATA_SIZE,
@@ -388,6 +391,11 @@ mod tests {
                     Err(DmError::Core(Error(ErrorKind::IoctlError(_), _))) => true,
                     _ => false,
                 });
+
+        dm.device_remove(&DevId::Name(meta_name), DmFlags::empty())
+            .unwrap();
+        dm.device_remove(&DevId::Name(data_name), DmFlags::empty())
+            .unwrap();
     }
 
     #[test]
