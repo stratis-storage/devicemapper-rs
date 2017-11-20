@@ -65,10 +65,10 @@ impl DmDevice for ThinPoolDev {
     }
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone)]
 /// Contains values indicating the thinpool's used vs total
 /// allocations for metadata and data blocks.
-pub struct ThinPoolBlockUsage {
+pub struct ThinPoolUsage {
     /// The number of metadata blocks that are in use.
     pub used_meta: MetaBlocks,
     /// The total number of metadata blocks available to the thinpool.
@@ -79,28 +79,77 @@ pub struct ThinPoolBlockUsage {
     pub total_data: DataBlocks,
 }
 
-#[derive(Debug, Clone, Copy)]
-/// Top-level thinpool status that indicates if it is working or failed.
-pub enum ThinPoolStatus {
-    /// The thinpool is working.
-    Good(ThinPoolWorkingStatus, ThinPoolBlockUsage),
-    /// The thinpool is in a failed condition.
-    Fail,
-}
-
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 /// Indicates if a working thinpool is working optimally, or is
 /// experiencing a non-fatal error condition.
-pub enum ThinPoolWorkingStatus {
+pub enum ThinPoolStatusSummary {
     /// The pool is working normally.
     Good,
     /// The pool has been forced to transition to read-only mode.
     ReadOnly,
     /// The pool is out of space.
     OutOfSpace,
-    /// The pool needs checking.
-    NeedsCheck,
 }
+
+/// Policy if no space on device
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum ThinPoolNoSpacePolicy {
+    /// error the IO if no space on device
+    Error,
+    /// queue the IO if no space on device
+    Queue,
+}
+
+/// Status of a working thin pool, i.e, one that does not have status Fail
+/// Note that this struct is incomplete. It does not contain every value
+/// that can be parsed from a data line, as some of those values are of
+/// unknown format.
+#[derive(Debug, Clone)]
+pub struct ThinPoolWorkingStatus {
+    /// The transaction id.
+    pub transaction_id: u64,
+    /// A struct recording block usage for meta and data devices.
+    pub usage: ThinPoolUsage,
+    /// discard_passdown/no_discard_passdown
+    pub discard_passdown: bool,
+    /// no space policy
+    pub no_space_policy: ThinPoolNoSpacePolicy,
+    /// A summary of some other status information.
+    pub summary: ThinPoolStatusSummary,
+    /// needs_check flag has been set in metadata superblock
+    pub needs_check: bool,
+}
+
+impl ThinPoolWorkingStatus {
+    /// Make a new ThinPoolWorkingStatus struct
+    pub fn new(transaction_id: u64,
+               usage: ThinPoolUsage,
+               discard_passdown: bool,
+               no_space_policy: ThinPoolNoSpacePolicy,
+               summary: ThinPoolStatusSummary,
+               needs_check: bool)
+               -> ThinPoolWorkingStatus {
+        ThinPoolWorkingStatus {
+            transaction_id: transaction_id,
+            usage: usage,
+            discard_passdown: discard_passdown,
+            no_space_policy: no_space_policy,
+            summary: summary,
+            needs_check: needs_check,
+        }
+
+    }
+}
+
+#[derive(Debug, Clone)]
+/// Top-level thinpool status that indicates if it is working or failed.
+pub enum ThinPoolStatus {
+    /// The thinpool has not failed utterly.
+    Working(ThinPoolWorkingStatus),
+    /// The thinpool is in a failed condition.
+    Fail,
+}
+
 
 /// Use DM to create a "thin-pool".  A "thin-pool" is shared space for
 /// other thin provisioned devices to use.
@@ -205,6 +254,9 @@ impl ThinPoolDev {
     /// Get the current status of the thinpool.
     /// Returns an error if there was an error getting the status value.
     /// Panics if there is an error parsing the status value.
+    /// Note: Kernel docs show the ordering of the discard_passdown and the
+    /// summary field opposite to the code below. But this code couldn't
+    /// pass tests unless it were correct and the kernel docs wrong.
     // Justification: see comment above DM::parse_table_status.
     pub fn status(&self, dm: &DM) -> DmResult<ThinPoolStatus> {
         let (_, status) = dm.table_status(&DevId::Name(self.name()), DmFlags::empty())?;
@@ -222,10 +274,12 @@ impl ThinPoolDev {
         assert!(status_vals.len() >= 8,
                 "Kernel must return at least 8 values from thin pool status");
 
+        let transaction_id = status_vals[0].parse::<u64>().expect("see justification");
+
         let usage = {
             let meta_vals = status_vals[1].split('/').collect::<Vec<_>>();
             let data_vals = status_vals[2].split('/').collect::<Vec<_>>();
-            ThinPoolBlockUsage {
+            ThinPoolUsage {
                 used_meta: MetaBlocks(meta_vals[0]
                                           .parse::<u64>()
                                           .expect("used_meta value must be valid")),
@@ -241,28 +295,50 @@ impl ThinPoolDev {
             }
         };
 
-        match status_vals[7] {
-            "-" => {}
-            "needs_check" => {
-                return Ok(ThinPoolStatus::Good(ThinPoolWorkingStatus::NeedsCheck, usage))
-            }
-            val => {
-                panic!(format!("Kernel returned unexpected 8th value \"{}\" in thin pool status",
-                               val))
-            }
-        }
-
-        match status_vals[4] {
-            "rw" => Ok(ThinPoolStatus::Good(ThinPoolWorkingStatus::Good, usage)),
-            "ro" => Ok(ThinPoolStatus::Good(ThinPoolWorkingStatus::ReadOnly, usage)),
-            "out_of_data_space" => {
-                Ok(ThinPoolStatus::Good(ThinPoolWorkingStatus::OutOfSpace, usage))
-            }
+        let summary = match status_vals[4] {
+            "rw" => ThinPoolStatusSummary::Good,
+            "ro" => ThinPoolStatusSummary::ReadOnly,
+            "out_of_data_space" => ThinPoolStatusSummary::OutOfSpace,
             val => {
                 panic!(format!("Kernel returned unexpected 5th value \"{}\" in thin pool status",
                                val))
             }
-        }
+
+        };
+
+        let discard_passdown = match status_vals[5] {
+            "discard_passdown" => true,
+            "no_discard_passdown" => false,
+            val => {
+                panic!(format!("Kernel returned unexpected 6th value \"{}\" in thin pool status",
+                               val))
+            }
+        };
+
+        let no_space_policy = match status_vals[6] {
+            "error_if_no_space" => ThinPoolNoSpacePolicy::Error,
+            "queue_if_no_space" => ThinPoolNoSpacePolicy::Queue,
+            val => {
+                panic!(format!("Kernel returned unexpected 7th value \"{}\" in thin pool status",
+                               val))
+            }
+        };
+
+        let needs_check = match status_vals[7] {
+            "-" => false,
+            "needs_check" => true,
+            val => {
+                panic!(format!("Kernel returned unexpected 8th value \"{}\" in thin pool status",
+                               val))
+            }
+        };
+
+        Ok(ThinPoolStatus::Working(ThinPoolWorkingStatus::new(transaction_id,
+                                                              usage,
+                                                              discard_passdown,
+                                                              no_space_policy,
+                                                              summary,
+                                                              needs_check)))
     }
 
     /// Set the segments for the existing metadata device.
@@ -344,12 +420,14 @@ mod tests {
         let dm = DM::new().unwrap();
         let tp = minimal_thinpool(&dm, paths[0]);
         match tp.status(&dm).unwrap() {
-            ThinPoolStatus::Good(ThinPoolWorkingStatus::Good, tpbu) => {
+            ThinPoolStatus::Working(ref status) if status.summary ==
+                                                   ThinPoolStatusSummary::Good => {
+                let usage = &status.usage;
                 // Even an empty thinpool requires some metadata.
-                assert!(tpbu.used_meta > MetaBlocks(0));
-                assert_eq!(tpbu.total_meta, tp.meta_dev().size().metablocks());
-                assert_eq!(tpbu.used_data, DataBlocks(0));
-                assert_eq!(tpbu.total_data,
+                assert!(usage.used_meta > MetaBlocks(0));
+                assert_eq!(usage.total_meta, tp.meta_dev().size().metablocks());
+                assert_eq!(usage.used_data, DataBlocks(0));
+                assert_eq!(usage.total_data,
                            DataBlocks(tp.data_dev().size() / tp.data_block_size()));
             }
             _ => assert!(false),
