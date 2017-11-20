@@ -20,11 +20,13 @@ use std::path::Path;
 #[cfg(test)]
 use super::loopbacked::devnode_to_devno;
 
+/// Minimum data block size permitted.
+pub const MIN_DATA_BLOCK_SIZE: Sectors = Sectors(128); // 64 KiB
+
+/// Maximum data block size permitted.
+pub const MAX_DATA_BLOCK_SIZE: Sectors = Sectors(2 * IEC::Mi); // 1 GiB
+
 /// Values are explicitly stated in the device-mapper kernel documentation.
-#[allow(dead_code)]
-const MIN_DATA_BLOCK_SIZE: Sectors = Sectors(128); // 64 KiB
-#[allow(dead_code)]
-const MAX_DATA_BLOCK_SIZE: Sectors = Sectors(2 * IEC::Mi); // 1 GiB
 #[allow(dead_code)]
 const MIN_RECOMMENDED_METADATA_SIZE: Sectors = Sectors(4 * IEC::Ki); // 2 MiB
 #[allow(dead_code)]
@@ -102,6 +104,29 @@ pub enum ThinPoolWorkingStatus {
     NeedsCheck,
 }
 
+/// Verify that data block size has acceptable value
+pub fn verify_data_block_size(size: Sectors) -> DmResult<()> {
+    if size < MIN_DATA_BLOCK_SIZE {
+        let err_msg = format!("data block size specified ({}) < minimum permitted ({})",
+                              size,
+                              MIN_DATA_BLOCK_SIZE);
+        return Err(DmError::Dm(ErrorEnum::Invalid, err_msg));
+    }
+    if size > MAX_DATA_BLOCK_SIZE {
+        let err_msg = format!("data block size specified ({}) > maximum permitted ({})",
+                              size,
+                              MAX_DATA_BLOCK_SIZE);
+        return Err(DmError::Dm(ErrorEnum::Invalid, err_msg));
+    }
+    if size % MIN_DATA_BLOCK_SIZE != Sectors(0) {
+        let err_msg = format!("data block size specified ({}) not divisible by {}",
+                              size,
+                              MIN_DATA_BLOCK_SIZE);
+        return Err(DmError::Dm(ErrorEnum::Invalid, err_msg));
+    }
+    Ok(())
+}
+
 /// Use DM to create a "thin-pool".  A "thin-pool" is shared space for
 /// other thin provisioned devices to use.
 ///
@@ -120,6 +145,7 @@ impl ThinPoolDev {
                meta: LinearDev,
                data: LinearDev)
                -> DmResult<ThinPoolDev> {
+        verify_data_block_size(data_block_size)?;
         if device_exists(dm, name)? {
             let err_msg = format!("thinpooldev {} already exists", name);
             return Err(DmError::Dm(ErrorEnum::Invalid, err_msg));
@@ -166,6 +192,7 @@ impl ThinPoolDev {
                  meta: LinearDev,
                  data: LinearDev)
                  -> DmResult<ThinPoolDev> {
+        verify_data_block_size(data_block_size)?;
         let table = ThinPoolDev::dm_table(&meta, &data, data_block_size, low_water_mark);
         let dev_info = device_setup(dm, name, uuid, &table)?;
 
@@ -324,7 +351,6 @@ pub fn minimal_thinpool(dm: &DM, path: &Path) -> ThinPoolDev {
 mod tests {
     use std::path::Path;
 
-    use super::super::errors::{Error, ErrorKind};
     use super::super::loopbacked::test_with_spec;
 
     use super::*;
@@ -385,7 +411,7 @@ mod tests {
                                        DataBlocks(1),
                                        meta,
                                        data) {
-                    Err(DmError::Core(Error(ErrorKind::IoctlError(_), _))) => true,
+                    Err(DmError::Dm(ErrorEnum::Invalid, _)) => true,
                     _ => false,
                 });
     }
