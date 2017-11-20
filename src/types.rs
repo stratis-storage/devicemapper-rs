@@ -28,9 +28,19 @@ use super::deviceinfo::{DM_NAME_LEN, DM_UUID_LEN};
 use super::errors::ErrorKind;
 use super::result::{DmError, DmResult};
 
-/// a kernel defined block size constant for a DM meta device
-/// defined in drivers/md/persistent-data/dm-space-map-metadata.h line 12
+/// a kernel defined block size constant for any DM meta device
+/// a DM meta device may store cache device or thinpool device metadata
+/// defined in drivers/md/persistent-data/dm-space-map-metadata.h as
+/// DM_SM_METADATA_BLOCK_SIZE.
 const META_BLOCK_SIZE: Sectors = Sectors(8);
+
+/// The maximum size of a metadata device.
+/// defined in drivers/md/persistent-data/dm-space-map-metadata.h as
+/// DM_SM_METADATA_MAX_BLOCKS.
+/// As far as I can tell, this is not a limit on the size of a designated
+/// metadata device, but instead on the possible usage of that device.
+#[allow(dead_code)]
+const MAX_META_DEV_SIZE: MetaBlocks = MetaBlocks(255 * ((1 << 14) - 64));
 
 // division by self
 macro_rules! self_div {
