@@ -207,13 +207,13 @@ impl ThinPoolDev {
     /// Panics if there is an error parsing the status value.
     // Justification: see comment above DM::parse_table_status.
     pub fn status(&self, dm: &DM) -> DmResult<ThinPoolStatus> {
-        let (_, mut status) = dm.table_status(&DevId::Name(self.name()), DmFlags::empty())?;
+        let (_, status) = dm.table_status(&DevId::Name(self.name()), DmFlags::empty())?;
 
         assert_eq!(status.len(),
                    1,
                    "Kernel must return 1 line from thin pool status");
 
-        let status_line = status.pop().expect("assertion above holds").params;
+        let status_line = &status.get(0).expect("assertion above holds").params;
         if status_line.starts_with("Fail") {
             return Ok(ThinPoolStatus::Fail);
         }
