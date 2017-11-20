@@ -246,7 +246,10 @@ impl ThinPoolDev {
             "needs_check" => {
                 return Ok(ThinPoolStatus::Good(ThinPoolWorkingStatus::NeedsCheck, usage))
             }
-            _ => panic!("Kernel returned unexpected 8th value in thin pool status"),
+            val => {
+                panic!(format!("Kernel returned unexpected 8th value \"{}\" in thin pool status",
+                               val))
+            }
         }
 
         match status_vals[4] {
@@ -255,7 +258,10 @@ impl ThinPoolDev {
             "out_of_data_space" => {
                 Ok(ThinPoolStatus::Good(ThinPoolWorkingStatus::OutOfSpace, usage))
             }
-            _ => panic!("Kernel returned unexpected 5th value in thin pool status"),
+            val => {
+                panic!(format!("Kernel returned unexpected 5th value \"{}\" in thin pool status",
+                               val))
+            }
         }
     }
 
