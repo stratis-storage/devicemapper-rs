@@ -45,7 +45,7 @@
 #![warn(missing_docs)]
 
 #[macro_use]
-extern crate custom_derive;
+extern crate macro_attr;
 #[macro_use]
 extern crate newtype_derive;
 
