@@ -126,15 +126,18 @@ macro_rules! checked_add {
     }
 }
 
-custom_derive! {
-    #[derive(NewtypeAdd, NewtypeAddAssign,
-             NewtypeDeref,
-             NewtypeFrom,
-             NewtypeSub, NewtypeSubAssign,
-             Debug, Default, Clone, Copy, Eq, PartialEq, PartialOrd, Ord)]
+macro_attr! {
+    #[derive(Clone, Copy, Debug, Default, Eq, Ord, PartialEq, PartialOrd)]
     /// A type for Data Blocks as used by the thin pool.
     pub struct DataBlocks(pub u64);
 }
+
+NewtypeAdd! { () pub struct DataBlocks(u64); }
+NewtypeAddAssign! { () pub struct DataBlocks(u64); }
+NewtypeDeref! { () pub struct DataBlocks(u64); }
+NewtypeFrom! { () pub struct DataBlocks(u64); }
+NewtypeSub! { () pub struct DataBlocks(u64); }
+NewtypeSubAssign! { () pub struct DataBlocks(u64); }
 
 self_div!(DataBlocks);
 serde!(DataBlocks);
@@ -151,12 +154,8 @@ impl fmt::Display for DataBlocks {
     }
 }
 
-custom_derive! {
-    #[derive(NewtypeAdd, NewtypeAddAssign,
-             NewtypeDeref,
-             NewtypeFrom,
-             NewtypeSub,
-             Debug, Clone, Copy, Eq, PartialEq, PartialOrd, Ord)]
+macro_attr! {
+    #[derive(Clone, Copy, Debug, Default, Eq, Ord, PartialEq, PartialOrd)]
     /// A type for Meta Data blocks as used by the thin pool.
     /// MetaBlocks have a kernel defined constant size of META_BLOCK_SIZE
     pub struct MetaBlocks(pub u64);
@@ -168,6 +167,13 @@ impl MetaBlocks {
         self.0 * META_BLOCK_SIZE
     }
 }
+
+NewtypeAdd! { () pub struct MetaBlocks(u64); }
+NewtypeAddAssign! { () pub struct MetaBlocks(u64); }
+NewtypeDeref! { () pub struct MetaBlocks(u64); }
+NewtypeFrom! { () pub struct MetaBlocks(u64); }
+NewtypeSub! { () pub struct MetaBlocks(u64); }
+NewtypeSubAssign! { () pub struct MetaBlocks(u64); }
 
 self_div!(MetaBlocks);
 serde!(MetaBlocks);
@@ -184,12 +190,8 @@ impl fmt::Display for MetaBlocks {
     }
 }
 
-custom_derive! {
-    #[derive(NewtypeAdd, NewtypeAddAssign,
-             NewtypeDeref,
-             NewtypeFrom,
-             NewtypeSub, NewtypeSubAssign,
-             Debug, Default, Clone, Copy, Eq, PartialEq, PartialOrd, Ord)]
+macro_attr! {
+    #[derive(Clone, Copy, Debug, Default, Eq, Ord, PartialEq, PartialOrd)]
     /// Structure to represent bytes
     pub struct Bytes(pub u64);
 }
@@ -202,6 +204,13 @@ impl Bytes {
 
     checked_add!(Bytes);
 }
+
+NewtypeAdd! { () pub struct Bytes(u64); }
+NewtypeAddAssign! { () pub struct Bytes(u64); }
+NewtypeDeref! { () pub struct Bytes(u64); }
+NewtypeFrom! { () pub struct Bytes(u64); }
+NewtypeSub! { () pub struct Bytes(u64); }
+NewtypeSubAssign! { () pub struct Bytes(u64); }
 
 self_div!(Bytes);
 serde!(Bytes);
@@ -219,12 +228,8 @@ impl fmt::Display for Bytes {
     }
 }
 
-custom_derive! {
-    #[derive(NewtypeAdd, NewtypeAddAssign,
-             NewtypeDeref,
-             NewtypeFrom,
-             NewtypeSub, NewtypeSubAssign,
-             Debug, Default, Clone, Copy, Eq, PartialEq, PartialOrd, Ord)]
+macro_attr! {
+    #[derive(Clone, Copy, Debug, Default, Eq, Ord, PartialEq, PartialOrd)]
     /// A separate type to store counts and offsets expressed in
     /// 512-byte sectors.
     pub struct Sectors(pub u64);
@@ -244,6 +249,12 @@ impl Sectors {
     checked_add!(Sectors);
 }
 
+NewtypeAdd! { () pub struct Sectors(u64); }
+NewtypeAddAssign! { () pub struct Sectors(u64); }
+NewtypeDeref! { () pub struct Sectors(u64); }
+NewtypeFrom! { () pub struct Sectors(u64); }
+NewtypeSub! { () pub struct Sectors(u64); }
+NewtypeSubAssign! { () pub struct Sectors(u64); }
 
 self_div!(Sectors);
 serde!(Sectors);
