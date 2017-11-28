@@ -145,7 +145,7 @@ impl ThinPoolWorkingStatus {
 /// Top-level thinpool status that indicates if it is working or failed.
 pub enum ThinPoolStatus {
     /// The thinpool has not failed utterly.
-    Working(ThinPoolWorkingStatus),
+    Working(Box<ThinPoolWorkingStatus>),
     /// The thinpool is in a failed condition.
     Fail,
 }
@@ -333,12 +333,12 @@ impl ThinPoolDev {
             }
         };
 
-        Ok(ThinPoolStatus::Working(ThinPoolWorkingStatus::new(transaction_id,
+        Ok(ThinPoolStatus::Working(Box::new(ThinPoolWorkingStatus::new(transaction_id,
                                                               usage,
                                                               discard_passdown,
                                                               no_space_policy,
                                                               summary,
-                                                              needs_check)))
+                                                              needs_check))))
     }
 
     /// Set the segments for the existing metadata device.
