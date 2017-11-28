@@ -273,6 +273,23 @@ impl CacheDev {
              }]
     }
 
+    /// Parse pairs of arguments from a slice
+    /// Use the same policy as status() method in asserting
+    fn parse_pairs(start_index: usize, vals: &[&str]) -> (usize, Vec<(String, String)>) {
+        let num_pairs = vals[start_index]
+            .parse::<usize>()
+            .expect("number value must be valid format");
+        if num_pairs % 2 != 0 {
+            panic!(format!("Number of args \"{}\" is not even", num_pairs));
+        }
+        let next_start_index = start_index + num_pairs + 1;
+        (next_start_index,
+         vals[start_index + 1..next_start_index]
+             .chunks(2)
+             .map(|p| (p[0].to_string(), p[1].to_string()))
+             .collect())
+    }
+
     /// Get the current status of the cache device.
     // Note: This method is not entirely complete. In particular, *_args values
     // may require more or better checking or processing.
@@ -350,34 +367,12 @@ impl CacheDev {
             .map(|x| x.to_string())
             .collect();
 
-        let num_core_args = status_vals[core_args_start_index]
-            .parse::<usize>()
-            .expect("number value must be valid");
-        if num_core_args % 2 != 0 {
-            panic!(format!("Number of core args \"{}\" is not even", num_core_args));
-        }
-
-        let policy_start_index = core_args_start_index + num_core_args + 1;
-        let core_args: Vec<(String, String)> = status_vals[core_args_start_index + 1..
-        policy_start_index]
-                .chunks(2)
-                .map(|p| (p[0].to_string(), p[1].to_string()))
-                .collect();
-
+        let (policy_start_index, core_args) = CacheDev::parse_pairs(core_args_start_index,
+                                                                    &status_vals);
 
         let policy = status_vals[policy_start_index].to_string();
-        let num_policy_args = status_vals[policy_start_index + 1]
-            .parse::<usize>()
-            .expect("number value must be valid");
-        if num_policy_args % 2 != 0 {
-            panic!(format!("Number of policy args \"{}\" is not even", num_policy_args));
-        }
-        let rest_start_index = policy_start_index + 1 + num_policy_args + 1;
-        let policy_args: Vec<(String, String)> = status_vals[policy_start_index + 2..
-        rest_start_index]
-                .chunks(2)
-                .map(|p| (p[0].to_string(), p[1].to_string()))
-                .collect();
+        let (rest_start_index, policy_args) = CacheDev::parse_pairs(policy_start_index + 1,
+                                                                    &status_vals);
 
         let cache_metadata_mode = match status_vals[rest_start_index] {
             "rw" => CacheDevMetadataMode::Good,
@@ -481,7 +476,7 @@ mod tests {
                 assert!(usage.used_meta > MetaBlocks(0));
 
                 assert_eq!(usage.cache_block_size, MIN_CACHE_BLOCK_SIZE);
-                assert_eq!(usage.cache_block_size, cache.cache_block_size);
+                assert_eq!(usage.cache_block_size, cache.block_size);
 
                 // No data means no cache blocks used
                 assert_eq!(usage.used_cache, DataBlocks(0));
