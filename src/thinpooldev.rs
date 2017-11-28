@@ -79,7 +79,7 @@ pub struct ThinPoolUsage {
     pub total_data: DataBlocks,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
 /// Indicates if a working thinpool is working optimally, or is
 /// experiencing a non-fatal error condition.
 pub enum ThinPoolStatusSummary {
@@ -92,7 +92,7 @@ pub enum ThinPoolStatusSummary {
 }
 
 /// Policy if no space on device
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum ThinPoolNoSpacePolicy {
     /// error the IO if no space on device
     Error,
