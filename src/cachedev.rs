@@ -204,10 +204,10 @@ impl CacheDev {
     pub fn new(dm: &DM,
                name: &DmName,
                uuid: Option<&DmUuid>,
-               cache_block_size: Sectors,
                meta: LinearDev,
                cache: LinearDev,
-               origin: LinearDev)
+               origin: LinearDev,
+               cache_block_size: Sectors)
                -> DmResult<CacheDev> {
         if device_exists(dm, name)? {
             let err_msg = format!("cachedev {} already exists", name);
@@ -230,10 +230,10 @@ impl CacheDev {
     pub fn setup(dm: &DM,
                  name: &DmName,
                  uuid: Option<&DmUuid>,
-                 cache_block_size: Sectors,
                  meta: LinearDev,
                  cache: LinearDev,
-                 origin: LinearDev)
+                 origin: LinearDev,
+                 cache_block_size: Sectors)
                  -> DmResult<CacheDev> {
         let table = CacheDev::dm_table(&meta, &origin, &cache, cache_block_size);
         let dev_info = device_setup(dm, name, uuid, &table)?;
@@ -460,10 +460,10 @@ mod tests {
         let cache = CacheDev::new(&dm,
                                   DmName::new("cache").expect("valid format"),
                                   None,
-                                  MIN_CACHE_BLOCK_SIZE,
                                   meta,
                                   cache,
-                                  origin)
+                                  origin,
+                                  MIN_CACHE_BLOCK_SIZE)
                 .unwrap();
 
         match cache.status(&dm).unwrap() {

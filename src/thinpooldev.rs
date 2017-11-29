@@ -154,10 +154,10 @@ impl ThinPoolDev {
     pub fn new(dm: &DM,
                name: &DmName,
                uuid: Option<&DmUuid>,
-               data_block_size: Sectors,
-               low_water_mark: DataBlocks,
                meta: LinearDev,
-               data: LinearDev)
+               data: LinearDev,
+               data_block_size: Sectors,
+               low_water_mark: DataBlocks)
                -> DmResult<ThinPoolDev> {
         if device_exists(dm, name)? {
             let err_msg = format!("thinpooldev {} already exists", name);
@@ -200,10 +200,10 @@ impl ThinPoolDev {
     pub fn setup(dm: &DM,
                  name: &DmName,
                  uuid: Option<&DmUuid>,
-                 data_block_size: Sectors,
-                 low_water_mark: DataBlocks,
                  meta: LinearDev,
-                 data: LinearDev)
+                 data: LinearDev,
+                 data_block_size: Sectors,
+                 low_water_mark: DataBlocks)
                  -> DmResult<ThinPoolDev> {
         let table = ThinPoolDev::dm_table(&meta, &data, data_block_size, low_water_mark);
         let dev_info = device_setup(dm, name, uuid, &table)?;
@@ -400,10 +400,10 @@ pub fn minimal_thinpool(dm: &DM, path: &Path) -> ThinPoolDev {
     ThinPoolDev::new(dm,
                      DmName::new("pool").expect("valid format"),
                      None,
-                     MIN_DATA_BLOCK_SIZE,
-                     DataBlocks(1),
                      meta,
-                     data)
+                     data,
+                     MIN_DATA_BLOCK_SIZE,
+                     DataBlocks(1))
             .unwrap()
 }
 
@@ -473,10 +473,10 @@ mod tests {
         assert!(match ThinPoolDev::new(&dm,
                                        DmName::new("pool").expect("valid format"),
                                        None,
-                                       MIN_DATA_BLOCK_SIZE / 2u64,
-                                       DataBlocks(1),
                                        meta,
-                                       data) {
+                                       data,
+                                       MIN_DATA_BLOCK_SIZE / 2u64,
+                                       DataBlocks(1)) {
                     Err(DmError::Core(Error(ErrorKind::IoctlError(_), _))) => true,
                     _ => false,
                 });
