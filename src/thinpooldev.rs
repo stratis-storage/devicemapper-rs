@@ -4,7 +4,6 @@
 
 use std::path::PathBuf;
 
-use super::consts::IEC;
 use super::device::Device;
 use super::deviceinfo::DeviceInfo;
 use super::dm::{DM, DmFlags};
@@ -20,15 +19,6 @@ use std::path::Path;
 #[cfg(test)]
 use super::loopbacked::devnode_to_devno;
 
-/// Values are explicitly stated in the device-mapper kernel documentation.
-#[allow(dead_code)]
-const MIN_DATA_BLOCK_SIZE: Sectors = Sectors(128); // 64 KiB
-#[allow(dead_code)]
-const MAX_DATA_BLOCK_SIZE: Sectors = Sectors(2 * IEC::Mi); // 1 GiB
-#[allow(dead_code)]
-const MIN_RECOMMENDED_METADATA_SIZE: Sectors = Sectors(4 * IEC::Ki); // 2 MiB
-#[allow(dead_code)]
-const MAX_RECOMMENDED_METADATA_SIZE: Sectors = Sectors(32 * IEC::Mi); // 16 GiB
 
 /// DM construct to contain thin provisioned devices
 #[derive(Debug)]
@@ -79,7 +69,7 @@ pub struct ThinPoolUsage {
     pub total_data: DataBlocks,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
 /// Indicates if a working thinpool is working optimally, or is
 /// experiencing a non-fatal error condition.
 pub enum ThinPoolStatusSummary {
@@ -92,7 +82,7 @@ pub enum ThinPoolStatusSummary {
 }
 
 /// Policy if no space on device
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum ThinPoolNoSpacePolicy {
     /// error the IO if no space on device
     Error,
@@ -145,7 +135,7 @@ impl ThinPoolWorkingStatus {
 /// Top-level thinpool status that indicates if it is working or failed.
 pub enum ThinPoolStatus {
     /// The thinpool has not failed utterly.
-    Working(ThinPoolWorkingStatus),
+    Working(Box<ThinPoolWorkingStatus>),
     /// The thinpool is in a failed condition.
     Fail,
 }
@@ -333,12 +323,12 @@ impl ThinPoolDev {
             }
         };
 
-        Ok(ThinPoolStatus::Working(ThinPoolWorkingStatus::new(transaction_id,
-                                                              usage,
-                                                              discard_passdown,
-                                                              no_space_policy,
-                                                              summary,
-                                                              needs_check)))
+        Ok(ThinPoolStatus::Working(Box::new(ThinPoolWorkingStatus::new(transaction_id,
+                                                                       usage,
+                                                                       discard_passdown,
+                                                                       no_space_policy,
+                                                                       summary,
+                                                                       needs_check))))
     }
 
     /// Set the segments for the existing metadata device.
@@ -373,6 +363,21 @@ impl ThinPoolDev {
         Ok(())
     }
 }
+
+#[cfg(test)]
+use super::consts::IEC;
+
+/// Values are explicitly stated in the device-mapper kernel documentation.
+#[cfg(test)]
+const MIN_DATA_BLOCK_SIZE: Sectors = Sectors(128); // 64 KiB
+#[cfg(test)]
+#[allow(dead_code)]
+const MAX_DATA_BLOCK_SIZE: Sectors = Sectors(2 * IEC::Mi); // 1 GiB
+#[cfg(test)]
+const MIN_RECOMMENDED_METADATA_SIZE: Sectors = Sectors(4 * IEC::Ki); // 2 MiB
+#[cfg(test)]
+#[allow(dead_code)]
+const MAX_RECOMMENDED_METADATA_SIZE: Sectors = Sectors(32 * IEC::Mi); // 16 GiB
 
 #[cfg(test)]
 pub fn minimal_thinpool(dm: &DM, path: &Path) -> ThinPoolDev {
