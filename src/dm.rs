@@ -17,7 +17,8 @@ use super::device::Device;
 use super::deviceinfo::{DM_NAME_LEN, DM_UUID_LEN, DeviceInfo};
 use super::dm_ioctl as dmi;
 use super::result::DmResult;
-use super::types::{DevId, DmName, DmNameBuf, DmUuid, Sectors, TargetLine, TargetTypeBuf};
+use super::types::{DevId, DmName, DmNameBuf, DmUuid, Sectors, StatusLine, TargetLine,
+                   TargetTypeBuf};
 use super::util::{align_to, slice_to_null};
 
 /// Indicator to send IOCTL to DM
@@ -463,7 +464,7 @@ impl DM {
     pub fn device_wait(&self,
                        id: &DevId,
                        flags: DmFlags)
-                       -> DmResult<(DeviceInfo, Vec<TargetLine>)> {
+                       -> DmResult<(DeviceInfo, Vec<StatusLine>)> {
         let mut hdr: dmi::Struct_dm_ioctl = Default::default();
 
         let clean_flags = DmFlags::DM_QUERY_INACTIVE_TABLE & flags;
@@ -637,7 +638,7 @@ impl DM {
     // will either be backwards-compatible, or will increment
     // DM_VERSION_MAJOR.  Since calls made with a non-matching major version
     // will fail, this protects against callers parsing unknown formats.
-    fn parse_table_status(count: u32, buf: &[u8]) -> Vec<TargetLine> {
+    fn parse_table_status(count: u32, buf: &[u8]) -> Vec<StatusLine> {
         let mut targets = Vec::new();
         if !buf.is_empty() {
             let mut next_off = 0;
@@ -663,7 +664,7 @@ impl DM {
                     String::from_utf8_lossy(slc).trim_right().to_owned()
                 };
 
-                targets.push(TargetLine {
+                targets.push(StatusLine {
                                  start: Sectors(targ.sector_start),
                                  length: Sectors(targ.length),
                                  target_type:
@@ -707,7 +708,7 @@ impl DM {
     pub fn table_status(&self,
                         id: &DevId,
                         flags: DmFlags)
-                        -> DmResult<(DeviceInfo, Vec<TargetLine>)> {
+                        -> DmResult<(DeviceInfo, Vec<StatusLine>)> {
         let mut hdr: dmi::Struct_dm_ioctl = Default::default();
 
         let clean_flags = (DmFlags::DM_NOFLUSH | DmFlags::DM_STATUS_TABLE |

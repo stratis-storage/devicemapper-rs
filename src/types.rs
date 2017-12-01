@@ -452,6 +452,21 @@ pub struct StatusLine {
     pub params: String,
 }
 
+
+impl PartialEq<StatusLine> for TargetLine {
+    fn eq(&self, other: &StatusLine) -> bool {
+        self.start == other.start && self.length == other.length &&
+        self.target_type == other.target_type && self.params == other.params
+    }
+}
+
+impl PartialEq<TargetLine> for StatusLine {
+    fn eq(&self, other: &TargetLine) -> bool {
+        self.start == other.start && self.length == other.length &&
+        self.target_type == other.target_type && self.params == other.params
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::super::errors::Error;
