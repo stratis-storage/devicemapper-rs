@@ -438,6 +438,20 @@ pub struct TargetLine {
     pub params: String,
 }
 
+
+/// One line of device mapper status information.
+#[derive(Debug, PartialEq)]
+pub struct StatusLine {
+    /// The start of the segment
+    pub start: Sectors,
+    /// The length of the segment
+    pub length: Sectors,
+    /// The target type
+    pub target_type: TargetTypeBuf,
+    /// The target specific parameters
+    pub params: String,
+}
+
 #[cfg(test)]
 mod tests {
     use super::super::errors::Error;
