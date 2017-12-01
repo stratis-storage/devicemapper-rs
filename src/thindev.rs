@@ -2,6 +2,7 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
+use std::fmt;
 use std::path::PathBuf;
 
 use super::device::Device;
@@ -11,7 +12,32 @@ use super::result::{DmError, DmResult, ErrorEnum};
 use super::shared::{DmDevice, device_create, device_exists, device_setup, message, table_reload};
 use super::thindevid::ThinDevId;
 use super::thinpooldev::ThinPoolDev;
-use super::types::{DevId, DmName, DmUuid, Sectors, TargetLine, TargetTypeBuf};
+use super::types::{DevId, DmName, DmUuid, Sectors, TargetLine, TargetParams, TargetTypeBuf};
+
+
+#[derive(Debug, PartialEq)]
+struct ThinDevTargetParams {
+    pub pool: Device,
+    pub thin_id: ThinDevId,
+}
+
+impl ThinDevTargetParams {
+    pub fn new(pool: Device, thin_id: ThinDevId) -> ThinDevTargetParams {
+        ThinDevTargetParams {
+            pool: pool,
+            thin_id: thin_id,
+        }
+    }
+}
+
+impl fmt::Display for ThinDevTargetParams {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{} {}", self.pool, self.thin_id)
+    }
+}
+
+impl TargetParams for ThinDevTargetParams {}
+
 
 /// DM construct for a thin block device
 #[derive(Debug)]
@@ -154,12 +180,11 @@ impl ThinDev {
     /// <thinpool maj:min> <thin_id>
     /// There is exactly one entry in the table.
     fn dm_table(length: Sectors, thin_pool: Device, thin_id: ThinDevId) -> Vec<TargetLine> {
-        let params = format!("{} {}", thin_pool, thin_id);
         vec![TargetLine {
                  start: Sectors::default(),
                  length: length,
                  target_type: TargetTypeBuf::new("thin".into()).expect("< length limit"),
-                 params: params,
+                 params: ThinDevTargetParams::new(thin_pool, thin_id).to_string(),
              }]
     }
 
