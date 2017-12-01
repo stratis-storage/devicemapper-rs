@@ -41,21 +41,25 @@ impl FromStr for ThinDevStatusParams {
         let vals = s.split(' ').collect::<Vec<_>>();
         if vals.len() < 2 {
             return Err(DmError::Dm(ErrorEnum::ParseError,
-                                   format!("expected at least 2 values, found {}", vals.len())));
+                                   format!("expected at least 2 values in \"{}\", found {}",
+                                           s,
+                                           vals.len())));
         }
 
         let count = vals[0]
             .parse::<u64>()
             .map_err(|e| {
                          DmError::Dm(ErrorEnum::ParseError,
-                                     format!("could not parse sector count: {}", e))
+                                     format!("could not parse sector count \"{}\": {}", vals[0], e))
                      })?;
         let highest = if count == 0 {
             None
         } else {
             Some(Sectors(vals[1].parse::<u64>().map_err(|e| {
                 DmError::Dm(ErrorEnum::ParseError,
-                            format!("could not parse highest mapped sector: {}", e))})?))
+                            format!("could not parse highest mapped sector \"{}\": {}",
+                                    vals[1],
+                                    e))})?))
         };
 
         Ok(ThinDevStatusParams::new(count, highest))
@@ -156,7 +160,7 @@ impl From<ThinDevStatusParams> for ThinDevWorkingStatus {
 #[derive(Debug)]
 pub enum ThinStatus {
     /// The thindev is not completely lost.
-    Good(Box<ThinDevWorkingStatus>),
+    Working(Box<ThinDevWorkingStatus>),
     /// Thin device is failed.
     Fail,
 }
@@ -280,17 +284,19 @@ impl ThinDev {
     pub fn status(&self, dm: &DM) -> DmResult<ThinStatus> {
         let (_, table) = dm.table_status(&DevId::Name(self.name()), DmFlags::empty())?;
 
-        assert_eq!(table.len(),
-                   1,
-                   "Kernel must return 1 line table for thin status");
+        if table.len() != 1 {
+            return Err(DmError::Dm(ErrorEnum::ParseError,
+                                   format!("expected exactly 1 line in table, found {}",
+                                           table.len())));
+        }
 
-        let status_line = &table.first().expect("assertion above holds").params;
+        let status_line = &table.first().expect("table.len() == 1").params;
         if status_line.starts_with("Fail") {
             return Ok(ThinStatus::Fail);
         }
 
         let params = status_line.parse::<ThinDevStatusParams>()?;
-        Ok(ThinStatus::Good(Box::new(params.into())))
+        Ok(ThinStatus::Working(Box::new(params.into())))
     }
 
     /// Extend the thin device's (virtual) size by the number of
