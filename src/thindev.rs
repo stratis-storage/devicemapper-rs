@@ -4,6 +4,7 @@
 
 use std::fmt;
 use std::path::PathBuf;
+use std::str::FromStr;
 
 use super::device::Device;
 use super::deviceinfo::DeviceInfo;
@@ -12,8 +13,56 @@ use super::result::{DmError, DmResult, ErrorEnum};
 use super::shared::{DmDevice, device_create, device_exists, device_setup, message, table_reload};
 use super::thindevid::ThinDevId;
 use super::thinpooldev::ThinPoolDev;
-use super::types::{DevId, DmName, DmUuid, Sectors, TargetLine, TargetParams, TargetTypeBuf};
+use super::types::{DevId, DmName, DmUuid, Sectors, StatusParams, TargetLine, TargetParams,
+                   TargetTypeBuf};
 
+/// ThinDev status params
+#[derive(Debug, PartialEq)]
+struct ThinDevStatusParams {
+    pub nr_mapped_sectors: u64,
+    pub highest_mapped_sector: Option<Sectors>,
+}
+
+impl ThinDevStatusParams {
+    pub fn new(nr_mapped_sectors: u64,
+               highest_mapped_sector: Option<Sectors>)
+               -> ThinDevStatusParams {
+        ThinDevStatusParams {
+            nr_mapped_sectors: nr_mapped_sectors,
+            highest_mapped_sector: highest_mapped_sector,
+        }
+    }
+}
+
+impl FromStr for ThinDevStatusParams {
+    type Err = DmError;
+
+    fn from_str(s: &str) -> Result<ThinDevStatusParams, DmError> {
+        let vals = s.split(' ').collect::<Vec<_>>();
+        if vals.len() < 2 {
+            return Err(DmError::Dm(ErrorEnum::ParseError,
+                                   format!("expected at least 2 values, found {}", vals.len())));
+        }
+
+        let count = vals[0]
+            .parse::<u64>()
+            .map_err(|e| {
+                         DmError::Dm(ErrorEnum::ParseError,
+                                     format!("could not parse sector count: {}", e))
+                     })?;
+        let highest = if count == 0 {
+            None
+        } else {
+            Some(Sectors(vals[1].parse::<u64>().map_err(|e| {
+                DmError::Dm(ErrorEnum::ParseError,
+                            format!("could not parse highest mapped sector: {}", e))})?))
+        };
+
+        Ok(ThinDevStatusParams::new(count, highest))
+    }
+}
+
+impl StatusParams for ThinDevStatusParams {}
 
 /// ThinDev target params
 #[derive(Debug, PartialEq)]
@@ -75,12 +124,33 @@ impl DmDevice for ThinDev {
     }
 }
 
-#[derive(Debug, Clone, Copy)]
+/// Status values of a thin device when it is working
+#[derive(Debug)]
+pub struct ThinDevWorkingStatus {
+    /// The number of mapped sectors
+    pub nr_mapped_sectors: u64,
+    /// The highest mapped sector
+    /// If 0 sectors are mapped, this is None.
+    pub highest_mapped_sector: Option<Sectors>,
+}
+
+impl ThinDevWorkingStatus {
+    /// Make a new ThinDevWorkingStatus struct
+    pub fn new(nr_mapped_sectors: u64,
+               highest_mapped_sector: Option<Sectors>)
+               -> ThinDevWorkingStatus {
+        ThinDevWorkingStatus {
+            nr_mapped_sectors: nr_mapped_sectors,
+            highest_mapped_sector: highest_mapped_sector,
+        }
+    }
+}
+
 /// Thin device status.
+#[derive(Debug)]
 pub enum ThinStatus {
-    /// Thin device is good. Includes number of mapped sectors, and
-    /// highest mapped sector.
-    Good((u64, Option<Sectors>)),
+    /// The thindev is not completely lost.
+    Good(Box<ThinDevWorkingStatus>),
     /// Thin device is failed.
     Fail,
 }
@@ -213,23 +283,10 @@ impl ThinDev {
             return Ok(ThinStatus::Fail);
         }
 
-        let status_vals = status_line.split(' ').collect::<Vec<_>>();
-        assert!(status_vals.len() >= 2,
-                "Kernel must return at least 2 values from thin pool status");
+        let params = status_line.parse::<ThinDevStatusParams>()?;
 
-        let count = status_vals[0]
-            .parse::<u64>()
-            .expect("Kernel always returns a parseable u64 for sector count");
-
-        let highest = if count == 0 {
-            None
-        } else {
-            Some(Sectors(status_vals[1]
-                             .parse::<u64>()
-                             .expect("Kernel always returns a parseable u64 when count > 0")))
-        };
-
-        Ok(ThinStatus::Good((Sectors(count), highest)))
+        Ok(ThinStatus::Good(Box::new(ThinDevWorkingStatus::new(params.nr_mapped_sectors,
+                                                               params.highest_mapped_sector))))
     }
 
     /// Extend the thin device's (virtual) size by the number of

@@ -21,6 +21,7 @@ use std::fmt;
 use std::iter::Sum;
 use std::mem::transmute;
 use std::ops::{Deref, Div, Mul, Rem, Add};
+use std::str::FromStr;
 
 use serde;
 
@@ -440,6 +441,7 @@ pub struct TargetLine<T: TargetParams> {
     pub params: T,
 }
 
+pub trait StatusParams: fmt::Debug + FromStr + PartialEq + Sized {}
 
 /// One line of device mapper status information.
 #[derive(Debug, PartialEq)]
