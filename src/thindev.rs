@@ -146,6 +146,12 @@ impl ThinDevWorkingStatus {
     }
 }
 
+impl From<ThinDevStatusParams> for ThinDevWorkingStatus {
+    fn from(params: ThinDevStatusParams) -> ThinDevWorkingStatus {
+        ThinDevWorkingStatus::new(params.nr_mapped_sectors, params.highest_mapped_sector)
+    }
+}
+
 /// Thin device status.
 #[derive(Debug)]
 pub enum ThinStatus {
@@ -284,9 +290,7 @@ impl ThinDev {
         }
 
         let params = status_line.parse::<ThinDevStatusParams>()?;
-
-        Ok(ThinStatus::Good(Box::new(ThinDevWorkingStatus::new(params.nr_mapped_sectors,
-                                                               params.highest_mapped_sector))))
+        Ok(ThinStatus::Good(Box::new(params.into())))
     }
 
     /// Extend the thin device's (virtual) size by the number of
