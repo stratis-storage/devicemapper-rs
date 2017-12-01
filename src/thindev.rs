@@ -50,7 +50,7 @@ impl DmDevice for ThinDev {
 pub enum ThinStatus {
     /// Thin device is good. Includes number of mapped sectors, and
     /// highest mapped sector.
-    Good((Sectors, Option<Sectors>)),
+    Good((u64, Option<Sectors>)),
     /// Thin device is failed.
     Fail,
 }
