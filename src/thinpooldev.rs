@@ -2,6 +2,7 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
+use std::fmt;
 use std::path::PathBuf;
 
 use super::device::Device;
@@ -12,12 +13,60 @@ use super::result::{DmResult, DmError, ErrorEnum};
 use super::segment::Segment;
 use super::shared::{DmDevice, device_create, device_exists, device_setup, table_reload};
 use super::types::{DataBlocks, DevId, DmName, DmUuid, MetaBlocks, Sectors, TargetLine,
-                   TargetTypeBuf};
+                   TargetParams, TargetTypeBuf};
 
 #[cfg(test)]
 use std::path::Path;
 #[cfg(test)]
 use super::loopbacked::devnode_to_devno;
+
+
+#[derive(Debug, PartialEq)]
+struct ThinPoolDevTargetParams {
+    pub metadata_dev: Device,
+    pub data_dev: Device,
+    pub data_block_size: Sectors,
+    pub low_water_mark: DataBlocks,
+    pub feature_args: Vec<String>,
+}
+
+impl ThinPoolDevTargetParams {
+    pub fn new(metadata_dev: Device,
+               data_dev: Device,
+               data_block_size: Sectors,
+               low_water_mark: DataBlocks)
+               -> ThinPoolDevTargetParams {
+        ThinPoolDevTargetParams {
+            metadata_dev: metadata_dev,
+            data_dev: data_dev,
+            data_block_size: data_block_size,
+            low_water_mark: low_water_mark,
+            feature_args: vec!["skip_block_zeroing".to_owned()],
+        }
+    }
+}
+
+impl fmt::Display for ThinPoolDevTargetParams {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let feature_args = if self.feature_args.is_empty() {
+            "0".to_owned()
+        } else {
+            format!("{} {}",
+                    self.feature_args.len(),
+                    self.feature_args.join(" "))
+        };
+
+        write!(f,
+               "{} {} {} {} {}",
+               self.metadata_dev,
+               self.data_dev,
+               *self.data_block_size,
+               *self.low_water_mark,
+               feature_args)
+    }
+}
+
+impl TargetParams for ThinPoolDevTargetParams {}
 
 
 /// DM construct to contain thin provisioned devices
@@ -228,16 +277,15 @@ impl ThinPoolDev {
                 data_block_size: Sectors,
                 low_water_mark: DataBlocks)
                 -> Vec<TargetLine> {
-        let params = format!("{} {} {} {} 1 skip_block_zeroing",
-                             meta.device(),
-                             data.device(),
-                             *data_block_size,
-                             *low_water_mark);
         vec![TargetLine {
                  start: Sectors::default(),
                  length: data.size(),
                  target_type: TargetTypeBuf::new("thin-pool".into()).expect("< length limit"),
-                 params: params,
+                 params: ThinPoolDevTargetParams::new(meta.device(),
+                                                      data.device(),
+                                                      data_block_size,
+                                                      low_water_mark)
+                         .to_string(),
              }]
     }
 

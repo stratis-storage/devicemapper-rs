@@ -2,6 +2,7 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
+use std::fmt;
 use std::path::PathBuf;
 
 use super::device::Device;
@@ -10,7 +11,32 @@ use super::dm::{DM, DmFlags};
 use super::result::{DmResult, DmError, ErrorEnum};
 use super::segment::Segment;
 use super::shared::{DmDevice, device_setup, table_reload};
-use super::types::{DevId, DmName, DmUuid, Sectors, TargetLine, TargetTypeBuf};
+use super::types::{DevId, DmName, DmUuid, Sectors, TargetLine, TargetParams, TargetTypeBuf};
+
+
+#[derive(Debug, PartialEq)]
+struct LinearDevTargetParams {
+    pub device: Device,
+    pub physical_start_offset: Sectors,
+}
+
+impl LinearDevTargetParams {
+    pub fn new(device: Device, physical_start_offset: Sectors) -> LinearDevTargetParams {
+        LinearDevTargetParams {
+            device: device,
+            physical_start_offset: physical_start_offset,
+        }
+    }
+}
+
+impl fmt::Display for LinearDevTargetParams {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{} {}", self.device, *self.physical_start_offset)
+    }
+}
+
+impl TargetParams for LinearDevTargetParams {}
+
 
 /// A DM construct of combined Segments
 #[derive(Debug)]
@@ -104,7 +130,8 @@ impl LinearDev {
                 start: logical_start_offset,
                 length: length,
                 target_type: TargetTypeBuf::new("linear".into()).expect("< length limit"),
-                params: format!("{} {}", segment.device, *physical_start_offset),
+                params: LinearDevTargetParams::new(segment.device, physical_start_offset)
+                    .to_string(),
             };
             debug!("dmtable line : {:?}", line);
             table.push(line);

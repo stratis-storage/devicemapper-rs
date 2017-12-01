@@ -2,6 +2,7 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
+use std::fmt;
 use std::path::PathBuf;
 
 use super::device::Device;
@@ -11,7 +12,73 @@ use super::lineardev::LinearDev;
 use super::result::{DmResult, DmError, ErrorEnum};
 use super::shared::{DmDevice, device_create, device_exists, device_setup};
 use super::types::{DataBlocks, DevId, DmName, DmUuid, MetaBlocks, Sectors, TargetLine,
-                   TargetTypeBuf};
+                   TargetParams, TargetTypeBuf};
+
+#[derive(Debug, PartialEq)]
+struct CacheDevTargetParams {
+    pub meta: Device,
+    pub cache: Device,
+    pub origin: Device,
+    pub cache_block_size: Sectors,
+    pub feature_args: Vec<String>,
+    pub policy: String,
+    pub policy_args: Vec<(String, String)>,
+}
+
+impl CacheDevTargetParams {
+    pub fn new(meta: Device,
+               cache: Device,
+               origin: Device,
+               cache_block_size: Sectors)
+               -> CacheDevTargetParams {
+        CacheDevTargetParams {
+            meta: meta,
+            cache: cache,
+            origin: origin,
+            cache_block_size: cache_block_size,
+            feature_args: vec![],
+            policy: "default".to_owned(),
+            policy_args: vec![],
+        }
+    }
+}
+
+impl fmt::Display for CacheDevTargetParams {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let feature_args = if self.feature_args.is_empty() {
+            "0".to_owned()
+        } else {
+            format!("{} {}",
+                    self.feature_args.len(),
+                    self.feature_args.join(" "))
+        };
+
+        let policy_args = if self.policy_args.is_empty() {
+            "0".to_owned()
+        } else {
+            format!("{} {}",
+                    self.policy_args.len(),
+                    self.policy_args
+                        .iter()
+                        .map(|&(ref k, ref v)| format!("{} {}", k, v))
+                        .collect::<Vec<String>>()
+                        .join(" "))
+        };
+
+        write!(f,
+               "{} {} {} {} {} {} {}",
+               self.meta,
+               self.cache,
+               self.origin,
+               *self.cache_block_size,
+               feature_args,
+               self.policy,
+               policy_args)
+    }
+}
+
+impl TargetParams for CacheDevTargetParams {}
+
 
 /// Cache usage
 #[derive(Debug)]
@@ -260,16 +327,15 @@ impl CacheDev {
                 origin: &LinearDev,
                 cache_block_size: Sectors)
                 -> Vec<TargetLine> {
-        let params = format!("{} {} {} {} 0 default 0",
-                             meta.device(),
-                             cache.device(),
-                             origin.device(),
-                             *cache_block_size);
         vec![TargetLine {
                  start: Sectors::default(),
                  length: origin.size(),
                  target_type: TargetTypeBuf::new("cache".into()).expect("< length limit"),
-                 params: params,
+                 params: CacheDevTargetParams::new(meta.device(),
+                                                   cache.device(),
+                                                   origin.device(),
+                                                   cache_block_size)
+                         .to_string(),
              }]
     }
 
