@@ -171,7 +171,7 @@ impl DM {
                     .expect("pointer to own structure v can not be NULL")
             };
 
-            if (hdr.flags & DM_BUFFER_FULL.bits()) == 0 {
+            if (hdr.flags & DmFlags::DM_BUFFER_FULL.bits()) == 0 {
                 break;
             }
 
@@ -215,7 +215,7 @@ impl DM {
     pub fn remove_all(&self, flags: DmFlags) -> DmResult<()> {
         let mut hdr: dmi::Struct_dm_ioctl = Default::default();
 
-        let clean_flags = DM_DEFERRED_REMOVE & flags;
+        let clean_flags = DmFlags::DM_DEFERRED_REMOVE & flags;
 
         Self::initialize_hdr(&mut hdr, clean_flags);
 
@@ -330,7 +330,7 @@ impl DM {
                          -> DmResult<DeviceInfo> {
         let mut hdr: dmi::Struct_dm_ioctl = Default::default();
 
-        let clean_flags = (DM_READONLY | DM_PERSISTENT_DEV) & flags;
+        let clean_flags = (DmFlags::DM_READONLY | DmFlags::DM_PERSISTENT_DEV) & flags;
 
         Self::initialize_hdr(&mut hdr, clean_flags);
 
@@ -354,7 +354,7 @@ impl DM {
     pub fn device_remove(&self, id: &DevId, flags: DmFlags) -> DmResult<DeviceInfo> {
         let mut hdr: dmi::Struct_dm_ioctl = Default::default();
 
-        let clean_flags = DM_DEFERRED_REMOVE & flags;
+        let clean_flags = DmFlags::DM_DEFERRED_REMOVE & flags;
 
         Self::initialize_hdr(&mut hdr, clean_flags);
         match *id {
@@ -382,7 +382,7 @@ impl DM {
                 name.as_bytes().to_vec()
             }
             DevId::Uuid(uuid) => {
-                Self::initialize_hdr(&mut hdr, DM_UUID);
+                Self::initialize_hdr(&mut hdr, DmFlags::DM_UUID);
                 uuid.as_bytes().to_vec()
             }
         };
@@ -411,18 +411,19 @@ impl DM {
     /// # Example
     ///
     /// ```no_run
-    /// use devicemapper::{DM, DM_SUSPEND, DevId, DmFlags, DmName};
+    /// use devicemapper::{DM, DevId, DmFlags, DmName};
 
     /// let dm = DM::new().unwrap();
     ///
     /// let name = DmName::new("example-dev").expect("is valid DM name");
     /// let id = DevId::Name(name);
-    /// dm.device_suspend(&id, DM_SUSPEND).unwrap();
+    /// dm.device_suspend(&id, DmFlags::DM_SUSPEND).unwrap();
     /// ```
     pub fn device_suspend(&self, id: &DevId, flags: DmFlags) -> DmResult<DeviceInfo> {
         let mut hdr: dmi::Struct_dm_ioctl = Default::default();
 
-        let clean_flags = (DM_SUSPEND | DM_NOFLUSH | DM_SKIP_LOCKFS) & flags;
+        let clean_flags = (DmFlags::DM_SUSPEND | DmFlags::DM_NOFLUSH | DmFlags::DM_SKIP_LOCKFS) &
+                          flags;
 
         Self::initialize_hdr(&mut hdr, clean_flags);
         match *id {
@@ -465,7 +466,7 @@ impl DM {
                        -> DmResult<(DeviceInfo, Vec<TargetLine>)> {
         let mut hdr: dmi::Struct_dm_ioctl = Default::default();
 
-        let clean_flags = DM_QUERY_INACTIVE_TABLE & flags;
+        let clean_flags = DmFlags::DM_QUERY_INACTIVE_TABLE & flags;
 
         Self::initialize_hdr(&mut hdr, clean_flags);
         match *id {
@@ -590,7 +591,7 @@ impl DM {
     pub fn table_deps(&self, id: &DevId, flags: DmFlags) -> DmResult<Vec<Device>> {
         let mut hdr: dmi::Struct_dm_ioctl = Default::default();
 
-        let clean_flags = DM_QUERY_INACTIVE_TABLE & flags;
+        let clean_flags = DmFlags::DM_QUERY_INACTIVE_TABLE & flags;
 
         Self::initialize_hdr(&mut hdr, clean_flags);
         match *id {
@@ -695,12 +696,12 @@ impl DM {
     /// # Example
     ///
     /// ```no_run
-    /// use devicemapper::{DM, DM_STATUS_TABLE, DevId, DmFlags, DmName};
+    /// use devicemapper::{DM, DevId, DmFlags, DmName};
     /// let dm = DM::new().unwrap();
     ///
     /// let name = DmName::new("example-dev").expect("is valid DM name");
     /// let id = DevId::Name(name);
-    /// let res = dm.table_status(&id, DM_STATUS_TABLE).unwrap();
+    /// let res = dm.table_status(&id, DmFlags::DM_STATUS_TABLE).unwrap();
     /// println!("{} {:?}", res.0.name(), res.1);
     /// ```
     pub fn table_status(&self,
@@ -709,7 +710,8 @@ impl DM {
                         -> DmResult<(DeviceInfo, Vec<TargetLine>)> {
         let mut hdr: dmi::Struct_dm_ioctl = Default::default();
 
-        let clean_flags = (DM_NOFLUSH | DM_STATUS_TABLE | DM_QUERY_INACTIVE_TABLE) & flags;
+        let clean_flags = (DmFlags::DM_NOFLUSH | DmFlags::DM_STATUS_TABLE |
+                           DmFlags::DM_QUERY_INACTIVE_TABLE) & flags;
 
         Self::initialize_hdr(&mut hdr, clean_flags);
         match *id {
@@ -789,7 +791,7 @@ impl DM {
 
         let data_out = self.do_ioctl(dmi::DM_TARGET_MSG_CMD as u8, &mut hdr, Some(&data_in))?;
 
-        let output = if (hdr.flags & DM_DATA_OUT.bits()) > 0 {
+        let output = if (hdr.flags & DmFlags::DM_DATA_OUT.bits()) > 0 {
             Some(String::from_utf8_lossy(&data_out[..data_out.len() - 1]).into_owned())
         } else {
             None
@@ -1039,7 +1041,7 @@ mod tests {
         let name = DmName::new("junk").expect("is valid DM name");
         assert!(match DM::new()
                           .unwrap()
-                          .table_status(&DevId::Name(name), DM_STATUS_TABLE) {
+                          .table_status(&DevId::Name(name), DmFlags::DM_STATUS_TABLE) {
                     Err(DmError::Core(Error(ErrorKind::IoctlError(_), _))) => true,
                     _ => false,
                 });
