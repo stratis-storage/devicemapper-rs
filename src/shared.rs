@@ -11,7 +11,7 @@ use super::device::Device;
 use super::deviceinfo::DeviceInfo;
 use super::dm::{DM, DmFlags};
 use super::result::{DmError, DmResult, ErrorEnum};
-use super::types::{DevId, DmName, DmUuid, Sectors, TargetLine};
+use super::types::{DevId, DmName, DmUuid, Sectors, TargetLine, TargetParams};
 
 /// A trait capturing some shared properties of DM devices.
 pub trait DmDevice {
@@ -38,11 +38,11 @@ pub fn message(dm: &DM, target: &DmDevice, msg: &str) -> DmResult<()> {
 }
 
 /// Create a device, load a table, and resume it.
-pub fn device_create(dm: &DM,
-                     name: &DmName,
-                     uuid: Option<&DmUuid>,
-                     table: &[TargetLine])
-                     -> DmResult<DeviceInfo> {
+pub fn device_create<T: TargetParams>(dm: &DM,
+                                      name: &DmName,
+                                      uuid: Option<&DmUuid>,
+                                      table: &[TargetLine<T>])
+                                      -> DmResult<DeviceInfo> {
     dm.device_create(name, uuid, DmFlags::empty())?;
 
     let id = DevId::Name(name);
@@ -60,11 +60,11 @@ pub fn device_create(dm: &DM,
 
 /// Verify that kernel data matches arguments passed.
 /// Return the status of the device.
-fn device_match(dm: &DM,
-                name: &DmName,
-                uuid: Option<&DmUuid>,
-                table: &[TargetLine])
-                -> DmResult<DeviceInfo> {
+fn device_match<T: TargetParams>(dm: &DM,
+                                 name: &DmName,
+                                 uuid: Option<&DmUuid>,
+                                 table: &[TargetLine<T>])
+                                 -> DmResult<DeviceInfo> {
     let table_status = dm.table_status(&DevId::Name(name), DmFlags::DM_STATUS_TABLE)?;
     if table_status.1 != table {
         let err_msg = format!("Specified new table \"{:?}\" does not match kernel table \"{:?}\"",
@@ -88,11 +88,11 @@ fn device_match(dm: &DM,
 /// If the device is already known to the kernel, verify that the table
 /// passed agrees with the kernel's. If the device is unknown to the kernel
 /// just load the table.
-pub fn device_setup(dm: &DM,
-                    name: &DmName,
-                    uuid: Option<&DmUuid>,
-                    table: &[TargetLine])
-                    -> DmResult<DeviceInfo> {
+pub fn device_setup<T: TargetParams>(dm: &DM,
+                                     name: &DmName,
+                                     uuid: Option<&DmUuid>,
+                                     table: &[TargetLine<T>])
+                                     -> DmResult<DeviceInfo> {
     if device_exists(dm, name)? {
         device_match(dm, name, uuid, table)
     } else {
@@ -101,7 +101,10 @@ pub fn device_setup(dm: &DM,
 }
 
 /// Reload the table for a device
-pub fn table_reload(dm: &DM, id: &DevId, table: &[TargetLine]) -> DmResult<DeviceInfo> {
+pub fn table_reload<T: TargetParams>(dm: &DM,
+                                     id: &DevId,
+                                     table: &[TargetLine<T>])
+                                     -> DmResult<DeviceInfo> {
     let dev_info = dm.table_load(id, table)?;
     dm.device_suspend(id, DmFlags::DM_SUSPEND)?;
     dm.device_suspend(id, DmFlags::empty())?;

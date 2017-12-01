@@ -15,13 +15,17 @@ use super::thinpooldev::ThinPoolDev;
 use super::types::{DevId, DmName, DmUuid, Sectors, TargetLine, TargetParams, TargetTypeBuf};
 
 
+/// ThinDev target params
 #[derive(Debug, PartialEq)]
-struct ThinDevTargetParams {
+pub struct ThinDevTargetParams {
+    /// The device's thin pool
     pub pool: Device,
+    /// The device's thin pool id
     pub thin_id: ThinDevId,
 }
 
 impl ThinDevTargetParams {
+    /// Make a new ThinDevTargetParams struct
     pub fn new(pool: Device, thin_id: ThinDevId) -> ThinDevTargetParams {
         ThinDevTargetParams {
             pool: pool,
@@ -179,12 +183,15 @@ impl ThinDev {
     /// where the thin device specific string has the format:
     /// <thinpool maj:min> <thin_id>
     /// There is exactly one entry in the table.
-    fn dm_table(length: Sectors, thin_pool: Device, thin_id: ThinDevId) -> Vec<TargetLine> {
+    fn dm_table(length: Sectors,
+                thin_pool: Device,
+                thin_id: ThinDevId)
+                -> Vec<TargetLine<ThinDevTargetParams>> {
         vec![TargetLine {
                  start: Sectors::default(),
                  length: length,
                  target_type: TargetTypeBuf::new("thin".into()).expect("< length limit"),
-                 params: ThinDevTargetParams::new(thin_pool, thin_id).to_string(),
+                 params: ThinDevTargetParams::new(thin_pool, thin_id),
              }]
     }
 

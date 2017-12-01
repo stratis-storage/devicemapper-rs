@@ -21,16 +21,23 @@ use std::path::Path;
 use super::loopbacked::devnode_to_devno;
 
 
+/// ThinPoolDev target params
 #[derive(Debug, PartialEq)]
-struct ThinPoolDevTargetParams {
+pub struct ThinPoolDevTargetParams {
+    /// the metadata device
     pub metadata_dev: Device,
+    /// the data device
     pub data_dev: Device,
+    /// data block size
     pub data_block_size: Sectors,
+    /// data low water mark
     pub low_water_mark: DataBlocks,
+    /// feature args
     pub feature_args: Vec<String>,
 }
 
 impl ThinPoolDevTargetParams {
+    /// Make a new ThinPoolDevTargetParams struct
     pub fn new(metadata_dev: Device,
                data_dev: Device,
                data_block_size: Sectors,
@@ -276,7 +283,7 @@ impl ThinPoolDev {
                 data: &LinearDev,
                 data_block_size: Sectors,
                 low_water_mark: DataBlocks)
-                -> Vec<TargetLine> {
+                -> Vec<TargetLine<ThinPoolDevTargetParams>> {
         vec![TargetLine {
                  start: Sectors::default(),
                  length: data.size(),
@@ -284,8 +291,7 @@ impl ThinPoolDev {
                  params: ThinPoolDevTargetParams::new(meta.device(),
                                                       data.device(),
                                                       data_block_size,
-                                                      low_water_mark)
-                         .to_string(),
+                                                      low_water_mark),
              }]
     }
 

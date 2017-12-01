@@ -18,7 +18,7 @@ use super::deviceinfo::{DM_NAME_LEN, DM_UUID_LEN, DeviceInfo};
 use super::dm_ioctl as dmi;
 use super::result::DmResult;
 use super::types::{DevId, DmName, DmNameBuf, DmUuid, Sectors, StatusLine, TargetLine,
-                   TargetTypeBuf};
+                   TargetParams, TargetTypeBuf};
 use super::util::{align_to, slice_to_null};
 
 /// Indicator to send IOCTL to DM
@@ -495,8 +495,13 @@ impl DM {
     /// # Example
     ///
     /// ```no_run
-    /// use devicemapper::{DM, DevId, DmName, Sectors, TargetLine, TargetTypeBuf};
+    /// use devicemapper::{DM, Device, DevId, DmName, LinearDevTargetParams,
+    /// Sectors, TargetLine, TargetTypeBuf};
     /// let dm = DM::new().unwrap();
+    ///
+    /// let params = LinearDevTargetParams::new(
+    ///    Device { major: 7, minor: 1 },
+    ///    Sectors(2048));
     ///
     /// // Create a 16MiB device (32768 512-byte sectors) that maps to /dev/sdb1
     /// // starting 1MiB into sdb1
@@ -504,14 +509,17 @@ impl DM {
     ///     start: Sectors(0),
     ///     length: Sectors(32768),
     ///     target_type: TargetTypeBuf::new("linear".into()).expect("valid"),
-    ///     params: "/dev/sdb1 2048".into()
+    ///     params: params,
     /// }];
     ///
     /// let name = DmName::new("example-dev").expect("is valid DM name");
     /// let id = DevId::Name(name);
     /// dm.table_load(&id, &table).unwrap();
     /// ```
-    pub fn table_load(&self, id: &DevId, targets: &[TargetLine]) -> DmResult<DeviceInfo> {
+    pub fn table_load<T: TargetParams>(&self,
+                                       id: &DevId,
+                                       targets: &[TargetLine<T>])
+                                       -> DmResult<DeviceInfo> {
         let mut targs = Vec::new();
 
         // Construct targets first, since we need to know how many & size
@@ -528,7 +536,7 @@ impl DM {
                     "TargetType max length = targ.target_type.len()");
             dst[..bytes.len()].clone_from_slice(bytes);
 
-            let mut params = t.params.to_owned();
+            let mut params = t.params.to_string().to_owned();
             let params_len = params.len();
             let pad_bytes = align_to(params_len + 1usize, 8usize) - params_len;
             params.extend(vec!["\0"; pad_bytes]);

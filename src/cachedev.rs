@@ -14,18 +14,27 @@ use super::shared::{DmDevice, device_create, device_exists, device_setup};
 use super::types::{DataBlocks, DevId, DmName, DmUuid, MetaBlocks, Sectors, TargetLine,
                    TargetParams, TargetTypeBuf};
 
+/// CacheDev target params
 #[derive(Debug, PartialEq)]
-struct CacheDevTargetParams {
+pub struct CacheDevTargetParams {
+    /// meta device
     pub meta: Device,
+    /// cache device
     pub cache: Device,
+    /// cache origin device
     pub origin: Device,
+    /// cache block size
     pub cache_block_size: Sectors,
+    /// feature args
     pub feature_args: Vec<String>,
+    /// replacement policy
     pub policy: String,
+    /// policy args
     pub policy_args: Vec<(String, String)>,
 }
 
 impl CacheDevTargetParams {
+    /// Make a new CacheDevTargetParams struct
     pub fn new(meta: Device,
                cache: Device,
                origin: Device,
@@ -326,7 +335,7 @@ impl CacheDev {
                 cache: &LinearDev,
                 origin: &LinearDev,
                 cache_block_size: Sectors)
-                -> Vec<TargetLine> {
+                -> Vec<TargetLine<CacheDevTargetParams>> {
         vec![TargetLine {
                  start: Sectors::default(),
                  length: origin.size(),
@@ -334,8 +343,7 @@ impl CacheDev {
                  params: CacheDevTargetParams::new(meta.device(),
                                                    cache.device(),
                                                    origin.device(),
-                                                   cache_block_size)
-                         .to_string(),
+                                                   cache_block_size),
              }]
     }
 

@@ -14,13 +14,17 @@ use super::shared::{DmDevice, device_setup, table_reload};
 use super::types::{DevId, DmName, DmUuid, Sectors, TargetLine, TargetParams, TargetTypeBuf};
 
 
+/// LinearDev target params
 #[derive(Debug, PartialEq)]
-struct LinearDevTargetParams {
+pub struct LinearDevTargetParams {
+    /// The device for this segment
     pub device: Device,
+    /// The offset on this device where the segment starts
     pub physical_start_offset: Sectors,
 }
 
 impl LinearDevTargetParams {
+    /// Make a new LinearDevTargetParams struct
     pub fn new(device: Device, physical_start_offset: Sectors) -> LinearDevTargetParams {
         LinearDevTargetParams {
             device: device,
@@ -119,7 +123,7 @@ impl LinearDev {
     /// <logical start offset> <length> "linear" <linear-specific string>
     /// where the linear-specific string has the format:
     /// <maj:min> <physical start offset>
-    fn dm_table(segments: &[Segment]) -> Vec<TargetLine> {
+    fn dm_table(segments: &[Segment]) -> Vec<TargetLine<LinearDevTargetParams>> {
         assert_ne!(segments.len(), 0);
 
         let mut table = Vec::new();
@@ -130,8 +134,7 @@ impl LinearDev {
                 start: logical_start_offset,
                 length: length,
                 target_type: TargetTypeBuf::new("linear".into()).expect("< length limit"),
-                params: LinearDevTargetParams::new(segment.device, physical_start_offset)
-                    .to_string(),
+                params: LinearDevTargetParams::new(segment.device, physical_start_offset),
             };
             debug!("dmtable line : {:?}", line);
             table.push(line);

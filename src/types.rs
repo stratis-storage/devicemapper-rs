@@ -427,7 +427,7 @@ pub trait TargetParams: fmt::Debug + fmt::Display + PartialEq + Sized {}
 
 /// One line of a device mapper table.
 #[derive(Debug, PartialEq)]
-pub struct TargetLine {
+pub struct TargetLine<T: TargetParams> {
     /// The start of the segment
     pub start: Sectors,
     /// The length of the segment
@@ -435,7 +435,7 @@ pub struct TargetLine {
     /// The target type
     pub target_type: TargetTypeBuf,
     /// The target specific parameters
-    pub params: String,
+    pub params: T,
 }
 
 
@@ -453,17 +453,17 @@ pub struct StatusLine {
 }
 
 
-impl PartialEq<StatusLine> for TargetLine {
+impl<T: TargetParams> PartialEq<StatusLine> for TargetLine<T> {
     fn eq(&self, other: &StatusLine) -> bool {
         self.start == other.start && self.length == other.length &&
-        self.target_type == other.target_type && self.params == other.params
+        self.target_type == other.target_type && self.params.to_string() == other.params
     }
 }
 
-impl PartialEq<TargetLine> for StatusLine {
-    fn eq(&self, other: &TargetLine) -> bool {
+impl<T: TargetParams> PartialEq<TargetLine<T>> for StatusLine {
+    fn eq(&self, other: &TargetLine<T>) -> bool {
         self.start == other.start && self.length == other.length &&
-        self.target_type == other.target_type && self.params == other.params
+        self.target_type == other.target_type && self.params == other.params.to_string()
     }
 }
 
