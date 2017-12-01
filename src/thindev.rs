@@ -6,7 +6,7 @@ use std::path::PathBuf;
 
 use super::device::Device;
 use super::deviceinfo::DeviceInfo;
-use super::dm::{DM, DM_SUSPEND, DmFlags};
+use super::dm::{DM, DmFlags};
 use super::result::{DmError, DmResult, ErrorEnum};
 use super::shared::{DmDevice, device_create, device_exists, device_setup, message, table_reload};
 use super::thindevid::ThinDevId;
@@ -128,7 +128,7 @@ impl ThinDev {
                     snapshot_thin_id: ThinDevId)
                     -> DmResult<ThinDev> {
         let source_id = DevId::Name(self.name());
-        dm.device_suspend(&source_id, DM_SUSPEND)?;
+        dm.device_suspend(&source_id, DmFlags::DM_SUSPEND)?;
         message(dm,
                 thin_pool,
                 &format!("create_snap {} {}", snapshot_thin_id, self.thin_id))?;

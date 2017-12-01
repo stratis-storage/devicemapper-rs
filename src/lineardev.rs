@@ -148,7 +148,6 @@ mod tests {
     use std::path::Path;
 
     use super::super::device::Device;
-    use super::super::dm::DM_STATUS_TABLE;
     use super::super::loopbacked::{blkdev_size, devnode_to_devno, test_with_spec};
 
     use super::*;
@@ -222,7 +221,7 @@ mod tests {
                                   segments)
                 .unwrap();
         assert_eq!(dm.table_status(&DevId::Name(DmName::new(name).expect("valid format")),
-                                   DM_STATUS_TABLE)
+                                   DmFlags::DM_STATUS_TABLE)
                        .unwrap()
                        .1
                        .len(),
@@ -264,7 +263,7 @@ mod tests {
                         .is_ok());
         assert_eq!(table,
                    dm.table_status(&DevId::Name(DmName::new(name).expect("valid format")),
-                                   DM_STATUS_TABLE)
+                                   DmFlags::DM_STATUS_TABLE)
                        .unwrap()
                        .1);
 
@@ -310,7 +309,7 @@ mod tests {
                 .unwrap();
         assert_eq!(table,
                    dm.table_status(&DevId::Name(DmName::new(name).expect("valid format")),
-                                   DM_STATUS_TABLE)
+                                   DmFlags::DM_STATUS_TABLE)
                        .unwrap()
                        .1);
         ld.teardown(&dm).unwrap();

@@ -13,7 +13,7 @@ license = "MPL-2.0"
 [dependencies]
 libc = "0.2.31"
 nix = "0.9"
-bitflags = "0.9"
+bitflags = "1"
 newtype_derive = "0.1"
 macro-attr = "0.2.0"
 serde = "1"
