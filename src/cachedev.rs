@@ -2,7 +2,9 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
+use std::fmt;
 use std::path::PathBuf;
+use std::str::FromStr;
 
 use super::device::Device;
 use super::deviceinfo::DeviceInfo;
@@ -11,7 +13,383 @@ use super::lineardev::LinearDev;
 use super::result::{DmResult, DmError, ErrorEnum};
 use super::shared::{DmDevice, device_create, device_exists, device_setup};
 use super::types::{DataBlocks, DevId, DmName, DmUuid, MetaBlocks, Sectors, TargetLine,
-                   TargetTypeBuf};
+                   TargetParams, TargetTypeBuf};
+
+
+struct CacheDevStatusParams {
+    pub meta_block_size: Sectors,
+    pub meta_usage: (MetaBlocks, MetaBlocks),
+    pub cache_block_size: Sectors,
+    pub cache_usage: (DataBlocks, DataBlocks),
+    pub read_hits: u64,
+    pub read_misses: u64,
+    pub write_hits: u64,
+    pub write_misses: u64,
+    pub demotions: u64,
+    pub promotions: u64,
+    pub dirty: u64,
+    pub feature_args: Vec<String>,
+    pub core_args: Vec<(String, String)>,
+    pub policy: String,
+    pub policy_args: Vec<(String, String)>,
+    pub cache_metadata_mode: CacheDevMetadataMode,
+    pub needs_check: bool,
+}
+
+impl CacheDevStatusParams {
+    #[allow(too_many_arguments)]
+    pub fn new(meta_block_size: Sectors,
+               meta_usage: (MetaBlocks, MetaBlocks),
+               cache_block_size: Sectors,
+               cache_usage: (DataBlocks, DataBlocks),
+               read_hits: u64,
+               read_misses: u64,
+               write_hits: u64,
+               write_misses: u64,
+               demotions: u64,
+               promotions: u64,
+               dirty: u64,
+               feature_args: Vec<String>,
+               core_args: Vec<(String, String)>,
+               policy: String,
+               policy_args: Vec<(String, String)>,
+               cache_metadata_mode: CacheDevMetadataMode,
+               needs_check: bool)
+               -> CacheDevStatusParams {
+        CacheDevStatusParams {
+            meta_block_size: meta_block_size,
+            meta_usage: meta_usage,
+            cache_block_size: cache_block_size,
+            cache_usage: cache_usage,
+            read_hits: read_hits,
+            read_misses: read_misses,
+            write_hits: write_hits,
+            write_misses: write_misses,
+            demotions: demotions,
+            promotions: promotions,
+            dirty: dirty,
+            feature_args: feature_args,
+            core_args: core_args,
+            policy: policy,
+            policy_args: policy_args,
+            cache_metadata_mode: cache_metadata_mode,
+            needs_check: needs_check,
+        }
+    }
+}
+
+impl FromStr for CacheDevStatusParams {
+    type Err = DmError;
+
+    fn from_str(s: &str) -> Result<CacheDevStatusParams, DmError> {
+
+        // Parse pairs of arguments from a slice
+        fn parse_pairs(start_index: usize,
+                       vals: &[&str])
+                       -> Result<(usize, Vec<(String, String)>), DmError> {
+            let num_items = vals[start_index]
+                .parse::<usize>()
+                .map_err(|e| {
+                             DmError::Dm(ErrorEnum::ParseError,
+                                         format!("could not parse number key/value items\"{}\": {}",
+                                                 vals[start_index],
+                                                 e))
+                         })?;
+            if num_items % 2 != 0 {
+                return Err(DmError::Dm(ErrorEnum::ParseError,
+                                       format!("expected even number of key/value items, found {}",
+                                               num_items)));
+            }
+
+            let next_start_index = start_index + num_items + 1;
+            Ok((next_start_index,
+                vals[start_index + 1..next_start_index]
+                    .chunks(2)
+                    .map(|p| (p[0].to_string(), p[1].to_string()))
+                    .collect()))
+        }
+
+
+        let vals = s.split(' ').collect::<Vec<_>>();
+        if vals.len() < 17 {
+            return Err(DmError::Dm(ErrorEnum::ParseError,
+                                   format!("expected at least 17 values in \"{}\", found {}",
+                                           s,
+                                           vals.len())));
+        }
+
+        let meta_block_size = vals[0]
+            .parse::<u64>()
+            .map(Sectors)
+            .map_err(|e| {
+                         DmError::Dm(ErrorEnum::ParseError,
+                                     format!("could not parse meta block size \"{}\": {}",
+                                             vals[0],
+                                             e))
+                     })?;
+        let meta_usage = vals[1].split('/').collect::<Vec<_>>();
+        if meta_usage.len() != 2 {
+            return Err(DmError::Dm(ErrorEnum::ParseError,
+                                   format!("expected exactly 2 values in \"{}\", found {}",
+                                           vals[1],
+                                           meta_usage.len())));
+        }
+
+        let meta_usage = (meta_usage[0].parse::<u64>().map(MetaBlocks).map_err(|e| {
+            DmError::Dm(ErrorEnum::ParseError,
+                        format!("could not parse used metadata blocks \"{}\": {}",
+                                meta_usage[0],
+                                e))})?,
+            meta_usage[1].parse::<u64>().map(MetaBlocks).map_err(|e| {
+            DmError::Dm(ErrorEnum::ParseError,
+                        format!("could not parse total metadata blocks \"{}\": {}",
+                            meta_usage[1],
+                        e))})?);
+
+        let cache_block_size = vals[2]
+            .parse::<u64>()
+            .map(Sectors)
+            .map_err(|e| {
+                         DmError::Dm(ErrorEnum::ParseError,
+                                     format!("could not parse cache block size \"{}\": {}",
+                                             vals[2],
+                                             e))
+                     })?;
+
+        let cache_usage = vals[3].split('/').collect::<Vec<_>>();
+        if cache_usage.len() != 2 {
+            return Err(DmError::Dm(ErrorEnum::ParseError,
+                                   format!("expected exactly 2 values in \"{}\", found {}",
+                                           vals[3],
+                                           cache_usage.len())));
+        }
+
+        let cache_usage =
+            (cache_usage[0]
+                 .parse::<u64>()
+                 .map(DataBlocks)
+                 .map_err(|e| {
+                              DmError::Dm(ErrorEnum::ParseError,
+                                          format!("could not parse used cache blocks \"{}\": {}",
+                                                  cache_usage[0],
+                                                  e))
+                          })?,
+             cache_usage[1]
+                 .parse::<u64>()
+                 .map(DataBlocks)
+                 .map_err(|e| {
+                              DmError::Dm(ErrorEnum::ParseError,
+                                          format!("could not parse total cache blocks \"{}\": {}",
+                                                  cache_usage[1],
+                                                  e))
+                          })?);
+
+        let read_hits = vals[4]
+            .parse::<u64>()
+            .map_err(|e| {
+                         DmError::Dm(ErrorEnum::ParseError,
+                                     format!("could not parse read hits \"{}\": {}", vals[4], e))
+                     })?;
+        let read_misses = vals[5]
+            .parse::<u64>()
+            .map_err(|e| {
+                         DmError::Dm(ErrorEnum::ParseError,
+                                     format!("could not parse read misses \"{}\": {}", vals[5], e))
+                     })?;
+        let write_hits = vals[6]
+            .parse::<u64>()
+            .map_err(|e| {
+                         DmError::Dm(ErrorEnum::ParseError,
+                                     format!("could not parse write hits \"{}\": {}", vals[6], e))
+                     })?;
+        let write_misses = vals[7]
+            .parse::<u64>()
+            .map_err(|e| {
+                         DmError::Dm(ErrorEnum::ParseError,
+                                     format!("could not parse write misses \"{}\": {}", vals[7], e))
+                     })?;
+        let demotions = vals[8]
+            .parse::<u64>()
+            .map_err(|e| {
+                         DmError::Dm(ErrorEnum::ParseError,
+                                     format!("could not parse demotions\"{}\": {}", vals[8], e))
+                     })?;
+        let promotions = vals[9]
+            .parse::<u64>()
+            .map_err(|e| {
+                         DmError::Dm(ErrorEnum::ParseError,
+                                     format!("could not parse promotions\"{}\": {}", vals[9], e))
+                     })?;
+        let dirty = vals[10]
+            .parse::<u64>()
+            .map_err(|e| {
+                         DmError::Dm(ErrorEnum::ParseError,
+                                     format!("could not parse number dirty blocks\"{}\": {}",
+                                             vals[10],
+                                             e))
+                     })?;
+
+        let num_feature_args = vals[11]
+            .parse::<usize>()
+            .map_err(|e| {
+                         DmError::Dm(ErrorEnum::ParseError,
+                                     format!("could not parse number feature args\"{}\": {}",
+                                             vals[11],
+                                             e))
+                     })?;
+        let core_args_start_index = 12usize + num_feature_args;
+        let feature_args: Vec<String> = vals[12..core_args_start_index]
+            .iter()
+            .map(|x| x.to_string())
+            .collect();
+
+        let (policy_start_index, core_args) = parse_pairs(core_args_start_index, &vals)?;
+        let policy = vals[policy_start_index].to_string();
+        let (rest_start_index, policy_args) = parse_pairs(policy_start_index + 1, &vals)?;
+
+        let cache_metadata_mode = match vals[rest_start_index] {
+            "rw" => CacheDevMetadataMode::Good,
+            "ro" => CacheDevMetadataMode::ReadOnly,
+            val => {
+                return Err(DmError::Dm(ErrorEnum::ParseError,
+                                       format!("unexpected value \"{}\" for cache metadata mode",
+                                               val)));
+            }
+        };
+
+        let needs_check = match vals[rest_start_index + 1] {
+            "-" => false,
+            "needs_check" => true,
+            val => {
+                return Err(DmError::Dm(ErrorEnum::ParseError,
+                                       format!("unexpected value \"{}\" for needs check", val)));
+            }
+        };
+
+        Ok(CacheDevStatusParams::new(meta_block_size,
+                                     meta_usage,
+                                     cache_block_size,
+                                     cache_usage,
+                                     read_hits,
+                                     read_misses,
+                                     write_hits,
+                                     write_misses,
+                                     demotions,
+                                     promotions,
+                                     dirty,
+                                     feature_args,
+                                     core_args,
+                                     policy,
+                                     policy_args,
+                                     cache_metadata_mode,
+                                     needs_check))
+
+    }
+}
+
+impl From<CacheDevStatusParams> for CacheDevWorkingStatus {
+    fn from(params: CacheDevStatusParams) -> CacheDevWorkingStatus {
+        let (used_meta, total_meta) = params.meta_usage;
+        let (used_cache, total_cache) = params.cache_usage;
+        let usage = CacheDevUsage::new(params.meta_block_size,
+                                       used_meta,
+                                       total_meta,
+                                       params.cache_block_size,
+                                       used_cache,
+                                       total_cache);
+        let performance = CacheDevPerformance::new(params.read_hits,
+                                                   params.read_misses,
+                                                   params.write_hits,
+                                                   params.write_misses,
+                                                   params.demotions,
+                                                   params.promotions,
+                                                   params.dirty);
+        CacheDevWorkingStatus::new(usage,
+                                   performance,
+                                   params.feature_args,
+                                   params.core_args,
+                                   params.policy,
+                                   params.policy_args,
+                                   params.cache_metadata_mode,
+                                   params.needs_check)
+    }
+}
+
+
+/// CacheDev target params
+#[derive(Debug, PartialEq)]
+pub struct CacheDevTargetParams {
+    /// meta device
+    pub meta: Device,
+    /// cache device
+    pub cache: Device,
+    /// cache origin device
+    pub origin: Device,
+    /// cache block size
+    pub cache_block_size: Sectors,
+    /// feature args
+    pub feature_args: Vec<String>,
+    /// replacement policy
+    pub policy: String,
+    /// policy args
+    pub policy_args: Vec<(String, String)>,
+}
+
+impl CacheDevTargetParams {
+    /// Make a new CacheDevTargetParams struct
+    pub fn new(meta: Device,
+               cache: Device,
+               origin: Device,
+               cache_block_size: Sectors)
+               -> CacheDevTargetParams {
+        CacheDevTargetParams {
+            meta: meta,
+            cache: cache,
+            origin: origin,
+            cache_block_size: cache_block_size,
+            feature_args: vec![],
+            policy: "default".to_owned(),
+            policy_args: vec![],
+        }
+    }
+}
+
+impl fmt::Display for CacheDevTargetParams {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let feature_args = if self.feature_args.is_empty() {
+            "0".to_owned()
+        } else {
+            format!("{} {}",
+                    self.feature_args.len(),
+                    self.feature_args.join(" "))
+        };
+
+        let policy_args = if self.policy_args.is_empty() {
+            "0".to_owned()
+        } else {
+            format!("{} {}",
+                    self.policy_args.len(),
+                    self.policy_args
+                        .iter()
+                        .map(|&(ref k, ref v)| format!("{} {}", k, v))
+                        .collect::<Vec<String>>()
+                        .join(" "))
+        };
+
+        write!(f,
+               "{} {} {} {} {} {} {}",
+               self.meta,
+               self.cache,
+               self.origin,
+               *self.cache_block_size,
+               feature_args,
+               self.policy,
+               policy_args)
+    }
+}
+
+impl TargetParams for CacheDevTargetParams {}
+
 
 /// Cache usage
 #[derive(Debug)]
@@ -204,10 +582,10 @@ impl CacheDev {
     pub fn new(dm: &DM,
                name: &DmName,
                uuid: Option<&DmUuid>,
-               cache_block_size: Sectors,
                meta: LinearDev,
                cache: LinearDev,
-               origin: LinearDev)
+               origin: LinearDev,
+               cache_block_size: Sectors)
                -> DmResult<CacheDev> {
         if device_exists(dm, name)? {
             let err_msg = format!("cachedev {} already exists", name);
@@ -230,10 +608,10 @@ impl CacheDev {
     pub fn setup(dm: &DM,
                  name: &DmName,
                  uuid: Option<&DmUuid>,
-                 cache_block_size: Sectors,
                  meta: LinearDev,
                  cache: LinearDev,
-                 origin: LinearDev)
+                 origin: LinearDev,
+                 cache_block_size: Sectors)
                  -> DmResult<CacheDev> {
         let table = CacheDev::dm_table(&meta, &origin, &cache, cache_block_size);
         let dev_info = device_setup(dm, name, uuid, &table)?;
@@ -259,35 +637,16 @@ impl CacheDev {
                 cache: &LinearDev,
                 origin: &LinearDev,
                 cache_block_size: Sectors)
-                -> Vec<TargetLine> {
-        let params = format!("{} {} {} {} 0 default 0",
-                             meta.device(),
-                             cache.device(),
-                             origin.device(),
-                             *cache_block_size);
+                -> Vec<TargetLine<CacheDevTargetParams>> {
         vec![TargetLine {
                  start: Sectors::default(),
                  length: origin.size(),
                  target_type: TargetTypeBuf::new("cache".into()).expect("< length limit"),
-                 params: params,
+                 params: CacheDevTargetParams::new(meta.device(),
+                                                   cache.device(),
+                                                   origin.device(),
+                                                   cache_block_size),
              }]
-    }
-
-    /// Parse pairs of arguments from a slice
-    /// Use the same policy as status() method in asserting
-    fn parse_pairs(start_index: usize, vals: &[&str]) -> (usize, Vec<(String, String)>) {
-        let num_pairs = vals[start_index]
-            .parse::<usize>()
-            .expect("number value must be valid format");
-        if num_pairs % 2 != 0 {
-            panic!(format!("Number of args \"{}\" is not even", num_pairs));
-        }
-        let next_start_index = start_index + num_pairs + 1;
-        (next_start_index,
-         vals[start_index + 1..next_start_index]
-             .chunks(2)
-             .map(|p| (p[0].to_string(), p[1].to_string()))
-             .collect())
     }
 
     /// Get the current status of the cache device.
@@ -305,103 +664,8 @@ impl CacheDev {
             return Ok(CacheDevStatus::Fail);
         }
 
-        let status_vals = status_line.split(' ').collect::<Vec<_>>();
-        assert!(status_vals.len() >= 17,
-                "Kernel must return at least 17 values from cache dev status");
-
-
-        let usage = {
-            let meta_block_size = status_vals[0];
-            let meta_usage = status_vals[1].split('/').collect::<Vec<_>>();
-            let cache_block_size = status_vals[2];
-            let cache_usage = status_vals[3].split('/').collect::<Vec<_>>();
-            CacheDevUsage::new(Sectors(meta_block_size
-                                           .parse::<u64>()
-                                           .expect("meta_block_size value must be valid")),
-                               MetaBlocks(meta_usage[0]
-                                              .parse::<u64>()
-                                              .expect("used_meta value must be valid")),
-                               MetaBlocks(meta_usage[1]
-                                              .parse::<u64>()
-                                              .expect("total_meta value must be valid")),
-                               Sectors(cache_block_size
-                                           .parse::<u64>()
-                                           .expect("cache_block_size value must be valid")),
-                               DataBlocks(cache_usage[0]
-                                              .parse::<u64>()
-                                              .expect("used_cache value must be valid")),
-                               DataBlocks(cache_usage[1]
-                                              .parse::<u64>()
-                                              .expect("total_cache value must be valid")))
-        };
-
-        let performance =
-            CacheDevPerformance::new(status_vals[4]
-                                         .parse::<u64>()
-                                         .expect("read hits value must be valid format"),
-                                     status_vals[5]
-                                         .parse::<u64>()
-                                         .expect("read misses value must be valid format"),
-                                     status_vals[6]
-                                         .parse::<u64>()
-                                         .expect("write hits value must be valid format"),
-                                     status_vals[7]
-                                         .parse::<u64>()
-                                         .expect("write misses value must be valid format"),
-                                     status_vals[8]
-                                         .parse::<u64>()
-                                         .expect("demotions value must be valid format"),
-                                     status_vals[9]
-                                         .parse::<u64>()
-                                         .expect("promotions value must be valid format"),
-                                     status_vals[10]
-                                         .parse::<u64>()
-                                         .expect("dirty value must be valid format"));
-
-        let num_feature_args = status_vals[11]
-            .parse::<usize>()
-            .expect("number value must be valid format");
-        let core_args_start_index = 12usize + num_feature_args;
-        let feature_args: Vec<String> = status_vals[12..core_args_start_index]
-            .iter()
-            .map(|x| x.to_string())
-            .collect();
-
-        let (policy_start_index, core_args) = CacheDev::parse_pairs(core_args_start_index,
-                                                                    &status_vals);
-
-        let policy = status_vals[policy_start_index].to_string();
-        let (rest_start_index, policy_args) = CacheDev::parse_pairs(policy_start_index + 1,
-                                                                    &status_vals);
-
-        let cache_metadata_mode = match status_vals[rest_start_index] {
-            "rw" => CacheDevMetadataMode::Good,
-            "ro" => CacheDevMetadataMode::ReadOnly,
-            val => {
-                panic!(format!("Kernel returned unexpected {}th value \"{}\" in thin pool status",
-                               rest_start_index + 1,
-                               val))
-            }
-        };
-
-        let needs_check = match status_vals[rest_start_index + 1] {
-            "-" => false,
-            "needs_check" => true,
-            val => {
-                panic!(format!("Kernel returned unexpected {}th value \"{}\" in thin pool status",
-                               rest_start_index + 2,
-                               val))
-            }
-        };
-
-        Ok(CacheDevStatus::Working(Box::new(CacheDevWorkingStatus::new(usage,
-                                                                       performance,
-                                                                       feature_args,
-                                                                       core_args,
-                                                                       policy,
-                                                                       policy_args,
-                                                                       cache_metadata_mode,
-                                                                       needs_check))))
+        let params = status_line.parse::<CacheDevStatusParams>()?;
+        Ok(CacheDevStatus::Working(Box::new(params.into())))
     }
 }
 
@@ -460,10 +724,10 @@ mod tests {
         let cache = CacheDev::new(&dm,
                                   DmName::new("cache").expect("valid format"),
                                   None,
-                                  MIN_CACHE_BLOCK_SIZE,
                                   meta,
                                   cache,
-                                  origin)
+                                  origin,
+                                  MIN_CACHE_BLOCK_SIZE)
                 .unwrap();
 
         match cache.status(&dm).unwrap() {

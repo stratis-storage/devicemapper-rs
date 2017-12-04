@@ -17,7 +17,8 @@ use super::device::Device;
 use super::deviceinfo::{DM_NAME_LEN, DM_UUID_LEN, DeviceInfo};
 use super::dm_ioctl as dmi;
 use super::result::DmResult;
-use super::types::{DevId, DmName, DmNameBuf, DmUuid, Sectors, TargetLine, TargetTypeBuf};
+use super::types::{DevId, DmName, DmNameBuf, DmUuid, Sectors, StatusLine, TargetLine,
+                   TargetTypeBuf};
 use super::util::{align_to, slice_to_null};
 
 /// Indicator to send IOCTL to DM
@@ -463,7 +464,7 @@ impl DM {
     pub fn device_wait(&self,
                        id: &DevId,
                        flags: DmFlags)
-                       -> DmResult<(DeviceInfo, Vec<TargetLine>)> {
+                       -> DmResult<(DeviceInfo, Vec<StatusLine>)> {
         let mut hdr: dmi::Struct_dm_ioctl = Default::default();
 
         let clean_flags = DmFlags::DM_QUERY_INACTIVE_TABLE & flags;
@@ -494,7 +495,8 @@ impl DM {
     /// # Example
     ///
     /// ```no_run
-    /// use devicemapper::{DM, DevId, DmName, Sectors, TargetLine, TargetTypeBuf};
+    /// use devicemapper::{DM, Device, DevId, DmName,
+    /// Sectors, TargetLine, TargetTypeBuf};
     /// let dm = DM::new().unwrap();
     ///
     /// // Create a 16MiB device (32768 512-byte sectors) that maps to /dev/sdb1
@@ -503,14 +505,14 @@ impl DM {
     ///     start: Sectors(0),
     ///     length: Sectors(32768),
     ///     target_type: TargetTypeBuf::new("linear".into()).expect("valid"),
-    ///     params: "/dev/sdb1 2048".into()
+    ///     params: "/dev/sdb1 2048".into(),
     /// }];
     ///
     /// let name = DmName::new("example-dev").expect("is valid DM name");
     /// let id = DevId::Name(name);
     /// dm.table_load(&id, &table).unwrap();
     /// ```
-    pub fn table_load(&self, id: &DevId, targets: &[TargetLine]) -> DmResult<DeviceInfo> {
+    pub fn table_load(&self, id: &DevId, targets: &[TargetLine<String>]) -> DmResult<DeviceInfo> {
         let mut targs = Vec::new();
 
         // Construct targets first, since we need to know how many & size
@@ -527,7 +529,7 @@ impl DM {
                     "TargetType max length = targ.target_type.len()");
             dst[..bytes.len()].clone_from_slice(bytes);
 
-            let mut params = t.params.to_owned();
+            let mut params = t.params.to_string().to_owned();
             let params_len = params.len();
             let pad_bytes = align_to(params_len + 1usize, 8usize) - params_len;
             params.extend(vec!["\0"; pad_bytes]);
@@ -637,7 +639,7 @@ impl DM {
     // will either be backwards-compatible, or will increment
     // DM_VERSION_MAJOR.  Since calls made with a non-matching major version
     // will fail, this protects against callers parsing unknown formats.
-    fn parse_table_status(count: u32, buf: &[u8]) -> Vec<TargetLine> {
+    fn parse_table_status(count: u32, buf: &[u8]) -> Vec<StatusLine> {
         let mut targets = Vec::new();
         if !buf.is_empty() {
             let mut next_off = 0;
@@ -663,7 +665,7 @@ impl DM {
                     String::from_utf8_lossy(slc).trim_right().to_owned()
                 };
 
-                targets.push(TargetLine {
+                targets.push(StatusLine {
                                  start: Sectors(targ.sector_start),
                                  length: Sectors(targ.length),
                                  target_type:
@@ -707,7 +709,7 @@ impl DM {
     pub fn table_status(&self,
                         id: &DevId,
                         flags: DmFlags)
-                        -> DmResult<(DeviceInfo, Vec<TargetLine>)> {
+                        -> DmResult<(DeviceInfo, Vec<StatusLine>)> {
         let mut hdr: dmi::Struct_dm_ioctl = Default::default();
 
         let clean_flags = (DmFlags::DM_NOFLUSH | DmFlags::DM_STATUS_TABLE |

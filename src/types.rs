@@ -21,6 +21,7 @@ use std::fmt;
 use std::iter::Sum;
 use std::mem::transmute;
 use std::ops::{Deref, Div, Mul, Rem, Add};
+use std::str::FromStr;
 
 use serde;
 
@@ -422,9 +423,29 @@ const DM_TARGET_TYPE_LEN: usize = 16;
 
 str_id!(TargetType, TargetTypeBuf, DM_TARGET_TYPE_LEN, str_check);
 
+/// The trait for properties of the params string of TargetType
+pub trait TargetParams: fmt::Debug + fmt::Display + PartialEq + Sized {}
+
+impl TargetParams for String {}
+
 /// One line of a device mapper table.
 #[derive(Debug, PartialEq)]
-pub struct TargetLine {
+pub struct TargetLine<T: TargetParams> {
+    /// The start of the segment
+    pub start: Sectors,
+    /// The length of the segment
+    pub length: Sectors,
+    /// The target type
+    pub target_type: TargetTypeBuf,
+    /// The target specific parameters
+    pub params: T,
+}
+
+pub trait StatusParams: fmt::Debug + FromStr + PartialEq + Sized {}
+
+/// One line of device mapper status information.
+#[derive(Debug, PartialEq)]
+pub struct StatusLine {
     /// The start of the segment
     pub start: Sectors,
     /// The length of the segment
@@ -433,6 +454,21 @@ pub struct TargetLine {
     pub target_type: TargetTypeBuf,
     /// The target specific parameters
     pub params: String,
+}
+
+
+impl<T: TargetParams> PartialEq<StatusLine> for TargetLine<T> {
+    fn eq(&self, other: &StatusLine) -> bool {
+        self.start == other.start && self.length == other.length &&
+        self.target_type == other.target_type && self.params.to_string() == other.params
+    }
+}
+
+impl<T: TargetParams> PartialEq<TargetLine<T>> for StatusLine {
+    fn eq(&self, other: &TargetLine<T>) -> bool {
+        self.start == other.start && self.length == other.length &&
+        self.target_type == other.target_type && self.params == other.params.to_string()
+    }
 }
 
 #[cfg(test)]

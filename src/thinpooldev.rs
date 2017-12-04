@@ -2,7 +2,9 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
+use std::fmt;
 use std::path::PathBuf;
+use std::str::FromStr;
 
 use super::device::Device;
 use super::deviceinfo::DeviceInfo;
@@ -12,12 +14,243 @@ use super::result::{DmResult, DmError, ErrorEnum};
 use super::segment::Segment;
 use super::shared::{DmDevice, device_create, device_exists, device_setup, table_reload};
 use super::types::{DataBlocks, DevId, DmName, DmUuid, MetaBlocks, Sectors, TargetLine,
-                   TargetTypeBuf};
+                   TargetParams, TargetTypeBuf};
 
 #[cfg(test)]
 use std::path::Path;
 #[cfg(test)]
 use super::loopbacked::devnode_to_devno;
+
+
+struct ThinPoolDevStatusParams {
+    pub transaction_id: u64,
+    pub meta_usage: (MetaBlocks, MetaBlocks),
+    pub data_usage: (DataBlocks, DataBlocks),
+    pub held_metadata_root: Option<MetaBlocks>,
+    pub summary: ThinPoolStatusSummary,
+    pub discard_passdown: bool,
+    pub no_space_policy: ThinPoolNoSpacePolicy,
+    pub needs_check: bool,
+}
+
+impl ThinPoolDevStatusParams {
+    #[allow(too_many_arguments)]
+    pub fn new(transaction_id: u64,
+               meta_usage: (MetaBlocks, MetaBlocks),
+               data_usage: (DataBlocks, DataBlocks),
+               held_metadata_root: Option<MetaBlocks>,
+               summary: ThinPoolStatusSummary,
+               discard_passdown: bool,
+               no_space_policy: ThinPoolNoSpacePolicy,
+               needs_check: bool)
+               -> ThinPoolDevStatusParams {
+        ThinPoolDevStatusParams {
+            transaction_id: transaction_id,
+            meta_usage: meta_usage,
+            data_usage: data_usage,
+            held_metadata_root: held_metadata_root,
+            summary: summary,
+            discard_passdown: discard_passdown,
+            no_space_policy: no_space_policy,
+            needs_check: needs_check,
+        }
+    }
+}
+
+impl FromStr for ThinPoolDevStatusParams {
+    type Err = DmError;
+
+    /// Note: Kernel docs show the ordering of the discard_passdown and the
+    /// summary field opposite to the code below. But this code couldn't
+    /// pass tests unless it were correct and the kernel docs wrong.
+    fn from_str(s: &str) -> Result<ThinPoolDevStatusParams, DmError> {
+        let vals = s.split(' ').collect::<Vec<_>>();
+        if vals.len() < 8 {
+            return Err(DmError::Dm(ErrorEnum::ParseError,
+                                   format!("expected at least 8 values in \"{}\", found {}",
+                                           s,
+                                           vals.len())));
+        }
+
+        let transaction_id = vals[0]
+            .parse::<u64>()
+            .map_err(|e| {
+                         DmError::Dm(ErrorEnum::ParseError,
+                                     format!("could not parse transaction id \"{}\": {}",
+                                             vals[0],
+                                             e))
+                     })?;
+
+        let meta_vals = vals[1].split('/').collect::<Vec<_>>();
+        if meta_vals.len() != 2 {
+            return Err(DmError::Dm(ErrorEnum::ParseError,
+                                   format!("expected exactly 2 values in \"{}\", found {}",
+                                           vals[1],
+                                           meta_vals.len())));
+        }
+
+        let meta_vals = (meta_vals[0].parse::<u64>().map(MetaBlocks).map_err(|e| {
+            DmError::Dm(ErrorEnum::ParseError,
+                        format!("could not parse used metadata blocks \"{}\": {}",
+                                meta_vals[0],
+                                e))})?,
+            meta_vals[1].parse::<u64>().map(MetaBlocks).map_err(|e| {
+            DmError::Dm(ErrorEnum::ParseError,
+                        format!("could not parse total metadata blocks \"{}\": {}",
+                            meta_vals[1],
+                        e))})?);
+
+        let data_vals = vals[2].split('/').collect::<Vec<_>>();
+        if data_vals.len() != 2 {
+            return Err(DmError::Dm(ErrorEnum::ParseError,
+                                   format!("expected exactly 2 values in \"{}\", found {}",
+                                           vals[2],
+                                           data_vals.len())));
+        }
+
+        let data_vals = (data_vals[0].parse::<u64>().map(DataBlocks).map_err(|e| {
+            DmError::Dm(ErrorEnum::ParseError,
+                        format!("could not parse used metadata blocks \"{}\": {}",
+                                data_vals[0],
+                                e))})?,
+            data_vals[1].parse::<u64>().map(DataBlocks).map_err(|e| {
+            DmError::Dm(ErrorEnum::ParseError,
+                        format!("could not parse total metadata blocks \"{}\": {}",
+                            data_vals[1],
+                        e))})?);
+
+        let held_metadata_root = match vals[3] {
+            "-" => None,
+            val => val.parse::<u64>().map(MetaBlocks).map(Some).map_err(|e| {
+                DmError::Dm(ErrorEnum::ParseError,
+                        format!("could not parse held metadata root \"{}\": {}",
+                            vals[3],
+                        e))})?,
+        };
+
+        let summary = match vals[4] {
+            "rw" => ThinPoolStatusSummary::Good,
+            "ro" => ThinPoolStatusSummary::ReadOnly,
+            "out_of_data_space" => ThinPoolStatusSummary::OutOfSpace,
+            val => {
+                return Err(DmError::Dm(ErrorEnum::ParseError,
+                                       format!("unexpected value \"{}\" for summary", val)));
+            }
+
+        };
+
+        let discard_passdown = match vals[5] {
+            "discard_passdown" => true,
+            "no_discard_passdown" => false,
+            val => {
+                return Err(DmError::Dm(ErrorEnum::ParseError,
+                                       format!("unexpected value \"{}\" for discard_passdown",
+                                               val)));
+            }
+        };
+
+        let no_space_policy = match vals[6] {
+            "error_if_no_space" => ThinPoolNoSpacePolicy::Error,
+            "queue_if_no_space" => ThinPoolNoSpacePolicy::Queue,
+            val => {
+                return Err(DmError::Dm(ErrorEnum::ParseError,
+                                       format!("unexpected value \"{}\" for no space policy",
+                                               val)));
+            }
+        };
+
+        let needs_check = match vals[7] {
+            "-" => false,
+            "needs_check" => true,
+            val => {
+                return Err(DmError::Dm(ErrorEnum::ParseError,
+                                       format!("unexpected value \"{}\" for needs check", val)));
+            }
+        };
+
+        Ok(ThinPoolDevStatusParams::new(transaction_id,
+                                        meta_vals,
+                                        data_vals,
+                                        held_metadata_root,
+                                        summary,
+                                        discard_passdown,
+                                        no_space_policy,
+                                        needs_check))
+    }
+}
+
+impl From<ThinPoolDevStatusParams> for ThinPoolWorkingStatus {
+    fn from(params: ThinPoolDevStatusParams) -> ThinPoolWorkingStatus {
+        let (used_meta, total_meta) = params.meta_usage;
+        let (used_data, total_data) = params.data_usage;
+        ThinPoolWorkingStatus::new(params.transaction_id,
+                                   ThinPoolUsage {
+                                       used_meta: used_meta,
+                                       total_meta: total_meta,
+                                       used_data: used_data,
+                                       total_data: total_data,
+                                   },
+                                   params.discard_passdown,
+                                   params.no_space_policy,
+                                   params.summary,
+                                   params.needs_check)
+    }
+}
+
+
+/// ThinPoolDev target params
+#[derive(Debug, PartialEq)]
+pub struct ThinPoolDevTargetParams {
+    /// the metadata device
+    pub metadata_dev: Device,
+    /// the data device
+    pub data_dev: Device,
+    /// data block size
+    pub data_block_size: Sectors,
+    /// data low water mark
+    pub low_water_mark: DataBlocks,
+    /// feature args
+    pub feature_args: Vec<String>,
+}
+
+impl ThinPoolDevTargetParams {
+    /// Make a new ThinPoolDevTargetParams struct
+    pub fn new(metadata_dev: Device,
+               data_dev: Device,
+               data_block_size: Sectors,
+               low_water_mark: DataBlocks)
+               -> ThinPoolDevTargetParams {
+        ThinPoolDevTargetParams {
+            metadata_dev: metadata_dev,
+            data_dev: data_dev,
+            data_block_size: data_block_size,
+            low_water_mark: low_water_mark,
+            feature_args: vec!["skip_block_zeroing".to_owned()],
+        }
+    }
+}
+
+impl fmt::Display for ThinPoolDevTargetParams {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let feature_args = if self.feature_args.is_empty() {
+            "0".to_owned()
+        } else {
+            format!("{} {}",
+                    self.feature_args.len(),
+                    self.feature_args.join(" "))
+        };
+
+        write!(f,
+               "{} {} {} {} {}",
+               self.metadata_dev,
+               self.data_dev,
+               *self.data_block_size,
+               *self.low_water_mark,
+               feature_args)
+    }
+}
+
+impl TargetParams for ThinPoolDevTargetParams {}
 
 
 /// DM construct to contain thin provisioned devices
@@ -154,10 +387,10 @@ impl ThinPoolDev {
     pub fn new(dm: &DM,
                name: &DmName,
                uuid: Option<&DmUuid>,
-               data_block_size: Sectors,
-               low_water_mark: DataBlocks,
                meta: LinearDev,
-               data: LinearDev)
+               data: LinearDev,
+               data_block_size: Sectors,
+               low_water_mark: DataBlocks)
                -> DmResult<ThinPoolDev> {
         if device_exists(dm, name)? {
             let err_msg = format!("thinpooldev {} already exists", name);
@@ -200,10 +433,10 @@ impl ThinPoolDev {
     pub fn setup(dm: &DM,
                  name: &DmName,
                  uuid: Option<&DmUuid>,
-                 data_block_size: Sectors,
-                 low_water_mark: DataBlocks,
                  meta: LinearDev,
-                 data: LinearDev)
+                 data: LinearDev,
+                 data_block_size: Sectors,
+                 low_water_mark: DataBlocks)
                  -> DmResult<ThinPoolDev> {
         let table = ThinPoolDev::dm_table(&meta, &data, data_block_size, low_water_mark);
         let dev_info = device_setup(dm, name, uuid, &table)?;
@@ -227,108 +460,35 @@ impl ThinPoolDev {
                 data: &LinearDev,
                 data_block_size: Sectors,
                 low_water_mark: DataBlocks)
-                -> Vec<TargetLine> {
-        let params = format!("{} {} {} {} 1 skip_block_zeroing",
-                             meta.device(),
-                             data.device(),
-                             *data_block_size,
-                             *low_water_mark);
+                -> Vec<TargetLine<ThinPoolDevTargetParams>> {
         vec![TargetLine {
                  start: Sectors::default(),
                  length: data.size(),
                  target_type: TargetTypeBuf::new("thin-pool".into()).expect("< length limit"),
-                 params: params,
+                 params: ThinPoolDevTargetParams::new(meta.device(),
+                                                      data.device(),
+                                                      data_block_size,
+                                                      low_water_mark),
              }]
     }
 
     /// Get the current status of the thinpool.
-    /// Returns an error if there was an error getting the status value.
-    /// Panics if there is an error parsing the status value.
-    /// Note: Kernel docs show the ordering of the discard_passdown and the
-    /// summary field opposite to the code below. But this code couldn't
-    /// pass tests unless it were correct and the kernel docs wrong.
-    // Justification: see comment above DM::parse_table_status.
     pub fn status(&self, dm: &DM) -> DmResult<ThinPoolStatus> {
-        let (_, status) = dm.table_status(&DevId::Name(self.name()), DmFlags::empty())?;
+        let (_, table) = dm.table_status(&DevId::Name(self.name()), DmFlags::empty())?;
 
-        assert_eq!(status.len(),
-                   1,
-                   "Kernel must return 1 line from thin pool status");
+        if table.len() != 1 {
+            return Err(DmError::Dm(ErrorEnum::ParseError,
+                                   format!("expected exactly 1 line in table, found {}",
+                                           table.len())));
+        }
 
-        let status_line = &status.get(0).expect("assertion above holds").params;
+        let status_line = &table.first().expect("table.len() == 1").params;
         if status_line.starts_with("Fail") {
             return Ok(ThinPoolStatus::Fail);
         }
 
-        let status_vals = status_line.split(' ').collect::<Vec<_>>();
-        assert!(status_vals.len() >= 8,
-                "Kernel must return at least 8 values from thin pool status");
-
-        let transaction_id = status_vals[0].parse::<u64>().expect("see justification");
-
-        let usage = {
-            let meta_vals = status_vals[1].split('/').collect::<Vec<_>>();
-            let data_vals = status_vals[2].split('/').collect::<Vec<_>>();
-            ThinPoolUsage {
-                used_meta: MetaBlocks(meta_vals[0]
-                                          .parse::<u64>()
-                                          .expect("used_meta value must be valid")),
-                total_meta: MetaBlocks(meta_vals[1]
-                                           .parse::<u64>()
-                                           .expect("total_meta value must be valid")),
-                used_data: DataBlocks(data_vals[0]
-                                          .parse::<u64>()
-                                          .expect("used_data value must be valid")),
-                total_data: DataBlocks(data_vals[1]
-                                           .parse::<u64>()
-                                           .expect("total_data value must be valid")),
-            }
-        };
-
-        let summary = match status_vals[4] {
-            "rw" => ThinPoolStatusSummary::Good,
-            "ro" => ThinPoolStatusSummary::ReadOnly,
-            "out_of_data_space" => ThinPoolStatusSummary::OutOfSpace,
-            val => {
-                panic!(format!("Kernel returned unexpected 5th value \"{}\" in thin pool status",
-                               val))
-            }
-
-        };
-
-        let discard_passdown = match status_vals[5] {
-            "discard_passdown" => true,
-            "no_discard_passdown" => false,
-            val => {
-                panic!(format!("Kernel returned unexpected 6th value \"{}\" in thin pool status",
-                               val))
-            }
-        };
-
-        let no_space_policy = match status_vals[6] {
-            "error_if_no_space" => ThinPoolNoSpacePolicy::Error,
-            "queue_if_no_space" => ThinPoolNoSpacePolicy::Queue,
-            val => {
-                panic!(format!("Kernel returned unexpected 7th value \"{}\" in thin pool status",
-                               val))
-            }
-        };
-
-        let needs_check = match status_vals[7] {
-            "-" => false,
-            "needs_check" => true,
-            val => {
-                panic!(format!("Kernel returned unexpected 8th value \"{}\" in thin pool status",
-                               val))
-            }
-        };
-
-        Ok(ThinPoolStatus::Working(Box::new(ThinPoolWorkingStatus::new(transaction_id,
-                                                                       usage,
-                                                                       discard_passdown,
-                                                                       no_space_policy,
-                                                                       summary,
-                                                                       needs_check))))
+        let params = status_line.parse::<ThinPoolDevStatusParams>()?;
+        Ok(ThinPoolStatus::Working(Box::new(params.into())))
     }
 
     /// Set the segments for the existing metadata device.
@@ -400,10 +560,10 @@ pub fn minimal_thinpool(dm: &DM, path: &Path) -> ThinPoolDev {
     ThinPoolDev::new(dm,
                      DmName::new("pool").expect("valid format"),
                      None,
-                     MIN_DATA_BLOCK_SIZE,
-                     DataBlocks(1),
                      meta,
-                     data)
+                     data,
+                     MIN_DATA_BLOCK_SIZE,
+                     DataBlocks(1))
             .unwrap()
 }
 
@@ -473,10 +633,10 @@ mod tests {
         assert!(match ThinPoolDev::new(&dm,
                                        DmName::new("pool").expect("valid format"),
                                        None,
-                                       MIN_DATA_BLOCK_SIZE / 2u64,
-                                       DataBlocks(1),
                                        meta,
-                                       data) {
+                                       data,
+                                       MIN_DATA_BLOCK_SIZE / 2u64,
+                                       DataBlocks(1)) {
                     Err(DmError::Core(Error(ErrorKind::IoctlError(_), _))) => true,
                     _ => false,
                 });

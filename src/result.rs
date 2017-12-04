@@ -16,6 +16,8 @@ pub enum ErrorEnum {
     Invalid,
     /// something not found
     NotFound,
+    /// error while parsing
+    ParseError,
 }
 
 impl fmt::Display for ErrorEnum {
