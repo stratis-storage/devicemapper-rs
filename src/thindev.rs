@@ -45,12 +45,33 @@ impl DmDevice for ThinDev {
     }
 }
 
-#[derive(Debug, Clone, Copy)]
+/// Status values for a thin device that is working
+#[derive(Clone, Debug)]
+pub struct ThinDevWorkingStatus {
+    /// The number of mapped sectors
+    pub nr_mapped_sectors: Sectors,
+    /// The highest mapped sector if any.
+    pub highest_mapped_sector: Option<Sectors>,
+}
+
+impl ThinDevWorkingStatus {
+    /// Make a new ThinDevWorkingStatus struct
+    pub fn new(nr_mapped_sectors: Sectors,
+               highest_mapped_sector: Option<Sectors>)
+               -> ThinDevWorkingStatus {
+        ThinDevWorkingStatus {
+            nr_mapped_sectors: nr_mapped_sectors,
+            highest_mapped_sector: highest_mapped_sector,
+        }
+    }
+}
+
+#[derive(Clone, Debug)]
 /// Thin device status.
 pub enum ThinStatus {
     /// Thin device is good. Includes number of mapped sectors, and
     /// highest mapped sector.
-    Good((Sectors, Option<Sectors>)),
+    Working(Box<ThinDevWorkingStatus>),
     /// Thin device is failed.
     Fail,
 }
@@ -187,9 +208,10 @@ impl ThinDev {
 
         let count = status_vals[0]
             .parse::<u64>()
+            .map(Sectors)
             .expect("Kernel always returns a parseable u64 for sector count");
 
-        let highest = if count == 0 {
+        let highest = if count == Sectors(0) {
             None
         } else {
             Some(Sectors(status_vals[1]
@@ -197,7 +219,7 @@ impl ThinDev {
                              .expect("Kernel always returns a parseable u64 when count > 0")))
         };
 
-        Ok(ThinStatus::Good((Sectors(count), highest)))
+        Ok(ThinStatus::Working(Box::new(ThinDevWorkingStatus::new(count, highest))))
     }
 
     /// Extend the thin device's (virtual) size by the number of

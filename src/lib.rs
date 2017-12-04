@@ -118,7 +118,7 @@ pub use segment::Segment;
 pub use shared::{DmDevice, device_exists};
 pub use thinpooldev::{ThinPoolUsage, ThinPoolDev, ThinPoolNoSpacePolicy, ThinPoolStatus,
                       ThinPoolStatusSummary, ThinPoolWorkingStatus};
-pub use thindev::{ThinDev, ThinStatus};
+pub use thindev::{ThinDev, ThinDevWorkingStatus, ThinStatus};
 pub use thindevid::ThinDevId;
 pub use types::{Bytes, DataBlocks, DevId, DmName, DmNameBuf, DmUuid, DmUuidBuf, MetaBlocks,
                 Sectors, TargetLine, TargetType, TargetTypeBuf};
