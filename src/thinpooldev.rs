@@ -85,16 +85,16 @@ impl FromStr for ThinPoolDevStatusParams {
                                            meta_vals.len())));
         }
 
-        let meta_vals = (MetaBlocks(meta_vals[0].parse::<u64>().map_err(|e| {
+        let meta_vals = (meta_vals[0].parse::<u64>().map(MetaBlocks).map_err(|e| {
             DmError::Dm(ErrorEnum::ParseError,
                         format!("could not parse used metadata blocks \"{}\": {}",
                                 meta_vals[0],
-                                e))})?),
-            MetaBlocks(meta_vals[1].parse::<u64>().map_err(|e| {
+                                e))})?,
+            meta_vals[1].parse::<u64>().map(MetaBlocks).map_err(|e| {
             DmError::Dm(ErrorEnum::ParseError,
                         format!("could not parse total metadata blocks \"{}\": {}",
                             meta_vals[1],
-                        e))})?));
+                        e))})?);
 
         let data_vals = vals[2].split('/').collect::<Vec<_>>();
         if data_vals.len() != 2 {
@@ -104,16 +104,16 @@ impl FromStr for ThinPoolDevStatusParams {
                                            data_vals.len())));
         }
 
-        let data_vals = (DataBlocks(data_vals[0].parse::<u64>().map_err(|e| {
+        let data_vals = (data_vals[0].parse::<u64>().map(DataBlocks).map_err(|e| {
             DmError::Dm(ErrorEnum::ParseError,
                         format!("could not parse used metadata blocks \"{}\": {}",
                                 data_vals[0],
-                                e))})?),
-            DataBlocks(data_vals[1].parse::<u64>().map_err(|e| {
+                                e))})?,
+            data_vals[1].parse::<u64>().map(DataBlocks).map_err(|e| {
             DmError::Dm(ErrorEnum::ParseError,
                         format!("could not parse total metadata blocks \"{}\": {}",
                             data_vals[1],
-                        e))})?));
+                        e))})?);
 
         let summary = match vals[4] {
             "rw" => ThinPoolStatusSummary::Good,

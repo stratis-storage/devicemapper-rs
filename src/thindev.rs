@@ -55,11 +55,11 @@ impl FromStr for ThinDevStatusParams {
         let highest = if count == 0 {
             None
         } else {
-            Some(Sectors(vals[1].parse::<u64>().map_err(|e| {
+            Some(vals[1].parse::<u64>().map(Sectors).map_err(|e| {
                 DmError::Dm(ErrorEnum::ParseError,
                             format!("could not parse highest mapped sector \"{}\": {}",
                                     vals[1],
-                                    e))})?))
+                                    e))})?)
         };
 
         Ok(ThinDevStatusParams::new(count, highest))
