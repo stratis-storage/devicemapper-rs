@@ -46,7 +46,18 @@ pub fn device_create<T: TargetParams>(dm: &DM,
     dm.device_create(name, uuid, DmFlags::empty())?;
 
     let id = DevId::Name(name);
-    let dev_info = match dm.table_load(&id, table) {
+    let table = table
+        .iter()
+        .map(|x| {
+                 TargetLine {
+                     start: x.start,
+                     length: x.length,
+                     target_type: x.target_type.clone(),
+                     params: x.params.to_string(),
+                 }
+             })
+        .collect::<Vec<TargetLine<String>>>();
+    let dev_info = match dm.table_load(&id, &table) {
         Err(e) => {
             dm.device_remove(&id, DmFlags::empty())?;
             return Err(e);
@@ -105,7 +116,18 @@ pub fn table_reload<T: TargetParams>(dm: &DM,
                                      id: &DevId,
                                      table: &[TargetLine<T>])
                                      -> DmResult<DeviceInfo> {
-    let dev_info = dm.table_load(id, table)?;
+    let table = table
+        .iter()
+        .map(|x| {
+                 TargetLine {
+                     start: x.start,
+                     length: x.length,
+                     target_type: x.target_type.clone(),
+                     params: x.params.to_string(),
+                 }
+             })
+        .collect::<Vec<TargetLine<String>>>();
+    let dev_info = dm.table_load(id, &table)?;
     dm.device_suspend(id, DmFlags::DM_SUSPEND)?;
     dm.device_suspend(id, DmFlags::empty())?;
     Ok(dev_info)

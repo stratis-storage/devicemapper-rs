@@ -18,7 +18,7 @@ use super::deviceinfo::{DM_NAME_LEN, DM_UUID_LEN, DeviceInfo};
 use super::dm_ioctl as dmi;
 use super::result::DmResult;
 use super::types::{DevId, DmName, DmNameBuf, DmUuid, Sectors, StatusLine, TargetLine,
-                   TargetParams, TargetTypeBuf};
+                   TargetTypeBuf};
 use super::util::{align_to, slice_to_null};
 
 /// Indicator to send IOCTL to DM
@@ -495,13 +495,9 @@ impl DM {
     /// # Example
     ///
     /// ```no_run
-    /// use devicemapper::{DM, Device, DevId, DmName, LinearDevTargetParams,
+    /// use devicemapper::{DM, Device, DevId, DmName,
     /// Sectors, TargetLine, TargetTypeBuf};
     /// let dm = DM::new().unwrap();
-    ///
-    /// let params = LinearDevTargetParams::new(
-    ///    Device { major: 7, minor: 1 },
-    ///    Sectors(2048));
     ///
     /// // Create a 16MiB device (32768 512-byte sectors) that maps to /dev/sdb1
     /// // starting 1MiB into sdb1
@@ -509,17 +505,14 @@ impl DM {
     ///     start: Sectors(0),
     ///     length: Sectors(32768),
     ///     target_type: TargetTypeBuf::new("linear".into()).expect("valid"),
-    ///     params: params,
+    ///     params: "/dev/sdb1 2048".into(),
     /// }];
     ///
     /// let name = DmName::new("example-dev").expect("is valid DM name");
     /// let id = DevId::Name(name);
     /// dm.table_load(&id, &table).unwrap();
     /// ```
-    pub fn table_load<T: TargetParams>(&self,
-                                       id: &DevId,
-                                       targets: &[TargetLine<T>])
-                                       -> DmResult<DeviceInfo> {
+    pub fn table_load(&self, id: &DevId, targets: &[TargetLine<String>]) -> DmResult<DeviceInfo> {
         let mut targs = Vec::new();
 
         // Construct targets first, since we need to know how many & size
