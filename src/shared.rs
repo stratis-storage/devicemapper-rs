@@ -66,6 +66,18 @@ fn device_match(dm: &DM,
                 table: &[TargetLine])
                 -> DmResult<DeviceInfo> {
     let (dev_info, kernel_table) = dm.table_status(&DevId::Name(name), DmFlags::DM_STATUS_TABLE)?;
+    // FIXME: this should go away in completed version
+    let kernel_table = kernel_table
+        .iter()
+        .map(|x| {
+                 TargetLine {
+                     start: x.0,
+                     length: x.1,
+                     target_type: x.2.to_owned(),
+                     params: x.3.to_owned(),
+                 }
+             })
+        .collect::<Vec<_>>();
     if kernel_table != table {
         let err_msg = format!("Specified new table \"{:?}\" does not match kernel table \"{:?}\"",
                               table,

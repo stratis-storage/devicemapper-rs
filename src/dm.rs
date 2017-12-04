@@ -460,10 +460,12 @@ impl DM {
     ///
     /// This interface is not very friendly to monitoring multiple devices.
     /// Events are also exported via uevents, that method may be preferable.
-    pub fn device_wait(&self,
-                       id: &DevId,
-                       flags: DmFlags)
-                       -> DmResult<(DeviceInfo, Vec<TargetLine>)> {
+    #[allow(type_complexity)]
+    pub fn device_wait
+        (&self,
+         id: &DevId,
+         flags: DmFlags)
+         -> DmResult<(DeviceInfo, Vec<(Sectors, Sectors, TargetTypeBuf, String)>)> {
         let mut hdr: dmi::Struct_dm_ioctl = Default::default();
 
         let clean_flags = DmFlags::DM_QUERY_INACTIVE_TABLE & flags;
@@ -637,7 +639,9 @@ impl DM {
     // will either be backwards-compatible, or will increment
     // DM_VERSION_MAJOR.  Since calls made with a non-matching major version
     // will fail, this protects against callers parsing unknown formats.
-    fn parse_table_status(count: u32, buf: &[u8]) -> Vec<TargetLine> {
+    fn parse_table_status(count: u32,
+                          buf: &[u8])
+                          -> Vec<(Sectors, Sectors, TargetTypeBuf, String)> {
         let mut targets = Vec::new();
         if !buf.is_empty() {
             let mut next_off = 0;
@@ -662,13 +666,11 @@ impl DM {
                     String::from_utf8_lossy(slc).trim_right().to_owned()
                 };
 
-                targets.push(TargetLine {
-                                 start: Sectors(targ.sector_start),
-                                 length: Sectors(targ.length),
-                                 target_type:
-                                     TargetTypeBuf::new(target_type).expect("< sizeof target_spec"),
-                                 params: params,
-                             });
+                targets.push((Sectors(targ.sector_start),
+                              Sectors(targ.length),
+
+                              TargetTypeBuf::new(target_type).expect("< sizeof target_spec"),
+                              params));
 
                 next_off = targ.next as usize;
             }
@@ -703,10 +705,12 @@ impl DM {
     /// let res = dm.table_status(&id, DmFlags::DM_STATUS_TABLE).unwrap();
     /// println!("{} {:?}", res.0.name(), res.1);
     /// ```
-    pub fn table_status(&self,
-                        id: &DevId,
-                        flags: DmFlags)
-                        -> DmResult<(DeviceInfo, Vec<TargetLine>)> {
+    #[allow(type_complexity)]
+    pub fn table_status
+        (&self,
+         id: &DevId,
+         flags: DmFlags)
+         -> DmResult<(DeviceInfo, Vec<(Sectors, Sectors, TargetTypeBuf, String)>)> {
         let mut hdr: dmi::Struct_dm_ioctl = Default::default();
 
         let clean_flags = (DmFlags::DM_NOFLUSH | DmFlags::DM_STATUS_TABLE |

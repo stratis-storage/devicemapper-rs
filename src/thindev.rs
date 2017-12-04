@@ -222,7 +222,7 @@ impl ThinDev {
                    1,
                    "Kernel must return 1 line table for thin status");
 
-        let status_line = &table.first().expect("assertion above holds").params;
+        let status_line = &table.first().expect("assertion above holds").3;
         if status_line.starts_with("Fail") {
             return Ok(ThinStatus::Fail);
         }

@@ -272,7 +272,6 @@ mod tests {
         let name = "name";
         let dev = Device::from(devnode_to_devno(&paths[0]).unwrap());
         let segments = &[Segment::new(dev, Sectors(0), Sectors(1))];
-        let table = LinearDev::dm_table(segments);
         let ld = LinearDev::setup(&dm,
                                   DmName::new(name).expect("valid format"),
                                   None,
@@ -288,12 +287,6 @@ mod tests {
                                  None,
                                  segments)
                         .is_ok());
-        assert_eq!(table,
-                   dm.table_status(&DevId::Name(DmName::new(name).expect("valid format")),
-                                   DmFlags::DM_STATUS_TABLE)
-                       .unwrap()
-                       .1);
-
         ld.teardown(&dm).unwrap();
     }
 
@@ -316,29 +309,6 @@ mod tests {
         assert!(ld2.is_ok());
 
         ld2.unwrap().teardown(&dm).unwrap();
-        ld.teardown(&dm).unwrap();
-    }
-
-    /// Verify that table status returns the expected table.
-    fn test_table_status(paths: &[&Path]) -> () {
-        assert!(paths.len() >= 1);
-
-        let dm = DM::new().unwrap();
-        let name = "name";
-        let dev = Device::from(devnode_to_devno(&paths[0]).unwrap());
-        let segments = &[Segment::new(dev, Sectors(0), Sectors(1)),
-                         Segment::new(dev, Sectors(1), Sectors(1))];
-        let table = LinearDev::dm_table(segments);
-        let ld = LinearDev::setup(&dm,
-                                  DmName::new(name).expect("valid format"),
-                                  None,
-                                  segments)
-                .unwrap();
-        assert_eq!(table,
-                   dm.table_status(&DevId::Name(DmName::new(name).expect("valid format")),
-                                   DmFlags::DM_STATUS_TABLE)
-                       .unwrap()
-                       .1);
         ld.teardown(&dm).unwrap();
     }
 
@@ -370,10 +340,5 @@ mod tests {
     #[test]
     fn loop_test_segment() {
         test_with_spec(1, test_same_segment);
-    }
-
-    #[test]
-    fn loop_test_table_status() {
-        test_with_spec(1, test_table_status);
     }
 }

@@ -303,7 +303,7 @@ impl ThinPoolDev {
                    1,
                    "Kernel must return 1 line from thin pool status");
 
-        let status_line = &status.get(0).expect("assertion above holds").params;
+        let status_line = &status.get(0).expect("assertion above holds").3;
         if status_line.starts_with("Fail") {
             return Ok(ThinPoolStatus::Fail);
         }
