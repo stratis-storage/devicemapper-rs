@@ -334,6 +334,8 @@ mod tests {
     use super::super::loopbacked::{blkdev_size, test_with_spec};
     use super::super::thinpooldev::minimal_thinpool;
 
+    use super::super::errors::{Error, ErrorKind};
+
     use super::*;
 
     const MIN_THIN_DEV_SIZE: Sectors = Sectors(1);
@@ -356,7 +358,9 @@ mod tests {
     }
 
     /// Verify that setting up a thin device without first calling new()
-    /// causes an error.
+    /// causes an error. The underlying reason is that the thin pool hasn't
+    /// been informed about the thin device by messaging the value of the
+    /// thin id
     fn test_setup_without_new(paths: &[&Path]) -> () {
         assert!(paths.len() >= 1);
 
@@ -364,13 +368,15 @@ mod tests {
         let tp = minimal_thinpool(&dm, paths[0]);
 
         let td_size = MIN_THIN_DEV_SIZE;
-        assert!(ThinDev::setup(&dm,
-                               &DmName::new("name").expect("is valid DM name"),
-                               None,
-                               td_size,
-                               &tp,
-                               ThinDevId::new_u64(0).expect("is below limit"))
-                        .is_err());
+        assert!(match ThinDev::setup(&dm,
+                                     &DmName::new("name").expect("is valid DM name"),
+                                     None,
+                                     td_size,
+                                     &tp,
+                                     ThinDevId::new_u64(0).expect("is below limit")) {
+                    Err(DmError::Core(Error(ErrorKind::IoctlError(_), _))) => true,
+                    _ => false,
+                });
 
         tp.teardown(&dm).unwrap();
     }
@@ -408,7 +414,13 @@ mod tests {
                    td_size.bytes());
 
         // New thindev w/ same id fails.
-        assert!(ThinDev::new(&dm, &id, None, td_size, &tp, thin_id).is_err());
+        assert!(match ThinDev::new(&dm, &id, None, td_size, &tp, thin_id) {
+                    Err(DmError::Core(Error(ErrorKind::IoctlError(_), _))) => true,
+                    _ => false,
+                });
+
+        // Verify that the device of that name does exist.
+        assert!(device_exists(&dm, id).unwrap());
 
         // Setting up the just created thin dev succeeds.
         assert!(ThinDev::setup(&dm, &id, None, td_size, &tp, thin_id).is_ok());
