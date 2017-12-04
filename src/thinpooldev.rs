@@ -34,6 +34,7 @@ struct ThinPoolDevStatusParams {
 }
 
 impl ThinPoolDevStatusParams {
+    #[allow(too_many_arguments)]
     pub fn new(transaction_id: u64,
                meta_usage: (MetaBlocks, MetaBlocks),
                data_usage: (DataBlocks, DataBlocks),

@@ -37,6 +37,7 @@ struct CacheDevStatusParams {
 }
 
 impl CacheDevStatusParams {
+    #[allow(too_many_arguments)]
     pub fn new(meta_block_size: Sectors,
                meta_usage: (MetaBlocks, MetaBlocks),
                cache_block_size: Sectors,
