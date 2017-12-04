@@ -65,23 +65,23 @@ fn device_match(dm: &DM,
                 uuid: Option<&DmUuid>,
                 table: &[TargetLine])
                 -> DmResult<DeviceInfo> {
-    let table_status = dm.table_status(&DevId::Name(name), DmFlags::DM_STATUS_TABLE)?;
-    if table_status.1 != table {
+    let (dev_info, kernel_table) = dm.table_status(&DevId::Name(name), DmFlags::DM_STATUS_TABLE)?;
+    if kernel_table != table {
         let err_msg = format!("Specified new table \"{:?}\" does not match kernel table \"{:?}\"",
                               table,
-                              table_status.1);
+                              kernel_table);
 
         return Err(DmError::Dm(ErrorEnum::Invalid, err_msg));
     }
-    let status = table_status.0;
-    if status.uuid() != uuid {
+
+    if dev_info.uuid() != uuid {
         let err_msg = format!("Specified uuid \"{:?}\" does not match kernel uuuid \"{:?}\"",
                               uuid,
-                              status.uuid());
+                              dev_info.uuid());
 
         return Err(DmError::Dm(ErrorEnum::Invalid, err_msg));
     }
-    Ok(status)
+    Ok(dev_info)
 }
 
 /// Setup a device.
