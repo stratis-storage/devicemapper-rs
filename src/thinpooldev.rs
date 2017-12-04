@@ -26,6 +26,7 @@ struct ThinPoolDevStatusParams {
     pub transaction_id: u64,
     pub meta_usage: (MetaBlocks, MetaBlocks),
     pub data_usage: (DataBlocks, DataBlocks),
+    pub held_metadata_root: Option<MetaBlocks>,
     pub summary: ThinPoolStatusSummary,
     pub discard_passdown: bool,
     pub no_space_policy: ThinPoolNoSpacePolicy,
@@ -36,6 +37,7 @@ impl ThinPoolDevStatusParams {
     pub fn new(transaction_id: u64,
                meta_usage: (MetaBlocks, MetaBlocks),
                data_usage: (DataBlocks, DataBlocks),
+               held_metadata_root: Option<MetaBlocks>,
                summary: ThinPoolStatusSummary,
                discard_passdown: bool,
                no_space_policy: ThinPoolNoSpacePolicy,
@@ -45,6 +47,7 @@ impl ThinPoolDevStatusParams {
             transaction_id: transaction_id,
             meta_usage: meta_usage,
             data_usage: data_usage,
+            held_metadata_root: held_metadata_root,
             summary: summary,
             discard_passdown: discard_passdown,
             no_space_policy: no_space_policy,
@@ -115,6 +118,15 @@ impl FromStr for ThinPoolDevStatusParams {
                             data_vals[1],
                         e))})?);
 
+        let held_metadata_root = match vals[3] {
+            "-" => None,
+            val => val.parse::<u64>().map(MetaBlocks).map(Some).map_err(|e| {
+                DmError::Dm(ErrorEnum::ParseError,
+                        format!("could not parse held metadata root \"{}\": {}",
+                            vals[3],
+                        e))})?,
+        };
+
         let summary = match vals[4] {
             "rw" => ThinPoolStatusSummary::Good,
             "ro" => ThinPoolStatusSummary::ReadOnly,
@@ -158,6 +170,7 @@ impl FromStr for ThinPoolDevStatusParams {
         Ok(ThinPoolDevStatusParams::new(transaction_id,
                                         meta_vals,
                                         data_vals,
+                                        held_metadata_root,
                                         summary,
                                         discard_passdown,
                                         no_space_policy,
