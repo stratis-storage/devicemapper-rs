@@ -422,6 +422,16 @@ mod tests {
         // Verify that the device of that name does exist.
         assert!(device_exists(&dm, id).unwrap());
 
+        let target_params = &ThinDev::dm_table(td_size, tp.device(), thin_id)[0]
+                                 .params
+                                 .to_string();
+        let status_params = &dm.table_status(&DevId::Name(&id), DmFlags::empty())
+                                 .unwrap()
+                                 .1
+                                 [0]
+                                     .params;
+        assert_eq!(target_params, status_params);
+
         // Setting up the just created thin dev succeeds.
         assert!(ThinDev::setup(&dm, &id, None, td_size, &tp, thin_id).is_ok());
 
