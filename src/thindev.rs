@@ -393,10 +393,13 @@ mod tests {
         let td_size = MIN_THIN_DEV_SIZE;
         let td = ThinDev::new(&dm, &id, None, td_size, &tp, thin_id).unwrap();
 
-        assert!(match td.status(&dm).unwrap() {
-                    ThinStatus::Fail => false,
-                    _ => true,
-                });
+        match td.status(&dm).unwrap() {
+            ThinStatus::Working(ref status) => {
+                assert_eq!(status.nr_mapped_sectors, 0);
+                assert_eq!(status.highest_mapped_sector, None);
+            }
+            _ => assert!(false),
+        }
 
         assert_eq!(blkdev_size(&OpenOptions::new()
                                     .read(true)
