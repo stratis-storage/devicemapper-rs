@@ -3,7 +3,12 @@
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 use std::fmt;
+use std::str::FromStr;
+
 use libc::{dev_t, major, makedev, minor};
+
+use super::errors::ErrorKind;
+use super::result::DmError;
 
 /// A struct containing the device's major and minor numbers
 ///
@@ -20,6 +25,36 @@ pub struct Device {
 impl fmt::Display for Device {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{}:{}", self.major, self.minor)
+    }
+}
+
+impl FromStr for Device {
+    type Err = DmError;
+
+    fn from_str(s: &str) -> Result<Device, DmError> {
+        let vals = s.split(':').collect::<Vec<_>>();
+        if vals.len() != 2 {
+            let err_msg = format!("value \"{}\" split into wrong number of fields", s);
+            return Err(DmError::Core(ErrorKind::InvalidArgument(err_msg).into()));
+        }
+        let major = vals[0]
+            .parse::<u32>()
+            .map_err(|_| {
+                         DmError::Core(ErrorKind::InvalidArgument(
+                        format!("could not parse \"{}\" to obtain major number",
+                                                                      vals[0])).into())
+                     })?;
+        let minor = vals[1]
+            .parse::<u32>()
+            .map_err(|_| {
+                         DmError::Core(ErrorKind::InvalidArgument(
+                        format!("could not parse \"{}\" to obtain minor number",
+                                                                      vals[0])).into())
+                     })?;
+        Ok(Device {
+               major: major,
+               minor: minor,
+           })
     }
 }
 
