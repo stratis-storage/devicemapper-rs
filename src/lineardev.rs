@@ -137,7 +137,7 @@ impl LinearDev {
             return Ok(());
         }
         dm.device_rename(self.name(), &DevId::Name(name))?;
-        self.dev_info = Box::new(dm.device_status(&DevId::Name(name))?);
+        self.dev_info = Box::new(dm.device_info(&DevId::Name(name))?);
         Ok(())
     }
 }

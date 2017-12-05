@@ -439,7 +439,7 @@ impl DM {
     /// Get DeviceInfo for a device. This is also returned by other
     /// methods, but if just the DeviceInfo is desired then this just
     /// gets it.
-    pub fn device_status(&self, id: &DevId) -> DmResult<DeviceInfo> {
+    pub fn device_info(&self, id: &DevId) -> DmResult<DeviceInfo> {
         let mut hdr: dmi::Struct_dm_ioctl = Default::default();
 
         Self::initialize_hdr(&mut hdr, DmFlags::empty());
@@ -923,12 +923,12 @@ mod tests {
         let uuid = DmUuid::new("example-363333333333333").expect("is valid DM uuid");
         let result = dm.device_rename(name, &DevId::Uuid(uuid)).unwrap();
         assert_eq!(result.uuid(), None);
-        assert_eq!(dm.device_status(&DevId::Name(name))
+        assert_eq!(dm.device_info(&DevId::Name(name))
                        .unwrap()
                        .uuid()
                        .unwrap(),
                    uuid);
-        assert!(dm.device_status(&DevId::Uuid(uuid)).is_ok());
+        assert!(dm.device_info(&DevId::Uuid(uuid)).is_ok());
         dm.device_remove(&DevId::Name(name), DmFlags::empty())
             .unwrap();
     }
@@ -960,11 +960,11 @@ mod tests {
         let new_name = DmName::new("example-dev-2").expect("is valid DM name");
         dm.device_rename(name, &DevId::Name(new_name)).unwrap();
 
-        assert!(match dm.device_status(&DevId::Name(name)) {
+        assert!(match dm.device_info(&DevId::Name(name)) {
                     Err(DmError::Core(Error(ErrorKind::IoctlError(_), _))) => true,
                     _ => false,
                 });
-        assert!(dm.device_status(&DevId::Name(new_name)).is_ok());
+        assert!(dm.device_info(&DevId::Name(new_name)).is_ok());
 
         let devices = dm.list_devices().unwrap();
         assert_eq!(devices.len(), 1);
@@ -1071,7 +1071,7 @@ mod tests {
     /// by name returns an error.
     fn sudo_status_no_name() {
         let name = DmName::new("example_dev").expect("is valid DM name");
-        assert!(match DM::new().unwrap().device_status(&DevId::Name(name)) {
+        assert!(match DM::new().unwrap().device_info(&DevId::Name(name)) {
                     Err(DmError::Core(Error(ErrorKind::IoctlError(_), _))) => true,
                     _ => false,
                 });
