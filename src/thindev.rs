@@ -4,12 +4,14 @@
 
 use std::fmt;
 use std::path::PathBuf;
+use std::str::FromStr;
 
 use super::device::Device;
 use super::deviceinfo::DeviceInfo;
 use super::dm::{DM, DmFlags};
 use super::result::{DmError, DmResult, ErrorEnum};
-use super::shared::{DmDevice, device_create, device_exists, device_match, message, table_reload};
+use super::shared::{DmDevice, device_create, device_exists, device_match, message, parse_device,
+                    table_reload};
 use super::thindevid::ThinDevId;
 use super::thinpooldev::ThinPoolDev;
 use super::types::{DevId, DmName, DmUuid, Sectors, TargetLine, TargetParams, TargetTypeBuf};
@@ -33,6 +35,22 @@ impl ThinDevTargetParams {
 impl fmt::Display for ThinDevTargetParams {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{} {}", self.pool, self.thin_id)
+    }
+}
+
+impl FromStr for ThinDevTargetParams {
+    type Err = DmError;
+
+    fn from_str(s: &str) -> Result<ThinDevTargetParams, DmError> {
+        let vals = s.split(' ').collect::<Vec<_>>();
+        if vals.len() != 2 {
+            let err_msg = format!("expected two values in params string \"{}\", found {}",
+                                  s,
+                                  vals.len());
+            return Err(DmError::Dm(ErrorEnum::Invalid, err_msg));
+        }
+
+        Ok(ThinDevTargetParams::new(parse_device(vals[0])?, vals[1].parse::<ThinDevId>()?))
     }
 }
 

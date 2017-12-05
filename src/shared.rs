@@ -5,9 +5,9 @@
 /// A module to contain functionality shared among the various types of
 /// devices.
 
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
-use super::device::Device;
+use super::device::{Device, devnode_to_devno};
 use super::deviceinfo::DeviceInfo;
 use super::dm::{DM, DmFlags};
 use super::result::{DmError, DmResult, ErrorEnum};
@@ -117,4 +117,19 @@ pub fn device_exists(dm: &DM, name: &DmName) -> DmResult<bool> {
     // coercion?
     Ok(dm.list_devices()
            .map(|l| l.iter().any(|&(ref n, _, _)| n.as_ref() == name))?)
+}
+
+/// Parse a device from either of a path or a maj:min pair
+pub fn parse_device(val: &str) -> DmResult<Device> {
+    let device = if val.starts_with('/') {
+        devnode_to_devno(Path::new(val))
+            .ok_or_else(|| {
+                            DmError::Dm(ErrorEnum::Invalid,
+                                        format!("failed to parse device number from \"{}\"", val))
+                        })?
+            .into()
+    } else {
+        val.parse::<Device>()?
+    };
+    Ok(device)
 }

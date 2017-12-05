@@ -4,13 +4,15 @@
 
 use std::fmt;
 use std::path::PathBuf;
+use std::str::FromStr;
 
 use super::device::Device;
 use super::deviceinfo::DeviceInfo;
 use super::dm::{DM, DmFlags};
 use super::result::{DmResult, DmError, ErrorEnum};
 use super::segment::Segment;
-use super::shared::{DmDevice, device_create, device_exists, device_match, table_reload};
+use super::shared::{DmDevice, device_create, device_exists, device_match, parse_device,
+                    table_reload};
 use super::types::{DevId, DmName, DmUuid, Sectors, TargetLine, TargetParams, TargetTypeBuf};
 
 
@@ -32,6 +34,32 @@ impl LinearDevTargetParams {
 impl fmt::Display for LinearDevTargetParams {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{} {}", self.device, *self.physical_start_offset)
+    }
+}
+
+impl FromStr for LinearDevTargetParams {
+    type Err = DmError;
+
+    fn from_str(s: &str) -> Result<LinearDevTargetParams, DmError> {
+        let vals = s.split(' ').collect::<Vec<_>>();
+        if vals.len() != 2 {
+            let err_msg = format!("expected two values in params string \"{}\", found {}",
+                                  s,
+                                  vals.len());
+            return Err(DmError::Dm(ErrorEnum::Invalid, err_msg));
+        }
+
+        let device = parse_device(vals[0])?;
+
+        let start = vals[1]
+            .parse::<u64>()
+            .map(Sectors)
+            .map_err(|_| {
+                DmError::Dm(ErrorEnum::Invalid,
+                            format!("failed to parse value for physical start offset \"{}\"",
+                                    vals[1]))})?;
+
+        Ok(LinearDevTargetParams::new(device, start))
     }
 }
 

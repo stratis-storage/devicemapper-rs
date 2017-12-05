@@ -2,15 +2,17 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
+use std::collections::{HashMap, HashSet};
 use std::fmt;
 use std::path::PathBuf;
+use std::str::FromStr;
 
 use super::device::Device;
 use super::deviceinfo::DeviceInfo;
 use super::dm::{DM, DmFlags};
 use super::lineardev::LinearDev;
 use super::result::{DmResult, DmError, ErrorEnum};
-use super::shared::{DmDevice, device_create, device_exists, device_match};
+use super::shared::{DmDevice, device_create, device_exists, device_match, parse_device};
 use super::types::{DataBlocks, DevId, DmName, DmUuid, MetaBlocks, Sectors, TargetLine,
                    TargetParams, TargetTypeBuf};
 
@@ -20,25 +22,28 @@ struct CacheDevTargetParams {
     pub cache: Device,
     pub origin: Device,
     pub cache_block_size: Sectors,
-    pub feature_args: Vec<String>,
+    pub feature_args: HashSet<String>,
     pub policy: String,
-    pub policy_args: Vec<(String, String)>,
+    pub policy_args: HashMap<String, String>,
 }
 
 impl CacheDevTargetParams {
     pub fn new(meta: Device,
                cache: Device,
                origin: Device,
-               cache_block_size: Sectors)
+               cache_block_size: Sectors,
+               feature_args: Vec<String>,
+               policy: String,
+               policy_args: Vec<(String, String)>)
                -> CacheDevTargetParams {
         CacheDevTargetParams {
             meta: meta,
             cache: cache,
             origin: origin,
             cache_block_size: cache_block_size,
-            feature_args: vec![],
-            policy: "default".to_owned(),
-            policy_args: vec![],
+            feature_args: feature_args.into_iter().collect::<HashSet<_>>(),
+            policy: policy,
+            policy_args: policy_args.into_iter().collect::<HashMap<_, _>>(),
         }
     }
 }
@@ -50,7 +55,11 @@ impl fmt::Display for CacheDevTargetParams {
         } else {
             format!("{} {}",
                     self.feature_args.len(),
-                    self.feature_args.join(" "))
+                    self.feature_args
+                        .iter()
+                        .cloned()
+                        .collect::<Vec<_>>()
+                        .join(" "))
         };
 
         let policy_args = if self.policy_args.is_empty() {
@@ -60,7 +69,7 @@ impl fmt::Display for CacheDevTargetParams {
                     self.policy_args.len(),
                     self.policy_args
                         .iter()
-                        .map(|&(ref k, ref v)| format!("{} {}", k, v))
+                        .map(|(k, v)| format!("{} {}", k, v))
                         .collect::<Vec<String>>()
                         .join(" "))
         };
@@ -74,6 +83,72 @@ impl fmt::Display for CacheDevTargetParams {
                feature_args,
                self.policy,
                policy_args)
+    }
+}
+
+impl FromStr for CacheDevTargetParams {
+    type Err = DmError;
+
+    fn from_str(s: &str) -> Result<CacheDevTargetParams, DmError> {
+        let vals = s.split(' ').collect::<Vec<_>>();
+
+        if vals.len() < 7 {
+            let err_msg = format!("expected at least 7 values in params string \"{}\", found {}",
+                                  s,
+                                  vals.len());
+            return Err(DmError::Dm(ErrorEnum::Invalid, err_msg));
+        }
+
+        let metadata_dev = parse_device(vals[0])?;
+        let cache_dev = parse_device(vals[1])?;
+        let origin_dev = parse_device(vals[2])?;
+
+        let block_size = vals[3]
+            .parse::<u64>()
+            .map(Sectors)
+            .map_err(|_| {
+                DmError::Dm(ErrorEnum::Invalid,
+                            format!("failed to parse value for data block size from \"{}\"",
+                                    vals[3]))})?;
+
+        let num_feature_args = vals[4]
+            .parse::<usize>()
+            .map_err(|_| {
+                DmError::Dm(ErrorEnum::Invalid,
+                            format!("failed to parse value for number of feature args from \"{}\"",
+                                    vals[4]))})?;
+
+        let end_feature_args_index = 5 + num_feature_args;
+        let feature_args: Vec<String> = vals[5..end_feature_args_index]
+            .iter()
+            .map(|x| x.to_string())
+            .collect();
+
+        let policy = vals[end_feature_args_index].to_owned();
+
+        let num_policy_args = vals[end_feature_args_index + 1]
+            .parse::<usize>()
+            .map_err(|_| {
+                DmError::Dm(ErrorEnum::Invalid,
+                            format!("failed to parse value for number of policy args from \"{}\"",
+                                    vals[end_feature_args_index + 1]))})?;
+
+        let start_policy_args_index = end_feature_args_index + 2;
+        let end_policy_args_index = start_policy_args_index + num_policy_args;
+        let policy_args: Vec<(String, String)> = vals[start_policy_args_index..
+        end_policy_args_index]
+                .chunks(2)
+                .map(|x| (x[0].to_string(), x[1].to_string()))
+                .collect();
+
+        Ok(CacheDevTargetParams::new(metadata_dev,
+                                     cache_dev,
+                                     origin_dev,
+                                     block_size,
+                                     feature_args,
+                                     policy,
+                                     policy_args))
+
     }
 }
 
@@ -352,7 +427,10 @@ impl CacheDev {
                  params: CacheDevTargetParams::new(meta.device(),
                                                    cache.device(),
                                                    origin.device(),
-                                                   cache_block_size)
+                                                   cache_block_size,
+                                                   vec![],
+                                                   "default".to_owned(),
+                                                   vec![])
                          .to_string(),
              }]
     }

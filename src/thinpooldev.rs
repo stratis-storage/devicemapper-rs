@@ -2,8 +2,10 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
+use std::collections::hash_set::HashSet;
 use std::fmt;
 use std::path::PathBuf;
+use std::str::FromStr;
 
 use super::device::Device;
 use super::deviceinfo::DeviceInfo;
@@ -11,7 +13,8 @@ use super::dm::{DM, DmFlags};
 use super::lineardev::LinearDev;
 use super::result::{DmResult, DmError, ErrorEnum};
 use super::segment::Segment;
-use super::shared::{DmDevice, device_create, device_exists, device_match, table_reload};
+use super::shared::{DmDevice, device_create, device_exists, device_match, parse_device,
+                    table_reload};
 use super::types::{DataBlocks, DevId, DmName, DmUuid, MetaBlocks, Sectors, TargetLine,
                    TargetParams, TargetTypeBuf};
 
@@ -27,21 +30,22 @@ struct ThinPoolDevTargetParams {
     pub data_dev: Device,
     pub data_block_size: Sectors,
     pub low_water_mark: DataBlocks,
-    pub feature_args: Vec<String>,
+    pub feature_args: HashSet<String>,
 }
 
 impl ThinPoolDevTargetParams {
     pub fn new(metadata_dev: Device,
                data_dev: Device,
                data_block_size: Sectors,
-               low_water_mark: DataBlocks)
+               low_water_mark: DataBlocks,
+               feature_args: Vec<String>)
                -> ThinPoolDevTargetParams {
         ThinPoolDevTargetParams {
             metadata_dev: metadata_dev,
             data_dev: data_dev,
             data_block_size: data_block_size,
             low_water_mark: low_water_mark,
-            feature_args: vec!["skip_block_zeroing".to_owned()],
+            feature_args: feature_args.into_iter().collect::<HashSet<_>>(),
         }
     }
 }
@@ -53,7 +57,11 @@ impl fmt::Display for ThinPoolDevTargetParams {
         } else {
             format!("{} {}",
                     self.feature_args.len(),
-                    self.feature_args.join(" "))
+                    self.feature_args
+                        .iter()
+                        .cloned()
+                        .collect::<Vec<_>>()
+                        .join(" "))
         };
 
         write!(f,
@@ -63,6 +71,58 @@ impl fmt::Display for ThinPoolDevTargetParams {
                *self.data_block_size,
                *self.low_water_mark,
                feature_args)
+    }
+}
+
+impl FromStr for ThinPoolDevTargetParams {
+    type Err = DmError;
+
+    fn from_str(s: &str) -> Result<ThinPoolDevTargetParams, DmError> {
+        let vals = s.split(' ').collect::<Vec<_>>();
+
+        if vals.len() < 5 {
+            let err_msg = format!("expected at least five values in params string \"{}\", found {}",
+                                  s,
+                                  vals.len());
+            return Err(DmError::Dm(ErrorEnum::Invalid, err_msg));
+        }
+
+        let metadata_dev = parse_device(vals[0])?;
+        let data_dev = parse_device(vals[1])?;
+
+        let data_block_size = vals[2]
+            .parse::<u64>()
+            .map(Sectors)
+            .map_err(|_| {
+                DmError::Dm(ErrorEnum::Invalid,
+                            format!("failed to parse value for data block size from \"{}\"",
+                                    vals[2]))})?;
+
+        let low_water_mark = vals[3]
+            .parse::<u64>()
+            .map(DataBlocks)
+            .map_err(|_| {
+                         DmError::Dm(ErrorEnum::Invalid,
+                                     format!("failed to parse value for low water mark from \"{}\"",
+                                             vals[3]))
+                     })?;
+        let num_feature_args = vals[4]
+            .parse::<usize>()
+            .map_err(|_| {
+                DmError::Dm(ErrorEnum::Invalid,
+                            format!("failed to parse value for number of feature args from \"{}\"",
+                                    vals[4]))})?;
+
+        let feature_args: Vec<String> = vals[5..5 + num_feature_args]
+            .iter()
+            .map(|x| x.to_string())
+            .collect();
+
+        Ok(ThinPoolDevTargetParams::new(metadata_dev,
+                                        data_dev,
+                                        data_block_size,
+                                        low_water_mark,
+                                        feature_args))
     }
 }
 
@@ -301,7 +361,8 @@ impl ThinPoolDev {
                  params: ThinPoolDevTargetParams::new(meta.device(),
                                                       data.device(),
                                                       data_block_size,
-                                                      low_water_mark)
+                                                      low_water_mark,
+                                                      vec!["skip_block_zeroing".to_owned()])
                          .to_string(),
              }]
     }
