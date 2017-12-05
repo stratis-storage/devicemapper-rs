@@ -79,25 +79,12 @@ pub fn device_create(dm: &DM,
 }
 
 /// Verify that kernel data matches arguments passed.
-/// Return the status of the device.
-fn device_match(dm: &DM,
-                name: &DmName,
-                uuid: Option<&DmUuid>,
-                table: &[TargetLine])
-                -> DmResult<DeviceInfo> {
-    let (dev_info, kernel_table) = dm.table_status(&DevId::Name(name), DmFlags::DM_STATUS_TABLE)?;
-    // FIXME: this should go away in completed version
-    let kernel_table = kernel_table
-        .iter()
-        .map(|x| {
-                 TargetLine {
-                     start: x.0,
-                     length: x.1,
-                     target_type: x.2.to_owned(),
-                     params: x.3.to_owned(),
-                 }
-             })
-        .collect::<Vec<_>>();
+pub fn device_match(dm: &DM,
+                    dev: &DmDevice,
+                    uuid: Option<&DmUuid>,
+                    table: &[TargetLine])
+                    -> DmResult<()> {
+    let kernel_table = dev.table(dm)?;
     if kernel_table != table {
         let err_msg = format!("Specified new table \"{:?}\" does not match kernel table \"{:?}\"",
                               table,
@@ -106,30 +93,14 @@ fn device_match(dm: &DM,
         return Err(DmError::Dm(ErrorEnum::Invalid, err_msg));
     }
 
-    if dev_info.uuid() != uuid {
+    if dev.uuid() != uuid {
         let err_msg = format!("Specified uuid \"{:?}\" does not match kernel uuuid \"{:?}\"",
                               uuid,
-                              dev_info.uuid());
+                              dev.uuid());
 
         return Err(DmError::Dm(ErrorEnum::Invalid, err_msg));
     }
-    Ok(dev_info)
-}
-
-/// Setup a device.
-/// If the device is already known to the kernel, verify that the table
-/// passed agrees with the kernel's. If the device is unknown to the kernel
-/// just load the table.
-pub fn device_setup(dm: &DM,
-                    name: &DmName,
-                    uuid: Option<&DmUuid>,
-                    table: &[TargetLine])
-                    -> DmResult<DeviceInfo> {
-    if device_exists(dm, name)? {
-        device_match(dm, name, uuid, table)
-    } else {
-        device_create(dm, name, uuid, table)
-    }
+    Ok(())
 }
 
 /// Reload the table for a device

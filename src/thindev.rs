@@ -9,7 +9,7 @@ use super::device::Device;
 use super::deviceinfo::DeviceInfo;
 use super::dm::{DM, DmFlags};
 use super::result::{DmError, DmResult, ErrorEnum};
-use super::shared::{DmDevice, device_create, device_exists, device_setup, message, table_reload};
+use super::shared::{DmDevice, device_create, device_exists, device_match, message, table_reload};
 use super::thindevid::ThinDevId;
 use super::thinpooldev::ThinPoolDev;
 use super::types::{DevId, DmName, DmUuid, Sectors, TargetLine, TargetParams, TargetTypeBuf};
@@ -158,14 +158,27 @@ impl ThinDev {
 
         let thin_pool_device = thin_pool.device();
         let table = ThinDev::dm_table(length, thin_pool_device, thin_id);
-        let dev_info = device_setup(dm, name, uuid, &table)?;
+        let dev = if device_exists(dm, name)? {
+            let dev_info = dm.device_info(&DevId::Name(name))?;
+            let dev = ThinDev {
+                dev_info: Box::new(dev_info),
+                thin_id: thin_id,
+                size: length,
+                thinpool: thin_pool_device,
+            };
+            device_match(dm, &dev, uuid, &table)?;
+            dev
+        } else {
+            let dev_info = device_create(dm, name, uuid, &table)?;
+            ThinDev {
+                dev_info: Box::new(dev_info),
+                thin_id: thin_id,
+                size: length,
+                thinpool: thin_pool_device,
+            }
+        };
+        Ok(dev)
 
-        Ok(ThinDev {
-               dev_info: Box::new(dev_info),
-               thin_id: thin_id,
-               size: length,
-               thinpool: thin_pool_device,
-           })
     }
 
     /// Create a snapshot of a ThinDev.  Once created a snapshot

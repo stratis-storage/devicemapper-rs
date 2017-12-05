@@ -11,7 +11,7 @@ use super::dm::{DM, DmFlags};
 use super::lineardev::LinearDev;
 use super::result::{DmResult, DmError, ErrorEnum};
 use super::segment::Segment;
-use super::shared::{DmDevice, device_create, device_exists, device_setup, table_reload};
+use super::shared::{DmDevice, device_create, device_exists, device_match, table_reload};
 use super::types::{DataBlocks, DevId, DmName, DmUuid, MetaBlocks, Sectors, TargetLine,
                    TargetParams, TargetTypeBuf};
 
@@ -259,15 +259,28 @@ impl ThinPoolDev {
                  low_water_mark: DataBlocks)
                  -> DmResult<ThinPoolDev> {
         let table = ThinPoolDev::dm_table(&meta, &data, data_block_size, low_water_mark);
-        let dev_info = device_setup(dm, name, uuid, &table)?;
-
-        Ok(ThinPoolDev {
-               dev_info: Box::new(dev_info),
-               meta_dev: meta,
-               data_dev: data,
-               data_block_size: data_block_size,
-               low_water_mark: low_water_mark,
-           })
+        let dev = if device_exists(dm, name)? {
+            let dev_info = dm.device_info(&DevId::Name(name))?;
+            let dev = ThinPoolDev {
+                dev_info: Box::new(dev_info),
+                meta_dev: meta,
+                data_dev: data,
+                data_block_size: data_block_size,
+                low_water_mark: low_water_mark,
+            };
+            device_match(dm, &dev, uuid, &table)?;
+            dev
+        } else {
+            let dev_info = device_create(dm, name, uuid, &table)?;
+            ThinPoolDev {
+                dev_info: Box::new(dev_info),
+                meta_dev: meta,
+                data_dev: data,
+                data_block_size: data_block_size,
+                low_water_mark: low_water_mark,
+            }
+        };
+        Ok(dev)
     }
 
     /// Generate a table to be passed to DM. The format of the table

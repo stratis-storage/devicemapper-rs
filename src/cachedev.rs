@@ -10,7 +10,7 @@ use super::deviceinfo::DeviceInfo;
 use super::dm::{DM, DmFlags};
 use super::lineardev::LinearDev;
 use super::result::{DmResult, DmError, ErrorEnum};
-use super::shared::{DmDevice, device_create, device_exists, device_setup};
+use super::shared::{DmDevice, device_create, device_exists, device_match};
 use super::types::{DataBlocks, DevId, DmName, DmUuid, MetaBlocks, Sectors, TargetLine,
                    TargetParams, TargetTypeBuf};
 
@@ -307,15 +307,29 @@ impl CacheDev {
                  cache_block_size: Sectors)
                  -> DmResult<CacheDev> {
         let table = CacheDev::dm_table(&meta, &origin, &cache, cache_block_size);
-        let dev_info = device_setup(dm, name, uuid, &table)?;
+        let dev = if device_exists(dm, name)? {
+            let dev_info = dm.device_info(&DevId::Name(name))?;
+            let dev = CacheDev {
+                dev_info: Box::new(dev_info),
+                meta_dev: meta,
+                cache_dev: cache,
+                origin_dev: origin,
+                block_size: cache_block_size,
+            };
+            device_match(dm, &dev, uuid, &table)?;
+            dev
+        } else {
+            let dev_info = device_create(dm, name, uuid, &table)?;
+            CacheDev {
+                dev_info: Box::new(dev_info),
+                meta_dev: meta,
+                cache_dev: cache,
+                origin_dev: origin,
+                block_size: cache_block_size,
+            }
+        };
 
-        Ok(CacheDev {
-               dev_info: Box::new(dev_info),
-               meta_dev: meta,
-               cache_dev: cache,
-               origin_dev: origin,
-               block_size: cache_block_size,
-           })
+        Ok(dev)
     }
 
     /// Generate a table to be passed to DM. The format of the table

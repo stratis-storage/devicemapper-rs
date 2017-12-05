@@ -10,7 +10,7 @@ use super::deviceinfo::DeviceInfo;
 use super::dm::{DM, DmFlags};
 use super::result::{DmResult, DmError, ErrorEnum};
 use super::segment::Segment;
-use super::shared::{DmDevice, device_setup, table_reload};
+use super::shared::{DmDevice, device_create, device_exists, device_match, table_reload};
 use super::types::{DevId, DmName, DmUuid, Sectors, TargetLine, TargetParams, TargetTypeBuf};
 
 
@@ -105,12 +105,22 @@ impl LinearDev {
         }
 
         let table = LinearDev::dm_table(segments);
-        let dev_info = device_setup(dm, name, uuid, &table)?;
-
-        Ok(LinearDev {
-               dev_info: Box::new(dev_info),
-               segments: segments.to_vec(),
-           })
+        let dev = if device_exists(dm, name)? {
+            let dev_info = dm.device_info(&DevId::Name(name))?;
+            let dev = LinearDev {
+                dev_info: Box::new(dev_info),
+                segments: segments.to_vec(),
+            };
+            device_match(dm, &dev, uuid, &table)?;
+            dev
+        } else {
+            let dev_info = device_create(dm, name, uuid, &table)?;
+            LinearDev {
+                dev_info: Box::new(dev_info),
+                segments: segments.to_vec(),
+            }
+        };
+        Ok(dev)
     }
 
     /// Return a reference to the segments that back this linear device.
