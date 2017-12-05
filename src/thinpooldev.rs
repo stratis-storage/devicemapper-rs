@@ -102,6 +102,10 @@ impl DmDevice for ThinPoolDev {
         self.meta_dev.teardown(dm)?;
         Ok(())
     }
+
+    fn uuid(&self) -> Option<&DmUuid> {
+        uuid!(self)
+    }
 }
 
 #[derive(Debug, Clone)]

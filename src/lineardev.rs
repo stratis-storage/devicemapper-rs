@@ -67,6 +67,10 @@ impl DmDevice for LinearDev {
         dm.device_remove(&DevId::Name(self.name()), DmFlags::empty())?;
         Ok(())
     }
+
+    fn uuid(&self) -> Option<&DmUuid> {
+        uuid!(self)
+    }
 }
 
 /// Use DM to concatenate a list of segments together into a

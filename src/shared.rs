@@ -45,6 +45,10 @@ pub trait DmDevice {
 
     /// Erase the kernel's memory of this device.
     fn teardown(self, dm: &DM) -> DmResult<()>;
+
+    /// The device's UUID, if available.
+    /// Note that the UUID is not any standard UUID format.
+    fn uuid(&self) -> Option<&DmUuid>;
 }
 
 /// Send a message that expects no reply to target device.

@@ -17,6 +17,12 @@ macro_rules! name {
     }
 }
 
+macro_rules! uuid {
+    ($s: ident) => {
+        $s.dev_info.uuid()
+    }
+}
+
 macro_rules! devnode {
     ($s: ident) => {
         ["/dev", &format!("dm-{}", $s.dev_info.device().minor)].iter().collect()

@@ -69,6 +69,10 @@ impl DmDevice for ThinDev {
         dm.device_remove(&DevId::Name(self.name()), DmFlags::empty())?;
         Ok(())
     }
+
+    fn uuid(&self) -> Option<&DmUuid> {
+        uuid!(self)
+    }
 }
 
 /// Status values for a thin device that is working
