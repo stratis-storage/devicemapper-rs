@@ -27,6 +27,22 @@ pub trait DmDevice {
     /// The number of sectors available for user data.
     fn size(&self) -> Sectors;
 
+    /// The devicemapper table
+    fn table(&self, dm: &DM) -> DmResult<Vec<TargetLine>> {
+        let (_, table) = dm.table_status(&DevId::Name(self.name()), DmFlags::DM_STATUS_TABLE)?;
+        Ok(table
+               .into_iter()
+               .map(|x| {
+                        TargetLine {
+                            start: x.0,
+                            length: x.1,
+                            target_type: x.2,
+                            params: x.3,
+                        }
+                    })
+               .collect())
+    }
+
     /// Erase the kernel's memory of this device.
     fn teardown(self, dm: &DM) -> DmResult<()>;
 }
