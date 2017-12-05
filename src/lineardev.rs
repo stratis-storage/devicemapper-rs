@@ -188,8 +188,8 @@ mod tests {
     use std::fs::OpenOptions;
     use std::path::Path;
 
-    use super::super::device::Device;
-    use super::super::loopbacked::{blkdev_size, devnode_to_devno, test_with_spec};
+    use super::super::device::{Device, devnode_to_devno};
+    use super::super::loopbacked::{blkdev_size, test_with_spec};
 
     use super::*;
 

@@ -18,7 +18,7 @@ use super::types::{DataBlocks, DevId, DmName, DmUuid, MetaBlocks, Sectors, Targe
 #[cfg(test)]
 use std::path::Path;
 #[cfg(test)]
-use super::loopbacked::devnode_to_devno;
+use super::device::devnode_to_devno;
 
 
 #[derive(Debug, PartialEq)]

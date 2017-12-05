@@ -494,7 +494,8 @@ mod tests {
     use std::path::Path;
 
     use super::super::consts::IEC;
-    use super::super::loopbacked::{devnode_to_devno, test_with_spec};
+    use super::super::device::devnode_to_devno;
+    use super::super::loopbacked::test_with_spec;
     use super::super::segment::Segment;
 
     use super::*;
