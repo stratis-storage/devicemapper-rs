@@ -16,7 +16,7 @@ use super::shared::{DmDevice, device_create, device_exists, device_match, parse_
 use super::types::{DataBlocks, DevId, DmName, DmUuid, MetaBlocks, Sectors, TargetLine,
                    TargetParams, TargetTypeBuf};
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, Eq, PartialEq)]
 struct CacheDevTargetParams {
     pub meta: Device,
     pub cache: Device,

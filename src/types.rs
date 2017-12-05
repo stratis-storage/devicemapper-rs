@@ -424,7 +424,7 @@ const DM_TARGET_TYPE_LEN: usize = 16;
 str_id!(TargetType, TargetTypeBuf, DM_TARGET_TYPE_LEN, str_check);
 
 /// The trait for properties of the params string of TargetType
-pub trait TargetParams: fmt::Debug + fmt::Display + FromStr + PartialEq {}
+pub trait TargetParams: fmt::Debug + fmt::Display + Eq + FromStr + PartialEq {}
 
 /// One line of a device mapper table.
 #[derive(Debug, PartialEq)]
