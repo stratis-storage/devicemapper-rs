@@ -100,7 +100,6 @@ impl Device {
 /// Get a device number from a device node.
 /// Return None if the device is not a block device; devicemapper is not
 /// interested in other sorts of devices.
-#[allow(dead_code)]
 pub fn devnode_to_devno(path: &Path) -> Option<u64> {
     let metadata = path.metadata().unwrap();
     if metadata.st_mode() & S_IFMT.bits() == S_IFBLK.bits() {
