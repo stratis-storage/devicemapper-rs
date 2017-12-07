@@ -671,6 +671,15 @@ mod tests {
             _ => assert!(false),
         }
 
+        let table = cache.table(&dm).unwrap();
+        assert_eq!(table.len(), 1);
+
+        let line = &table[0];
+        let params = &line.params;
+        assert_eq!(params.cache_block_size, MIN_CACHE_BLOCK_SIZE);
+        assert_eq!(params.feature_args, HashSet::new());
+        assert_eq!(params.policy, "default");
+
         cache.teardown(&dm).unwrap();
     }
 

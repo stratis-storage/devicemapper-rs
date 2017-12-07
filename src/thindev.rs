@@ -385,6 +385,13 @@ mod tests {
         let td_size = MIN_THIN_DEV_SIZE;
         let td = ThinDev::new(&dm, &id, None, td_size, &tp, thin_id).unwrap();
 
+        let table = td.table(&dm).unwrap();
+        assert_eq!(table.len(), 1);
+
+        let line = &table[0];
+        assert_eq!(line.params.pool, tp.device());
+        assert_eq!(line.params.thin_id, thin_id);
+
         assert!(match td.status(&dm).unwrap() {
                     ThinStatus::Fail => false,
                     _ => true,

@@ -563,6 +563,14 @@ mod tests {
             _ => assert!(false),
         }
 
+        let table = tp.table(&dm).unwrap();
+        assert_eq!(table.len(), 1);
+
+        let line = &table[0];
+        let params = &line.params;
+        assert_eq!(params.metadata_dev, tp.meta_dev().device());
+        assert_eq!(params.data_dev, tp.data_dev().device());
+
         tp.teardown(&dm).unwrap();
     }
 
