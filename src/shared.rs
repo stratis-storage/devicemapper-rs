@@ -28,7 +28,7 @@ pub trait DmDevice {
     fn size(&self) -> Sectors;
 
     /// The devicemapper table
-    fn table(&self, dm: &DM) -> DmResult<Vec<TargetLine>> {
+    fn table(&self, dm: &DM) -> DmResult<Vec<TargetLine<String>>> {
         let (_, table) = dm.table_status(&DevId::Name(self.name()), DmFlags::DM_STATUS_TABLE)?;
         Ok(table
                .into_iter()
@@ -61,7 +61,7 @@ pub fn message(dm: &DM, target: &DmDevice, msg: &str) -> DmResult<()> {
 pub fn device_create(dm: &DM,
                      name: &DmName,
                      uuid: Option<&DmUuid>,
-                     table: &[TargetLine])
+                     table: &[TargetLine<String>])
                      -> DmResult<DeviceInfo> {
     dm.device_create(name, uuid, DmFlags::empty())?;
 
@@ -82,7 +82,7 @@ pub fn device_create(dm: &DM,
 pub fn device_match(dm: &DM,
                     dev: &DmDevice,
                     uuid: Option<&DmUuid>,
-                    table: &[TargetLine])
+                    table: &[TargetLine<String>])
                     -> DmResult<()> {
     let kernel_table = dev.table(dm)?;
     if kernel_table != table {
@@ -104,7 +104,7 @@ pub fn device_match(dm: &DM,
 }
 
 /// Reload the table for a device
-pub fn table_reload(dm: &DM, id: &DevId, table: &[TargetLine]) -> DmResult<DeviceInfo> {
+pub fn table_reload(dm: &DM, id: &DevId, table: &[TargetLine<String>]) -> DmResult<DeviceInfo> {
     let dev_info = dm.table_load(id, table)?;
     dm.device_suspend(id, DmFlags::DM_SUSPEND)?;
     dm.device_suspend(id, DmFlags::empty())?;

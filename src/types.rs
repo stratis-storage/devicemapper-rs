@@ -426,9 +426,11 @@ str_id!(TargetType, TargetTypeBuf, DM_TARGET_TYPE_LEN, str_check);
 /// The trait for properties of the params string of TargetType
 pub trait TargetParams: fmt::Debug + fmt::Display + Eq + FromStr + PartialEq {}
 
+impl TargetParams for String {}
+
 /// One line of a device mapper table.
 #[derive(Debug, PartialEq)]
-pub struct TargetLine {
+pub struct TargetLine<T: TargetParams> {
     /// The start of the segment
     pub start: Sectors,
     /// The length of the segment
@@ -436,7 +438,7 @@ pub struct TargetLine {
     /// The target type
     pub target_type: TargetTypeBuf,
     /// The target specific parameters
-    pub params: String,
+    pub params: T,
 }
 
 #[cfg(test)]

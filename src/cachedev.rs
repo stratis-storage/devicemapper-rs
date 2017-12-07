@@ -419,7 +419,7 @@ impl CacheDev {
                 cache: &LinearDev,
                 origin: &LinearDev,
                 cache_block_size: Sectors)
-                -> Vec<TargetLine> {
+                -> Vec<TargetLine<String>> {
         vec![TargetLine {
                  start: Sectors::default(),
                  length: origin.size(),

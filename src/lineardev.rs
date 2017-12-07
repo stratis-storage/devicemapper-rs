@@ -161,7 +161,7 @@ impl LinearDev {
     /// <logical start offset> <length> "linear" <linear-specific string>
     /// where the linear-specific string has the format:
     /// <maj:min> <physical start offset>
-    fn dm_table(segments: &[Segment]) -> Vec<TargetLine> {
+    fn dm_table(segments: &[Segment]) -> Vec<TargetLine<String>> {
         assert_ne!(segments.len(), 0);
 
         let mut table = Vec::new();

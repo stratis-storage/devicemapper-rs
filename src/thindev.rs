@@ -235,7 +235,7 @@ impl ThinDev {
     /// where the thin device specific string has the format:
     /// <thinpool maj:min> <thin_id>
     /// There is exactly one entry in the table.
-    fn dm_table(length: Sectors, thin_pool: Device, thin_id: ThinDevId) -> Vec<TargetLine> {
+    fn dm_table(length: Sectors, thin_pool: Device, thin_id: ThinDevId) -> Vec<TargetLine<String>> {
         vec![TargetLine {
                  start: Sectors::default(),
                  length: length,

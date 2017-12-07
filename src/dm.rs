@@ -512,7 +512,7 @@ impl DM {
     /// let id = DevId::Name(name);
     /// dm.table_load(&id, &table).unwrap();
     /// ```
-    pub fn table_load(&self, id: &DevId, targets: &[TargetLine]) -> DmResult<DeviceInfo> {
+    pub fn table_load(&self, id: &DevId, targets: &[TargetLine<String>]) -> DmResult<DeviceInfo> {
         let mut targs = Vec::new();
 
         // Construct targets first, since we need to know how many & size
