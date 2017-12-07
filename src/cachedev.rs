@@ -89,7 +89,7 @@ impl fmt::Display for CacheDevTargetParams {
 impl FromStr for CacheDevTargetParams {
     type Err = DmError;
 
-    fn from_str(s: &str) -> Result<CacheDevTargetParams, DmError> {
+    fn from_str(s: &str) -> DmResult<CacheDevTargetParams> {
         let vals = s.split(' ').collect::<Vec<_>>();
 
         if vals.len() < 7 {

@@ -41,7 +41,7 @@ impl fmt::Display for ThinDevTargetParams {
 impl FromStr for ThinDevTargetParams {
     type Err = DmError;
 
-    fn from_str(s: &str) -> Result<ThinDevTargetParams, DmError> {
+    fn from_str(s: &str) -> DmResult<ThinDevTargetParams> {
         let vals = s.split(' ').collect::<Vec<_>>();
         if vals.len() != 2 {
             let err_msg = format!("expected two values in params string \"{}\", found {}",

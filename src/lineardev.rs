@@ -40,7 +40,7 @@ impl fmt::Display for LinearDevTargetParams {
 impl FromStr for LinearDevTargetParams {
     type Err = DmError;
 
-    fn from_str(s: &str) -> Result<LinearDevTargetParams, DmError> {
+    fn from_str(s: &str) -> DmResult<LinearDevTargetParams> {
         let vals = s.split(' ').collect::<Vec<_>>();
         if vals.len() != 2 {
             let err_msg = format!("expected two values in params string \"{}\", found {}",

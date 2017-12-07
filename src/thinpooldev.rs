@@ -77,7 +77,7 @@ impl fmt::Display for ThinPoolDevTargetParams {
 impl FromStr for ThinPoolDevTargetParams {
     type Err = DmError;
 
-    fn from_str(s: &str) -> Result<ThinPoolDevTargetParams, DmError> {
+    fn from_str(s: &str) -> DmResult<ThinPoolDevTargetParams> {
         let vals = s.split(' ').collect::<Vec<_>>();
 
         if vals.len() < 5 {
