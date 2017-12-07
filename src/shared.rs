@@ -6,6 +6,7 @@
 /// devices.
 
 use std::path::{Path, PathBuf};
+use std::str::FromStr;
 
 use super::device::{Device, devnode_to_devno};
 use super::deviceinfo::DeviceInfo;
@@ -22,7 +23,7 @@ pub trait DmDevice<T: TargetParams> {
     fn device(&self) -> Device;
 
     /// Check if tables indicate an equivalent device.
-    fn equivalent_tables(left: &[TargetLine<String>], right: &[TargetLine<String>]) -> bool {
+    fn equivalent_tables(left: &[TargetLine<T>], right: &[TargetLine<T>]) -> bool {
         left == right
     }
 
@@ -33,19 +34,21 @@ pub trait DmDevice<T: TargetParams> {
     fn size(&self) -> Sectors;
 
     /// The devicemapper table
-    fn table(&self, dm: &DM) -> DmResult<Vec<TargetLine<String>>> {
+    fn table(&self, dm: &DM) -> DmResult<Vec<TargetLine<T>>>
+        where DmError: From<<T as FromStr>::Err>
+    {
         let (_, table) = dm.table_status(&DevId::Name(self.name()), DmFlags::DM_STATUS_TABLE)?;
-        Ok(table
-               .into_iter()
-               .map(|x| {
-                        TargetLine {
+        table
+            .into_iter()
+            .map(|x| -> DmResult<TargetLine<T>> {
+                     Ok(TargetLine {
                             start: x.0,
                             length: x.1,
                             target_type: x.2,
-                            params: x.3,
-                        }
-                    })
-               .collect())
+                            params: x.3.parse::<T>()?,
+                        })
+                 })
+            .collect()
     }
 
     /// Erase the kernel's memory of this device.
@@ -63,15 +66,26 @@ pub fn message<T: TargetParams, D: DmDevice<T>>(dm: &DM, target: &D, msg: &str) 
 }
 
 /// Create a device, load a table, and resume it.
-pub fn device_create(dm: &DM,
-                     name: &DmName,
-                     uuid: Option<&DmUuid>,
-                     table: &[TargetLine<String>])
-                     -> DmResult<DeviceInfo> {
+pub fn device_create<T: TargetParams>(dm: &DM,
+                                      name: &DmName,
+                                      uuid: Option<&DmUuid>,
+                                      table: &[TargetLine<T>])
+                                      -> DmResult<DeviceInfo> {
     dm.device_create(name, uuid, DmFlags::empty())?;
 
     let id = DevId::Name(name);
-    let dev_info = match dm.table_load(&id, table) {
+    let table = table
+        .iter()
+        .map(|x| {
+                 TargetLine {
+                     start: x.start,
+                     length: x.length,
+                     target_type: x.target_type.clone(),
+                     params: x.params.to_string(),
+                 }
+             })
+        .collect::<Vec<_>>();
+    let dev_info = match dm.table_load(&id, &table) {
         Err(e) => {
             dm.device_remove(&id, DmFlags::empty())?;
             return Err(e);
@@ -87,8 +101,10 @@ pub fn device_create(dm: &DM,
 pub fn device_match<T: TargetParams, D: DmDevice<T>>(dm: &DM,
                                                      dev: &D,
                                                      uuid: Option<&DmUuid>,
-                                                     table: &[TargetLine<String>])
-                                                     -> DmResult<()> {
+                                                     table: &[TargetLine<T>])
+                                                     -> DmResult<()>
+    where DmError: From<<T as FromStr>::Err>
+{
     let kernel_table = dev.table(dm)?;
     if !D::equivalent_tables(&kernel_table, table) {
         let err_msg = format!("Specified new table \"{:?}\" does not match kernel table \"{:?}\"",
@@ -109,8 +125,22 @@ pub fn device_match<T: TargetParams, D: DmDevice<T>>(dm: &DM,
 }
 
 /// Reload the table for a device
-pub fn table_reload(dm: &DM, id: &DevId, table: &[TargetLine<String>]) -> DmResult<DeviceInfo> {
-    let dev_info = dm.table_load(id, table)?;
+pub fn table_reload<T: TargetParams>(dm: &DM,
+                                     id: &DevId,
+                                     table: &[TargetLine<T>])
+                                     -> DmResult<DeviceInfo> {
+    let table = table
+        .iter()
+        .map(|x| {
+                 TargetLine {
+                     start: x.start,
+                     length: x.length,
+                     target_type: x.target_type.clone(),
+                     params: x.params.to_string(),
+                 }
+             })
+        .collect::<Vec<_>>();
+    let dev_info = dm.table_load(id, &table)?;
     dm.device_suspend(id, DmFlags::DM_SUSPEND)?;
     dm.device_suspend(id, DmFlags::empty())?;
     Ok(dev_info)

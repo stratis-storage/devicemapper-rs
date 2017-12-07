@@ -353,7 +353,7 @@ impl ThinPoolDev {
                 data: &LinearDev,
                 data_block_size: Sectors,
                 low_water_mark: DataBlocks)
-                -> Vec<TargetLine<String>> {
+                -> Vec<TargetLine<ThinPoolDevTargetParams>> {
         vec![TargetLine {
                  start: Sectors::default(),
                  length: data.size(),
@@ -362,8 +362,7 @@ impl ThinPoolDev {
                                                       data.device(),
                                                       data_block_size,
                                                       low_water_mark,
-                                                      vec!["skip_block_zeroing".to_owned()])
-                         .to_string(),
+                                                      vec!["skip_block_zeroing".to_owned()]),
              }]
     }
 

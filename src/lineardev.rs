@@ -161,7 +161,7 @@ impl LinearDev {
     /// <logical start offset> <length> "linear" <linear-specific string>
     /// where the linear-specific string has the format:
     /// <maj:min> <physical start offset>
-    fn dm_table(segments: &[Segment]) -> Vec<TargetLine<String>> {
+    fn dm_table(segments: &[Segment]) -> Vec<TargetLine<LinearDevTargetParams>> {
         assert_ne!(segments.len(), 0);
 
         let mut table = Vec::new();
@@ -172,8 +172,7 @@ impl LinearDev {
                 start: logical_start_offset,
                 length: length,
                 target_type: TargetTypeBuf::new("linear".into()).expect("< length limit"),
-                params: LinearDevTargetParams::new(segment.device, physical_start_offset)
-                    .to_string(),
+                params: LinearDevTargetParams::new(segment.device, physical_start_offset),
             };
             debug!("dmtable line : {:?}", line);
             table.push(line);
