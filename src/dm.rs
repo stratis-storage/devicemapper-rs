@@ -641,10 +641,9 @@ impl DM {
         let mut targets = Vec::new();
         if !buf.is_empty() {
             let mut next_off = 0;
-            let mut result = &buf[..];
 
             for _ in 0..count {
-                result = &result[next_off..];
+                let result = &buf[next_off..];
                 let targ = unsafe {
                     (result.as_ptr() as *const dmi::Struct_dm_target_spec)
                         .as_ref()
