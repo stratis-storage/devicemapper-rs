@@ -272,7 +272,8 @@ mod tests {
 
     /// Verify that passing the same segments two times gets two segments.
     /// Verify that the size of the devnode is the size of the sum of the
-    /// ranges of the segments.
+    /// ranges of the segments. Verify that the table contains entries for both
+    /// segments.
     fn test_duplicate_segments(paths: &[&Path]) -> () {
         assert!(paths.len() >= 1);
 
@@ -288,12 +289,12 @@ mod tests {
                                   None,
                                   segments)
                 .unwrap();
-        assert_eq!(dm.table_status(&DevId::Name(DmName::new(name).expect("valid format")),
-                                   DmFlags::DM_STATUS_TABLE)
-                       .unwrap()
-                       .1
-                       .len(),
-                   count);
+
+        let table = ld.table(&dm).unwrap();
+        assert_eq!(table.len(), count);
+        assert_eq!(table[0].params.device, dev);
+        assert_eq!(table[1].params.device, dev);
+
         assert_eq!(blkdev_size(&OpenOptions::new()
                                     .read(true)
                                     .open(ld.devnode())
