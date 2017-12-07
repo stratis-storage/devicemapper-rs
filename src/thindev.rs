@@ -18,7 +18,7 @@ use super::types::{DevId, DmName, DmUuid, Sectors, TargetLine, TargetParams, Tar
 
 
 #[derive(Debug, Eq, PartialEq)]
-struct ThinDevTargetParams {
+pub struct ThinDevTargetParams {
     pub pool: Device,
     pub thin_id: ThinDevId,
 }
@@ -66,7 +66,7 @@ pub struct ThinDev {
     thinpool: Device,
 }
 
-impl DmDevice for ThinDev {
+impl DmDevice<ThinDevTargetParams> for ThinDev {
     fn device(&self) -> Device {
         device!(self)
     }

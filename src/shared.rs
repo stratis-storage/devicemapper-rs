@@ -11,10 +11,10 @@ use super::device::{Device, devnode_to_devno};
 use super::deviceinfo::DeviceInfo;
 use super::dm::{DM, DmFlags};
 use super::result::{DmError, DmResult, ErrorEnum};
-use super::types::{DevId, DmName, DmUuid, Sectors, TargetLine};
+use super::types::{DevId, DmName, DmUuid, Sectors, TargetLine, TargetParams};
 
 /// A trait capturing some shared properties of DM devices.
-pub trait DmDevice {
+pub trait DmDevice<T: TargetParams> {
     /// The device's device node.
     fn devnode(&self) -> PathBuf;
 
@@ -57,7 +57,7 @@ pub trait DmDevice {
 }
 
 /// Send a message that expects no reply to target device.
-pub fn message<D: DmDevice>(dm: &DM, target: &D, msg: &str) -> DmResult<()> {
+pub fn message<T: TargetParams, D: DmDevice<T>>(dm: &DM, target: &D, msg: &str) -> DmResult<()> {
     dm.target_msg(&DevId::Name(target.name()), None, msg)?;
     Ok(())
 }
@@ -84,11 +84,11 @@ pub fn device_create(dm: &DM,
 }
 
 /// Verify that kernel data matches arguments passed.
-pub fn device_match<D: DmDevice>(dm: &DM,
-                                 dev: &D,
-                                 uuid: Option<&DmUuid>,
-                                 table: &[TargetLine<String>])
-                                 -> DmResult<()> {
+pub fn device_match<T: TargetParams, D: DmDevice<T>>(dm: &DM,
+                                                     dev: &D,
+                                                     uuid: Option<&DmUuid>,
+                                                     table: &[TargetLine<String>])
+                                                     -> DmResult<()> {
     let kernel_table = dev.table(dm)?;
     if !D::equivalent_tables(&kernel_table, table) {
         let err_msg = format!("Specified new table \"{:?}\" does not match kernel table \"{:?}\"",

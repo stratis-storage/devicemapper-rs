@@ -17,7 +17,7 @@ use super::types::{DataBlocks, DevId, DmName, DmUuid, MetaBlocks, Sectors, Targe
                    TargetParams, TargetTypeBuf};
 
 #[derive(Debug, Eq, PartialEq)]
-struct CacheDevTargetParams {
+pub struct CacheDevTargetParams {
     pub meta: Device,
     pub cache: Device,
     pub origin: Device,
@@ -312,7 +312,7 @@ pub struct CacheDev {
     block_size: Sectors,
 }
 
-impl DmDevice for CacheDev {
+impl DmDevice<CacheDevTargetParams> for CacheDev {
     fn device(&self) -> Device {
         device!(self)
     }

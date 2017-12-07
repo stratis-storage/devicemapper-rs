@@ -25,7 +25,7 @@ use super::device::devnode_to_devno;
 
 
 #[derive(Debug, Eq, PartialEq)]
-struct ThinPoolDevTargetParams {
+pub struct ThinPoolDevTargetParams {
     pub metadata_dev: Device,
     pub data_dev: Device,
     pub data_block_size: Sectors,
@@ -139,7 +139,7 @@ pub struct ThinPoolDev {
     low_water_mark: DataBlocks,
 }
 
-impl DmDevice for ThinPoolDev {
+impl DmDevice<ThinPoolDevTargetParams> for ThinPoolDev {
     fn device(&self) -> Device {
         device!(self)
     }

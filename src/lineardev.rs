@@ -17,7 +17,7 @@ use super::types::{DevId, DmName, DmUuid, Sectors, TargetLine, TargetParams, Tar
 
 
 #[derive(Debug, Eq, PartialEq)]
-struct LinearDevTargetParams {
+pub struct LinearDevTargetParams {
     pub device: Device,
     pub physical_start_offset: Sectors,
 }
@@ -74,7 +74,7 @@ pub struct LinearDev {
     segments: Vec<Segment>,
 }
 
-impl DmDevice for LinearDev {
+impl DmDevice<LinearDevTargetParams> for LinearDev {
     fn device(&self) -> Device {
         device!(self)
     }
