@@ -23,8 +23,8 @@ pub trait DmDevice<T: TargetParams> {
     fn device(&self) -> Device;
 
     /// Check if tables indicate an equivalent device.
-    fn equivalent_tables(left: &[TargetLine<T>], right: &[TargetLine<T>]) -> bool {
-        left == right
+    fn equivalent_tables(left: &[TargetLine<T>], right: &[TargetLine<T>]) -> DmResult<bool> {
+        Ok(left == right)
     }
 
     /// The device's name.
@@ -106,7 +106,7 @@ pub fn device_match<T: TargetParams, D: DmDevice<T>>(dm: &DM,
     where DmError: From<<T as FromStr>::Err>
 {
     let kernel_table = dev.table(dm)?;
-    if !D::equivalent_tables(&kernel_table, table) {
+    if !D::equivalent_tables(&kernel_table, table)? {
         let err_msg = format!("Specified new table \"{:?}\" does not match kernel table \"{:?}\"",
                               table,
                               kernel_table);
