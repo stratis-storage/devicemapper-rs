@@ -21,6 +21,11 @@ pub trait DmDevice {
     /// The device.
     fn device(&self) -> Device;
 
+    /// Check if tables indicate an equivalent device.
+    fn equivalent_tables(left: &[TargetLine<String>], right: &[TargetLine<String>]) -> bool {
+        left == right
+    }
+
     /// The device's name.
     fn name(&self) -> &DmName;
 
@@ -52,7 +57,7 @@ pub trait DmDevice {
 }
 
 /// Send a message that expects no reply to target device.
-pub fn message(dm: &DM, target: &DmDevice, msg: &str) -> DmResult<()> {
+pub fn message<D: DmDevice>(dm: &DM, target: &D, msg: &str) -> DmResult<()> {
     dm.target_msg(&DevId::Name(target.name()), None, msg)?;
     Ok(())
 }
@@ -79,13 +84,13 @@ pub fn device_create(dm: &DM,
 }
 
 /// Verify that kernel data matches arguments passed.
-pub fn device_match(dm: &DM,
-                    dev: &DmDevice,
-                    uuid: Option<&DmUuid>,
-                    table: &[TargetLine<String>])
-                    -> DmResult<()> {
+pub fn device_match<D: DmDevice>(dm: &DM,
+                                 dev: &D,
+                                 uuid: Option<&DmUuid>,
+                                 table: &[TargetLine<String>])
+                                 -> DmResult<()> {
     let kernel_table = dev.table(dm)?;
-    if kernel_table != table {
+    if !D::equivalent_tables(&kernel_table, table) {
         let err_msg = format!("Specified new table \"{:?}\" does not match kernel table \"{:?}\"",
                               table,
                               kernel_table);
