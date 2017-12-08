@@ -505,7 +505,7 @@ impl CacheDev {
                    1,
                    "Kernel must return 1 line from cache dev status");
 
-        let status_line = &status.get(0).expect("assertion above holds").3;
+        let status_line = &status.first().expect("assertion above holds").3;
         if status_line.starts_with("Fail") {
             return Ok(CacheDevStatus::Fail);
         }
