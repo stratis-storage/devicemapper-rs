@@ -321,6 +321,50 @@ impl DmDevice<CacheDevTargetParams> for CacheDev {
         devnode!(self)
     }
 
+    // Omit replacement policy field from equality test when checking that
+    // two devices are the same. Equality of replacement policies is not a
+    // necessary requirement for equality of devices as the replacement
+    // policy can be changed dynamically by a reload of of the device's table.
+    // It is convenient that this is the case, because checking equality of
+    // replacement policies is somewhat hard. "default", which is a valid
+    // policy string, is not a particular policy, but an alias for the default
+    // policy for this version of devicemapper. Therefore, using string
+    // equality to check equivalence can result in false negatives, as
+    // "default" != "smq", the current default policy in the recent kernel.
+    // Note: There is the possibility of implementing the following somewhat
+    // complicated check. Without loss of generality, let
+    // left[0].params.policy = "default" and
+    // right[0].params.policy = X, where X != "default". Then, if X is the
+    // default policy, return true, otherwise return false. Unfortunately,
+    // there is no straightforward programmatic way of determining the default
+    // policy for a given kernel, and we are assured that the default policy
+    // can vary between kernels, and may of course, change in future.
+    fn equivalent_tables(left: &[TargetLine<CacheDevTargetParams>],
+                         right: &[TargetLine<CacheDevTargetParams>])
+                         -> DmResult<bool> {
+        if left.len() != 1 {
+            let err_msg = format!("cache dev tables have exactly one line, found {} lines in table",
+                                  left.len());
+            return Err(DmError::Dm(ErrorEnum::Invalid, err_msg));
+        }
+        if right.len() != 1 {
+            let err_msg = format!("cache dev tables have exactly one line, found {} lines in table",
+                                  right.len());
+            return Err(DmError::Dm(ErrorEnum::Invalid, err_msg));
+        }
+
+        let left = left.first().expect("left.len() == 1");
+        let right = right.first().expect("right.len() == 1");
+
+        Ok(left.start == right.start && left.length == right.length &&
+           left.target_type == right.target_type &&
+           left.params.meta == right.params.meta &&
+           left.params.origin == right.params.origin &&
+           left.params.cache_block_size == right.params.cache_block_size &&
+           left.params.feature_args == right.params.feature_args &&
+           left.params.policy_args == right.params.policy_args)
+    }
+
     fn name(&self) -> &DmName {
         name!(self)
     }
