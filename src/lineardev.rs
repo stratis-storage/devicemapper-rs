@@ -305,6 +305,30 @@ mod tests {
         ld.teardown(&dm).unwrap();
     }
 
+    /// Use five segments, each distinct. If parsing works correctly,
+    /// default table should match extracted table.
+    fn test_several_segments(paths: &[&Path]) -> () {
+        assert!(paths.len() >= 1);
+
+        let dm = DM::new().unwrap();
+        let name = "name";
+        let dev = Device::from(devnode_to_devno(&paths[0]).unwrap());
+        let segments = (0..5)
+            .map(|n| Segment::new(dev, Sectors(n), Sectors(1)))
+            .collect::<Vec<Segment>>();
+
+        let ld = LinearDev::setup(&dm,
+                                  DmName::new(name).expect("valid format"),
+                                  None,
+                                  &segments)
+                .unwrap();
+
+        let table = ld.table(&dm).unwrap();
+        assert!(LinearDev::equivalent_tables(&table, &LinearDev::dm_table(&segments)).unwrap());
+
+        ld.teardown(&dm).unwrap();
+    }
+
     /// Verify that constructing a second dev with the same name succeeds
     /// only if it has the same list of segments.
     fn test_same_name(paths: &[&Path]) -> () {
@@ -382,5 +406,10 @@ mod tests {
     #[test]
     fn loop_test_segment() {
         test_with_spec(1, test_same_segment);
+    }
+
+    #[test]
+    fn loop_test_several_segments() {
+        test_with_spec(1, test_several_segments);
     }
 }
