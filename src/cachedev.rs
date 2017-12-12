@@ -630,7 +630,7 @@ mod tests {
     // Verify that status method executes and gives reasonable values.
     fn test_minimal_cache_dev(paths: &[&Path]) -> () {
         assert!(paths.len() >= 2);
-        let dev1 = Device::from(devnode_to_devno(paths[0]).unwrap());
+        let dev1 = Device::from(devnode_to_devno(paths[0]).unwrap().unwrap());
 
         let dm = DM::new().unwrap();
 
@@ -653,7 +653,7 @@ mod tests {
                                      &[Segment::new(dev1, cache_offset, cache_length)])
                 .unwrap();
 
-        let dev2 = Device::from(devnode_to_devno(paths[1]).unwrap());
+        let dev2 = Device::from(devnode_to_devno(paths[1]).unwrap().unwrap());
 
         let origin_name = DmName::new("cache-origin").expect("valid format");
         let origin_length = 512u64 * MIN_CACHE_BLOCK_SIZE;

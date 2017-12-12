@@ -3,6 +3,7 @@
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 use std::fmt;
+use std::io;
 use std::os::linux::fs::MetadataExt;
 use std::path::Path;
 use std::str::FromStr;
@@ -10,8 +11,8 @@ use std::str::FromStr;
 use libc::{dev_t, major, makedev, minor};
 use nix::sys::stat::{S_IFBLK, S_IFMT};
 
-use super::errors::ErrorKind;
-use super::result::DmError;
+use super::errors::{Error, ErrorKind};
+use super::result::{DmError, DmResult};
 
 /// A struct containing the device's major and minor numbers
 ///
@@ -99,13 +100,24 @@ impl Device {
 
 /// Get a device number from a device node.
 /// Return None if the device is not a block device; devicemapper is not
-/// interested in other sorts of devices.
-pub fn devnode_to_devno(path: &Path) -> Option<u64> {
-    let metadata = path.metadata().unwrap();
-    if metadata.st_mode() & S_IFMT.bits() == S_IFBLK.bits() {
-        Some(metadata.st_rdev())
-    } else {
-        None
+/// interested in other sorts of devices. Return None if the device appears
+/// not to exist.
+pub fn devnode_to_devno(path: &Path) -> DmResult<Option<u64>> {
+    match path.metadata() {
+        Ok(metadata) => {
+            Ok(if metadata.st_mode() & S_IFMT.bits() == S_IFBLK.bits() {
+                   Some(metadata.st_rdev())
+               } else {
+                   None
+               })
+        }
+        Err(err) => {
+            if err.kind() == io::ErrorKind::NotFound {
+                return Ok(None);
+            }
+            let err_msg = format!("failed to get metadata for device at {:?}", path);
+            Err(Error::with_chain(err, ErrorKind::Msg(err_msg)))?
+        }
     }
 }
 

@@ -111,7 +111,7 @@ pub use cachedev::{CacheDev, CacheDevPerformance, CacheDevStatus, CacheDevUsage,
 pub use consts::{IEC, SECTOR_SIZE};
 pub use dm::{DM, DmFlags};
 
-pub use device::Device;
+pub use device::{Device, devnode_to_devno};
 pub use lineardev::LinearDev;
 pub use result::{DmResult, DmError, ErrorEnum};
 pub use segment::Segment;

@@ -506,7 +506,7 @@ const MAX_RECOMMENDED_METADATA_SIZE: Sectors = Sectors(32 * IEC::Mi); // 16 GiB
 
 #[cfg(test)]
 pub fn minimal_thinpool(dm: &DM, path: &Path) -> ThinPoolDev {
-    let dev = Device::from(devnode_to_devno(path).unwrap());
+    let dev = Device::from(devnode_to_devno(path).unwrap().unwrap());
     let meta = LinearDev::setup(dm,
                                 DmName::new("meta").expect("valid format"),
                                 None,
@@ -582,7 +582,7 @@ mod tests {
     /// Verify that data block size less than minimum results in a failure.
     fn test_low_data_block_size(paths: &[&Path]) -> () {
         assert!(paths.len() >= 1);
-        let dev = Device::from(devnode_to_devno(paths[0]).unwrap());
+        let dev = Device::from(devnode_to_devno(paths[0]).unwrap().unwrap());
 
         let dm = DM::new().unwrap();
 

@@ -235,7 +235,7 @@ mod tests {
 
         let dm = DM::new().unwrap();
         let name = "name";
-        let dev = Device::from(devnode_to_devno(&paths[0]).unwrap());
+        let dev = Device::from(devnode_to_devno(&paths[0]).unwrap().unwrap());
         let mut ld = LinearDev::setup(&dm,
                                       DmName::new(name).expect("valid format"),
                                       None,
@@ -255,7 +255,7 @@ mod tests {
 
         let dm = DM::new().unwrap();
         let name = "name";
-        let dev = Device::from(devnode_to_devno(&paths[0]).unwrap());
+        let dev = Device::from(devnode_to_devno(&paths[0]).unwrap().unwrap());
         let mut ld = LinearDev::setup(&dm,
                                       DmName::new(name).expect("valid format"),
                                       None,
@@ -279,7 +279,7 @@ mod tests {
 
         let dm = DM::new().unwrap();
         let name = "name";
-        let dev = Device::from(devnode_to_devno(&paths[0]).unwrap());
+        let dev = Device::from(devnode_to_devno(&paths[0]).unwrap().unwrap());
         let segments = &[Segment::new(dev, Sectors(0), Sectors(1)),
                          Segment::new(dev, Sectors(0), Sectors(1))];
         let range: Sectors = segments.iter().map(|s| s.length).sum();
@@ -312,7 +312,7 @@ mod tests {
 
         let dm = DM::new().unwrap();
         let name = "name";
-        let dev = Device::from(devnode_to_devno(&paths[0]).unwrap());
+        let dev = Device::from(devnode_to_devno(&paths[0]).unwrap().unwrap());
         let segments = (0..5)
             .map(|n| Segment::new(dev, Sectors(n), Sectors(1)))
             .collect::<Vec<Segment>>();
@@ -336,7 +336,7 @@ mod tests {
 
         let dm = DM::new().unwrap();
         let name = "name";
-        let dev = Device::from(devnode_to_devno(&paths[0]).unwrap());
+        let dev = Device::from(devnode_to_devno(&paths[0]).unwrap().unwrap());
         let segments = &[Segment::new(dev, Sectors(0), Sectors(1))];
         let ld = LinearDev::setup(&dm,
                                   DmName::new(name).expect("valid format"),
@@ -361,7 +361,7 @@ mod tests {
         assert!(paths.len() >= 1);
 
         let dm = DM::new().unwrap();
-        let dev = Device::from(devnode_to_devno(&paths[0]).unwrap());
+        let dev = Device::from(devnode_to_devno(&paths[0]).unwrap().unwrap());
         let segments = &[Segment::new(dev, Sectors(0), Sectors(1))];
         let ld = LinearDev::setup(&dm,
                                   DmName::new("name").expect("valid format"),

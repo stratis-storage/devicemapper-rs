@@ -157,7 +157,7 @@ pub fn device_exists(dm: &DM, name: &DmName) -> DmResult<bool> {
 /// Parse a device from either of a path or a maj:min pair
 pub fn parse_device(val: &str) -> DmResult<Device> {
     let device = if val.starts_with('/') {
-        devnode_to_devno(Path::new(val))
+        devnode_to_devno(Path::new(val))?
             .ok_or_else(|| {
                             DmError::Dm(ErrorEnum::Invalid,
                                         format!("failed to parse device number from \"{}\"", val))
