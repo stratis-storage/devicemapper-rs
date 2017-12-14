@@ -439,7 +439,7 @@ impl DM {
     /// Get DeviceInfo for a device. This is also returned by other
     /// methods, but if just the DeviceInfo is desired then this just
     /// gets it.
-    pub fn device_status(&self, id: &DevId) -> DmResult<DeviceInfo> {
+    pub fn device_info(&self, id: &DevId) -> DmResult<DeviceInfo> {
         let mut hdr: dmi::Struct_dm_ioctl = Default::default();
 
         Self::initialize_hdr(&mut hdr, DmFlags::empty());
@@ -460,10 +460,12 @@ impl DM {
     ///
     /// This interface is not very friendly to monitoring multiple devices.
     /// Events are also exported via uevents, that method may be preferable.
-    pub fn device_wait(&self,
-                       id: &DevId,
-                       flags: DmFlags)
-                       -> DmResult<(DeviceInfo, Vec<TargetLine>)> {
+    #[allow(type_complexity)]
+    pub fn device_wait
+        (&self,
+         id: &DevId,
+         flags: DmFlags)
+         -> DmResult<(DeviceInfo, Vec<(Sectors, Sectors, TargetTypeBuf, String)>)> {
         let mut hdr: dmi::Struct_dm_ioctl = Default::default();
 
         let clean_flags = DmFlags::DM_QUERY_INACTIVE_TABLE & flags;
@@ -510,7 +512,7 @@ impl DM {
     /// let id = DevId::Name(name);
     /// dm.table_load(&id, &table).unwrap();
     /// ```
-    pub fn table_load(&self, id: &DevId, targets: &[TargetLine]) -> DmResult<DeviceInfo> {
+    pub fn table_load(&self, id: &DevId, targets: &[TargetLine<String>]) -> DmResult<DeviceInfo> {
         let mut targs = Vec::new();
 
         // Construct targets first, since we need to know how many & size
@@ -637,7 +639,9 @@ impl DM {
     // will either be backwards-compatible, or will increment
     // DM_VERSION_MAJOR.  Since calls made with a non-matching major version
     // will fail, this protects against callers parsing unknown formats.
-    fn parse_table_status(count: u32, buf: &[u8]) -> Vec<TargetLine> {
+    fn parse_table_status(count: u32,
+                          buf: &[u8])
+                          -> Vec<(Sectors, Sectors, TargetTypeBuf, String)> {
         let mut targets = Vec::new();
         if !buf.is_empty() {
             let mut next_off = 0;
@@ -662,13 +666,11 @@ impl DM {
                     String::from_utf8_lossy(slc).trim_right().to_owned()
                 };
 
-                targets.push(TargetLine {
-                                 start: Sectors(targ.sector_start),
-                                 length: Sectors(targ.length),
-                                 target_type:
-                                     TargetTypeBuf::new(target_type).expect("< sizeof target_spec"),
-                                 params: params,
-                             });
+                targets.push((Sectors(targ.sector_start),
+                              Sectors(targ.length),
+
+                              TargetTypeBuf::new(target_type).expect("< sizeof target_spec"),
+                              params));
 
                 next_off = targ.next as usize;
             }
@@ -703,10 +705,12 @@ impl DM {
     /// let res = dm.table_status(&id, DmFlags::DM_STATUS_TABLE).unwrap();
     /// println!("{} {:?}", res.0.name(), res.1);
     /// ```
-    pub fn table_status(&self,
-                        id: &DevId,
-                        flags: DmFlags)
-                        -> DmResult<(DeviceInfo, Vec<TargetLine>)> {
+    #[allow(type_complexity)]
+    pub fn table_status
+        (&self,
+         id: &DevId,
+         flags: DmFlags)
+         -> DmResult<(DeviceInfo, Vec<(Sectors, Sectors, TargetTypeBuf, String)>)> {
         let mut hdr: dmi::Struct_dm_ioctl = Default::default();
 
         let clean_flags = (DmFlags::DM_NOFLUSH | DmFlags::DM_STATUS_TABLE |
@@ -923,12 +927,12 @@ mod tests {
         let uuid = DmUuid::new("example-363333333333333").expect("is valid DM uuid");
         let result = dm.device_rename(name, &DevId::Uuid(uuid)).unwrap();
         assert_eq!(result.uuid(), None);
-        assert_eq!(dm.device_status(&DevId::Name(name))
+        assert_eq!(dm.device_info(&DevId::Name(name))
                        .unwrap()
                        .uuid()
                        .unwrap(),
                    uuid);
-        assert!(dm.device_status(&DevId::Uuid(uuid)).is_ok());
+        assert!(dm.device_info(&DevId::Uuid(uuid)).is_ok());
         dm.device_remove(&DevId::Name(name), DmFlags::empty())
             .unwrap();
     }
@@ -960,11 +964,11 @@ mod tests {
         let new_name = DmName::new("example-dev-2").expect("is valid DM name");
         dm.device_rename(name, &DevId::Name(new_name)).unwrap();
 
-        assert!(match dm.device_status(&DevId::Name(name)) {
+        assert!(match dm.device_info(&DevId::Name(name)) {
                     Err(DmError::Core(Error(ErrorKind::IoctlError(_), _))) => true,
                     _ => false,
                 });
-        assert!(dm.device_status(&DevId::Name(new_name)).is_ok());
+        assert!(dm.device_info(&DevId::Name(new_name)).is_ok());
 
         let devices = dm.list_devices().unwrap();
         assert_eq!(devices.len(), 1);
@@ -1071,7 +1075,7 @@ mod tests {
     /// by name returns an error.
     fn sudo_status_no_name() {
         let name = DmName::new("example_dev").expect("is valid DM name");
-        assert!(match DM::new().unwrap().device_status(&DevId::Name(name)) {
+        assert!(match DM::new().unwrap().device_info(&DevId::Name(name)) {
                     Err(DmError::Core(Error(ErrorKind::IoctlError(_), _))) => true,
                     _ => false,
                 });

@@ -2,16 +2,158 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
+use std::collections::{HashMap, HashSet};
+use std::fmt;
 use std::path::PathBuf;
+use std::str::FromStr;
 
 use super::device::Device;
 use super::deviceinfo::DeviceInfo;
 use super::dm::{DM, DmFlags};
 use super::lineardev::LinearDev;
 use super::result::{DmResult, DmError, ErrorEnum};
-use super::shared::{DmDevice, device_create, device_exists, device_setup};
+use super::shared::{DmDevice, device_create, device_exists, device_match, parse_device};
 use super::types::{DataBlocks, DevId, DmName, DmUuid, MetaBlocks, Sectors, TargetLine,
-                   TargetTypeBuf};
+                   TargetParams, TargetTypeBuf};
+
+#[derive(Debug, Eq, PartialEq)]
+pub struct CacheDevTargetParams {
+    pub meta: Device,
+    pub cache: Device,
+    pub origin: Device,
+    pub cache_block_size: Sectors,
+    pub feature_args: HashSet<String>,
+    pub policy: String,
+    pub policy_args: HashMap<String, String>,
+}
+
+impl CacheDevTargetParams {
+    pub fn new(meta: Device,
+               cache: Device,
+               origin: Device,
+               cache_block_size: Sectors,
+               feature_args: Vec<String>,
+               policy: String,
+               policy_args: Vec<(String, String)>)
+               -> CacheDevTargetParams {
+        CacheDevTargetParams {
+            meta: meta,
+            cache: cache,
+            origin: origin,
+            cache_block_size: cache_block_size,
+            feature_args: feature_args.into_iter().collect::<HashSet<_>>(),
+            policy: policy,
+            policy_args: policy_args.into_iter().collect::<HashMap<_, _>>(),
+        }
+    }
+}
+
+impl fmt::Display for CacheDevTargetParams {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let feature_args = if self.feature_args.is_empty() {
+            "0".to_owned()
+        } else {
+            format!("{} {}",
+                    self.feature_args.len(),
+                    self.feature_args
+                        .iter()
+                        .cloned()
+                        .collect::<Vec<_>>()
+                        .join(" "))
+        };
+
+        let policy_args = if self.policy_args.is_empty() {
+            "0".to_owned()
+        } else {
+            format!("{} {}",
+                    self.policy_args.len(),
+                    self.policy_args
+                        .iter()
+                        .map(|(k, v)| format!("{} {}", k, v))
+                        .collect::<Vec<String>>()
+                        .join(" "))
+        };
+
+        write!(f,
+               "{} {} {} {} {} {} {}",
+               self.meta,
+               self.cache,
+               self.origin,
+               *self.cache_block_size,
+               feature_args,
+               self.policy,
+               policy_args)
+    }
+}
+
+impl FromStr for CacheDevTargetParams {
+    type Err = DmError;
+
+    fn from_str(s: &str) -> DmResult<CacheDevTargetParams> {
+        let vals = s.split(' ').collect::<Vec<_>>();
+
+        if vals.len() < 7 {
+            let err_msg = format!("expected at least 7 values in params string \"{}\", found {}",
+                                  s,
+                                  vals.len());
+            return Err(DmError::Dm(ErrorEnum::Invalid, err_msg));
+        }
+
+        let metadata_dev = parse_device(vals[0])?;
+        let cache_dev = parse_device(vals[1])?;
+        let origin_dev = parse_device(vals[2])?;
+
+        let block_size = vals[3]
+            .parse::<u64>()
+            .map(Sectors)
+            .map_err(|_| {
+                DmError::Dm(ErrorEnum::Invalid,
+                            format!("failed to parse value for data block size from \"{}\"",
+                                    vals[3]))})?;
+
+        let num_feature_args = vals[4]
+            .parse::<usize>()
+            .map_err(|_| {
+                DmError::Dm(ErrorEnum::Invalid,
+                            format!("failed to parse value for number of feature args from \"{}\"",
+                                    vals[4]))})?;
+
+        let end_feature_args_index = 5 + num_feature_args;
+        let feature_args: Vec<String> = vals[5..end_feature_args_index]
+            .iter()
+            .map(|x| x.to_string())
+            .collect();
+
+        let policy = vals[end_feature_args_index].to_owned();
+
+        let num_policy_args = vals[end_feature_args_index + 1]
+            .parse::<usize>()
+            .map_err(|_| {
+                DmError::Dm(ErrorEnum::Invalid,
+                            format!("failed to parse value for number of policy args from \"{}\"",
+                                    vals[end_feature_args_index + 1]))})?;
+
+        let start_policy_args_index = end_feature_args_index + 2;
+        let end_policy_args_index = start_policy_args_index + num_policy_args;
+        let policy_args: Vec<(String, String)> = vals[start_policy_args_index..
+        end_policy_args_index]
+                .chunks(2)
+                .map(|x| (x[0].to_string(), x[1].to_string()))
+                .collect();
+
+        Ok(CacheDevTargetParams::new(metadata_dev,
+                                     cache_dev,
+                                     origin_dev,
+                                     block_size,
+                                     feature_args,
+                                     policy,
+                                     policy_args))
+
+    }
+}
+
+impl TargetParams for CacheDevTargetParams {}
+
 
 /// Cache usage
 #[derive(Debug)]
@@ -170,13 +312,57 @@ pub struct CacheDev {
     block_size: Sectors,
 }
 
-impl DmDevice for CacheDev {
+impl DmDevice<CacheDevTargetParams> for CacheDev {
     fn device(&self) -> Device {
         device!(self)
     }
 
     fn devnode(&self) -> PathBuf {
         devnode!(self)
+    }
+
+    // Omit replacement policy field from equality test when checking that
+    // two devices are the same. Equality of replacement policies is not a
+    // necessary requirement for equality of devices as the replacement
+    // policy can be changed dynamically by a reload of of the device's table.
+    // It is convenient that this is the case, because checking equality of
+    // replacement policies is somewhat hard. "default", which is a valid
+    // policy string, is not a particular policy, but an alias for the default
+    // policy for this version of devicemapper. Therefore, using string
+    // equality to check equivalence can result in false negatives, as
+    // "default" != "smq", the current default policy in the recent kernel.
+    // Note: There is the possibility of implementing the following somewhat
+    // complicated check. Without loss of generality, let
+    // left[0].params.policy = "default" and
+    // right[0].params.policy = X, where X != "default". Then, if X is the
+    // default policy, return true, otherwise return false. Unfortunately,
+    // there is no straightforward programmatic way of determining the default
+    // policy for a given kernel, and we are assured that the default policy
+    // can vary between kernels, and may of course, change in future.
+    fn equivalent_tables(left: &[TargetLine<CacheDevTargetParams>],
+                         right: &[TargetLine<CacheDevTargetParams>])
+                         -> DmResult<bool> {
+        if left.len() != 1 {
+            let err_msg = format!("cache dev tables have exactly one line, found {} lines in table",
+                                  left.len());
+            return Err(DmError::Dm(ErrorEnum::Invalid, err_msg));
+        }
+        if right.len() != 1 {
+            let err_msg = format!("cache dev tables have exactly one line, found {} lines in table",
+                                  right.len());
+            return Err(DmError::Dm(ErrorEnum::Invalid, err_msg));
+        }
+
+        let left = left.first().expect("left.len() == 1");
+        let right = right.first().expect("right.len() == 1");
+
+        Ok(left.start == right.start && left.length == right.length &&
+           left.target_type == right.target_type &&
+           left.params.meta == right.params.meta &&
+           left.params.origin == right.params.origin &&
+           left.params.cache_block_size == right.params.cache_block_size &&
+           left.params.feature_args == right.params.feature_args &&
+           left.params.policy_args == right.params.policy_args)
     }
 
     fn name(&self) -> &DmName {
@@ -194,6 +380,10 @@ impl DmDevice for CacheDev {
         self.meta_dev.teardown(dm)?;
         Ok(())
     }
+
+    fn uuid(&self) -> Option<&DmUuid> {
+        uuid!(self)
+    }
 }
 
 
@@ -204,10 +394,10 @@ impl CacheDev {
     pub fn new(dm: &DM,
                name: &DmName,
                uuid: Option<&DmUuid>,
-               cache_block_size: Sectors,
                meta: LinearDev,
                cache: LinearDev,
-               origin: LinearDev)
+               origin: LinearDev,
+               cache_block_size: Sectors)
                -> DmResult<CacheDev> {
         if device_exists(dm, name)? {
             let err_msg = format!("cachedev {} already exists", name);
@@ -230,21 +420,35 @@ impl CacheDev {
     pub fn setup(dm: &DM,
                  name: &DmName,
                  uuid: Option<&DmUuid>,
-                 cache_block_size: Sectors,
                  meta: LinearDev,
                  cache: LinearDev,
-                 origin: LinearDev)
+                 origin: LinearDev,
+                 cache_block_size: Sectors)
                  -> DmResult<CacheDev> {
         let table = CacheDev::dm_table(&meta, &origin, &cache, cache_block_size);
-        let dev_info = device_setup(dm, name, uuid, &table)?;
+        let dev = if device_exists(dm, name)? {
+            let dev_info = dm.device_info(&DevId::Name(name))?;
+            let dev = CacheDev {
+                dev_info: Box::new(dev_info),
+                meta_dev: meta,
+                cache_dev: cache,
+                origin_dev: origin,
+                block_size: cache_block_size,
+            };
+            device_match(dm, &dev, uuid, &table)?;
+            dev
+        } else {
+            let dev_info = device_create(dm, name, uuid, &table)?;
+            CacheDev {
+                dev_info: Box::new(dev_info),
+                meta_dev: meta,
+                cache_dev: cache,
+                origin_dev: origin,
+                block_size: cache_block_size,
+            }
+        };
 
-        Ok(CacheDev {
-               dev_info: Box::new(dev_info),
-               meta_dev: meta,
-               cache_dev: cache,
-               origin_dev: origin,
-               block_size: cache_block_size,
-           })
+        Ok(dev)
     }
 
     /// Generate a table to be passed to DM. The format of the table
@@ -259,17 +463,18 @@ impl CacheDev {
                 cache: &LinearDev,
                 origin: &LinearDev,
                 cache_block_size: Sectors)
-                -> Vec<TargetLine> {
-        let params = format!("{} {} {} {} 0 default 0",
-                             meta.device(),
-                             cache.device(),
-                             origin.device(),
-                             *cache_block_size);
+                -> Vec<TargetLine<CacheDevTargetParams>> {
         vec![TargetLine {
                  start: Sectors::default(),
                  length: origin.size(),
                  target_type: TargetTypeBuf::new("cache".into()).expect("< length limit"),
-                 params: params,
+                 params: CacheDevTargetParams::new(meta.device(),
+                                                   cache.device(),
+                                                   origin.device(),
+                                                   cache_block_size,
+                                                   vec![],
+                                                   "default".to_owned(),
+                                                   vec![]),
              }]
     }
 
@@ -300,7 +505,7 @@ impl CacheDev {
                    1,
                    "Kernel must return 1 line from cache dev status");
 
-        let status_line = &status.get(0).expect("assertion above holds").params;
+        let status_line = &status.first().expect("assertion above holds").3;
         if status_line.starts_with("Fail") {
             return Ok(CacheDevStatus::Fail);
         }
@@ -410,7 +615,8 @@ mod tests {
     use std::path::Path;
 
     use super::super::consts::IEC;
-    use super::super::loopbacked::{devnode_to_devno, test_with_spec};
+    use super::super::device::devnode_to_devno;
+    use super::super::loopbacked::test_with_spec;
     use super::super::segment::Segment;
 
     use super::*;
@@ -424,7 +630,7 @@ mod tests {
     // Verify that status method executes and gives reasonable values.
     fn test_minimal_cache_dev(paths: &[&Path]) -> () {
         assert!(paths.len() >= 2);
-        let dev1 = Device::from(devnode_to_devno(paths[0]).unwrap());
+        let dev1 = Device::from(devnode_to_devno(paths[0]).unwrap().unwrap());
 
         let dm = DM::new().unwrap();
 
@@ -447,7 +653,7 @@ mod tests {
                                      &[Segment::new(dev1, cache_offset, cache_length)])
                 .unwrap();
 
-        let dev2 = Device::from(devnode_to_devno(paths[1]).unwrap());
+        let dev2 = Device::from(devnode_to_devno(paths[1]).unwrap().unwrap());
 
         let origin_name = DmName::new("cache-origin").expect("valid format");
         let origin_length = 512u64 * MIN_CACHE_BLOCK_SIZE;
@@ -460,10 +666,10 @@ mod tests {
         let cache = CacheDev::new(&dm,
                                   DmName::new("cache").expect("valid format"),
                                   None,
-                                  MIN_CACHE_BLOCK_SIZE,
                                   meta,
                                   cache,
-                                  origin)
+                                  origin,
+                                  MIN_CACHE_BLOCK_SIZE)
                 .unwrap();
 
         match cache.status(&dm).unwrap() {
@@ -508,6 +714,15 @@ mod tests {
             }
             _ => assert!(false),
         }
+
+        let table = cache.table(&dm).unwrap();
+        assert_eq!(table.len(), 1);
+
+        let line = &table[0];
+        let params = &line.params;
+        assert_eq!(params.cache_block_size, MIN_CACHE_BLOCK_SIZE);
+        assert_eq!(params.feature_args, HashSet::new());
+        assert_eq!(params.policy, "default");
 
         cache.teardown(&dm).unwrap();
     }

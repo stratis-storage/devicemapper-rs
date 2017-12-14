@@ -2,16 +2,60 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
+use std::fmt;
 use std::path::PathBuf;
+use std::str::FromStr;
 
 use super::device::Device;
 use super::deviceinfo::DeviceInfo;
 use super::dm::{DM, DmFlags};
 use super::result::{DmError, DmResult, ErrorEnum};
-use super::shared::{DmDevice, device_create, device_exists, device_setup, message, table_reload};
+use super::shared::{DmDevice, device_create, device_exists, device_match, message, parse_device,
+                    table_reload};
 use super::thindevid::ThinDevId;
 use super::thinpooldev::ThinPoolDev;
-use super::types::{DevId, DmName, DmUuid, Sectors, TargetLine, TargetTypeBuf};
+use super::types::{DevId, DmName, DmUuid, Sectors, TargetLine, TargetParams, TargetTypeBuf};
+
+
+#[derive(Debug, Eq, PartialEq)]
+pub struct ThinDevTargetParams {
+    pub pool: Device,
+    pub thin_id: ThinDevId,
+}
+
+impl ThinDevTargetParams {
+    pub fn new(pool: Device, thin_id: ThinDevId) -> ThinDevTargetParams {
+        ThinDevTargetParams {
+            pool: pool,
+            thin_id: thin_id,
+        }
+    }
+}
+
+impl fmt::Display for ThinDevTargetParams {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{} {}", self.pool, self.thin_id)
+    }
+}
+
+impl FromStr for ThinDevTargetParams {
+    type Err = DmError;
+
+    fn from_str(s: &str) -> DmResult<ThinDevTargetParams> {
+        let vals = s.split(' ').collect::<Vec<_>>();
+        if vals.len() != 2 {
+            let err_msg = format!("expected two values in params string \"{}\", found {}",
+                                  s,
+                                  vals.len());
+            return Err(DmError::Dm(ErrorEnum::Invalid, err_msg));
+        }
+
+        Ok(ThinDevTargetParams::new(parse_device(vals[0])?, vals[1].parse::<ThinDevId>()?))
+    }
+}
+
+impl TargetParams for ThinDevTargetParams {}
+
 
 /// DM construct for a thin block device
 #[derive(Debug)]
@@ -22,7 +66,7 @@ pub struct ThinDev {
     thinpool: Device,
 }
 
-impl DmDevice for ThinDev {
+impl DmDevice<ThinDevTargetParams> for ThinDev {
     fn device(&self) -> Device {
         device!(self)
     }
@@ -43,14 +87,39 @@ impl DmDevice for ThinDev {
         dm.device_remove(&DevId::Name(self.name()), DmFlags::empty())?;
         Ok(())
     }
+
+    fn uuid(&self) -> Option<&DmUuid> {
+        uuid!(self)
+    }
 }
 
-#[derive(Debug, Clone, Copy)]
+/// Status values for a thin device that is working
+#[derive(Clone, Debug)]
+pub struct ThinDevWorkingStatus {
+    /// The number of mapped sectors
+    pub nr_mapped_sectors: Sectors,
+    /// The highest mapped sector if any.
+    pub highest_mapped_sector: Option<Sectors>,
+}
+
+impl ThinDevWorkingStatus {
+    /// Make a new ThinDevWorkingStatus struct
+    pub fn new(nr_mapped_sectors: Sectors,
+               highest_mapped_sector: Option<Sectors>)
+               -> ThinDevWorkingStatus {
+        ThinDevWorkingStatus {
+            nr_mapped_sectors: nr_mapped_sectors,
+            highest_mapped_sector: highest_mapped_sector,
+        }
+    }
+}
+
+#[derive(Clone, Debug)]
 /// Thin device status.
 pub enum ThinStatus {
     /// Thin device is good. Includes number of mapped sectors, and
     /// highest mapped sector.
-    Good((Sectors, Option<Sectors>)),
+    Working(Box<ThinDevWorkingStatus>),
     /// Thin device is failed.
     Fail,
 }
@@ -64,9 +133,9 @@ impl ThinDev {
     pub fn new(dm: &DM,
                name: &DmName,
                uuid: Option<&DmUuid>,
+               length: Sectors,
                thin_pool: &ThinPoolDev,
-               thin_id: ThinDevId,
-               length: Sectors)
+               thin_id: ThinDevId)
                -> DmResult<ThinDev> {
 
         message(dm, thin_pool, &format!("create_thin {}", thin_id))?;
@@ -77,7 +146,7 @@ impl ThinDev {
         }
 
         let thin_pool_device = thin_pool.device();
-        let table = ThinDev::dm_table(thin_pool_device, thin_id, length);
+        let table = ThinDev::dm_table(length, thin_pool_device, thin_id);
         let dev_info = device_create(dm, name, uuid, &table)?;
 
         Ok(ThinDev {
@@ -100,21 +169,34 @@ impl ThinDev {
     pub fn setup(dm: &DM,
                  name: &DmName,
                  uuid: Option<&DmUuid>,
+                 length: Sectors,
                  thin_pool: &ThinPoolDev,
-                 thin_id: ThinDevId,
-                 length: Sectors)
+                 thin_id: ThinDevId)
                  -> DmResult<ThinDev> {
 
         let thin_pool_device = thin_pool.device();
-        let table = ThinDev::dm_table(thin_pool_device, thin_id, length);
-        let dev_info = device_setup(dm, name, uuid, &table)?;
+        let table = ThinDev::dm_table(length, thin_pool_device, thin_id);
+        let dev = if device_exists(dm, name)? {
+            let dev_info = dm.device_info(&DevId::Name(name))?;
+            let dev = ThinDev {
+                dev_info: Box::new(dev_info),
+                thin_id: thin_id,
+                size: length,
+                thinpool: thin_pool_device,
+            };
+            device_match(dm, &dev, uuid, &table)?;
+            dev
+        } else {
+            let dev_info = device_create(dm, name, uuid, &table)?;
+            ThinDev {
+                dev_info: Box::new(dev_info),
+                thin_id: thin_id,
+                size: length,
+                thinpool: thin_pool_device,
+            }
+        };
+        Ok(dev)
 
-        Ok(ThinDev {
-               dev_info: Box::new(dev_info),
-               thin_id: thin_id,
-               size: length,
-               thinpool: thin_pool_device,
-           })
     }
 
     /// Create a snapshot of a ThinDev.  Once created a snapshot
@@ -136,9 +218,9 @@ impl ThinDev {
         let dev_info = Box::new(device_create(dm,
                                               snapshot_name,
                                               None,
-                                              &ThinDev::dm_table(thin_pool.device(),
-                                                                 snapshot_thin_id,
-                                                                 self.size()))?);
+                                              &ThinDev::dm_table(self.size(),
+                                                                 thin_pool.device(),
+                                                                 snapshot_thin_id))?);
         Ok(ThinDev {
                dev_info: dev_info,
                thin_id: snapshot_thin_id,
@@ -153,13 +235,15 @@ impl ThinDev {
     /// where the thin device specific string has the format:
     /// <thinpool maj:min> <thin_id>
     /// There is exactly one entry in the table.
-    fn dm_table(thin_pool: Device, thin_id: ThinDevId, length: Sectors) -> Vec<TargetLine> {
-        let params = format!("{} {}", thin_pool, thin_id);
+    fn dm_table(length: Sectors,
+                thin_pool: Device,
+                thin_id: ThinDevId)
+                -> Vec<TargetLine<ThinDevTargetParams>> {
         vec![TargetLine {
                  start: Sectors::default(),
                  length: length,
                  target_type: TargetTypeBuf::new("thin".into()).expect("< length limit"),
-                 params: params,
+                 params: ThinDevTargetParams::new(thin_pool, thin_id),
              }]
     }
 
@@ -176,7 +260,7 @@ impl ThinDev {
                    1,
                    "Kernel must return 1 line table for thin status");
 
-        let status_line = &table.first().expect("assertion above holds").params;
+        let status_line = &table.first().expect("assertion above holds").3;
         if status_line.starts_with("Fail") {
             return Ok(ThinStatus::Fail);
         }
@@ -187,9 +271,10 @@ impl ThinDev {
 
         let count = status_vals[0]
             .parse::<u64>()
+            .map(Sectors)
             .expect("Kernel always returns a parseable u64 for sector count");
 
-        let highest = if count == 0 {
+        let highest = if count == Sectors(0) {
             None
         } else {
             Some(Sectors(status_vals[1]
@@ -197,7 +282,7 @@ impl ThinDev {
                              .expect("Kernel always returns a parseable u64 when count > 0")))
         };
 
-        Ok(ThinStatus::Good((Sectors(count), highest)))
+        Ok(ThinStatus::Working(Box::new(ThinDevWorkingStatus::new(count, highest))))
     }
 
     /// Extend the thin device's (virtual) size by the number of
@@ -206,7 +291,7 @@ impl ThinDev {
         let new_size = self.size + sectors;
         table_reload(dm,
                      &DevId::Name(self.name()),
-                     &ThinDev::dm_table(self.thinpool, self.thin_id, new_size))?;
+                     &ThinDev::dm_table(new_size, self.thinpool, self.thin_id))?;
         self.size = new_size;
         Ok(())
     }
@@ -235,6 +320,8 @@ mod tests {
     use super::super::loopbacked::{blkdev_size, test_with_spec};
     use super::super::thinpooldev::minimal_thinpool;
 
+    use super::super::errors::{Error, ErrorKind};
+
     use super::*;
 
     const MIN_THIN_DEV_SIZE: Sectors = Sectors(1);
@@ -249,15 +336,17 @@ mod tests {
         assert!(ThinDev::new(&dm,
                              &DmName::new("name").expect("is valid DM name"),
                              None,
+                             Sectors(0),
                              &tp,
-                             ThinDevId::new_u64(0).expect("is below limit"),
-                             Sectors(0))
+                             ThinDevId::new_u64(0).expect("is below limit"))
                         .is_err());
         tp.teardown(&dm).unwrap();
     }
 
     /// Verify that setting up a thin device without first calling new()
-    /// causes an error.
+    /// causes an error. The underlying reason is that the thin pool hasn't
+    /// been informed about the thin device by messaging the value of the
+    /// thin id.
     fn test_setup_without_new(paths: &[&Path]) -> () {
         assert!(paths.len() >= 1);
 
@@ -265,13 +354,15 @@ mod tests {
         let tp = minimal_thinpool(&dm, paths[0]);
 
         let td_size = MIN_THIN_DEV_SIZE;
-        assert!(ThinDev::setup(&dm,
-                               &DmName::new("name").expect("is valid DM name"),
-                               None,
-                               &tp,
-                               ThinDevId::new_u64(0).expect("is below limit"),
-                               td_size)
-                        .is_err());
+        assert!(match ThinDev::setup(&dm,
+                                     &DmName::new("name").expect("is valid DM name"),
+                                     None,
+                                     td_size,
+                                     &tp,
+                                     ThinDevId::new_u64(0).expect("is below limit")) {
+                    Err(DmError::Core(Error(ErrorKind::IoctlError(_), _))) => true,
+                    _ => false,
+                });
 
         tp.teardown(&dm).unwrap();
     }
@@ -292,7 +383,14 @@ mod tests {
         let id = DmName::new("name").expect("is valid DM name");
 
         let td_size = MIN_THIN_DEV_SIZE;
-        let td = ThinDev::new(&dm, &id, None, &tp, thin_id, td_size).unwrap();
+        let td = ThinDev::new(&dm, &id, None, td_size, &tp, thin_id).unwrap();
+
+        let table = td.table(&dm).unwrap();
+        assert_eq!(table.len(), 1);
+
+        let line = &table[0];
+        assert_eq!(line.params.pool, tp.device());
+        assert_eq!(line.params.thin_id, thin_id);
 
         assert!(match td.status(&dm).unwrap() {
                     ThinStatus::Fail => false,
@@ -306,17 +404,23 @@ mod tests {
                    td_size.bytes());
 
         // New thindev w/ same id fails.
-        assert!(ThinDev::new(&dm, &id, None, &tp, thin_id, td_size).is_err());
+        assert!(match ThinDev::new(&dm, &id, None, td_size, &tp, thin_id) {
+                    Err(DmError::Core(Error(ErrorKind::IoctlError(_), _))) => true,
+                    _ => false,
+                });
+
+        // Verify that the device of that name does exist.
+        assert!(device_exists(&dm, id).unwrap());
 
         // Setting up the just created thin dev succeeds.
-        assert!(ThinDev::setup(&dm, &id, None, &tp, thin_id, td_size).is_ok());
+        assert!(ThinDev::setup(&dm, &id, None, td_size, &tp, thin_id).is_ok());
 
         // Setting up the just created thin dev once more succeeds.
-        assert!(ThinDev::setup(&dm, &id, None, &tp, thin_id, td_size).is_ok());
+        assert!(ThinDev::setup(&dm, &id, None, td_size, &tp, thin_id).is_ok());
 
         // Teardown the thindev, then set it back up.
         td.teardown(&dm).unwrap();
-        let td = ThinDev::setup(&dm, &id, None, &tp, thin_id, td_size);
+        let td = ThinDev::setup(&dm, &id, None, td_size, &tp, thin_id);
         assert!(td.is_ok());
 
         td.unwrap().destroy(&dm, &tp).unwrap();
@@ -334,7 +438,7 @@ mod tests {
         // Create new ThinDev as source for snapshot
         let thin_id = ThinDevId::new_u64(0).expect("is below limit");
         let thin_name = DmName::new("name").expect("is valid DM name");
-        let td = ThinDev::new(&dm, &thin_name, None, &tp, thin_id, td_size).unwrap();
+        let td = ThinDev::new(&dm, &thin_name, None, td_size, &tp, thin_id).unwrap();
 
         // Create a snapshot of the source
         let ss_id = ThinDevId::new_u64(1).expect("is below limit");
@@ -359,7 +463,7 @@ mod tests {
 
         let thin_id = ThinDevId::new_u64(0).expect("is below limit");
         let thin_name = DmName::new("name").expect("is valid DM name");
-        let td = ThinDev::new(&dm, &thin_name, None, &tp, thin_id, tp.size()).unwrap();
+        let td = ThinDev::new(&dm, &thin_name, None, tp.size(), &tp, thin_id).unwrap();
 
         Command::new("mkfs.xfs")
             .arg("-f")

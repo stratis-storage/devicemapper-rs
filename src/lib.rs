@@ -111,14 +111,14 @@ pub use cachedev::{CacheDev, CacheDevPerformance, CacheDevStatus, CacheDevUsage,
 pub use consts::{IEC, SECTOR_SIZE};
 pub use dm::{DM, DmFlags};
 
-pub use device::Device;
+pub use device::{Device, devnode_to_devno};
 pub use lineardev::LinearDev;
 pub use result::{DmResult, DmError, ErrorEnum};
 pub use segment::Segment;
 pub use shared::{DmDevice, device_exists};
 pub use thinpooldev::{ThinPoolUsage, ThinPoolDev, ThinPoolNoSpacePolicy, ThinPoolStatus,
                       ThinPoolStatusSummary, ThinPoolWorkingStatus};
-pub use thindev::{ThinDev, ThinStatus};
+pub use thindev::{ThinDev, ThinDevWorkingStatus, ThinStatus};
 pub use thindevid::ThinDevId;
 pub use types::{Bytes, DataBlocks, DevId, DmName, DmNameBuf, DmUuid, DmUuidBuf, MetaBlocks,
                 Sectors, TargetLine, TargetType, TargetTypeBuf};

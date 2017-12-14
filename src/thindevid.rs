@@ -3,6 +3,7 @@
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 use std::fmt;
+use std::str::FromStr;
 
 use serde;
 
@@ -38,6 +39,19 @@ impl From<ThinDevId> for u32 {
 impl fmt::Display for ThinDevId {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         fmt::Display::fmt(&self.value, f)
+    }
+}
+
+impl FromStr for ThinDevId {
+    type Err = DmError;
+
+    fn from_str(s: &str) -> Result<ThinDevId, DmError> {
+        s.parse::<u64>()
+            .map_err(|_| {
+                         DmError::Dm(ErrorEnum::Invalid,
+                                     format!("failed to parse value for thindev id \"{}\"", s))
+                     })
+            .map(ThinDevId::new_u64)?
     }
 }
 

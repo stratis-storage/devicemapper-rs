@@ -2,15 +2,69 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
+use std::fmt;
 use std::path::PathBuf;
+use std::str::FromStr;
 
 use super::device::Device;
 use super::deviceinfo::DeviceInfo;
 use super::dm::{DM, DmFlags};
 use super::result::{DmResult, DmError, ErrorEnum};
 use super::segment::Segment;
-use super::shared::{DmDevice, device_setup, table_reload};
-use super::types::{DevId, DmName, DmUuid, Sectors, TargetLine, TargetTypeBuf};
+use super::shared::{DmDevice, device_create, device_exists, device_match, parse_device,
+                    table_reload};
+use super::types::{DevId, DmName, DmUuid, Sectors, TargetLine, TargetParams, TargetTypeBuf};
+
+
+#[derive(Debug, Eq, PartialEq)]
+pub struct LinearDevTargetParams {
+    pub device: Device,
+    pub physical_start_offset: Sectors,
+}
+
+impl LinearDevTargetParams {
+    pub fn new(device: Device, physical_start_offset: Sectors) -> LinearDevTargetParams {
+        LinearDevTargetParams {
+            device: device,
+            physical_start_offset: physical_start_offset,
+        }
+    }
+}
+
+impl fmt::Display for LinearDevTargetParams {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{} {}", self.device, *self.physical_start_offset)
+    }
+}
+
+impl FromStr for LinearDevTargetParams {
+    type Err = DmError;
+
+    fn from_str(s: &str) -> DmResult<LinearDevTargetParams> {
+        let vals = s.split(' ').collect::<Vec<_>>();
+        if vals.len() != 2 {
+            let err_msg = format!("expected two values in params string \"{}\", found {}",
+                                  s,
+                                  vals.len());
+            return Err(DmError::Dm(ErrorEnum::Invalid, err_msg));
+        }
+
+        let device = parse_device(vals[0])?;
+
+        let start = vals[1]
+            .parse::<u64>()
+            .map(Sectors)
+            .map_err(|_| {
+                DmError::Dm(ErrorEnum::Invalid,
+                            format!("failed to parse value for physical start offset \"{}\"",
+                                    vals[1]))})?;
+
+        Ok(LinearDevTargetParams::new(device, start))
+    }
+}
+
+impl TargetParams for LinearDevTargetParams {}
+
 
 /// A DM construct of combined Segments
 #[derive(Debug)]
@@ -20,7 +74,7 @@ pub struct LinearDev {
     segments: Vec<Segment>,
 }
 
-impl DmDevice for LinearDev {
+impl DmDevice<LinearDevTargetParams> for LinearDev {
     fn device(&self) -> Device {
         device!(self)
     }
@@ -40,6 +94,10 @@ impl DmDevice for LinearDev {
     fn teardown(self, dm: &DM) -> DmResult<()> {
         dm.device_remove(&DevId::Name(self.name()), DmFlags::empty())?;
         Ok(())
+    }
+
+    fn uuid(&self) -> Option<&DmUuid> {
+        uuid!(self)
     }
 }
 
@@ -75,12 +133,22 @@ impl LinearDev {
         }
 
         let table = LinearDev::dm_table(segments);
-        let dev_info = device_setup(dm, name, uuid, &table)?;
-
-        Ok(LinearDev {
-               dev_info: Box::new(dev_info),
-               segments: segments.to_vec(),
-           })
+        let dev = if device_exists(dm, name)? {
+            let dev_info = dm.device_info(&DevId::Name(name))?;
+            let dev = LinearDev {
+                dev_info: Box::new(dev_info),
+                segments: segments.to_vec(),
+            };
+            device_match(dm, &dev, uuid, &table)?;
+            dev
+        } else {
+            let dev_info = device_create(dm, name, uuid, &table)?;
+            LinearDev {
+                dev_info: Box::new(dev_info),
+                segments: segments.to_vec(),
+            }
+        };
+        Ok(dev)
     }
 
     /// Return a reference to the segments that back this linear device.
@@ -93,7 +161,7 @@ impl LinearDev {
     /// <logical start offset> <length> "linear" <linear-specific string>
     /// where the linear-specific string has the format:
     /// <maj:min> <physical start offset>
-    fn dm_table(segments: &[Segment]) -> Vec<TargetLine> {
+    fn dm_table(segments: &[Segment]) -> Vec<TargetLine<LinearDevTargetParams>> {
         assert_ne!(segments.len(), 0);
 
         let mut table = Vec::new();
@@ -104,7 +172,7 @@ impl LinearDev {
                 start: logical_start_offset,
                 length: length,
                 target_type: TargetTypeBuf::new("linear".into()).expect("< length limit"),
-                params: format!("{} {}", segment.device, *physical_start_offset),
+                params: LinearDevTargetParams::new(segment.device, physical_start_offset),
             };
             debug!("dmtable line : {:?}", line);
             table.push(line);
@@ -137,7 +205,7 @@ impl LinearDev {
             return Ok(());
         }
         dm.device_rename(self.name(), &DevId::Name(name))?;
-        self.dev_info = Box::new(dm.device_status(&DevId::Name(name))?);
+        self.dev_info = Box::new(dm.device_info(&DevId::Name(name))?);
         Ok(())
     }
 }
@@ -147,8 +215,8 @@ mod tests {
     use std::fs::OpenOptions;
     use std::path::Path;
 
-    use super::super::device::Device;
-    use super::super::loopbacked::{blkdev_size, devnode_to_devno, test_with_spec};
+    use super::super::device::{Device, devnode_to_devno};
+    use super::super::loopbacked::{blkdev_size, test_with_spec};
 
     use super::*;
 
@@ -167,7 +235,7 @@ mod tests {
 
         let dm = DM::new().unwrap();
         let name = "name";
-        let dev = Device::from(devnode_to_devno(&paths[0]).unwrap());
+        let dev = Device::from(devnode_to_devno(&paths[0]).unwrap().unwrap());
         let mut ld = LinearDev::setup(&dm,
                                       DmName::new(name).expect("valid format"),
                                       None,
@@ -187,7 +255,7 @@ mod tests {
 
         let dm = DM::new().unwrap();
         let name = "name";
-        let dev = Device::from(devnode_to_devno(&paths[0]).unwrap());
+        let dev = Device::from(devnode_to_devno(&paths[0]).unwrap().unwrap());
         let mut ld = LinearDev::setup(&dm,
                                       DmName::new(name).expect("valid format"),
                                       None,
@@ -204,13 +272,14 @@ mod tests {
 
     /// Verify that passing the same segments two times gets two segments.
     /// Verify that the size of the devnode is the size of the sum of the
-    /// ranges of the segments.
+    /// ranges of the segments. Verify that the table contains entries for both
+    /// segments.
     fn test_duplicate_segments(paths: &[&Path]) -> () {
         assert!(paths.len() >= 1);
 
         let dm = DM::new().unwrap();
         let name = "name";
-        let dev = Device::from(devnode_to_devno(&paths[0]).unwrap());
+        let dev = Device::from(devnode_to_devno(&paths[0]).unwrap().unwrap());
         let segments = &[Segment::new(dev, Sectors(0), Sectors(1)),
                          Segment::new(dev, Sectors(0), Sectors(1))];
         let range: Sectors = segments.iter().map(|s| s.length).sum();
@@ -220,18 +289,42 @@ mod tests {
                                   None,
                                   segments)
                 .unwrap();
-        assert_eq!(dm.table_status(&DevId::Name(DmName::new(name).expect("valid format")),
-                                   DmFlags::DM_STATUS_TABLE)
-                       .unwrap()
-                       .1
-                       .len(),
-                   count);
+
+        let table = ld.table(&dm).unwrap();
+        assert_eq!(table.len(), count);
+        assert_eq!(table[0].params.device, dev);
+        assert_eq!(table[1].params.device, dev);
+
         assert_eq!(blkdev_size(&OpenOptions::new()
                                     .read(true)
                                     .open(ld.devnode())
                                     .unwrap())
                            .sectors(),
                    range);
+
+        ld.teardown(&dm).unwrap();
+    }
+
+    /// Use five segments, each distinct. If parsing works correctly,
+    /// default table should match extracted table.
+    fn test_several_segments(paths: &[&Path]) -> () {
+        assert!(paths.len() >= 1);
+
+        let dm = DM::new().unwrap();
+        let name = "name";
+        let dev = Device::from(devnode_to_devno(&paths[0]).unwrap().unwrap());
+        let segments = (0..5)
+            .map(|n| Segment::new(dev, Sectors(n), Sectors(1)))
+            .collect::<Vec<Segment>>();
+
+        let ld = LinearDev::setup(&dm,
+                                  DmName::new(name).expect("valid format"),
+                                  None,
+                                  &segments)
+                .unwrap();
+
+        let table = ld.table(&dm).unwrap();
+        assert!(LinearDev::equivalent_tables(&table, &LinearDev::dm_table(&segments)).unwrap());
 
         ld.teardown(&dm).unwrap();
     }
@@ -243,9 +336,8 @@ mod tests {
 
         let dm = DM::new().unwrap();
         let name = "name";
-        let dev = Device::from(devnode_to_devno(&paths[0]).unwrap());
+        let dev = Device::from(devnode_to_devno(&paths[0]).unwrap().unwrap());
         let segments = &[Segment::new(dev, Sectors(0), Sectors(1))];
-        let table = LinearDev::dm_table(segments);
         let ld = LinearDev::setup(&dm,
                                   DmName::new(name).expect("valid format"),
                                   None,
@@ -261,12 +353,6 @@ mod tests {
                                  None,
                                  segments)
                         .is_ok());
-        assert_eq!(table,
-                   dm.table_status(&DevId::Name(DmName::new(name).expect("valid format")),
-                                   DmFlags::DM_STATUS_TABLE)
-                       .unwrap()
-                       .1);
-
         ld.teardown(&dm).unwrap();
     }
 
@@ -275,7 +361,7 @@ mod tests {
         assert!(paths.len() >= 1);
 
         let dm = DM::new().unwrap();
-        let dev = Device::from(devnode_to_devno(&paths[0]).unwrap());
+        let dev = Device::from(devnode_to_devno(&paths[0]).unwrap().unwrap());
         let segments = &[Segment::new(dev, Sectors(0), Sectors(1))];
         let ld = LinearDev::setup(&dm,
                                   DmName::new("name").expect("valid format"),
@@ -289,29 +375,6 @@ mod tests {
         assert!(ld2.is_ok());
 
         ld2.unwrap().teardown(&dm).unwrap();
-        ld.teardown(&dm).unwrap();
-    }
-
-    /// Verify that table status returns the expected table.
-    fn test_table_status(paths: &[&Path]) -> () {
-        assert!(paths.len() >= 1);
-
-        let dm = DM::new().unwrap();
-        let name = "name";
-        let dev = Device::from(devnode_to_devno(&paths[0]).unwrap());
-        let segments = &[Segment::new(dev, Sectors(0), Sectors(1)),
-                         Segment::new(dev, Sectors(1), Sectors(1))];
-        let table = LinearDev::dm_table(segments);
-        let ld = LinearDev::setup(&dm,
-                                  DmName::new(name).expect("valid format"),
-                                  None,
-                                  segments)
-                .unwrap();
-        assert_eq!(table,
-                   dm.table_status(&DevId::Name(DmName::new(name).expect("valid format")),
-                                   DmFlags::DM_STATUS_TABLE)
-                       .unwrap()
-                       .1);
         ld.teardown(&dm).unwrap();
     }
 
@@ -346,7 +409,7 @@ mod tests {
     }
 
     #[test]
-    fn loop_test_table_status() {
-        test_with_spec(1, test_table_status);
+    fn loop_test_several_segments() {
+        test_with_spec(1, test_several_segments);
     }
 }
