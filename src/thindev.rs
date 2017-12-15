@@ -6,15 +6,13 @@ use std::fmt;
 use std::path::PathBuf;
 use std::str::FromStr;
 
-use super::device::Device;
-use super::deviceinfo::DeviceInfo;
-use super::dm::{DM, DmFlags};
+use devicemapper::{Device, DeviceInfo, DevId, DM, DmFlags, DmName, DmUuid, Sectors, TargetTypeBuf};
+
 use super::result::{DmError, DmResult, ErrorEnum};
 use super::shared::{DmDevice, TargetLine, TargetParams, TargetTable, device_create, device_exists,
                     device_match, message, parse_device, table_reload};
 use super::thindevid::ThinDevId;
 use super::thinpooldev::ThinPoolDev;
-use super::types::{DevId, DmName, DmUuid, Sectors, TargetTypeBuf};
 
 const THIN_TARGET_NAME: &str = "thin";
 
@@ -370,14 +368,14 @@ mod tests {
     use tempdir::TempDir;
     use uuid::Uuid;
 
-    use super::super::consts::IEC;
+    use devicemapper as dm;
+    use devicemapper::{DataBlocks, DM, IEC};
+
     use super::super::loopbacked::{blkdev_size, test_with_spec};
     use super::super::thinpooldev::{ThinPoolStatus, minimal_thinpool};
-    use super::super::types::DataBlocks;
-
-    use super::super::errors::{Error, ErrorKind};
 
     use super::*;
+
 
     const MIN_THIN_DEV_SIZE: Sectors = Sectors(1);
 
@@ -415,7 +413,7 @@ mod tests {
                                      td_size,
                                      &tp,
                                      ThinDevId::new_u64(0).expect("is below limit")) {
-                    Err(DmError::Core(Error(ErrorKind::IoctlError(_), _))) => true,
+                    Err(DmError::Core(dm::Error(dm::ErrorKind::IoctlError(_), _))) => true,
                     _ => false,
                 });
 
@@ -460,7 +458,7 @@ mod tests {
 
         // New thindev w/ same id fails.
         assert!(match ThinDev::new(&dm, &id, None, td_size, &tp, thin_id) {
-                    Err(DmError::Core(Error(ErrorKind::IoctlError(_), _))) => true,
+                    Err(DmError::Core(dm::Error(dm::ErrorKind::IoctlError(_), _))) => true,
                     _ => false,
                 });
 

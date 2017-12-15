@@ -44,20 +44,11 @@
 
 #![warn(missing_docs)]
 
-#[macro_use]
-extern crate macro_attr;
-#[macro_use]
-extern crate newtype_derive;
+extern crate serde;
 
-extern crate libc;
+#[cfg(test)]
 #[macro_use]
 extern crate nix;
-extern crate serde;
-#[macro_use]
-extern crate bitflags;
-#[macro_use]
-extern crate error_chain;
-
 #[cfg(test)]
 extern crate loopdev;
 #[cfg(test)]
@@ -65,14 +56,8 @@ extern crate tempdir;
 #[cfg(test)]
 extern crate uuid;
 
-/// rust definitions of ioctl structs and consts
-mod dm_ioctl;
-/// public utilities
-mod util;
-/// basic types (Bytes, Sectors, DataBlocks)
-mod types;
-/// shared constants
-mod consts;
+extern crate devicemapper;
+
 /// Macros shared by device mapper devices.
 #[macro_use]
 mod shared_macros;
@@ -88,16 +73,8 @@ mod thinpooldev;
 mod cachedev;
 /// return results container
 mod result;
-/// wrapper for C interface for DM
-mod deviceinfo;
-/// contains device major/minor and associated functions
-mod device;
-/// core lower level API
-mod dm;
 /// functionality shared between devices
 mod shared;
-/// error chain errors for core dm
-mod errors;
 
 #[cfg(test)]
 mod loopbacked;
@@ -105,10 +82,6 @@ mod loopbacked;
 
 pub use cachedev::{CacheDev, CacheDevPerformance, CacheDevStatus, CacheDevUsage,
                    CacheDevWorkingStatus};
-pub use consts::{IEC, SECTOR_SIZE};
-pub use dm::{DM, DmFlags};
-
-pub use device::{Device, devnode_to_devno};
 pub use lineardev::{FlakeyTargetParams, LinearDev, LinearDevTargetParams, LinearDevTargetTable,
                     LinearTargetParams};
 pub use result::{DmResult, DmError, ErrorEnum};
@@ -117,5 +90,3 @@ pub use thinpooldev::{ThinPoolUsage, ThinPoolDev, ThinPoolNoSpacePolicy, ThinPoo
                       ThinPoolStatusSummary, ThinPoolWorkingStatus};
 pub use thindev::{ThinDev, ThinDevWorkingStatus, ThinStatus};
 pub use thindevid::ThinDevId;
-pub use types::{Bytes, DataBlocks, DevId, DmName, DmNameBuf, DmUuid, DmUuidBuf, MetaBlocks,
-                Sectors, TargetType, TargetTypeBuf};

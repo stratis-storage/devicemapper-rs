@@ -7,13 +7,11 @@ use std::fmt;
 use std::path::PathBuf;
 use std::str::FromStr;
 
-use super::device::Device;
-use super::deviceinfo::DeviceInfo;
-use super::dm::{DM, DmFlags};
+use devicemapper::{Device, DeviceInfo, DevId, DmName, DmUuid, Sectors, TargetTypeBuf, DM, DmFlags};
+
 use super::result::{DmError, DmResult, ErrorEnum};
 use super::shared::{DmDevice, TargetLine, TargetParams, TargetTable, device_create, device_exists,
                     device_match, parse_device, table_reload};
-use super::types::{DevId, DmName, DmUuid, Sectors, TargetTypeBuf};
 
 
 const FLAKEY_TARGET_NAME: &str = "flakey";
@@ -482,7 +480,8 @@ mod tests {
     use std::fs::OpenOptions;
     use std::path::Path;
 
-    use super::super::device::{Device, devnode_to_devno};
+    use devicemapper::{Device, devnode_to_devno};
+
     use super::super::loopbacked::{blkdev_size, test_with_spec};
 
     use super::*;
