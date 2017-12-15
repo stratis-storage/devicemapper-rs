@@ -6,17 +6,14 @@ use std::fmt;
 use std::path::PathBuf;
 use std::str::FromStr;
 
-use super::device::Device;
-use super::deviceinfo::DeviceInfo;
-use super::dm::DM;
-use super::dm_flags::{DmCookie, DmFlags};
-use super::dm_options::DmOptions;
+use devicemapper::{DevId, Device, DeviceInfo, DmCookie, DmFlags, DmName, DmOptions, DmUuid,
+                   Sectors, TargetTypeBuf, DM};
+
 use super::result::{DmError, DmResult, ErrorEnum};
 use super::shared::{device_create, device_exists, device_match, message, parse_device, DmDevice,
                     TargetLine, TargetParams, TargetTable};
 use super::thindevid::ThinDevId;
 use super::thinpooldev::ThinPoolDev;
-use super::types::{DevId, DmName, DmUuid, Sectors, TargetTypeBuf};
 
 const THIN_TARGET_NAME: &str = "thin";
 
@@ -426,15 +423,14 @@ mod tests {
     use tempfile;
     use uuid::Uuid;
 
-    use super::super::consts::IEC;
+    use devicemapper as dm;
+    use devicemapper::{DataBlocks, DM, IEC};
+
     use super::super::loopbacked::{blkdev_size, test_with_spec};
     use super::super::shared::DmDevice;
     use super::super::test_lib::{test_name, test_string, test_uuid, udev_settle, xfs_create_fs,
                                  xfs_set_uuid};
     use super::super::thinpooldev::{minimal_thinpool, ThinPoolStatus};
-    use super::super::types::DataBlocks;
-
-    use super::super::errors::{Error, ErrorKind};
 
     use super::*;
 
@@ -509,7 +505,7 @@ mod tests {
             &tp,
             ThinDevId::new_u64(0).expect("is below limit")
         ) {
-            Err(DmError::Core(Error(ErrorKind::IoctlError(_), _))) => true,
+            Err(DmError::Core(dm::Error(dm::ErrorKind::IoctlError(_), _))) => true,
             _ => false,
         });
 
@@ -556,7 +552,7 @@ mod tests {
 
         // New thindev w/ same id fails.
         assert!(match ThinDev::new(&dm, &id, None, td_size, &tp, thin_id) {
-            Err(DmError::Core(Error(ErrorKind::IoctlError(_), _))) => true,
+            Err(DmError::Core(dm::Error(dm::ErrorKind::IoctlError(_), _))) => true,
             _ => false,
         });
 

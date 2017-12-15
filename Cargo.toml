@@ -1,5 +1,5 @@
 [package]
-name = "devicemapper"
+name = "dm-devices"
 version = "0.22.0"
 authors = ["Stratis Developers <stratis-devel@lists.fedorahosted.com>"]
 description = "A library for using Linux device mapper"
@@ -12,10 +12,8 @@ license = "MPL-2.0"
 
 [dependencies]
 libc = "0.2.36"
+devicemapper = { git = "https://github.com/mulkieran/devicemapper-rs", branch="master-core" }
 nix = "0.10"
-bitflags = "1"
-newtype_derive = "0.1"
-macro-attr = "0.2.0"
 mnt = "0.3.1"
 serde = "1"
 error-chain = "0.11"

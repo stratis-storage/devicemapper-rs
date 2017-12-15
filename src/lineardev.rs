@@ -7,14 +7,12 @@ use std::fmt;
 use std::path::PathBuf;
 use std::str::FromStr;
 
-use super::device::Device;
-use super::deviceinfo::DeviceInfo;
-use super::dm::DM;
-use super::dm_options::DmOptions;
+use devicemapper::{DevId, Device, DeviceInfo, DmName, DmOptions, DmUuid, Sectors, TargetTypeBuf,
+                   DM};
+
 use super::result::{DmError, DmResult, ErrorEnum};
 use super::shared::{device_create, device_exists, device_match, parse_device, DmDevice,
                     TargetLine, TargetParams, TargetTable};
-use super::types::{DevId, DmName, DmUuid, Sectors, TargetTypeBuf};
 
 const FLAKEY_TARGET_NAME: &str = "flakey";
 const LINEAR_TARGET_NAME: &str = "linear";
@@ -526,7 +524,8 @@ mod tests {
     use std::fs::OpenOptions;
     use std::path::Path;
 
-    use super::super::device::{devnode_to_devno, Device};
+    use devicemapper::{devnode_to_devno, Device};
+
     use super::super::loopbacked::{blkdev_size, test_with_spec};
     use super::super::test_lib::test_name;
 

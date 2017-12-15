@@ -11,10 +11,9 @@ use mnt::get_submounts;
 use nix::mount::{MntFlags, umount2};
 use uuid::Uuid;
 
-use super::dm::DM;
-use super::dm_options::DmOptions;
 use super::result::{DmError, DmResult, ErrorEnum};
-use super::types::{DevId, DmNameBuf, DmUuidBuf};
+
+use devicemapper::{DevId, DmNameBuf, DmOptions, DmUuidBuf, DM};
 
 static INIT: Once = ONCE_INIT;
 static mut DM_CONTEXT: Option<DM> = None;
@@ -85,12 +84,12 @@ pub fn udev_settle() -> DmResult<()> {
 
 /// Generate the test name given the test supplied name.
 pub fn test_name(name: &str) -> DmResult<DmNameBuf> {
-    DmNameBuf::new(test_string(name))
+    DmNameBuf::new(test_string(name)).map_err(|e| e.into())
 }
 
 /// Generate the test uuid given the test supplied name.
 pub fn test_uuid(name: &str) -> DmResult<DmUuidBuf> {
-    DmUuidBuf::new(test_string(name))
+    DmUuidBuf::new(test_string(name)).map_err(|e| e.into())
 }
 
 #[allow(renamed_and_removed_lints)]

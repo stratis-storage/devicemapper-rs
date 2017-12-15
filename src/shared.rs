@@ -9,13 +9,10 @@ use std::fmt;
 use std::path::{Path, PathBuf};
 use std::str::FromStr;
 
-use super::device::{devnode_to_devno, Device};
-use super::deviceinfo::DeviceInfo;
-use super::dm::DM;
-use super::dm_flags::DmFlags;
-use super::dm_options::DmOptions;
+use devicemapper::{devnode_to_devno, DevId, Device, DeviceInfo, DmFlags, DmName, DmOptions,
+                   DmUuid, Sectors, TargetTypeBuf, DM};
+
 use super::result::{DmError, DmResult, ErrorEnum};
-use super::types::{DevId, DmName, DmUuid, Sectors, TargetTypeBuf};
 
 /// The trait for properties of the params string of TargetType
 pub trait TargetParams: Clone + fmt::Debug + fmt::Display + Eq + FromStr + PartialEq {
@@ -137,7 +134,7 @@ pub fn device_create<T: TargetTable>(
     let dev_info = match dm.table_load(&id, &table.to_raw_table()) {
         Err(e) => {
             dm.device_remove(&id, &DmOptions::new())?;
-            return Err(e);
+            return Err(e.into());
         }
         Ok(dev_info) => dev_info,
     };
