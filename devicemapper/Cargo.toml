@@ -1,0 +1,21 @@
+[package]
+name = "devicemapper"
+version = "0.15.0"
+authors = ["Stratis Developers <stratis-devel@lists.fedorahosted.com>"]
+description = "A library for using Linux device mapper"
+documentation = "https://docs.rs/devicemapper/"
+# homepage = "..."
+repository = "https://github.com/stratis-storage/devicemapper-rs"
+readme = "README.md"
+keywords = ["Linux", "device", "mapper", "libdm", "storage"]
+license = "MPL-2.0"
+
+[dependencies]
+libc = "0.2.31"
+nix = "0.9"
+bitflags = "1"
+newtype_derive = "0.1"
+macro-attr = "0.2.0"
+serde = "1"
+clippy = {version = "0", optional = true}
+error-chain = "0.11"

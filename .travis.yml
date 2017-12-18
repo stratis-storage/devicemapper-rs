@@ -13,16 +13,41 @@ cache: cargo
 matrix:
     include:
         - rust: stable
-          env: TASK=fmt
+          env:
+              - CRATE_SUBDIR=devicemapper
+              - TASK=fmt
         - rust: stable
-          env: TASK=build
+          env:
+              - CRATE_SUBDIR=devicemapper
+              - TASK=build
         - rust: stable
           sudo: required
-          env: TASK=sudo_test
+          env:
+              - CRATE_SUBDIR=devicemapper
+              - TASK=sudo_test
         - rust: nightly
-          env: TASK=clippy
+          env:
+              - CRATE_SUBDIR=devicemapper
+              - TASK=clippy
+        - rust: stable
+          env:
+              - CRATE_SUBDIR=dm-devices
+              - TASK=fmt
+        - rust: stable
+          env:
+              - CRATE_SUBDIR=dm-devices
+              - TASK=build
+        - rust: stable
+          sudo: required
+          env:
+              - CRATE_SUBDIR=dm-devices
+              - TASK=sudo_test
+        - rust: nightly
+          env:
+              - CRATE_SUBDIR=dm-devices
+              - TASK=clippy
 
 branches:
     only: master
 
-script: make -f Makefile $TASK 
+script: cd ./$CRATE_SUBDIR; make -f Makefile $TASK; cd -

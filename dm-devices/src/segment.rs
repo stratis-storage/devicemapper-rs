@@ -2,9 +2,8 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-use types::Sectors;
+use devicemapper::{Device, Sectors};
 
-use super::device::Device;
 
 /// struct to represent a continuous set of sectors on a disk
 #[derive(Debug, Clone)]

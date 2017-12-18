@@ -58,10 +58,6 @@ extern crate bitflags;
 #[macro_use]
 extern crate error_chain;
 
-#[cfg(test)]
-extern crate loopdev;
-#[cfg(test)]
-extern crate tempdir;
 
 /// rust definitions of ioctl structs and consts
 mod dm_ioctl;
@@ -71,51 +67,20 @@ mod util;
 mod types;
 /// shared constants
 mod consts;
-/// Macros shared by device mapper devices.
-#[macro_use]
-mod shared_macros;
-/// functions to create continuous linear space given device segments
-mod lineardev;
-/// allocate a device from a pool
-mod thindev;
-/// the id the pool uses to track its devices
-mod thindevid;
-/// thinpooldev is shared space for  other thin provisioned devices to use
-mod thinpooldev;
-/// cachedev
-mod cachedev;
-/// struct to represent a location, offset and size of a set of disk sectors
-mod segment;
-/// return results container
-mod result;
 /// wrapper for C interface for DM
 mod deviceinfo;
 /// contains device major/minor and associated functions
 mod device;
 /// core lower level API
 mod dm;
-/// functionality shared between devices
-mod shared;
 /// error chain errors for core dm
 mod errors;
 
-#[cfg(test)]
-mod loopbacked;
-
-
-pub use cachedev::{CacheDev, CacheDevPerformance, CacheDevStatus, CacheDevUsage,
-                   CacheDevWorkingStatus};
 pub use consts::{IEC, SECTOR_SIZE};
 pub use dm::{DM, DmFlags};
 
 pub use device::{Device, devnode_to_devno};
-pub use lineardev::LinearDev;
-pub use result::{DmResult, DmError, ErrorEnum};
-pub use segment::Segment;
-pub use shared::{DmDevice, device_exists};
-pub use thinpooldev::{ThinPoolUsage, ThinPoolDev, ThinPoolNoSpacePolicy, ThinPoolStatus,
-                      ThinPoolStatusSummary, ThinPoolWorkingStatus};
-pub use thindev::{ThinDev, ThinDevWorkingStatus, ThinStatus};
-pub use thindevid::ThinDevId;
+pub use deviceinfo::DeviceInfo;
+pub use errors::{Error, ErrorKind, Result};
 pub use types::{Bytes, DataBlocks, DevId, DmName, DmNameBuf, DmUuid, DmUuidBuf, MetaBlocks,
-                Sectors, TargetLine, TargetType, TargetTypeBuf};
+                Sectors, TargetType, TargetTypeBuf};

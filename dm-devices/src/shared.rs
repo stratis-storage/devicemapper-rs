@@ -8,11 +8,12 @@
 use std::path::{Path, PathBuf};
 use std::str::FromStr;
 
-use super::device::{Device, devnode_to_devno};
-use super::deviceinfo::DeviceInfo;
-use super::dm::{DM, DmFlags};
+use devicemapper::{Device, DeviceInfo, DevId, DM, DmFlags, DmName, DmUuid, Sectors,
+                   devnode_to_devno};
+
 use super::result::{DmError, DmResult, ErrorEnum};
-use super::types::{DevId, DmName, DmUuid, Sectors, TargetLine, TargetParams};
+use super::types::{TargetLine, TargetParams};
+
 
 /// A trait capturing some shared properties of DM devices.
 pub trait DmDevice<T: TargetParams> {
@@ -76,19 +77,12 @@ pub fn device_create<T: TargetParams>(dm: &DM,
     let id = DevId::Name(name);
     let table = table
         .iter()
-        .map(|x| {
-                 TargetLine {
-                     start: x.start,
-                     length: x.length,
-                     target_type: x.target_type.clone(),
-                     params: x.params.to_string(),
-                 }
-             })
+        .map(|x| (x.start, x.length, x.target_type.clone(), x.params.to_string()))
         .collect::<Vec<_>>();
     let dev_info = match dm.table_load(&id, &table) {
         Err(e) => {
             dm.device_remove(&id, DmFlags::empty())?;
-            return Err(e);
+            return Err(e.into());
         }
         Ok(dev_info) => dev_info,
     };
@@ -131,14 +125,7 @@ pub fn table_reload<T: TargetParams>(dm: &DM,
                                      -> DmResult<DeviceInfo> {
     let table = table
         .iter()
-        .map(|x| {
-                 TargetLine {
-                     start: x.start,
-                     length: x.length,
-                     target_type: x.target_type.clone(),
-                     params: x.params.to_string(),
-                 }
-             })
+        .map(|x| (x.start, x.length, x.target_type.clone(), x.params.to_string()))
         .collect::<Vec<_>>();
     let dev_info = dm.table_load(id, &table)?;
     dm.device_suspend(id, DmFlags::DM_SUSPEND)?;

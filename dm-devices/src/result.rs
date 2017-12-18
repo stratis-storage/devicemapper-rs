@@ -5,7 +5,7 @@
 use std::error::Error;
 use std::fmt;
 
-use super::errors;
+use devicemapper as dm;
 
 /// A very simple breakdown of outer layer errors.
 #[derive(Debug)]
@@ -31,14 +31,14 @@ pub enum DmError {
     /// DM errors
     Dm(ErrorEnum, String),
     /// Errors in the core devicemapper functionality
-    Core(errors::Error),
+    Core(dm::Error),
 }
 
 /// return result for DM functions
 pub type DmResult<T> = Result<T, DmError>;
 
-impl From<errors::Error> for DmError {
-    fn from(err: errors::Error) -> DmError {
+impl From<dm::Error> for DmError {
+    fn from(err: dm::Error) -> DmError {
         DmError::Core(err)
     }
 }

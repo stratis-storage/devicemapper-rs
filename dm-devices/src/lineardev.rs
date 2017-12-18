@@ -6,14 +6,14 @@ use std::fmt;
 use std::path::PathBuf;
 use std::str::FromStr;
 
-use super::device::Device;
-use super::deviceinfo::DeviceInfo;
-use super::dm::{DM, DmFlags};
+use devicemapper::{Device, DeviceInfo, DevId, DmName, DmUuid, Sectors, TargetTypeBuf, DM, DmFlags};
+
 use super::result::{DmResult, DmError, ErrorEnum};
 use super::segment::Segment;
 use super::shared::{DmDevice, device_create, device_exists, device_match, parse_device,
                     table_reload};
-use super::types::{DevId, DmName, DmUuid, Sectors, TargetLine, TargetParams, TargetTypeBuf};
+
+use super::types::{TargetLine, TargetParams};
 
 
 #[derive(Debug, Eq, PartialEq)]
@@ -214,7 +214,8 @@ mod tests {
     use std::fs::OpenOptions;
     use std::path::Path;
 
-    use super::super::device::{Device, devnode_to_devno};
+    use devicemapper::{Device, devnode_to_devno};
+
     use super::super::loopbacked::{blkdev_size, test_with_spec};
 
     use super::*;
