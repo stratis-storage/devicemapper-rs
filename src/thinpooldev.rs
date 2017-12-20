@@ -13,7 +13,7 @@ use super::dm::{DM, DmFlags};
 use super::lineardev::LinearDev;
 use super::result::{DmResult, DmError, ErrorEnum};
 use super::segment::Segment;
-use super::shared::{DmDevice, TargetLine, TargetParams, device_create, device_exists,
+use super::shared::{DmDevice, TargetLine, TargetParams, TargetTable, device_create, device_exists,
                     device_match, parse_device, table_reload};
 use super::types::{DataBlocks, DevId, DmName, DmUuid, MetaBlocks, Sectors, TargetTypeBuf};
 
@@ -128,6 +128,44 @@ impl FromStr for ThinPoolDevTargetParams {
 impl TargetParams for ThinPoolDevTargetParams {}
 
 
+#[derive(Debug, PartialEq)]
+pub struct ThinPoolDevTargetTable {
+    table: TargetLine<ThinPoolDevTargetParams>,
+}
+
+impl TargetTable for ThinPoolDevTargetTable {
+    // This method is incomplete. It is expected that it will be refined so
+    // that it will return true in more cases, i.e., to be less stringent.
+    fn equivalent_devices(left: &ThinPoolDevTargetTable, right: &ThinPoolDevTargetTable) -> bool {
+        left == right
+    }
+
+    fn read(table: &[(Sectors, Sectors, TargetTypeBuf, String)])
+            -> DmResult<ThinPoolDevTargetTable> {
+        if table.len() != 1 {
+            let err_msg = format!("ThinPoolDev table should have exactly one line, has {} lines",
+                                  table.len());
+            return Err(DmError::Dm(ErrorEnum::Invalid, err_msg));
+        }
+        let line = table.first().expect("table.len() == 1");
+        Ok(ThinPoolDevTargetTable {
+               table: TargetLine {
+                   start: line.0,
+                   length: line.1,
+                   target_type: line.2.clone(),
+                   params: line.3.parse::<ThinPoolDevTargetParams>()?,
+               },
+           })
+
+    }
+
+    fn as_raw_table(&self) -> Vec<(Sectors, Sectors, TargetTypeBuf, String)> {
+        let line = &self.table;
+        vec![(line.start, line.length, line.target_type.clone(), line.params.to_string())]
+    }
+}
+
+
 /// DM construct to contain thin provisioned devices
 #[derive(Debug)]
 pub struct ThinPoolDev {
@@ -138,21 +176,13 @@ pub struct ThinPoolDev {
     low_water_mark: DataBlocks,
 }
 
-impl DmDevice<ThinPoolDevTargetParams> for ThinPoolDev {
+impl DmDevice<ThinPoolDevTargetTable> for ThinPoolDev {
     fn device(&self) -> Device {
         device!(self)
     }
 
     fn devnode(&self) -> PathBuf {
         devnode!(self)
-    }
-
-    // This method is incomplete. It is expected that it will be refined so
-    // that it will return true in more cases, i.e., to be less stringent.
-    fn equivalent_tables(left: &[TargetLine<ThinPoolDevTargetParams>],
-                         right: &[TargetLine<ThinPoolDevTargetParams>])
-                         -> DmResult<bool> {
-        Ok(left == right)
     }
 
     fn name(&self) -> &DmName {
@@ -361,17 +391,19 @@ impl ThinPoolDev {
                          data: &LinearDev,
                          data_block_size: Sectors,
                          low_water_mark: DataBlocks)
-                         -> Vec<TargetLine<ThinPoolDevTargetParams>> {
-        vec![TargetLine {
-                 start: Sectors::default(),
-                 length: data.size(),
-                 target_type: TargetTypeBuf::new("thin-pool".into()).expect("< length limit"),
-                 params: ThinPoolDevTargetParams::new(meta.device(),
-                                                      data.device(),
-                                                      data_block_size,
-                                                      low_water_mark,
-                                                      vec!["skip_block_zeroing".to_owned()]),
-             }]
+                         -> ThinPoolDevTargetTable {
+        ThinPoolDevTargetTable {
+            table: TargetLine {
+                start: Sectors::default(),
+                length: data.size(),
+                target_type: TargetTypeBuf::new("thin-pool".into()).expect("< length limit"),
+                params: ThinPoolDevTargetParams::new(meta.device(),
+                                                     data.device(),
+                                                     data_block_size,
+                                                     low_water_mark,
+                                                     vec!["skip_block_zeroing".to_owned()]),
+            },
+        }
     }
 
     /// Get the current status of the thinpool.
@@ -577,10 +609,9 @@ mod tests {
             _ => assert!(false),
         }
 
-        let table = tp.load_table(&dm).unwrap();
-        assert_eq!(table.len(), 1);
-
-        let line = &table[0];
+        let line = ThinPoolDev::load_table(&dm, &DevId::Name(tp.name()))
+            .unwrap()
+            .table;
         let params = &line.params;
         assert_eq!(params.metadata_dev, tp.meta_dev().device());
         assert_eq!(params.data_dev, tp.data_dev().device());

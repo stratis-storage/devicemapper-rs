@@ -11,7 +11,7 @@ use super::deviceinfo::DeviceInfo;
 use super::dm::{DM, DmFlags};
 use super::result::{DmResult, DmError, ErrorEnum};
 use super::segment::Segment;
-use super::shared::{DmDevice, TargetLine, TargetParams, device_create, device_exists,
+use super::shared::{DmDevice, TargetLine, TargetParams, TargetTable, device_create, device_exists,
                     device_match, parse_device, table_reload};
 use super::types::{DevId, DmName, DmUuid, Sectors, TargetTypeBuf};
 
@@ -66,6 +66,44 @@ impl FromStr for LinearDevTargetParams {
 impl TargetParams for LinearDevTargetParams {}
 
 
+#[derive(Debug, PartialEq)]
+pub struct LinearDevTargetTable {
+    table: Vec<TargetLine<LinearDevTargetParams>>,
+}
+
+impl TargetTable for LinearDevTargetTable {
+    // Since linear devices have no default or configuration parameters,
+    // and the ordering of segments matters, two linear devices represent
+    // the same linear device only if their tables match exactly.
+    fn equivalent_devices(left: &LinearDevTargetTable, right: &LinearDevTargetTable) -> bool {
+        left == right
+    }
+
+    fn read(table: &[(Sectors, Sectors, TargetTypeBuf, String)]) -> DmResult<LinearDevTargetTable> {
+        Ok(LinearDevTargetTable {
+               table: table
+                   .into_iter()
+                   .map(|x| -> DmResult<TargetLine<LinearDevTargetParams>> {
+                            Ok(TargetLine {
+                                   start: x.0,
+                                   length: x.1,
+                                   target_type: x.2.clone(),
+                                   params: x.3.parse::<LinearDevTargetParams>()?,
+                               })
+                        })
+                   .collect::<DmResult<Vec<_>>>()?,
+           })
+    }
+
+    fn as_raw_table(&self) -> Vec<(Sectors, Sectors, TargetTypeBuf, String)> {
+        self.table
+            .iter()
+            .map(|x| (x.start, x.length, x.target_type.clone(), x.params.to_string()))
+            .collect::<Vec<_>>()
+    }
+}
+
+
 /// A DM construct of combined Segments
 #[derive(Debug)]
 pub struct LinearDev {
@@ -74,22 +112,13 @@ pub struct LinearDev {
     segments: Vec<Segment>,
 }
 
-impl DmDevice<LinearDevTargetParams> for LinearDev {
+impl DmDevice<LinearDevTargetTable> for LinearDev {
     fn device(&self) -> Device {
         device!(self)
     }
 
     fn devnode(&self) -> PathBuf {
         devnode!(self)
-    }
-
-    // Since linear devices have no default or configuration parameters,
-    // and the ordering of segments matters, two linear devices represent
-    // the same linear device only if their tables match exactly.
-    fn equivalent_tables(left: &[TargetLine<LinearDevTargetParams>],
-                         right: &[TargetLine<LinearDevTargetParams>])
-                         -> DmResult<bool> {
-        Ok(left == right)
     }
 
     fn name(&self) -> &DmName {
@@ -170,9 +199,7 @@ impl LinearDev {
     /// <logical start offset> <length> "linear" <linear-specific string>
     /// where the linear-specific string has the format:
     /// <maj:min> <physical start offset>
-    /// The table has no configuration parameters, so the segments argument
-    /// fully specifies the table.
-    fn gen_table(segments: &[Segment]) -> Vec<TargetLine<LinearDevTargetParams>> {
+    fn gen_table(segments: &[Segment]) -> LinearDevTargetTable {
         assert_ne!(segments.len(), 0);
 
         let mut table = Vec::new();
@@ -189,7 +216,7 @@ impl LinearDev {
             logical_start_offset += length;
         }
 
-        table
+        LinearDevTargetTable { table: table }
     }
 
     /// Set the segments for this linear device.
@@ -300,7 +327,9 @@ mod tests {
                                   segments)
                 .unwrap();
 
-        let table = ld.load_table(&dm).unwrap();
+        let table = LinearDev::load_table(&dm, &DevId::Name(ld.name()))
+            .unwrap()
+            .table;
         assert_eq!(table.len(), count);
         assert_eq!(table[0].params.device, dev);
         assert_eq!(table[1].params.device, dev);
@@ -333,8 +362,8 @@ mod tests {
                                   &segments)
                 .unwrap();
 
-        let table = ld.load_table(&dm).unwrap();
-        assert!(LinearDev::equivalent_tables(&table, &LinearDev::gen_table(&segments)).unwrap());
+        let table = LinearDev::load_table(&dm, &DevId::Name(ld.name())).unwrap();
+        assert!(LinearDevTargetTable::equivalent_devices(&table, &LinearDev::gen_table(&segments)));
 
         ld.teardown(&dm).unwrap();
     }

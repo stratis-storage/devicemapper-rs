@@ -10,7 +10,7 @@ use super::device::Device;
 use super::deviceinfo::DeviceInfo;
 use super::dm::{DM, DmFlags};
 use super::result::{DmError, DmResult, ErrorEnum};
-use super::shared::{DmDevice, TargetLine, TargetParams, device_create, device_exists,
+use super::shared::{DmDevice, TargetLine, TargetParams, TargetTable, device_create, device_exists,
                     device_match, message, parse_device, table_reload};
 use super::thindevid::ThinDevId;
 use super::thinpooldev::ThinPoolDev;
@@ -72,6 +72,43 @@ impl FromStr for ThinDevTargetParams {
 impl TargetParams for ThinDevTargetParams {}
 
 
+#[derive(Debug, PartialEq)]
+pub struct ThinDevTargetTable {
+    table: TargetLine<ThinDevTargetParams>,
+}
+
+impl TargetTable for ThinDevTargetTable {
+    // This method is incomplete. It is expected that it will be refined so
+    // that it will return true in more cases, i.e., to be less stringent.
+    fn equivalent_devices(left: &ThinDevTargetTable, right: &ThinDevTargetTable) -> bool {
+        left == right
+    }
+
+    fn read(table: &[(Sectors, Sectors, TargetTypeBuf, String)]) -> DmResult<ThinDevTargetTable> {
+        if table.len() != 1 {
+            let err_msg = format!("ThinDev table should have exactly one line, has {} lines",
+                                  table.len());
+            return Err(DmError::Dm(ErrorEnum::Invalid, err_msg));
+        }
+        let line = table.first().expect("table.len() == 1");
+        Ok(ThinDevTargetTable {
+               table: TargetLine {
+                   start: line.0,
+                   length: line.1,
+                   target_type: line.2.clone(),
+                   params: line.3.parse::<ThinDevTargetParams>()?,
+               },
+           })
+
+    }
+
+    fn as_raw_table(&self) -> Vec<(Sectors, Sectors, TargetTypeBuf, String)> {
+        let line = &self.table;
+        vec![(line.start, line.length, line.target_type.clone(), line.params.to_string())]
+    }
+}
+
+
 /// DM construct for a thin block device
 #[derive(Debug)]
 pub struct ThinDev {
@@ -81,21 +118,13 @@ pub struct ThinDev {
     thinpool: Device,
 }
 
-impl DmDevice<ThinDevTargetParams> for ThinDev {
+impl DmDevice<ThinDevTargetTable> for ThinDev {
     fn device(&self) -> Device {
         device!(self)
     }
 
     fn devnode(&self) -> PathBuf {
         devnode!(self)
-    }
-
-    // This method is incomplete. It is expected that it will be refined so
-    // that it will return true in more cases, i.e., to be less stringent.
-    fn equivalent_tables(left: &[TargetLine<ThinDevTargetParams>],
-                         right: &[TargetLine<ThinDevTargetParams>])
-                         -> DmResult<bool> {
-        Ok(left == right)
     }
 
     fn name(&self) -> &DmName {
@@ -262,13 +291,15 @@ impl ThinDev {
     fn gen_default_table(length: Sectors,
                          thin_pool: Device,
                          thin_id: ThinDevId)
-                         -> Vec<TargetLine<ThinDevTargetParams>> {
-        vec![TargetLine {
-                 start: Sectors::default(),
-                 length: length,
-                 target_type: TargetTypeBuf::new("thin".into()).expect("< length limit"),
-                 params: ThinDevTargetParams::new(thin_pool, thin_id, None),
-             }]
+                         -> ThinDevTargetTable {
+        ThinDevTargetTable {
+            table: TargetLine {
+                start: Sectors::default(),
+                length: length,
+                target_type: TargetTypeBuf::new("thin".into()).expect("< length limit"),
+                params: ThinDevTargetParams::new(thin_pool, thin_id, None),
+            },
+        }
     }
 
     /// return the thin id of the linear device
@@ -412,10 +443,9 @@ mod tests {
         let td_size = MIN_THIN_DEV_SIZE;
         let td = ThinDev::new(&dm, &id, None, td_size, &tp, thin_id).unwrap();
 
-        let table = td.load_table(&dm).unwrap();
-        assert_eq!(table.len(), 1);
-
-        let line = &table[0];
+        let line = ThinDev::load_table(&dm, &DevId::Name(td.name()))
+            .unwrap()
+            .table;
         assert_eq!(line.params.pool, tp.device());
         assert_eq!(line.params.thin_id, thin_id);
 
