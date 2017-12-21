@@ -77,6 +77,20 @@ pub struct ThinDevTargetTable {
     table: TargetLine<ThinDevTargetParams>,
 }
 
+impl ThinDevTargetTable {
+    /// Create a ThinDevTargetTable
+    pub fn new(start: Sectors, length: Sectors, params: ThinDevTargetParams) -> ThinDevTargetTable {
+        ThinDevTargetTable {
+            table: TargetLine {
+                start: start,
+                length: length,
+                target_type: TargetTypeBuf::new("thin".into()).expect("< length limit"),
+                params: params,
+            },
+        }
+    }
+}
+
 impl TargetTable for ThinDevTargetTable {
     // This method is incomplete. It is expected that it will be refined so
     // that it will return true in more cases, i.e., to be less stringent.
@@ -283,7 +297,7 @@ impl ThinDev {
 
     /// Generate a table to be passed to DM. The format of the table
     /// entries is:
-    /// <start> <length> "thin" <thin device specific string>
+    /// <start (0)> <length> "thin" <thin device specific string>
     /// where the thin device specific string has the format:
     /// <thinpool maj:min> <thin_id>
     /// There is exactly one entry in the table.
@@ -292,14 +306,9 @@ impl ThinDev {
                          thin_pool: Device,
                          thin_id: ThinDevId)
                          -> ThinDevTargetTable {
-        ThinDevTargetTable {
-            table: TargetLine {
-                start: Sectors::default(),
-                length: length,
-                target_type: TargetTypeBuf::new("thin".into()).expect("< length limit"),
-                params: ThinDevTargetParams::new(thin_pool, thin_id, None),
-            },
-        }
+        ThinDevTargetTable::new(Sectors::default(),
+                                length,
+                                ThinDevTargetParams::new(thin_pool, thin_id, None))
     }
 
     /// return the thin id of the linear device

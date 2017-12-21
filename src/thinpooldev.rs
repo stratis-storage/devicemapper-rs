@@ -133,6 +133,23 @@ pub struct ThinPoolDevTargetTable {
     table: TargetLine<ThinPoolDevTargetParams>,
 }
 
+impl ThinPoolDevTargetTable {
+    /// Create a ThinPoolDevTargetTable
+    pub fn new(start: Sectors,
+               length: Sectors,
+               params: ThinPoolDevTargetParams)
+               -> ThinPoolDevTargetTable {
+        ThinPoolDevTargetTable {
+            table: TargetLine {
+                start: start,
+                length: length,
+                target_type: TargetTypeBuf::new("thin-pool".into()).expect("< length limit"),
+                params: params,
+            },
+        }
+    }
+}
+
 impl TargetTable for ThinPoolDevTargetTable {
     // This method is incomplete. It is expected that it will be refined so
     // that it will return true in more cases, i.e., to be less stringent.
@@ -392,18 +409,14 @@ impl ThinPoolDev {
                          data_block_size: Sectors,
                          low_water_mark: DataBlocks)
                          -> ThinPoolDevTargetTable {
-        ThinPoolDevTargetTable {
-            table: TargetLine {
-                start: Sectors::default(),
-                length: data.size(),
-                target_type: TargetTypeBuf::new("thin-pool".into()).expect("< length limit"),
-                params: ThinPoolDevTargetParams::new(meta.device(),
-                                                     data.device(),
-                                                     data_block_size,
-                                                     low_water_mark,
-                                                     vec!["skip_block_zeroing".to_owned()]),
-            },
-        }
+        ThinPoolDevTargetTable::new(Sectors::default(),
+                                    data.size(),
+                                    ThinPoolDevTargetParams::new(meta.device(),
+                                                                 data.device(),
+                                                                 data_block_size,
+                                                                 low_water_mark,
+                                                                 vec!["skip_block_zeroing"
+                                                                          .to_owned()]))
     }
 
     /// Get the current status of the thinpool.

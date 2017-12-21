@@ -160,6 +160,22 @@ pub struct CacheDevTargetTable {
     table: TargetLine<CacheDevTargetParams>,
 }
 
+impl CacheDevTargetTable {
+    pub fn new(start: Sectors,
+               length: Sectors,
+               params: CacheDevTargetParams)
+               -> CacheDevTargetTable {
+        CacheDevTargetTable {
+            table: TargetLine {
+                start: start,
+                length: length,
+                target_type: TargetTypeBuf::new("cache".into()).expect("< length limit"),
+                params: params,
+            },
+        }
+    }
+}
+
 impl TargetTable for CacheDevTargetTable {
     // Omit replacement policy field from equality test when checking that
     // two devices are the same. Equality of replacement policies is not a
@@ -482,20 +498,15 @@ impl CacheDev {
                          origin: &LinearDev,
                          cache_block_size: Sectors)
                          -> CacheDevTargetTable {
-        CacheDevTargetTable {
-            table: TargetLine {
-                start: Sectors::default(),
-                length: origin.size(),
-                target_type: TargetTypeBuf::new("cache".into()).expect("< length limit"),
-                params: CacheDevTargetParams::new(meta.device(),
-                                                  cache.device(),
-                                                  origin.device(),
-                                                  cache_block_size,
-                                                  vec![],
-                                                  "default".to_owned(),
-                                                  vec![]),
-            },
-        }
+        CacheDevTargetTable::new(Sectors::default(),
+                                 origin.size(),
+                                 CacheDevTargetParams::new(meta.device(),
+                                                           cache.device(),
+                                                           origin.device(),
+                                                           cache_block_size,
+                                                           vec![],
+                                                           "default".to_owned(),
+                                                           vec![]))
     }
 
     /// Parse pairs of arguments from a slice
