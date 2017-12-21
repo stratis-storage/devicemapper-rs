@@ -71,6 +71,31 @@ pub struct LinearDevTargetTable {
     table: Vec<TargetLine<LinearDevTargetParams>>,
 }
 
+impl LinearDevTargetTable {
+    /// Generate a table to be passed to DM.  The format of the table entries
+    /// is:
+    /// <logical start offset> <length> "linear" <linear-specific string>
+    /// where the linear-specific string has the format:
+    /// <maj:min> <physical start offset>
+    pub fn new(segments: &[Segment]) -> LinearDevTargetTable {
+        let mut table = Vec::new();
+        let mut logical_start_offset = Sectors(0);
+        for segment in segments {
+            let (physical_start_offset, length) = (segment.start, segment.length);
+            let line = TargetLine {
+                start: logical_start_offset,
+                length: length,
+                target_type: TargetTypeBuf::new("linear".into()).expect("< length limit"),
+                params: LinearDevTargetParams::new(segment.device, physical_start_offset),
+            };
+            table.push(line);
+            logical_start_offset += length;
+        }
+
+        LinearDevTargetTable { table: table }
+    }
+}
+
 impl TargetTable for LinearDevTargetTable {
     // Since linear devices have no default or configuration parameters,
     // and the ordering of segments matters, two linear devices represent
@@ -194,29 +219,10 @@ impl LinearDev {
         &self.segments
     }
 
-    /// Generate a table to be passed to DM.  The format of the table entries
-    /// is:
-    /// <logical start offset> <length> "linear" <linear-specific string>
-    /// where the linear-specific string has the format:
-    /// <maj:min> <physical start offset>
+    /// Generate a table to be passed to DM.
     fn gen_table(segments: &[Segment]) -> LinearDevTargetTable {
         assert_ne!(segments.len(), 0);
-
-        let mut table = Vec::new();
-        let mut logical_start_offset = Sectors(0);
-        for segment in segments {
-            let (physical_start_offset, length) = (segment.start, segment.length);
-            let line = TargetLine {
-                start: logical_start_offset,
-                length: length,
-                target_type: TargetTypeBuf::new("linear".into()).expect("< length limit"),
-                params: LinearDevTargetParams::new(segment.device, physical_start_offset),
-            };
-            table.push(line);
-            logical_start_offset += length;
-        }
-
-        LinearDevTargetTable { table: table }
+        LinearDevTargetTable::new(segments)
     }
 
     /// Set the segments for this linear device.
