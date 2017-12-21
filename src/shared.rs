@@ -76,14 +76,7 @@ pub fn device_create<T: TargetParams>(dm: &DM,
     let id = DevId::Name(name);
     let table = table
         .iter()
-        .map(|x| {
-                 TargetLine {
-                     start: x.start,
-                     length: x.length,
-                     target_type: x.target_type.clone(),
-                     params: x.params.to_string(),
-                 }
-             })
+        .map(|x| (x.start, x.length, x.target_type.clone(), x.params.to_string()))
         .collect::<Vec<_>>();
     let dev_info = match dm.table_load(&id, &table) {
         Err(e) => {
@@ -131,14 +124,7 @@ pub fn table_reload<T: TargetParams>(dm: &DM,
                                      -> DmResult<DeviceInfo> {
     let table = table
         .iter()
-        .map(|x| {
-                 TargetLine {
-                     start: x.start,
-                     length: x.length,
-                     target_type: x.target_type.clone(),
-                     params: x.params.to_string(),
-                 }
-             })
+        .map(|x| (x.start, x.length, x.target_type.clone(), x.params.to_string()))
         .collect::<Vec<_>>();
     let dev_info = dm.table_load(id, &table)?;
     dm.device_suspend(id, DmFlags::DM_SUSPEND)?;
