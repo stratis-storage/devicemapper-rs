@@ -132,7 +132,7 @@ impl LinearDev {
                                    "linear device must have at least one segment".into()));
         }
 
-        let table = LinearDev::dm_table(segments);
+        let table = LinearDev::gen_default_table(segments);
         let dev = if device_exists(dm, name)? {
             let dev_info = dm.device_info(&DevId::Name(name))?;
             let dev = LinearDev {
@@ -161,7 +161,8 @@ impl LinearDev {
     /// <logical start offset> <length> "linear" <linear-specific string>
     /// where the linear-specific string has the format:
     /// <maj:min> <physical start offset>
-    fn dm_table(segments: &[Segment]) -> Vec<TargetLine<LinearDevTargetParams>> {
+    /// Various defaults are hard coded in the method.
+    fn gen_default_table(segments: &[Segment]) -> Vec<TargetLine<LinearDevTargetParams>> {
         assert_ne!(segments.len(), 0);
 
         let mut table = Vec::new();
@@ -192,7 +193,7 @@ impl LinearDev {
                                    "linear device must have at least one segment".into()));
         }
 
-        let table = LinearDev::dm_table(segments);
+        let table = LinearDev::gen_default_table(segments);
         table_reload(dm, &DevId::Name(self.name()), &table)?;
         self.segments = segments.to_vec();
         Ok(())
@@ -323,7 +324,8 @@ mod tests {
                 .unwrap();
 
         let table = ld.table(&dm).unwrap();
-        assert!(LinearDev::equivalent_tables(&table, &LinearDev::dm_table(&segments)).unwrap());
+        assert!(LinearDev::equivalent_tables(&table, &LinearDev::gen_default_table(&segments))
+                    .unwrap());
 
         ld.teardown(&dm).unwrap();
     }

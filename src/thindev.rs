@@ -146,7 +146,7 @@ impl ThinDev {
         }
 
         let thin_pool_device = thin_pool.device();
-        let table = ThinDev::dm_table(length, thin_pool_device, thin_id);
+        let table = ThinDev::gen_default_table(length, thin_pool_device, thin_id);
         let dev_info = device_create(dm, name, uuid, &table)?;
 
         Ok(ThinDev {
@@ -175,7 +175,7 @@ impl ThinDev {
                  -> DmResult<ThinDev> {
 
         let thin_pool_device = thin_pool.device();
-        let table = ThinDev::dm_table(length, thin_pool_device, thin_id);
+        let table = ThinDev::gen_default_table(length, thin_pool_device, thin_id);
         let dev = if device_exists(dm, name)? {
             let dev_info = dm.device_info(&DevId::Name(name))?;
             let dev = ThinDev {
@@ -218,9 +218,9 @@ impl ThinDev {
         let dev_info = Box::new(device_create(dm,
                                               snapshot_name,
                                               None,
-                                              &ThinDev::dm_table(self.size(),
-                                                                 thin_pool.device(),
-                                                                 snapshot_thin_id))?);
+                                              &ThinDev::gen_default_table(self.size(),
+                                                                          thin_pool.device(),
+                                                                          snapshot_thin_id))?);
         Ok(ThinDev {
                dev_info: dev_info,
                thin_id: snapshot_thin_id,
@@ -235,10 +235,11 @@ impl ThinDev {
     /// where the thin device specific string has the format:
     /// <thinpool maj:min> <thin_id>
     /// There is exactly one entry in the table.
-    fn dm_table(length: Sectors,
-                thin_pool: Device,
-                thin_id: ThinDevId)
-                -> Vec<TargetLine<ThinDevTargetParams>> {
+    /// Various defaults are hard coded in the method.
+    fn gen_default_table(length: Sectors,
+                         thin_pool: Device,
+                         thin_id: ThinDevId)
+                         -> Vec<TargetLine<ThinDevTargetParams>> {
         vec![TargetLine {
                  start: Sectors::default(),
                  length: length,
@@ -291,7 +292,7 @@ impl ThinDev {
         let new_size = self.size + sectors;
         table_reload(dm,
                      &DevId::Name(self.name()),
-                     &ThinDev::dm_table(new_size, self.thinpool, self.thin_id))?;
+                     &ThinDev::gen_default_table(new_size, self.thinpool, self.thin_id))?;
         self.size = new_size;
         Ok(())
     }

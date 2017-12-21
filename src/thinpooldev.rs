@@ -276,7 +276,7 @@ impl ThinPoolDev {
             return Err(DmError::Dm(ErrorEnum::Invalid, err_msg));
         }
 
-        let table = ThinPoolDev::dm_table(&meta, &data, data_block_size, low_water_mark);
+        let table = ThinPoolDev::gen_default_table(&meta, &data, data_block_size, low_water_mark);
         let dev_info = device_create(dm, name, uuid, &table)?;
 
         Ok(ThinPoolDev {
@@ -317,7 +317,7 @@ impl ThinPoolDev {
                  data_block_size: Sectors,
                  low_water_mark: DataBlocks)
                  -> DmResult<ThinPoolDev> {
-        let table = ThinPoolDev::dm_table(&meta, &data, data_block_size, low_water_mark);
+        let table = ThinPoolDev::gen_default_table(&meta, &data, data_block_size, low_water_mark);
         let dev = if device_exists(dm, name)? {
             let dev_info = dm.device_info(&DevId::Name(name))?;
             let dev = ThinPoolDev {
@@ -348,11 +348,12 @@ impl ThinPoolDev {
     /// where the thin-pool-specific string has the format:
     /// <meta maj:min> <data maj:min> <block size> <low water mark>
     /// There is exactly one entry in the table.
-    fn dm_table(meta: &LinearDev,
-                data: &LinearDev,
-                data_block_size: Sectors,
-                low_water_mark: DataBlocks)
-                -> Vec<TargetLine<ThinPoolDevTargetParams>> {
+    /// Various defaults are hard coded in the method.
+    fn gen_default_table(meta: &LinearDev,
+                         data: &LinearDev,
+                         data_block_size: Sectors,
+                         low_water_mark: DataBlocks)
+                         -> Vec<TargetLine<ThinPoolDevTargetParams>> {
         vec![TargetLine {
                  start: Sectors::default(),
                  length: data.size(),
@@ -464,10 +465,10 @@ impl ThinPoolDev {
         self.meta_dev.set_segments(dm, segments)?;
         table_reload(dm,
                      &DevId::Name(self.name()),
-                     &ThinPoolDev::dm_table(&self.meta_dev,
-                                            &self.data_dev,
-                                            self.data_block_size,
-                                            self.low_water_mark))?;
+                     &ThinPoolDev::gen_default_table(&self.meta_dev,
+                                                     &self.data_dev,
+                                                     self.data_block_size,
+                                                     self.low_water_mark))?;
         Ok(())
     }
 
@@ -480,10 +481,10 @@ impl ThinPoolDev {
         self.data_dev.set_segments(dm, segments)?;
         table_reload(dm,
                      &DevId::Name(self.name()),
-                     &ThinPoolDev::dm_table(&self.meta_dev,
-                                            &self.data_dev,
-                                            self.data_block_size,
-                                            self.low_water_mark))?;
+                     &ThinPoolDev::gen_default_table(&self.meta_dev,
+                                                     &self.data_dev,
+                                                     self.data_block_size,
+                                                     self.low_water_mark))?;
         Ok(())
     }
 }
