@@ -174,7 +174,6 @@ impl LinearDev {
                 target_type: TargetTypeBuf::new("linear".into()).expect("< length limit"),
                 params: LinearDevTargetParams::new(segment.device, physical_start_offset),
             };
-            debug!("dmtable line : {:?}", line);
             table.push(line);
             logical_start_offset += length;
         }
