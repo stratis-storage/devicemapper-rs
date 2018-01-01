@@ -62,20 +62,17 @@ impl LoopTestDev {
             .unwrap();
 
         let ld = lc.next_free().unwrap();
-        ld.attach(path, 0).unwrap();
+        ld.attach_file(path).unwrap();
 
         // Wipe one MiB at the start of the device. Devicemapper data may be
         // left on the device even after a teardown.
-        wipe_sectors(&ld.get_path().unwrap(),
-                     Sectors(0),
-                     Bytes(IEC::Mi).sectors())
-                .unwrap();
+        wipe_sectors(&ld.path().unwrap(), Sectors(0), Bytes(IEC::Mi).sectors()).unwrap();
 
         LoopTestDev { ld: ld }
     }
 
-    fn get_path(&self) -> PathBuf {
-        self.ld.get_path().unwrap()
+    fn path(&self) -> PathBuf {
+        self.ld.path().unwrap()
     }
 
     pub fn detach(&self) {
@@ -126,7 +123,7 @@ pub fn test_with_spec<F>(count: u8, test: F) -> ()
 {
     let tmpdir = TempDir::new("devicemapper").unwrap();
     let loop_devices: Vec<LoopTestDev> = get_devices(count, &tmpdir);
-    let device_paths: Vec<PathBuf> = loop_devices.iter().map(|x| x.get_path()).collect();
+    let device_paths: Vec<PathBuf> = loop_devices.iter().map(|x| x.path()).collect();
     let device_paths: Vec<&Path> = device_paths.iter().map(|x| x.as_path()).collect();
 
     test(&device_paths);
