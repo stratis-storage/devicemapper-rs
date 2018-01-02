@@ -10,11 +10,11 @@ use super::device::Device;
 use super::deviceinfo::DeviceInfo;
 use super::dm::{DM, DmFlags};
 use super::result::{DmError, DmResult, ErrorEnum};
-use super::shared::{DmDevice, device_create, device_exists, device_match, message, parse_device,
-                    table_reload};
+use super::shared::{DmDevice, TargetLine, TargetParams, device_create, device_exists,
+                    device_match, message, parse_device, table_reload};
 use super::thindevid::ThinDevId;
 use super::thinpooldev::ThinPoolDev;
-use super::types::{DevId, DmName, DmUuid, Sectors, TargetLine, TargetParams, TargetTypeBuf};
+use super::types::{DevId, DmName, DmUuid, Sectors, TargetTypeBuf};
 
 
 #[derive(Debug, Eq, PartialEq)]

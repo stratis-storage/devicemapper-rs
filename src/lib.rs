@@ -118,4 +118,4 @@ pub use thinpooldev::{ThinPoolUsage, ThinPoolDev, ThinPoolNoSpacePolicy, ThinPoo
 pub use thindev::{ThinDev, ThinDevWorkingStatus, ThinStatus};
 pub use thindevid::ThinDevId;
 pub use types::{Bytes, DataBlocks, DevId, DmName, DmNameBuf, DmUuid, DmUuidBuf, MetaBlocks,
-                Sectors, TargetLine, TargetType, TargetTypeBuf};
+                Sectors, TargetType, TargetTypeBuf};

@@ -12,9 +12,9 @@ use super::deviceinfo::DeviceInfo;
 use super::dm::{DM, DmFlags};
 use super::lineardev::LinearDev;
 use super::result::{DmResult, DmError, ErrorEnum};
-use super::shared::{DmDevice, device_create, device_exists, device_match, parse_device};
-use super::types::{DataBlocks, DevId, DmName, DmUuid, MetaBlocks, Sectors, TargetLine,
-                   TargetParams, TargetTypeBuf};
+use super::shared::{DmDevice, TargetLine, TargetParams, device_create, device_exists,
+                    device_match, parse_device};
+use super::types::{DataBlocks, DevId, DmName, DmUuid, MetaBlocks, Sectors, TargetTypeBuf};
 
 #[derive(Debug, Eq, PartialEq)]
 pub struct CacheDevTargetParams {
