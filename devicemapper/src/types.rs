@@ -14,6 +14,7 @@
 
 use consts::SECTOR_SIZE;
 
+use std;
 #[allow(unused_imports)]
 use std::ascii::AsciiExt;
 use std::borrow::Borrow;
@@ -21,13 +22,11 @@ use std::fmt;
 use std::iter::Sum;
 use std::mem::transmute;
 use std::ops::{Deref, Div, Mul, Rem, Add};
-use std::str::FromStr;
 
 use serde;
 
 use super::deviceinfo::{DM_NAME_LEN, DM_UUID_LEN};
-use super::errors::ErrorKind;
-use super::result::{DmError, DmResult};
+use super::errors::{ErrorKind, Result};
 
 /// a kernel defined block size constant for any DM meta device
 /// a DM meta device may store cache device or thinpool device metadata
@@ -59,7 +58,7 @@ macro_rules! self_div {
 macro_rules! serde {
     ($T: ident) => {
         impl serde::Serialize for $T {
-            fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+            fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
                 where S: serde::Serializer
             {
                 serializer.serialize_u64(**self)
@@ -67,7 +66,7 @@ macro_rules! serde {
         }
 
         impl <'de> serde::Deserialize<'de> for $T {
-            fn deserialize<D>(deserializer: D) -> Result<$T, D::Error>
+            fn deserialize<D>(deserializer: D) -> std::result::Result<$T, D::Error>
                 where D: serde::de::Deserializer<'de>
             {
                 Ok($T(serde::Deserialize::deserialize(deserializer)?))
@@ -296,22 +295,21 @@ impl fmt::Display for Sectors {
 }
 
 /// Returns an error if value is unsuitable.
-fn str_check(value: &str, max_allowed_chars: usize) -> DmResult<()> {
+fn str_check(value: &str, max_allowed_chars: usize) -> Result<()> {
     if !value.is_ascii() {
         let err_msg = format!("value {} has some non-ascii characters", value);
-        return Err(DmError::Core(ErrorKind::InvalidArgument(err_msg).into()));
+        return Err(ErrorKind::InvalidArgument(err_msg).into());
     }
     let num_chars = value.len();
     if num_chars == 0 {
-        return Err(DmError::Core(ErrorKind::InvalidArgument("value has zero characters".into())
-                                     .into()));
+        return Err(ErrorKind::InvalidArgument("value has zero characters".into()).into());
     }
     if num_chars > max_allowed_chars {
         let err_msg = format!("value {} has {} chars which is greater than maximum allowed {}",
                               value,
                               num_chars,
                               max_allowed_chars);
-        return Err(DmError::Core(ErrorKind::InvalidArgument(err_msg).into()));
+        return Err(ErrorKind::InvalidArgument(err_msg).into());
     }
     Ok(())
 }
@@ -336,7 +334,7 @@ macro_rules! str_id {
 
         impl $B {
             /// Create a new borrowed identifier from a `&str`.
-            pub fn new(value: &str) -> DmResult<&$B> {
+            pub fn new(value: &str) -> Result<&$B> {
                 $check(value, $MAX - 1)?;
                 Ok(unsafe { transmute(value) })
             }
@@ -362,7 +360,7 @@ macro_rules! str_id {
 
         impl $O {
             /// Construct a new owned identifier.
-            pub fn new(value: String) -> DmResult<$O> {
+            pub fn new(value: String) -> Result<$O> {
                 $check(&value, $MAX - 1)?;
                 Ok($O { inner: value })
             }
@@ -423,23 +421,6 @@ const DM_TARGET_TYPE_LEN: usize = 16;
 
 str_id!(TargetType, TargetTypeBuf, DM_TARGET_TYPE_LEN, str_check);
 
-/// The trait for properties of the params string of TargetType
-pub trait TargetParams: fmt::Debug + fmt::Display + Eq + FromStr + PartialEq {}
-
-impl TargetParams for String {}
-
-/// One line of a device mapper table.
-#[derive(Debug, PartialEq)]
-pub struct TargetLine<T: TargetParams> {
-    /// The start of the segment
-    pub start: Sectors,
-    /// The length of the segment
-    pub length: Sectors,
-    /// The target type
-    pub target_type: TargetTypeBuf,
-    /// The target specific parameters
-    pub params: T,
-}
 
 #[cfg(test)]
 mod tests {
@@ -458,7 +439,7 @@ mod tests {
     /// Verify that creating an empty DmName is an error.
     pub fn test_empty_name() {
         assert!(match DmName::new("") {
-                    Err(DmError::Core(Error(ErrorKind::InvalidArgument(_), _))) => true,
+                    Err(Error(ErrorKind::InvalidArgument(_), _)) => true,
                     _ => false,
                 })
     }

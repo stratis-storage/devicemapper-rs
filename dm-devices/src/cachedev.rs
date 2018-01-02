@@ -7,14 +7,14 @@ use std::fmt;
 use std::path::PathBuf;
 use std::str::FromStr;
 
-use super::device::Device;
-use super::deviceinfo::DeviceInfo;
-use super::dm::{DM, DmFlags};
+use devicemapper::{DataBlocks, DevId, Device, DeviceInfo, DM, DmFlags, DmName, DmUuid, MetaBlocks,
+                   Sectors, TargetTypeBuf};
+
 use super::lineardev::LinearDev;
 use super::result::{DmResult, DmError, ErrorEnum};
 use super::shared::{DmDevice, device_create, device_exists, device_match, parse_device};
-use super::types::{DataBlocks, DevId, DmName, DmUuid, MetaBlocks, Sectors, TargetLine,
-                   TargetParams, TargetTypeBuf};
+use super::types::{TargetLine, TargetParams};
+
 
 #[derive(Debug, Eq, PartialEq)]
 pub struct CacheDevTargetParams {
@@ -614,8 +614,8 @@ impl CacheDev {
 mod tests {
     use std::path::Path;
 
-    use super::super::consts::IEC;
-    use super::super::device::devnode_to_devno;
+    use devicemapper::{IEC, devnode_to_devno};
+
     use super::super::loopbacked::test_with_spec;
     use super::super::segment::Segment;
 
