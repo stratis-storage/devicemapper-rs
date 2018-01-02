@@ -83,6 +83,15 @@ impl DmDevice<LinearDevTargetParams> for LinearDev {
         devnode!(self)
     }
 
+    // Since linear devices have no default or configuration parameters,
+    // and the ordering of segments matters, two linear devices represent
+    // the same linear device only if their tables match exactly.
+    fn equivalent_tables(left: &[TargetLine<LinearDevTargetParams>],
+                         right: &[TargetLine<LinearDevTargetParams>])
+                         -> DmResult<bool> {
+        Ok(left == right)
+    }
+
     fn name(&self) -> &DmName {
         name!(self)
     }

@@ -147,6 +147,14 @@ impl DmDevice<ThinPoolDevTargetParams> for ThinPoolDev {
         devnode!(self)
     }
 
+    // This method is incomplete. It is expected that it will be refined so
+    // that it will return true in more cases, i.e., to be less stringent.
+    fn equivalent_tables(left: &[TargetLine<ThinPoolDevTargetParams>],
+                         right: &[TargetLine<ThinPoolDevTargetParams>])
+                         -> DmResult<bool> {
+        Ok(left == right)
+    }
+
     fn name(&self) -> &DmName {
         name!(self)
     }

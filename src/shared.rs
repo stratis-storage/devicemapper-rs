@@ -44,9 +44,7 @@ pub trait DmDevice<T: TargetParams> {
     fn device(&self) -> Device;
 
     /// Check if tables indicate an equivalent device.
-    fn equivalent_tables(left: &[TargetLine<T>], right: &[TargetLine<T>]) -> DmResult<bool> {
-        Ok(left == right)
-    }
+    fn equivalent_tables(left: &[TargetLine<T>], right: &[TargetLine<T>]) -> DmResult<bool>;
 
     /// The device's name.
     fn name(&self) -> &DmName;
