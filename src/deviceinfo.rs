@@ -23,6 +23,7 @@ pub struct DeviceInfo {
 }
 
 impl DeviceInfo {
+    /// Make a new DeviceInfo struct
     pub fn new(hdr: dmi::Struct_dm_ioctl) -> DeviceInfo {
         DeviceInfo { hdr }
     }

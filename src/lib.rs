@@ -80,30 +80,8 @@ extern crate libc;
 extern crate nix;
 extern crate serde;
 
-#[cfg(test)]
-extern crate libudev;
-#[cfg(test)]
-extern crate loopdev;
-#[cfg(test)]
-extern crate mnt;
-#[cfg(test)]
-extern crate tempfile;
-#[cfg(test)]
-extern crate uuid;
-
 /// shared constants
 mod consts;
-/// rust definitions of ioctl structs and consts
-mod dm_ioctl;
-/// basic types (Bytes, Sectors, DataBlocks)
-mod types;
-/// public utilities
-mod util;
-/// Macros shared by device mapper devices.
-#[macro_use]
-mod shared_macros;
-/// cachedev
-mod cachedev;
 /// contains device major/minor and associated functions
 mod device;
 /// wrapper for C interface for DM
@@ -112,43 +90,26 @@ mod deviceinfo;
 mod dm;
 /// DM flags
 mod dm_flags;
+/// rust definitions of ioctl structs and consts
+mod dm_ioctl;
 /// Options for dm function calls
 mod dm_options;
 /// error chain errors for core dm
 mod errors;
-/// functions to create continuous linear space given device segments
-mod lineardev;
-/// return results container
-mod result;
-/// functionality shared between devices
-mod shared;
-/// allocate a device from a pool
-mod thindev;
-/// the id the pool uses to track its devices
-mod thindevid;
-/// thinpooldev is shared space for  other thin provisioned devices to use
-mod thinpooldev;
-
-#[cfg(test)]
-mod loopbacked;
+/// basic types (Bytes, Sectors, DataBlocks)
+mod types;
+/// public utilities
+mod util;
 
 #[cfg(test)]
 mod test_lib;
 
-pub use cachedev::{CacheDev, CacheDevPerformance, CacheDevStatus, CacheDevUsage,
-                   CacheDevWorkingStatus, MAX_CACHE_BLOCK_SIZE, MIN_CACHE_BLOCK_SIZE};
 pub use consts::{IEC, SECTOR_SIZE};
 pub use device::{devnode_to_devno, Device};
+pub use deviceinfo::DeviceInfo;
 pub use dm::DM;
 pub use dm_flags::{DmCookie, DmFlags};
 pub use dm_options::DmOptions;
-pub use lineardev::{FlakeyTargetParams, LinearDev, LinearDevTargetParams, LinearDevTargetTable,
-                    LinearTargetParams};
-pub use result::{DmError, DmResult, ErrorEnum};
-pub use shared::{device_exists, DmDevice, TargetLine};
-pub use thindev::{ThinDev, ThinDevWorkingStatus, ThinStatus};
-pub use thindevid::ThinDevId;
-pub use thinpooldev::{ThinPoolDev, ThinPoolNoSpacePolicy, ThinPoolStatus, ThinPoolStatusSummary,
-                      ThinPoolUsage, ThinPoolWorkingStatus};
+pub use errors::{Error, ErrorKind, Result};
 pub use types::{Bytes, DataBlocks, DevId, DmName, DmNameBuf, DmUuid, DmUuidBuf, MetaBlocks,
                 Sectors, TargetType, TargetTypeBuf};
