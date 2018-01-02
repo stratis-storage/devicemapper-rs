@@ -10,8 +10,8 @@ use std::str::FromStr;
 use libc::{dev_t, major, makedev, minor};
 use nix::sys::stat::{S_IFBLK, S_IFMT};
 
-use super::errors::{Error, ErrorKind};
-use super::result::{DmError, DmResult};
+use super::errors::{Error, ErrorKind, Result};
+
 
 /// A struct containing the device's major and minor numbers
 ///
@@ -32,27 +32,29 @@ impl fmt::Display for Device {
 }
 
 impl FromStr for Device {
-    type Err = DmError;
+    type Err = Error;
 
-    fn from_str(s: &str) -> Result<Device, DmError> {
+    fn from_str(s: &str) -> Result<Device> {
         let vals = s.split(':').collect::<Vec<_>>();
         if vals.len() != 2 {
             let err_msg = format!("value \"{}\" split into wrong number of fields", s);
-            return Err(DmError::Core(ErrorKind::InvalidArgument(err_msg).into()));
+            return Err(ErrorKind::InvalidArgument(err_msg).into());
         }
         let major = vals[0]
             .parse::<u32>()
-            .map_err(|_| {
-                         DmError::Core(ErrorKind::InvalidArgument(
+            .map_err(|e| {
+                Error::with_chain(e,
+                         ErrorKind::InvalidArgument(
                         format!("could not parse \"{}\" to obtain major number",
-                                                                      vals[0])).into())
+                                                                      vals[0])))
                      })?;
         let minor = vals[1]
             .parse::<u32>()
-            .map_err(|_| {
-                         DmError::Core(ErrorKind::InvalidArgument(
+            .map_err(|e| {
+                Error::with_chain(e,
+                         ErrorKind::InvalidArgument(
                         format!("could not parse \"{}\" to obtain minor number",
-                                                                      vals[0])).into())
+                                                                      vals[0])))
                      })?;
         Ok(Device { major, minor })
     }
@@ -98,7 +100,7 @@ impl Device {
 /// Return None if the device is not a block device; devicemapper is not
 /// interested in other sorts of devices. Return None if the device appears
 /// not to exist.
-pub fn devnode_to_devno(path: &Path) -> DmResult<Option<u64>> {
+pub fn devnode_to_devno(path: &Path) -> Result<Option<u64>> {
     match path.metadata() {
         Ok(metadata) => {
             Ok(if metadata.st_mode() & S_IFMT.bits() == S_IFBLK.bits() {
