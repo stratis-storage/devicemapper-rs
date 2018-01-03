@@ -515,7 +515,8 @@ mod tests {
                     .unwrap();
         }
         umount2(tmp_dir.path(), MNT_DETACH).unwrap();
-        td.teardown(&dm).unwrap();
+
+        td.destroy(&dm, &tp).unwrap();
         tp.teardown(&dm).unwrap();
     }
 
