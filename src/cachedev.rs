@@ -404,7 +404,7 @@ impl CacheDev {
             return Err(DmError::Dm(ErrorEnum::Invalid, err_msg));
         }
 
-        let table = CacheDev::dm_table(&meta, &cache, &origin, cache_block_size);
+        let table = CacheDev::gen_default_table(&meta, &cache, &origin, cache_block_size);
         let dev_info = device_create(dm, name, uuid, &table)?;
 
         Ok(CacheDev {
@@ -425,7 +425,7 @@ impl CacheDev {
                  origin: LinearDev,
                  cache_block_size: Sectors)
                  -> DmResult<CacheDev> {
-        let table = CacheDev::dm_table(&meta, &origin, &cache, cache_block_size);
+        let table = CacheDev::gen_default_table(&meta, &origin, &cache, cache_block_size);
         let dev = if device_exists(dm, name)? {
             let dev_info = dm.device_info(&DevId::Name(name))?;
             let dev = CacheDev {
@@ -459,11 +459,12 @@ impl CacheDev {
     /// <#num feature args (0)> <replacement policy (default)>
     /// <#num policy args (0)>
     /// There is exactly one entry in the table.
-    fn dm_table(meta: &LinearDev,
-                cache: &LinearDev,
-                origin: &LinearDev,
-                cache_block_size: Sectors)
-                -> Vec<TargetLine<CacheDevTargetParams>> {
+    /// Various defaults are hard coded in the method.
+    fn gen_default_table(meta: &LinearDev,
+                         cache: &LinearDev,
+                         origin: &LinearDev,
+                         cache_block_size: Sectors)
+                         -> Vec<TargetLine<CacheDevTargetParams>> {
         vec![TargetLine {
                  start: Sectors::default(),
                  length: origin.size(),

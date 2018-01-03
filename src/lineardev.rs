@@ -83,6 +83,15 @@ impl DmDevice<LinearDevTargetParams> for LinearDev {
         devnode!(self)
     }
 
+    // Since linear devices have no default or configuration parameters,
+    // and the ordering of segments matters, two linear devices represent
+    // the same linear device only if their tables match exactly.
+    fn equivalent_tables(left: &[TargetLine<LinearDevTargetParams>],
+                         right: &[TargetLine<LinearDevTargetParams>])
+                         -> DmResult<bool> {
+        Ok(left == right)
+    }
+
     fn name(&self) -> &DmName {
         name!(self)
     }
@@ -132,7 +141,7 @@ impl LinearDev {
                                    "linear device must have at least one segment".into()));
         }
 
-        let table = LinearDev::dm_table(segments);
+        let table = LinearDev::gen_table(segments);
         let dev = if device_exists(dm, name)? {
             let dev_info = dm.device_info(&DevId::Name(name))?;
             let dev = LinearDev {
@@ -161,7 +170,9 @@ impl LinearDev {
     /// <logical start offset> <length> "linear" <linear-specific string>
     /// where the linear-specific string has the format:
     /// <maj:min> <physical start offset>
-    fn dm_table(segments: &[Segment]) -> Vec<TargetLine<LinearDevTargetParams>> {
+    /// The table has no configuration parameters, so the segments argument
+    /// fully specifies the table.
+    fn gen_table(segments: &[Segment]) -> Vec<TargetLine<LinearDevTargetParams>> {
         assert_ne!(segments.len(), 0);
 
         let mut table = Vec::new();
@@ -192,7 +203,7 @@ impl LinearDev {
                                    "linear device must have at least one segment".into()));
         }
 
-        let table = LinearDev::dm_table(segments);
+        let table = LinearDev::gen_table(segments);
         table_reload(dm, &DevId::Name(self.name()), &table)?;
         self.segments = segments.to_vec();
         Ok(())
@@ -323,7 +334,7 @@ mod tests {
                 .unwrap();
 
         let table = ld.table(&dm).unwrap();
-        assert!(LinearDev::equivalent_tables(&table, &LinearDev::dm_table(&segments)).unwrap());
+        assert!(LinearDev::equivalent_tables(&table, &LinearDev::gen_table(&segments)).unwrap());
 
         ld.teardown(&dm).unwrap();
     }
