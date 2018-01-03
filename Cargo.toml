@@ -21,5 +21,5 @@ clippy = {version = "0", optional = true}
 error-chain = "0.11"
 
 [dev-dependencies]
-loopdev = "0.1.1"
+loopdev = "0.2"
 tempdir = "0.3.5"
