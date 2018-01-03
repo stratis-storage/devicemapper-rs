@@ -17,7 +17,7 @@ use super::device::Device;
 use super::deviceinfo::{DM_NAME_LEN, DM_UUID_LEN, DeviceInfo};
 use super::dm_ioctl as dmi;
 use super::result::DmResult;
-use super::types::{DevId, DmName, DmNameBuf, DmUuid, Sectors, TargetLine, TargetTypeBuf};
+use super::types::{DevId, DmName, DmNameBuf, DmUuid, Sectors, TargetTypeBuf};
 use super::util::{align_to, slice_to_null};
 
 /// Indicator to send IOCTL to DM
@@ -496,40 +496,43 @@ impl DM {
     /// # Example
     ///
     /// ```no_run
-    /// use devicemapper::{DM, DevId, DmName, Sectors, TargetLine, TargetTypeBuf};
+    /// use devicemapper::{DM, DevId, DmName, Sectors, TargetTypeBuf};
     /// let dm = DM::new().unwrap();
     ///
     /// // Create a 16MiB device (32768 512-byte sectors) that maps to /dev/sdb1
     /// // starting 1MiB into sdb1
-    /// let table = vec![TargetLine{
-    ///     start: Sectors(0),
-    ///     length: Sectors(32768),
-    ///     target_type: TargetTypeBuf::new("linear".into()).expect("valid"),
-    ///     params: "/dev/sdb1 2048".into()
-    /// }];
+    /// let table = vec![(
+    ///     Sectors(0),
+    ///     Sectors(32768),
+    ///     TargetTypeBuf::new("linear".into()).expect("valid"),
+    ///     "/dev/sdb1 2048".into()
+    /// )];
     ///
     /// let name = DmName::new("example-dev").expect("is valid DM name");
     /// let id = DevId::Name(name);
     /// dm.table_load(&id, &table).unwrap();
     /// ```
-    pub fn table_load(&self, id: &DevId, targets: &[TargetLine<String>]) -> DmResult<DeviceInfo> {
+    pub fn table_load(&self,
+                      id: &DevId,
+                      targets: &[(Sectors, Sectors, TargetTypeBuf, String)])
+                      -> DmResult<DeviceInfo> {
         let mut targs = Vec::new();
 
         // Construct targets first, since we need to know how many & size
         // before initializing the header.
         for t in targets {
             let mut targ: dmi::Struct_dm_target_spec = Default::default();
-            targ.sector_start = *t.start;
-            targ.length = *t.length;
+            targ.sector_start = *t.0;
+            targ.length = *t.1;
             targ.status = 0;
 
             let dst: &mut [u8] = unsafe { transmute(&mut targ.target_type[..]) };
-            let bytes = t.target_type.as_bytes();
+            let bytes = t.2.as_bytes();
             assert!(bytes.len() <= dst.len(),
                     "TargetType max length = targ.target_type.len()");
             dst[..bytes.len()].clone_from_slice(bytes);
 
-            let mut params = t.params.to_owned();
+            let mut params = t.3.to_owned();
             let params_len = params.len();
             let pad_bytes = align_to(params_len + 1usize, 8usize) - params_len;
             params.extend(vec!["\0"; pad_bytes]);

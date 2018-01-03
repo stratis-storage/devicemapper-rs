@@ -5,6 +5,7 @@
 /// A module to contain functionality shared among the various types of
 /// devices.
 
+use std::fmt;
 use std::path::{Path, PathBuf};
 use std::str::FromStr;
 
@@ -12,7 +13,27 @@ use super::device::{Device, devnode_to_devno};
 use super::deviceinfo::DeviceInfo;
 use super::dm::{DM, DmFlags};
 use super::result::{DmError, DmResult, ErrorEnum};
-use super::types::{DevId, DmName, DmUuid, Sectors, TargetLine, TargetParams};
+use super::types::{DevId, DmName, DmUuid, Sectors, TargetTypeBuf};
+
+
+/// The trait for properties of the params string of TargetType
+pub trait TargetParams: fmt::Debug + fmt::Display + Eq + FromStr + PartialEq {}
+
+impl TargetParams for String {}
+
+/// One line of a device mapper table.
+#[derive(Debug, Eq, PartialEq)]
+pub struct TargetLine<T: TargetParams> {
+    /// The start of the segment
+    pub start: Sectors,
+    /// The length of the segment
+    pub length: Sectors,
+    /// The target type
+    pub target_type: TargetTypeBuf,
+    /// The target specific parameters
+    pub params: T,
+}
+
 
 /// A trait capturing some shared properties of DM devices.
 pub trait DmDevice<T: TargetParams> {
@@ -76,14 +97,7 @@ pub fn device_create<T: TargetParams>(dm: &DM,
     let id = DevId::Name(name);
     let table = table
         .iter()
-        .map(|x| {
-                 TargetLine {
-                     start: x.start,
-                     length: x.length,
-                     target_type: x.target_type.clone(),
-                     params: x.params.to_string(),
-                 }
-             })
+        .map(|x| (x.start, x.length, x.target_type.clone(), x.params.to_string()))
         .collect::<Vec<_>>();
     let dev_info = match dm.table_load(&id, &table) {
         Err(e) => {
@@ -131,14 +145,7 @@ pub fn table_reload<T: TargetParams>(dm: &DM,
                                      -> DmResult<DeviceInfo> {
     let table = table
         .iter()
-        .map(|x| {
-                 TargetLine {
-                     start: x.start,
-                     length: x.length,
-                     target_type: x.target_type.clone(),
-                     params: x.params.to_string(),
-                 }
-             })
+        .map(|x| (x.start, x.length, x.target_type.clone(), x.params.to_string()))
         .collect::<Vec<_>>();
     let dev_info = dm.table_load(id, &table)?;
     dm.device_suspend(id, DmFlags::DM_SUSPEND)?;
