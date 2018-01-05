@@ -8,7 +8,11 @@ tree: ${HOME}/.cargo/bin/cargo-tree
 	PATH=${HOME}/.cargo/bin:${PATH} cargo tree
 
 fmt: ${HOME}/.cargo/bin/cargo-fmt
-	PATH=${HOME}/.cargo/bin:${PATH} cargo fmt -- --write-mode=diff
+	PATH=${HOME}/.cargo/bin:${PATH} cargo fmt
+
+travis_fmt:
+	rustup run stable cargo install rustfmt --vers 0.8.3 --force
+	cargo fmt -- --write-mode=diff
 
 build:
 	RUSTFLAGS='-D warnings' cargo build
