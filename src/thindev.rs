@@ -21,20 +21,28 @@ use super::types::{DevId, DmName, DmUuid, Sectors, TargetTypeBuf};
 pub struct ThinDevTargetParams {
     pub pool: Device,
     pub thin_id: ThinDevId,
+    pub external_origin_dev: Option<Device>,
 }
 
 impl ThinDevTargetParams {
-    pub fn new(pool: Device, thin_id: ThinDevId) -> ThinDevTargetParams {
+    pub fn new(pool: Device,
+               thin_id: ThinDevId,
+               external_origin_dev: Option<Device>)
+               -> ThinDevTargetParams {
         ThinDevTargetParams {
             pool: pool,
             thin_id: thin_id,
+            external_origin_dev: external_origin_dev,
         }
     }
 }
 
 impl fmt::Display for ThinDevTargetParams {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{} {}", self.pool, self.thin_id)
+        match self.external_origin_dev {
+            None => write!(f, "{} {}", self.pool, self.thin_id),
+            Some(dev) => write!(f, "{} {} {}", self.pool, self.thin_id, dev),
+        }
     }
 }
 
@@ -43,14 +51,21 @@ impl FromStr for ThinDevTargetParams {
 
     fn from_str(s: &str) -> DmResult<ThinDevTargetParams> {
         let vals = s.split(' ').collect::<Vec<_>>();
-        if vals.len() != 2 {
-            let err_msg = format!("expected two values in params string \"{}\", found {}",
+        let len = vals.len();
+        if len < 2 || len > 3 {
+            let err_msg = format!("expected two or three values in params string \"{}\", found {}",
                                   s,
-                                  vals.len());
+                                  len);
             return Err(DmError::Dm(ErrorEnum::Invalid, err_msg));
         }
 
-        Ok(ThinDevTargetParams::new(parse_device(vals[0])?, vals[1].parse::<ThinDevId>()?))
+        Ok(ThinDevTargetParams::new(parse_device(vals[0])?,
+                                    vals[1].parse::<ThinDevId>()?,
+                                    if len == 2 {
+                                        None
+                                    } else {
+                                        Some(parse_device(vals[2])?)
+                                    }))
     }
 }
 
@@ -252,7 +267,7 @@ impl ThinDev {
                  start: Sectors::default(),
                  length: length,
                  target_type: TargetTypeBuf::new("thin".into()).expect("< length limit"),
-                 params: ThinDevTargetParams::new(thin_pool, thin_id),
+                 params: ThinDevTargetParams::new(thin_pool, thin_id, None),
              }]
     }
 
