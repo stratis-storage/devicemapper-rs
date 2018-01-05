@@ -12,9 +12,11 @@ use super::deviceinfo::DeviceInfo;
 use super::dm::{DM, DmFlags};
 use super::lineardev::LinearDev;
 use super::result::{DmResult, DmError, ErrorEnum};
+use super::segment::Segment;
 use super::shared::{DmDevice, TargetLine, TargetParams, device_create, device_exists,
-                    device_match, parse_device};
+                    device_match, parse_device, table_reload};
 use super::types::{DataBlocks, DevId, DmName, DmUuid, MetaBlocks, Sectors, TargetTypeBuf};
+
 
 #[derive(Debug, Eq, PartialEq)]
 pub struct CacheDevTargetParams {
@@ -449,6 +451,23 @@ impl CacheDev {
         };
 
         Ok(dev)
+    }
+
+
+    /// Set the origin device's existing segments.
+    /// Warning: It is the client's responsibility to make sure the designated
+    /// segments are compatible with the device's existing segments.
+    /// If they are not, this function will still succeed, but some kind of
+    /// data corruption will be the inevitable result.
+    pub fn set_origin_segments(&mut self, dm: &DM, segments: &[Segment]) -> DmResult<()> {
+        self.origin_dev.set_segments(dm, segments)?;
+        table_reload(dm,
+                     &DevId::Name(self.name()),
+                     &CacheDev::dm_table(&self.meta_dev,
+                                         &self.cache_dev,
+                                         &self.origin_dev,
+                                         self.block_size))?;
+        Ok(())
     }
 
     /// Generate a table to be passed to DM. The format of the table
