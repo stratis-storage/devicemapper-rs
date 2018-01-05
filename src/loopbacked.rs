@@ -28,11 +28,11 @@ pub fn blkdev_size(file: &File) -> Bytes {
 
 
 /// Write buf at offset length times.
-fn write_sectors<P: AsRef<Path>>(path: P,
-                                 offset: Sectors,
-                                 length: Sectors,
-                                 buf: &[u8; SECTOR_SIZE])
-                                 -> io::Result<()> {
+pub fn write_sectors<P: AsRef<Path>>(path: P,
+                                     offset: Sectors,
+                                     length: Sectors,
+                                     buf: &[u8; SECTOR_SIZE])
+                                     -> io::Result<()> {
     let mut f = OpenOptions::new().write(true).open(path)?;
 
     f.seek(SeekFrom::Start(*offset))?;
