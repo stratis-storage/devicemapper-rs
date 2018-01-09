@@ -152,6 +152,12 @@ NewtypeSubAssign! { () pub struct DataBlocks(u64); }
 self_div!(DataBlocks);
 serde!(DataBlocks);
 
+unsigned_div!(u64, DataBlocks);
+unsigned_div!(u32, DataBlocks);
+unsigned_div!(u16, DataBlocks);
+unsigned_div!(u8, DataBlocks);
+unsigned_div!(usize, DataBlocks);
+
 unsigned_mul!(u64, DataBlocks);
 unsigned_mul!(u32, DataBlocks);
 unsigned_mul!(u16, DataBlocks);
@@ -187,6 +193,12 @@ NewtypeSubAssign! { () pub struct MetaBlocks(u64); }
 
 self_div!(MetaBlocks);
 serde!(MetaBlocks);
+
+unsigned_div!(u64, MetaBlocks);
+unsigned_div!(u32, MetaBlocks);
+unsigned_div!(u16, MetaBlocks);
+unsigned_div!(u8, MetaBlocks);
+unsigned_div!(usize, MetaBlocks);
 
 unsigned_mul!(u64, MetaBlocks);
 unsigned_mul!(u32, MetaBlocks);
@@ -225,6 +237,12 @@ NewtypeSubAssign! { () pub struct Bytes(u64); }
 self_div!(Bytes);
 serde!(Bytes);
 sum!(Bytes);
+
+unsigned_div!(u64, Bytes);
+unsigned_div!(u32, Bytes);
+unsigned_div!(u16, Bytes);
+unsigned_div!(u8, Bytes);
+unsigned_div!(usize, Bytes);
 
 unsigned_mul!(u64, Bytes);
 unsigned_mul!(u32, Bytes);

@@ -498,7 +498,11 @@ impl ThinPoolDev {
 }
 
 #[cfg(test)]
+use std::fs::OpenOptions;
+#[cfg(test)]
 use super::consts::IEC;
+#[cfg(test)]
+use super::loopbacked::blkdev_size;
 
 /// Values are explicitly stated in the device-mapper kernel documentation.
 #[cfg(test)]
@@ -513,7 +517,10 @@ const MIN_RECOMMENDED_METADATA_SIZE: Sectors = Sectors(4 * IEC::Ki); // 2 MiB
 const MAX_RECOMMENDED_METADATA_SIZE: Sectors = Sectors(32 * IEC::Mi); // 16 GiB
 
 #[cfg(test)]
+/// Generate a minimal thinpool dev. Use all the space available not consumed
+/// by the metadata device for the data device.
 pub fn minimal_thinpool(dm: &DM, path: &Path) -> ThinPoolDev {
+    let dev_size = blkdev_size(&OpenOptions::new().read(true).open(path).unwrap()).sectors();
     let dev = Device::from(devnode_to_devno(path).unwrap().unwrap());
     let meta = LinearDev::setup(dm,
                                 DmName::new("meta").expect("valid format"),
@@ -521,13 +528,12 @@ pub fn minimal_thinpool(dm: &DM, path: &Path) -> ThinPoolDev {
                                 &[Segment::new(dev, Sectors(0), MIN_RECOMMENDED_METADATA_SIZE)])
             .unwrap();
 
-    // 512 * MIN_DATA_BLOCK_SIZE (32 MiB) should be enough for an xfs filesystem
     let data = LinearDev::setup(dm,
                                 DmName::new("data").expect("valid format"),
                                 None,
                                 &[Segment::new(dev,
                                                MIN_RECOMMENDED_METADATA_SIZE,
-                                               512u64 * MIN_DATA_BLOCK_SIZE)])
+                                               dev_size - MIN_RECOMMENDED_METADATA_SIZE)])
             .unwrap();
 
     ThinPoolDev::new(dm,

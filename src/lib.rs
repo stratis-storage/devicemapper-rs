@@ -62,6 +62,8 @@ extern crate error_chain;
 extern crate loopdev;
 #[cfg(test)]
 extern crate tempdir;
+#[cfg(test)]
+extern crate uuid;
 
 /// rust definitions of ioctl structs and consts
 mod dm_ioctl;

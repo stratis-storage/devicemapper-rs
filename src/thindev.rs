@@ -340,9 +340,12 @@ mod tests {
 
     use nix::mount::{MNT_DETACH, MsFlags, mount, umount2};
     use tempdir::TempDir;
+    use uuid::Uuid;
 
+    use super::super::consts::IEC;
     use super::super::loopbacked::{blkdev_size, test_with_spec};
-    use super::super::thinpooldev::minimal_thinpool;
+    use super::super::thinpooldev::{ThinPoolStatus, minimal_thinpool};
+    use super::super::types::DataBlocks;
 
     use super::super::errors::{Error, ErrorKind};
 
@@ -453,21 +456,43 @@ mod tests {
 
     /// Verify success when taking a snapshot of a ThinDev.  Check that
     /// the size of the snapshot is the same as the source.
+    /// Verify that empty thindev has no data usage.
     fn test_snapshot(paths: &[&Path]) -> () {
         assert!(paths.len() >= 1);
         let td_size = MIN_THIN_DEV_SIZE;
         let dm = DM::new().unwrap();
         let tp = minimal_thinpool(&dm, paths[0]);
 
+        let orig_data_usage = match tp.status(&dm).unwrap() {
+            ThinPoolStatus::Working(ref status) => status.usage.used_data,
+            ThinPoolStatus::Fail => panic!("failed to get thinpool status"),
+        };
+
+        assert_eq!(orig_data_usage, DataBlocks(0));
+
         // Create new ThinDev as source for snapshot
         let thin_id = ThinDevId::new_u64(0).expect("is below limit");
         let thin_name = DmName::new("name").expect("is valid DM name");
         let td = ThinDev::new(&dm, &thin_name, None, td_size, &tp, thin_id).unwrap();
 
+        let data_usage_1 = match tp.status(&dm).unwrap() {
+            ThinPoolStatus::Working(ref status) => status.usage.used_data,
+            ThinPoolStatus::Fail => panic!("failed to get thinpool status"),
+        };
+
+        assert_eq!(data_usage_1, DataBlocks(0));
+
         // Create a snapshot of the source
         let ss_id = ThinDevId::new_u64(1).expect("is below limit");
         let ss_name = DmName::new("snap_name").expect("is valid DM name");
         let ss = td.snapshot(&dm, &tp, ss_name, ss_id).unwrap();
+
+        let data_usage_2 = match tp.status(&dm).unwrap() {
+            ThinPoolStatus::Working(ref status) => status.usage.used_data,
+            ThinPoolStatus::Fail => panic!("failed to get thinpool status"),
+        };
+
+        assert_eq!(data_usage_2, DataBlocks(0));
 
         // Verify the source and the snapshot are the same size.
         assert_eq!(td.size(), ss.size());
@@ -479,6 +504,7 @@ mod tests {
 
     /// Verify no failures when creating a thindev from a pool, mounting a
     /// filesystem on the thin device, and writing to that filesystem.
+    /// Verify reasonable usage behavior.
     fn test_filesystem(paths: &[&Path]) -> () {
         assert!(paths.len() > 0);
 
@@ -489,12 +515,24 @@ mod tests {
         let thin_name = DmName::new("name").expect("is valid DM name");
         let td = ThinDev::new(&dm, &thin_name, None, tp.size(), &tp, thin_id).unwrap();
 
+        let orig_data_usage = match tp.status(&dm).unwrap() {
+            ThinPoolStatus::Working(ref status) => status.usage.used_data,
+            ThinPoolStatus::Fail => panic!("failed to get thinpool status"),
+        };
+        assert_eq!(orig_data_usage, DataBlocks(0));
+
         Command::new("mkfs.xfs")
             .arg("-f")
             .arg("-q")
             .arg(&td.devnode())
             .status()
             .unwrap();
+
+        let data_usage_1 = match tp.status(&dm).unwrap() {
+            ThinPoolStatus::Working(ref status) => status.usage.used_data,
+            ThinPoolStatus::Fail => panic!("failed to get thinpool status"),
+        };
+        assert!(data_usage_1 > DataBlocks(0));
 
         let tmp_dir = TempDir::new("stratis_testing").unwrap();
         mount(Some(&td.devnode()),
@@ -515,7 +553,109 @@ mod tests {
                     .unwrap();
         }
         umount2(tmp_dir.path(), MNT_DETACH).unwrap();
-        td.teardown(&dm).unwrap();
+
+        let data_usage_2 = match tp.status(&dm).unwrap() {
+            ThinPoolStatus::Working(ref status) => status.usage.used_data,
+            ThinPoolStatus::Fail => panic!("failed to get thinpool status"),
+        };
+        assert!(data_usage_2 > data_usage_1);
+
+        td.destroy(&dm, &tp).unwrap();
+        tp.teardown(&dm).unwrap();
+    }
+
+    /// Verify reasonable usage behavior when taking a snapshot of a thindev
+    /// with an existing filesystem. In particular, just taking a snapshot
+    /// should not increase the pool usage at all.
+    /// If ThindevA is one GiB and ThindevB is 1 TiB, the making a filesystem
+    /// on ThindevB consumes at least 32 times the space as making a filesystem
+    /// on ThindevA. Verify that setting the UUID of a snapshot causes the
+    /// snapshot to consume approximately the same amount of space as its
+    /// source.
+    fn test_snapshot_usage(paths: &[&Path]) -> () {
+        assert!(paths.len() > 0);
+
+        let dm = DM::new().unwrap();
+        let tp = minimal_thinpool(&dm, paths[0]);
+
+        let thin_id = ThinDevId::new_u64(0).expect("is below limit");
+        let thin_name = DmName::new("name").expect("is valid DM name");
+        let td = ThinDev::new(&dm, &thin_name, None, Sectors(2 * IEC::Mi), &tp, thin_id).unwrap();
+
+        let orig_data_usage = match tp.status(&dm).unwrap() {
+            ThinPoolStatus::Working(ref status) => status.usage.used_data,
+            ThinPoolStatus::Fail => panic!("failed to get thinpool status"),
+        };
+        assert_eq!(orig_data_usage, DataBlocks(0));
+
+        Command::new("mkfs.xfs")
+            .arg("-f")
+            .arg("-q")
+            .arg(&td.devnode())
+            .status()
+            .unwrap();
+
+        let data_usage_1 = match tp.status(&dm).unwrap() {
+            ThinPoolStatus::Working(ref status) => status.usage.used_data,
+            ThinPoolStatus::Fail => panic!("failed to get thinpool status"),
+        };
+        assert!(data_usage_1 > DataBlocks(0));
+
+        // Create a snapshot of the source
+        let ss_id = ThinDevId::new_u64(1).expect("is below limit");
+        let ss_name = DmName::new("snap_name").expect("is valid DM name");
+        let ss = td.snapshot(&dm, &tp, ss_name, ss_id).unwrap();
+
+        let data_usage_2 = match tp.status(&dm).unwrap() {
+            ThinPoolStatus::Working(ref status) => status.usage.used_data,
+            ThinPoolStatus::Fail => panic!("failed to get thinpool status"),
+        };
+        assert_eq!(data_usage_2, data_usage_1);
+
+        Command::new("xfs_admin")
+            .arg("-U")
+            .arg(format!("{}", Uuid::new_v4()))
+            .arg(&ss.devnode())
+            .status()
+            .unwrap();
+
+        // Setting the uuid of the snapshot filesystem bumps the usage,
+        // but does not increase the usage quite as much as establishing
+        // the origin.
+        let data_usage_3 = match tp.status(&dm).unwrap() {
+            ThinPoolStatus::Working(ref status) => status.usage.used_data,
+            ThinPoolStatus::Fail => panic!("failed to get thinpool status"),
+        };
+        assert!(data_usage_3 - data_usage_2 > DataBlocks(0));
+        assert!(data_usage_3 - data_usage_2 < data_usage_1);
+        assert!(data_usage_3 - data_usage_2 > data_usage_1 / 2usize);
+
+        let thin_id = ThinDevId::new_u64(2).expect("is below limit");
+        let thin_name = DmName::new("name1").expect("is valid DM name");
+        let td1 = ThinDev::new(&dm, &thin_name, None, Sectors(2 * IEC::Gi), &tp, thin_id).unwrap();
+
+        let data_usage_4 = match tp.status(&dm).unwrap() {
+            ThinPoolStatus::Working(ref status) => status.usage.used_data,
+            ThinPoolStatus::Fail => panic!("failed to get thinpool status"),
+        };
+        assert_eq!(data_usage_4, data_usage_3);
+
+        Command::new("mkfs.xfs")
+            .arg("-f")
+            .arg("-q")
+            .arg(&td1.devnode())
+            .status()
+            .unwrap();
+
+        let data_usage_5 = match tp.status(&dm).unwrap() {
+            ThinPoolStatus::Working(ref status) => status.usage.used_data,
+            ThinPoolStatus::Fail => panic!("failed to get thinpool status"),
+        };
+        assert!(data_usage_5 - data_usage_4 > 32usize * data_usage_1);
+
+        ss.destroy(&dm, &tp).unwrap();
+        td1.destroy(&dm, &tp).unwrap();
+        td.destroy(&dm, &tp).unwrap();
         tp.teardown(&dm).unwrap();
     }
 
@@ -538,6 +678,11 @@ mod tests {
     #[test]
     fn loop_test_snapshot() {
         test_with_spec(1, test_snapshot);
+    }
+
+    #[test]
+    fn loop_test_snapshot_usage() {
+        test_with_spec(1, test_snapshot_usage);
     }
 
     #[test]
