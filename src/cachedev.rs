@@ -527,6 +527,27 @@ impl CacheDev {
         Ok(())
     }
 
+    /// Dismantle this device, returning the origin dev.
+    /// It is the client's responsibility to ensure that no data is written
+    /// to the cache device during this operation. No data can be written
+    /// afterward, because afterward the device is gone.
+    pub fn dismantle(self, dm: &DM) -> DmResult<LinearDev> {
+
+        // TODO: If the cachedev's table was part of the CacheDev struct, then
+        // it would be possible to check whether or not the cache needs to be
+        // flushed. Instead, we maintain that there is an invariant, that the
+        // cache is always writethrough, and therefore that it need not be
+        // flushed. If it needed to be flushed, we should probably suspend it
+        // first.
+
+        dm.device_remove(&DevId::Name(self.name()), DmFlags::empty())?;
+
+        self.cache_dev.teardown(dm)?;
+        self.meta_dev.teardown(dm)?;
+
+        Ok(self.origin_dev)
+    }
+
     /// Generate a table to be passed to DM. The format of the table
     /// entries is:
     /// <start sec (0)> <length> "cache" <cache-specific string>
@@ -755,9 +776,11 @@ pub fn minimal_cachedev(dm: &DM, paths: &[&Path]) -> CacheDev {
 
 #[cfg(test)]
 mod tests {
+    use std::io::Read;
     use std::path::Path;
 
-    use super::super::loopbacked::test_with_spec;
+    use super::super::consts::SECTOR_SIZE;
+    use super::super::loopbacked::{test_with_spec, write_sectors};
 
     use super::*;
 
@@ -828,6 +851,7 @@ mod tests {
         cache.teardown(&dm).unwrap();
     }
 
+
     #[test]
     fn loop_test_minimal_cache_dev() {
         test_with_spec(2, test_minimal_cache_dev);
@@ -872,5 +896,46 @@ mod tests {
     #[test]
     fn loop_test_cache_size_change() {
         test_with_spec(3, test_cache_size_change);
+    }
+
+    /// Verify that the data on the origin device exactly matches the data
+    /// on its cache device after dismantling.
+    fn test_dismantle_data(paths: &[&Path]) {
+        assert!(paths.len() >= 2);
+        let dm = DM::new().unwrap();
+        let cache = minimal_cachedev(&dm, paths);
+
+        let signature = [0u8, 1u8, 2u8, 4u8, 8u8, 16u8, 32u8, 64u8];
+        let signature = signature
+            .iter()
+            .cycle()
+            .take(SECTOR_SIZE)
+            .cloned()
+            .collect::<Vec<_>>();
+
+        let num_sectors = 32usize;
+        write_sectors(cache.devnode(), Sectors(0), num_sectors, &signature).unwrap();
+
+        let origin = cache.dismantle(&dm).unwrap();
+
+        {
+            let mut f = OpenOptions::new()
+                .read(true)
+                .open(origin.devnode())
+                .unwrap();
+
+            for _ in 0..num_sectors {
+                let mut buf = [0u8; SECTOR_SIZE];
+                f.read_exact(&mut buf).unwrap();
+                assert_eq!(signature, buf.to_vec());
+            }
+        }
+
+        origin.teardown(&dm).unwrap();
+    }
+
+    #[test]
+    fn loop_test_dismantle_data() {
+        test_with_spec(2, test_dismantle_data);
     }
 }
