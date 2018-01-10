@@ -37,3 +37,9 @@ macro_rules! to_raw_table_unique {
               $s.table.params.param_str())]
     }
 }
+
+macro_rules! table {
+    ($s: ident) => {
+        &$s.table
+    }
+}

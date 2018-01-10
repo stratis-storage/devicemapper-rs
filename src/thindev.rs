@@ -127,9 +127,7 @@ impl TargetTable for ThinDevTargetTable {
 #[derive(Debug)]
 pub struct ThinDev {
     dev_info: Box<DeviceInfo>,
-    thin_id: ThinDevId,
-    size: Sectors,
-    thinpool: Device,
+    table: ThinDevTargetTable,
 }
 
 impl DmDevice<ThinDevTargetTable> for ThinDev {
@@ -152,7 +150,11 @@ impl DmDevice<ThinDevTargetTable> for ThinDev {
     }
 
     fn size(&self) -> Sectors {
-        self.size
+        self.table.table.length
+    }
+
+    fn table(&self) -> &ThinDevTargetTable {
+        table!(self)
     }
 
     fn teardown(self, dm: &DM) -> DmResult<()> {
@@ -223,9 +225,7 @@ impl ThinDev {
 
         Ok(ThinDev {
                dev_info: Box::new(dev_info),
-               thin_id: thin_id,
-               size: length,
-               thinpool: thin_pool_device,
+               table: table,
            })
     }
 
@@ -252,19 +252,15 @@ impl ThinDev {
             let dev_info = dm.device_info(&DevId::Name(name))?;
             let dev = ThinDev {
                 dev_info: Box::new(dev_info),
-                thin_id: thin_id,
-                size: length,
-                thinpool: thin_pool_device,
+                table: table,
             };
-            device_match(dm, &dev, uuid, &table)?;
+            device_match(dm, &dev, uuid)?;
             dev
         } else {
             let dev_info = device_create(dm, name, uuid, &table)?;
             ThinDev {
                 dev_info: Box::new(dev_info),
-                thin_id: thin_id,
-                size: length,
-                thinpool: thin_pool_device,
+                table: table,
             }
         };
         Ok(dev)
@@ -285,19 +281,15 @@ impl ThinDev {
         dm.device_suspend(&source_id, DmFlags::DM_SUSPEND)?;
         message(dm,
                 thin_pool,
-                &format!("create_snap {} {}", snapshot_thin_id, self.thin_id))?;
+                &format!("create_snap {} {}",
+                         snapshot_thin_id,
+                         self.table.table.params.thin_id))?;
         dm.device_suspend(&source_id, DmFlags::empty())?;
-        let dev_info = Box::new(device_create(dm,
-                                              snapshot_name,
-                                              None,
-                                              &ThinDev::gen_default_table(self.size(),
-                                                                          thin_pool.device(),
-                                                                          snapshot_thin_id))?);
+        let table = ThinDev::gen_default_table(self.size(), thin_pool.device(), snapshot_thin_id);
+        let dev_info = Box::new(device_create(dm, snapshot_name, None, &table)?);
         Ok(ThinDev {
                dev_info: dev_info,
-               thin_id: snapshot_thin_id,
-               size: self.size(),
-               thinpool: thin_pool.device(),
+               table: table,
            })
     }
 
@@ -319,7 +311,7 @@ impl ThinDev {
 
     /// return the thin id of the linear device
     pub fn id(&self) -> ThinDevId {
-        self.thin_id
+        self.table.table.params.thin_id
     }
 
     /// Get the current status of the thin device.
@@ -358,18 +350,20 @@ impl ThinDev {
     /// Extend the thin device's (virtual) size by the number of
     /// sectors given.
     pub fn extend(&mut self, dm: &DM, sectors: Sectors) -> DmResult<()> {
-        let new_size = self.size + sectors;
+        let new_size = self.table.table.length + sectors;
         table_reload(dm,
                      &DevId::Name(self.name()),
-                     &ThinDev::gen_default_table(new_size, self.thinpool, self.thin_id))?;
-        self.size = new_size;
+                     &ThinDev::gen_default_table(new_size,
+                                                 self.table.table.params.pool,
+                                                 self.table.table.params.thin_id))?;
+        self.table.table.length = new_size;
         Ok(())
     }
 
     /// Tear down the DM device, and also delete resources associated
     /// with its thin id from the thinpool.
     pub fn destroy(self, dm: &DM, thin_pool: &ThinPoolDev) -> DmResult<()> {
-        let thin_id = self.thin_id;
+        let thin_id = self.table.table.params.thin_id;
         self.teardown(dm)?;
         message(dm, thin_pool, &format!("delete {}", thin_id))?;
         Ok(())
