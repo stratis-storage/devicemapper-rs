@@ -76,6 +76,7 @@ mod consts;
 /// Macros shared by device mapper devices.
 #[macro_use]
 mod shared_macros;
+mod flakeydev;
 /// functions to create continuous linear space given device segments
 mod lineardev;
 /// allocate a device from a pool
@@ -111,6 +112,7 @@ pub use consts::{IEC, SECTOR_SIZE};
 pub use dm::{DM, DmFlags};
 
 pub use device::{Device, devnode_to_devno};
+pub use flakeydev::FlakeyDev;
 pub use lineardev::LinearDev;
 pub use result::{DmResult, DmError, ErrorEnum};
 pub use segment::Segment;
