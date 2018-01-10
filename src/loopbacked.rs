@@ -2,6 +2,7 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
+use std;
 use std::fs::{File, OpenOptions};
 use std::io;
 use std::io::{Seek, SeekFrom, Write};
@@ -27,16 +28,16 @@ pub fn blkdev_size(file: &File) -> Bytes {
 }
 
 
-/// Write buf at offset length times.
-fn write_sectors<P: AsRef<Path>>(path: P,
-                                 offset: Sectors,
-                                 length: Sectors,
-                                 buf: &[u8; SECTOR_SIZE])
-                                 -> io::Result<()> {
+/// Write buf at offset the number of times specified.
+pub fn write_sectors<P: AsRef<Path>>(path: P,
+                                     offset: Sectors,
+                                     times: usize,
+                                     buf: &[u8])
+                                     -> io::Result<()> {
     let mut f = OpenOptions::new().write(true).open(path)?;
 
     f.seek(SeekFrom::Start(*offset))?;
-    for _ in 0..*length {
+    for _ in 0..times {
         f.write_all(buf)?;
     }
 
@@ -46,7 +47,8 @@ fn write_sectors<P: AsRef<Path>>(path: P,
 
 /// Zero sectors at the given offset for length sectors.
 fn wipe_sectors<P: AsRef<Path>>(path: P, offset: Sectors, length: Sectors) -> io::Result<()> {
-    write_sectors(path, offset, length, &[0u8; SECTOR_SIZE])
+    assert!(*length < std::usize::MAX as u64);
+    write_sectors(path, offset, *length as usize, &[0u8; SECTOR_SIZE])
 }
 
 pub struct LoopTestDev {
