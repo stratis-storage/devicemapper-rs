@@ -386,7 +386,7 @@ pub struct CacheDev {
     meta_dev: LinearDev,
     cache_dev: LinearDev,
     origin_dev: LinearDev,
-    block_size: Sectors,
+    table: CacheDevTargetTable,
 }
 
 impl DmDevice<CacheDevTargetTable> for CacheDev {
@@ -404,6 +404,10 @@ impl DmDevice<CacheDevTargetTable> for CacheDev {
 
     fn size(&self) -> Sectors {
         self.origin_dev.size()
+    }
+
+    fn table(&self) -> &CacheDevTargetTable {
+        table!(self)
     }
 
     fn teardown(self, dm: &DM) -> DmResult<()> {
@@ -445,7 +449,7 @@ impl CacheDev {
                meta_dev: meta,
                cache_dev: cache,
                origin_dev: origin,
-               block_size: cache_block_size,
+               table: table,
            })
     }
 
@@ -466,9 +470,9 @@ impl CacheDev {
                 meta_dev: meta,
                 cache_dev: cache,
                 origin_dev: origin,
-                block_size: cache_block_size,
+                table: table,
             };
-            device_match(dm, &dev, uuid, &table)?;
+            device_match(dm, &dev, uuid)?;
             dev
         } else {
             let dev_info = device_create(dm, name, uuid, &table)?;
@@ -477,7 +481,7 @@ impl CacheDev {
                 meta_dev: meta,
                 cache_dev: cache,
                 origin_dev: origin,
-                block_size: cache_block_size,
+                table: table,
             }
         };
 
@@ -713,7 +717,8 @@ mod tests {
                 assert!(usage.used_meta > MetaBlocks(0));
 
                 assert_eq!(usage.cache_block_size, MIN_CACHE_BLOCK_SIZE);
-                assert_eq!(usage.cache_block_size, cache.block_size);
+                assert_eq!(usage.cache_block_size,
+                           cache.table.table.params.cache_block_size);
 
                 // No data means no cache blocks used
                 assert_eq!(usage.used_cache, DataBlocks(0));

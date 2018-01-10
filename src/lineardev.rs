@@ -134,7 +134,7 @@ impl TargetTable for LinearDevTargetTable {
 pub struct LinearDev {
     /// Data about the device
     dev_info: Box<DeviceInfo>,
-    segments: Vec<Segment>,
+    table: LinearDevTargetTable,
 }
 
 impl DmDevice<LinearDevTargetTable> for LinearDev {
@@ -151,7 +151,11 @@ impl DmDevice<LinearDevTargetTable> for LinearDev {
     }
 
     fn size(&self) -> Sectors {
-        self.segments.iter().map(|s| s.length).sum()
+        self.table.table.iter().map(|l| l.length).sum()
+    }
+
+    fn table(&self) -> &LinearDevTargetTable {
+        table!(self)
     }
 
     fn teardown(self, dm: &DM) -> DmResult<()> {
@@ -200,23 +204,18 @@ impl LinearDev {
             let dev_info = dm.device_info(&DevId::Name(name))?;
             let dev = LinearDev {
                 dev_info: Box::new(dev_info),
-                segments: segments.to_vec(),
+                table: table,
             };
-            device_match(dm, &dev, uuid, &table)?;
+            device_match(dm, &dev, uuid)?;
             dev
         } else {
             let dev_info = device_create(dm, name, uuid, &table)?;
             LinearDev {
                 dev_info: Box::new(dev_info),
-                segments: segments.to_vec(),
+                table: table,
             }
         };
         Ok(dev)
-    }
-
-    /// Return a reference to the segments that back this linear device.
-    pub fn segments(&self) -> &[Segment] {
-        &self.segments
     }
 
     /// Generate a table to be passed to DM.
@@ -238,7 +237,7 @@ impl LinearDev {
 
         let table = LinearDev::gen_table(segments);
         table_reload(dm, &DevId::Name(self.name()), &table)?;
-        self.segments = segments.to_vec();
+        self.table = table;
         Ok(())
     }
 

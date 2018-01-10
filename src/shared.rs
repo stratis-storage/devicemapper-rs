@@ -70,6 +70,9 @@ pub trait DmDevice<T: TargetTable> {
     /// The number of sectors available for user data.
     fn size(&self) -> Sectors;
 
+    /// What the device thinks its table is.
+    fn table(&self) -> &T;
+
     /// Erase the kernel's memory of this device.
     fn teardown(self, dm: &DM) -> DmResult<()>;
 
@@ -108,13 +111,13 @@ pub fn device_create<T: TargetTable>(dm: &DM,
 /// Verify that kernel data matches arguments passed.
 pub fn device_match<T: TargetTable, D: DmDevice<T>>(dm: &DM,
                                                     dev: &D,
-                                                    uuid: Option<&DmUuid>,
-                                                    table: &T)
+                                                    uuid: Option<&DmUuid>)
                                                     -> DmResult<()> {
     let kernel_table = D::load_table(dm, &DevId::Name(dev.name()))?;
-    if !T::equivalent_devices(&kernel_table, table) {
+    let device_table = dev.table();
+    if !T::equivalent_devices(&kernel_table, device_table) {
         let err_msg = format!("Specified new table \"{:?}\" does not match kernel table \"{:?}\"",
-                              table,
+                              device_table,
                               kernel_table);
 
         return Err(DmError::Dm(ErrorEnum::Invalid, err_msg));

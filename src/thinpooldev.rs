@@ -189,8 +189,7 @@ pub struct ThinPoolDev {
     dev_info: Box<DeviceInfo>,
     meta_dev: LinearDev,
     data_dev: LinearDev,
-    data_block_size: Sectors,
-    low_water_mark: DataBlocks,
+    table: ThinPoolDevTargetTable,
 }
 
 impl DmDevice<ThinPoolDevTargetTable> for ThinPoolDev {
@@ -208,6 +207,10 @@ impl DmDevice<ThinPoolDevTargetTable> for ThinPoolDev {
 
     fn size(&self) -> Sectors {
         self.data_dev.size()
+    }
+
+    fn table(&self) -> &ThinPoolDevTargetTable {
+        table!(self)
     }
 
     fn teardown(self, dm: &DM) -> DmResult<()> {
@@ -338,8 +341,7 @@ impl ThinPoolDev {
                dev_info: Box::new(dev_info),
                meta_dev: meta,
                data_dev: data,
-               data_block_size: data_block_size,
-               low_water_mark: low_water_mark,
+               table: table,
            })
     }
 
@@ -355,7 +357,7 @@ impl ThinPoolDev {
 
     /// Obtain the data block size for this thin pool device.
     pub fn data_block_size(&self) -> Sectors {
-        self.data_block_size
+        self.table.table.params.data_block_size
     }
 
     /// Set up a thin pool from the given metadata and data device.
@@ -379,10 +381,9 @@ impl ThinPoolDev {
                 dev_info: Box::new(dev_info),
                 meta_dev: meta,
                 data_dev: data,
-                data_block_size: data_block_size,
-                low_water_mark: low_water_mark,
+                table: table,
             };
-            device_match(dm, &dev, uuid, &table)?;
+            device_match(dm, &dev, uuid)?;
             dev
         } else {
             let dev_info = device_create(dm, name, uuid, &table)?;
@@ -390,8 +391,7 @@ impl ThinPoolDev {
                 dev_info: Box::new(dev_info),
                 meta_dev: meta,
                 data_dev: data,
-                data_block_size: data_block_size,
-                low_water_mark: low_water_mark,
+                table: table,
             }
         };
         Ok(dev)
@@ -516,12 +516,13 @@ impl ThinPoolDev {
     /// data corruption will be the inevitable result.
     pub fn set_meta_segments(&mut self, dm: &DM, segments: &[Segment]) -> DmResult<()> {
         self.meta_dev.set_segments(dm, segments)?;
+        let params = &self.table.table.params;
         table_reload(dm,
                      &DevId::Name(self.name()),
                      &ThinPoolDev::gen_default_table(&self.meta_dev,
                                                      &self.data_dev,
-                                                     self.data_block_size,
-                                                     self.low_water_mark))?;
+                                                     params.data_block_size,
+                                                     params.low_water_mark))?;
         Ok(())
     }
 
@@ -532,12 +533,13 @@ impl ThinPoolDev {
     /// data corruption will be the inevitable result.
     pub fn set_data_segments(&mut self, dm: &DM, segments: &[Segment]) -> DmResult<()> {
         self.data_dev.set_segments(dm, segments)?;
+        let params = &self.table.table.params;
         table_reload(dm,
                      &DevId::Name(self.name()),
                      &ThinPoolDev::gen_default_table(&self.meta_dev,
                                                      &self.data_dev,
-                                                     self.data_block_size,
-                                                     self.low_water_mark))?;
+                                                     params.data_block_size,
+                                                     params.low_water_mark))?;
         Ok(())
     }
 }
