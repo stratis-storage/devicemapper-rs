@@ -125,7 +125,11 @@ impl FromStr for ThinPoolDevTargetParams {
     }
 }
 
-impl TargetParams for ThinPoolDevTargetParams {}
+impl TargetParams for ThinPoolDevTargetParams {
+    fn target_type(&self) -> TargetTypeBuf {
+        TargetTypeBuf::new("thin-pool".into()).expect("< max length")
+    }
+}
 
 
 #[derive(Clone, Debug, PartialEq)]
@@ -143,7 +147,6 @@ impl ThinPoolDevTargetTable {
             table: TargetLine {
                 start: start,
                 length: length,
-                target_type: TargetTypeBuf::new("thin-pool".into()).expect("< length limit"),
                 params: params,
             },
         }
@@ -169,7 +172,6 @@ impl TargetTable for ThinPoolDevTargetTable {
                table: TargetLine {
                    start: line.0,
                    length: line.1,
-                   target_type: line.2.clone(),
                    params: line.3.parse::<ThinPoolDevTargetParams>()?,
                },
            })
@@ -178,7 +180,7 @@ impl TargetTable for ThinPoolDevTargetTable {
 
     fn as_raw_table(&self) -> Vec<(Sectors, Sectors, TargetTypeBuf, String)> {
         let line = &self.table;
-        vec![(line.start, line.length, line.target_type.clone(), line.params.to_string())]
+        vec![(line.start, line.length, line.params.target_type(), line.params.to_string())]
     }
 }
 

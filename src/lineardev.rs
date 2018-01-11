@@ -64,7 +64,11 @@ impl FromStr for LinearDevTargetParams {
     }
 }
 
-impl TargetParams for LinearDevTargetParams {}
+impl TargetParams for LinearDevTargetParams {
+    fn target_type(&self) -> TargetTypeBuf {
+        TargetTypeBuf::new("linear".into()).expect("< max length")
+    }
+}
 
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -215,7 +219,11 @@ impl FromStr for FlakeyDevTargetParams {
     }
 }
 
-impl TargetParams for FlakeyDevTargetParams {}
+impl TargetParams for FlakeyDevTargetParams {
+    fn target_type(&self) -> TargetTypeBuf {
+        TargetTypeBuf::new("flakey".into()).expect("< max length")
+    }
+}
 
 
 #[derive(Clone, Debug, PartialEq)]
@@ -237,7 +245,6 @@ impl LinearDevTargetTable {
             let line = TargetLine {
                 start: logical_start_offset,
                 length: length,
-                target_type: TargetTypeBuf::new("linear".into()).expect("< length limit"),
                 params: LinearDevTargetParams::new(segment.device, physical_start_offset),
             };
             table.push(line);
@@ -264,7 +271,6 @@ impl TargetTable for LinearDevTargetTable {
                             Ok(TargetLine {
                                    start: x.0,
                                    length: x.1,
-                                   target_type: x.2.clone(),
                                    params: x.3.parse::<LinearDevTargetParams>()?,
                                })
                         })
@@ -275,7 +281,7 @@ impl TargetTable for LinearDevTargetTable {
     fn as_raw_table(&self) -> Vec<(Sectors, Sectors, TargetTypeBuf, String)> {
         self.table
             .iter()
-            .map(|x| (x.start, x.length, x.target_type.clone(), x.params.to_string()))
+            .map(|x| (x.start, x.length, x.params.target_type(), x.params.to_string()))
             .collect::<Vec<_>>()
     }
 }

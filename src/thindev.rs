@@ -69,7 +69,11 @@ impl FromStr for ThinDevTargetParams {
     }
 }
 
-impl TargetParams for ThinDevTargetParams {}
+impl TargetParams for ThinDevTargetParams {
+    fn target_type(&self) -> TargetTypeBuf {
+        TargetTypeBuf::new("thin".into()).expect("< max length")
+    }
+}
 
 
 #[derive(Clone, Debug, PartialEq)]
@@ -84,7 +88,6 @@ impl ThinDevTargetTable {
             table: TargetLine {
                 start: start,
                 length: length,
-                target_type: TargetTypeBuf::new("thin".into()).expect("< length limit"),
                 params: params,
             },
         }
@@ -109,7 +112,6 @@ impl TargetTable for ThinDevTargetTable {
                table: TargetLine {
                    start: line.0,
                    length: line.1,
-                   target_type: line.2.clone(),
                    params: line.3.parse::<ThinDevTargetParams>()?,
                },
            })
@@ -118,7 +120,7 @@ impl TargetTable for ThinDevTargetTable {
 
     fn as_raw_table(&self) -> Vec<(Sectors, Sectors, TargetTypeBuf, String)> {
         let line = &self.table;
-        vec![(line.start, line.length, line.target_type.clone(), line.params.to_string())]
+        vec![(line.start, line.length, line.params.target_type(), line.params.to_string())]
     }
 }
 

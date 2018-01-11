@@ -152,7 +152,11 @@ impl FromStr for CacheDevTargetParams {
     }
 }
 
-impl TargetParams for CacheDevTargetParams {}
+impl TargetParams for CacheDevTargetParams {
+    fn target_type(&self) -> TargetTypeBuf {
+        TargetTypeBuf::new("cache".into()).expect("< max length")
+    }
+}
 
 
 #[derive(Clone, Debug, PartialEq)]
@@ -169,7 +173,6 @@ impl CacheDevTargetTable {
             table: TargetLine {
                 start: start,
                 length: length,
-                target_type: TargetTypeBuf::new("cache".into()).expect("< length limit"),
                 params: params,
             },
         }
@@ -200,7 +203,7 @@ impl TargetTable for CacheDevTargetTable {
         let right = &right.table;
 
         left.start == right.start && left.length == right.length &&
-        left.target_type == right.target_type && left.params.meta == right.params.meta &&
+        left.params.meta == right.params.meta &&
         left.params.origin == right.params.origin &&
         left.params.cache_block_size == right.params.cache_block_size &&
         left.params.feature_args == right.params.feature_args &&
@@ -218,7 +221,6 @@ impl TargetTable for CacheDevTargetTable {
                table: TargetLine {
                    start: line.0,
                    length: line.1,
-                   target_type: line.2.clone(),
                    params: line.3.parse::<CacheDevTargetParams>()?,
                },
            })
@@ -227,7 +229,7 @@ impl TargetTable for CacheDevTargetTable {
 
     fn as_raw_table(&self) -> Vec<(Sectors, Sectors, TargetTypeBuf, String)> {
         let line = &self.table;
-        vec![(line.start, line.length, line.target_type.clone(), line.params.to_string())]
+        vec![(line.start, line.length, line.params.target_type(), line.params.to_string())]
     }
 }
 

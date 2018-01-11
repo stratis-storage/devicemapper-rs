@@ -19,9 +19,9 @@ use super::types::{DevId, DmName, DmUuid, Sectors, TargetTypeBuf};
 /// The trait for properties of the params string of TargetType
 pub trait TargetParams
     : Clone + fmt::Debug + fmt::Display + Eq + FromStr + PartialEq {
+    fn target_type(&self) -> TargetTypeBuf;
 }
 
-impl TargetParams for String {}
 
 /// One line of a device mapper table.
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -30,8 +30,6 @@ pub struct TargetLine<T: TargetParams> {
     pub start: Sectors,
     /// The length of the segment
     pub length: Sectors,
-    /// The target type
-    pub target_type: TargetTypeBuf,
     /// The target specific parameters
     pub params: T,
 }
