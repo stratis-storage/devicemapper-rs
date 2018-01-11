@@ -217,6 +217,12 @@ impl TargetTable for CacheDevTargetTable {
             return Err(DmError::Dm(ErrorEnum::Invalid, err_msg));
         }
         let line = table.first().expect("table.len() == 1");
+        let target_type = &line.2.to_string();
+        if target_type != "cache" {
+            let err_msg = format!("Parsing a cache table entry but found target type {}",
+                                  target_type);
+            return Err(DmError::Dm(ErrorEnum::Invalid, err_msg));
+        }
         Ok(CacheDevTargetTable {
                table: TargetLine {
                    start: line.0,

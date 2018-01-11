@@ -268,12 +268,19 @@ impl TargetTable for LinearDevTargetTable {
                table: table
                    .into_iter()
                    .map(|x| -> DmResult<TargetLine<LinearDevTargetParams>> {
-                            Ok(TargetLine {
-                                   start: x.0,
-                                   length: x.1,
-                                   params: x.3.parse::<LinearDevTargetParams>()?,
-                               })
-                        })
+
+            let target_type = &x.2.to_string();
+            if target_type != "linear" {
+                let err_msg = format!("Parsing a linear table entry but found target type {}",
+                                      target_type);
+                return Err(DmError::Dm(ErrorEnum::Invalid, err_msg));
+            }
+            Ok(TargetLine {
+                   start: x.0,
+                   length: x.1,
+                   params: x.3.parse::<LinearDevTargetParams>()?,
+               })
+        })
                    .collect::<DmResult<Vec<_>>>()?,
            })
     }
