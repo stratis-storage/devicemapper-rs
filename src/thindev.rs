@@ -343,14 +343,11 @@ impl ThinDev {
 
     /// Extend the thin device's (virtual) size by the number of
     /// sectors given.
-    pub fn extend(&mut self, dm: &DM, sectors: Sectors) -> DmResult<()> {
-        let new_size = self.table.table.length + sectors;
-        table_reload(dm,
-                     &DevId::Name(self.name()),
-                     &ThinDev::gen_default_table(new_size,
-                                                 self.table.table.params.pool,
-                                                 self.table.table.params.thin_id))?;
-        self.table.table.length = new_size;
+    pub fn extend(&mut self, dm: &DM, extend_amt: Sectors) -> DmResult<()> {
+        let mut table = self.table.clone();
+        table.table.length = self.table.table.length + extend_amt;
+        table_reload(dm, &DevId::Name(self.name()), &table)?;
+        self.table = table;
         Ok(())
     }
 
