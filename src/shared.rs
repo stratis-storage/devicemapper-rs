@@ -46,14 +46,8 @@ pub trait DmDevice<T: TargetParams> {
     /// Check if tables indicate an equivalent device.
     fn equivalent_tables(left: &[TargetLine<T>], right: &[TargetLine<T>]) -> DmResult<bool>;
 
-    /// The device's name.
-    fn name(&self) -> &DmName;
-
-    /// The number of sectors available for user data.
-    fn size(&self) -> Sectors;
-
     /// The devicemapper table
-    fn table(&self, dm: &DM) -> DmResult<Vec<TargetLine<T>>>
+    fn load_table(&self, dm: &DM) -> DmResult<Vec<TargetLine<T>>>
         where DmError: From<<T as FromStr>::Err>
     {
         let (_, table) = dm.table_status(&DevId::Name(self.name()), DmFlags::DM_STATUS_TABLE)?;
@@ -69,6 +63,12 @@ pub trait DmDevice<T: TargetParams> {
                  })
             .collect()
     }
+
+    /// The device's name.
+    fn name(&self) -> &DmName;
+
+    /// The number of sectors available for user data.
+    fn size(&self) -> Sectors;
 
     /// Erase the kernel's memory of this device.
     fn teardown(self, dm: &DM) -> DmResult<()>;
@@ -117,7 +117,7 @@ pub fn device_match<T: TargetParams, D: DmDevice<T>>(dm: &DM,
                                                      -> DmResult<()>
     where DmError: From<<T as FromStr>::Err>
 {
-    let kernel_table = dev.table(dm)?;
+    let kernel_table = dev.load_table(dm)?;
     if !D::equivalent_tables(&kernel_table, table)? {
         let err_msg = format!("Specified new table \"{:?}\" does not match kernel table \"{:?}\"",
                               table,

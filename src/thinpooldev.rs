@@ -577,7 +577,7 @@ mod tests {
             _ => assert!(false),
         }
 
-        let table = tp.table(&dm).unwrap();
+        let table = tp.load_table(&dm).unwrap();
         assert_eq!(table.len(), 1);
 
         let line = &table[0];
