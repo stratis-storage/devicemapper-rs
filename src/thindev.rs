@@ -412,7 +412,7 @@ mod tests {
         let td_size = MIN_THIN_DEV_SIZE;
         let td = ThinDev::new(&dm, &id, None, td_size, &tp, thin_id).unwrap();
 
-        let table = td.table(&dm).unwrap();
+        let table = td.load_table(&dm).unwrap();
         assert_eq!(table.len(), 1);
 
         let line = &table[0];

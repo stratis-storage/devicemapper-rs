@@ -300,7 +300,7 @@ mod tests {
                                   segments)
                 .unwrap();
 
-        let table = ld.table(&dm).unwrap();
+        let table = ld.load_table(&dm).unwrap();
         assert_eq!(table.len(), count);
         assert_eq!(table[0].params.device, dev);
         assert_eq!(table[1].params.device, dev);
@@ -333,7 +333,7 @@ mod tests {
                                   &segments)
                 .unwrap();
 
-        let table = ld.table(&dm).unwrap();
+        let table = ld.load_table(&dm).unwrap();
         assert!(LinearDev::equivalent_tables(&table, &LinearDev::gen_table(&segments)).unwrap());
 
         ld.teardown(&dm).unwrap();
