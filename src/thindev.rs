@@ -17,7 +17,7 @@ use super::thinpooldev::ThinPoolDev;
 use super::types::{DevId, DmName, DmUuid, Sectors, TargetTypeBuf};
 
 
-#[derive(Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ThinDevTargetParams {
     pub pool: Device,
     pub thin_id: ThinDevId,
@@ -72,7 +72,7 @@ impl FromStr for ThinDevTargetParams {
 impl TargetParams for ThinDevTargetParams {}
 
 
-#[derive(Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct ThinDevTargetTable {
     table: TargetLine<ThinDevTargetParams>,
 }

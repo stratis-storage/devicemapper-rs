@@ -17,12 +17,14 @@ use super::types::{DevId, DmName, DmUuid, Sectors, TargetTypeBuf};
 
 
 /// The trait for properties of the params string of TargetType
-pub trait TargetParams: fmt::Debug + fmt::Display + Eq + FromStr + PartialEq {}
+pub trait TargetParams
+    : Clone + fmt::Debug + fmt::Display + Eq + FromStr + PartialEq {
+}
 
 impl TargetParams for String {}
 
 /// One line of a device mapper table.
-#[derive(Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct TargetLine<T: TargetParams> {
     /// The start of the segment
     pub start: Sectors,
@@ -37,7 +39,7 @@ pub struct TargetLine<T: TargetParams> {
 
 /// Trait for a TargetTable, a struct representing a table to be loaded or
 /// read from DM.
-pub trait TargetTable: fmt::Debug + PartialEq + Sized {
+pub trait TargetTable: Clone + fmt::Debug + PartialEq + Sized {
     /// Returns true if the devices represented by the two tables are not
     /// different in any identity changing way.
     fn equivalent_devices(left: &Self, right: &Self) -> bool;

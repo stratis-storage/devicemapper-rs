@@ -16,7 +16,7 @@ use super::shared::{DmDevice, TargetLine, TargetParams, TargetTable, device_crea
 use super::types::{DevId, DmName, DmUuid, Sectors, TargetTypeBuf};
 
 
-#[derive(Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct LinearDevTargetParams {
     pub device: Device,
     pub physical_start_offset: Sectors,
@@ -66,7 +66,7 @@ impl FromStr for LinearDevTargetParams {
 impl TargetParams for LinearDevTargetParams {}
 
 
-#[derive(Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct LinearDevTargetTable {
     table: Vec<TargetLine<LinearDevTargetParams>>,
 }

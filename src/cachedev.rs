@@ -16,7 +16,7 @@ use super::shared::{DmDevice, TargetLine, TargetParams, TargetTable, device_crea
                     device_match, parse_device};
 use super::types::{DataBlocks, DevId, DmName, DmUuid, MetaBlocks, Sectors, TargetTypeBuf};
 
-#[derive(Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct CacheDevTargetParams {
     pub meta: Device,
     pub cache: Device,
@@ -155,7 +155,7 @@ impl FromStr for CacheDevTargetParams {
 impl TargetParams for CacheDevTargetParams {}
 
 
-#[derive(Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct CacheDevTargetTable {
     table: TargetLine<CacheDevTargetParams>,
 }
