@@ -523,13 +523,11 @@ impl ThinPoolDev {
     /// data corruption will be the inevitable result.
     pub fn set_meta_segments(&mut self, dm: &DM, segments: &[Segment]) -> DmResult<()> {
         self.meta_dev.set_segments(dm, segments)?;
-        let params = &self.table.table.params;
-        table_reload(dm,
-                     &DevId::Name(self.name()),
-                     &ThinPoolDev::gen_default_table(&self.meta_dev,
-                                                     &self.data_dev,
-                                                     params.data_block_size,
-                                                     params.low_water_mark))?;
+
+        // TODO: Verify if it is really necessary to reload the table if
+        // there has been no change.
+        table_reload(dm, &DevId::Name(self.name()), &self.table)?;
+
         Ok(())
     }
 
@@ -540,13 +538,12 @@ impl ThinPoolDev {
     /// data corruption will be the inevitable result.
     pub fn set_data_segments(&mut self, dm: &DM, segments: &[Segment]) -> DmResult<()> {
         self.data_dev.set_segments(dm, segments)?;
-        let params = &self.table.table.params;
-        table_reload(dm,
-                     &DevId::Name(self.name()),
-                     &ThinPoolDev::gen_default_table(&self.meta_dev,
-                                                     &self.data_dev,
-                                                     params.data_block_size,
-                                                     params.low_water_mark))?;
+
+        let mut table = self.table.clone();
+        table.table.length = self.data_dev.size();
+        table_reload(dm, &DevId::Name(self.name()), &table)?;
+        self.table = table;
+
         Ok(())
     }
 }
