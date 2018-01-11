@@ -2,6 +2,7 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
+use std::collections::HashSet;
 use std::fmt;
 use std::path::PathBuf;
 use std::str::FromStr;
@@ -64,6 +65,157 @@ impl FromStr for LinearDevTargetParams {
 }
 
 impl TargetParams for LinearDevTargetParams {}
+
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct FlakeyDevTargetParams {
+    pub linear_dev: Device,
+    pub start_offset: Sectors,
+    pub up_interval: u64,
+    pub down_interval: u64,
+    pub feature_args: HashSet<String>,
+}
+
+impl FlakeyDevTargetParams {
+    pub fn new(device: Device,
+               start_offset: Sectors,
+               up_interval: u64,
+               down_interval: u64,
+               feature_args: Vec<String>)
+               -> FlakeyDevTargetParams {
+        FlakeyDevTargetParams {
+            linear_dev: device,
+            start_offset: start_offset,
+            up_interval: up_interval,
+            down_interval: down_interval,
+            feature_args: feature_args.into_iter().collect::<HashSet<_>>(),
+        }
+    }
+}
+
+impl fmt::Display for FlakeyDevTargetParams {
+    /// Generate params to be passed to DM.  The format of the params is:
+    /// <dev path> <offset> <up interval> <down interval> \
+    ///   [<num_features> [<feature arguments>]]
+    ///
+    /// Table parameters
+    /// ----------------
+    ///  <dev path> <offset> <up interval> <down interval> \
+    ///    [<num_features> [<feature arguments>]]
+    ///
+    /// Mandatory parameters:
+    ///    <dev path>: Full pathname to the underlying block-device, or a
+    ///                "major:minor" device-number.
+    ///    <offset>: Starting sector within the device.
+    ///    <up interval>: Number of seconds device is available.
+    ///    <down interval>: Number of seconds device returns errors.
+    ///
+    /// Optional feature parameters:
+    ///  If no feature parameters are present, during the periods of
+    ///  unreliability, all I/O returns errors.
+    ///
+    /// drop_writes:
+    ///
+    ///	All write I/O is silently ignored.
+    ///	Read I/O is handled correctly.
+    ///
+    /// corrupt_bio_byte <Nth_byte> <direction> <value> <flags>:
+    ///
+    ///	During <down interval>, replace <Nth_byte> of the data of
+    ///	each matching bio with <value>.
+    ///
+    ///    <Nth_byte>: The offset of the byte to replace.
+    ///		Counting starts at 1, to replace the first byte.
+    ///    <direction>: Either 'r' to corrupt reads or 'w' to corrupt writes.
+    ///		 'w' is incompatible with drop_writes.
+    ///    <value>: The value (from 0-255) to write.
+    ///    <flags>: Perform the replacement only if bio->bi_opf has all the
+    ///	     selected flags set.
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let feature_args = if self.feature_args.is_empty() {
+            "0".to_owned()
+        } else {
+            format!("{} {}",
+                    self.feature_args.len(),
+                    self.feature_args
+                        .iter()
+                        .cloned()
+                        .collect::<Vec<_>>()
+                        .join(" "))
+        };
+
+        write!(f,
+               "{} {} {} {} {}",
+               self.linear_dev,
+               *self.start_offset,
+               self.up_interval,
+               self.down_interval,
+               feature_args)
+    }
+}
+
+impl FromStr for FlakeyDevTargetParams {
+    type Err = DmError;
+
+    fn from_str(s: &str) -> DmResult<FlakeyDevTargetParams> {
+        let vals = s.split(' ').collect::<Vec<_>>();
+
+        if vals.len() < 5 {
+            let err_msg = format!("expected at least five values in params string \"{}\", found {}",
+                                  s,
+                                  vals.len());
+            return Err(DmError::Dm(ErrorEnum::Invalid, err_msg));
+        }
+
+        let device = parse_device(vals[0])?;
+
+        let start_offset = vals[1]
+            .parse::<u64>()
+            .map(Sectors)
+            .map_err(|_| {
+                         DmError::Dm(ErrorEnum::Invalid,
+                                     format!("failed to parse value for start_offset from \"{}\"",
+                                             vals[1]))
+                     })?;
+
+        let up_interval = vals[2]
+            .parse::<u64>()
+            .map_err(|_| {
+                         DmError::Dm(ErrorEnum::Invalid,
+                                     format!("failed to parse value for up_interval from \"{}\"",
+                                             vals[2]))
+                     })?;
+
+        let down_interval = vals[3]
+            .parse::<u64>()
+            .map_err(|_| {
+                         DmError::Dm(ErrorEnum::Invalid,
+                                     format!("failed to parse value for down_interval from \"{}\"",
+                                             vals[3]))
+                     })?;
+
+
+        let num_feature_args = vals[4]
+            .parse::<usize>()
+            .map_err(|_| {
+                DmError::Dm(ErrorEnum::Invalid,
+                            format!("failed to parse value for number of feature args from \"{}\"",
+                                    vals[4]))})?;
+
+        let feature_args: Vec<String> = vals[5..5 + num_feature_args]
+            .iter()
+            .map(|x| x.to_string())
+            .collect();
+
+        Ok(FlakeyDevTargetParams::new(device,
+                                      start_offset,
+                                      up_interval,
+                                      down_interval,
+                                      feature_args))
+    }
+}
+
+impl TargetParams for FlakeyDevTargetParams {}
 
 
 #[derive(Clone, Debug, PartialEq)]
