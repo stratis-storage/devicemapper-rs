@@ -17,6 +17,9 @@ use super::thinpooldev::ThinPoolDev;
 use super::types::{DevId, DmName, DmUuid, Sectors, TargetTypeBuf};
 
 
+const THIN_TARGET_NAME: &str = "thin";
+
+
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ThinDevTargetParams {
     pub pool: Device,
@@ -71,7 +74,7 @@ impl FromStr for ThinDevTargetParams {
 
 impl TargetParams for ThinDevTargetParams {
     fn target_type(&self) -> TargetTypeBuf {
-        TargetTypeBuf::new("thin".into()).expect("< max length")
+        TargetTypeBuf::new(THIN_TARGET_NAME.into()).expect("< max length")
     }
 }
 
@@ -110,7 +113,7 @@ impl TargetTable for ThinDevTargetTable {
         let line = table.first().expect("table.len() == 1");
 
         let target_type = &line.2.to_string();
-        if target_type != "thin" {
+        if target_type != THIN_TARGET_NAME {
             let err_msg = format!("Parsing a thindev table entry but found target type {}",
                                   target_type);
             return Err(DmError::Dm(ErrorEnum::Invalid, err_msg));

@@ -23,6 +23,9 @@ use std::path::Path;
 use super::device::devnode_to_devno;
 
 
+const THINPOOL_TARGET_NAME: &str = "thin-pool";
+
+
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ThinPoolDevTargetParams {
     pub metadata_dev: Device,
@@ -127,7 +130,7 @@ impl FromStr for ThinPoolDevTargetParams {
 
 impl TargetParams for ThinPoolDevTargetParams {
     fn target_type(&self) -> TargetTypeBuf {
-        TargetTypeBuf::new("thin-pool".into()).expect("< max length")
+        TargetTypeBuf::new(THINPOOL_TARGET_NAME.into()).expect("< max length")
     }
 }
 
@@ -170,7 +173,7 @@ impl TargetTable for ThinPoolDevTargetTable {
         let line = table.first().expect("table.len() == 1");
 
         let target_type = &line.2.to_string();
-        if target_type != "thin-pool" {
+        if target_type != THINPOOL_TARGET_NAME {
             let err_msg = format!("Parsing a thin-pool table entry but found target type {}",
                                   target_type);
             return Err(DmError::Dm(ErrorEnum::Invalid, err_msg));

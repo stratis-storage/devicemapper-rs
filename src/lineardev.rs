@@ -19,6 +19,9 @@ use super::shared::{DmDevice, TargetLine, TargetParams, TargetTable, device_crea
 use super::types::{DevId, DmName, DmUuid, Sectors, TargetTypeBuf};
 
 
+const FLAKEY_TARGET_NAME: &str = "flakey";
+const LINEAR_TARGET_NAME: &str = "linear";
+
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct LinearTargetParams {
     pub device: Device,
@@ -68,7 +71,7 @@ impl FromStr for LinearTargetParams {
 
 impl TargetParams for LinearTargetParams {
     fn target_type(&self) -> TargetTypeBuf {
-        TargetTypeBuf::new("linear".into()).expect("< max length")
+        TargetTypeBuf::new(LINEAR_TARGET_NAME.into()).expect("< max length")
     }
 }
 
@@ -223,7 +226,7 @@ impl FromStr for FlakeyTargetParams {
 
 impl TargetParams for FlakeyTargetParams {
     fn target_type(&self) -> TargetTypeBuf {
-        TargetTypeBuf::new("flakey".into()).expect("< max length")
+        TargetTypeBuf::new(FLAKEY_TARGET_NAME.into()).expect("< max length")
     }
 }
 
@@ -309,7 +312,7 @@ impl TargetTable for LinearDevTargetTable {
                    .map(|x| -> DmResult<TargetLine<LinearDevTargetParams>> {
 
             let target_type = &x.2.to_string();
-            if target_type != "linear" && target_type != "flakey" {
+            if target_type != LINEAR_TARGET_NAME && target_type != FLAKEY_TARGET_NAME {
                 let err_msg = format!("Parsing a linear table entry but found target type {}",
                                       target_type);
                 return Err(DmError::Dm(ErrorEnum::Invalid, err_msg));
@@ -317,7 +320,7 @@ impl TargetTable for LinearDevTargetTable {
             Ok(TargetLine {
                    start: x.0,
                    length: x.1,
-                   params: if target_type == "linear" {
+                   params: if target_type == LINEAR_TARGET_NAME {
                        LinearDevTargetParams::new_linear(x.3.parse::<LinearTargetParams>()?)
                    } else {
                        LinearDevTargetParams::new_flakey(x.3.parse::<FlakeyTargetParams>()?)

@@ -16,6 +16,10 @@ use super::shared::{DmDevice, TargetLine, TargetParams, TargetTable, device_crea
                     device_match, parse_device};
 use super::types::{DataBlocks, DevId, DmName, DmUuid, MetaBlocks, Sectors, TargetTypeBuf};
 
+
+const CACHE_TARGET_NAME: &str = "cache";
+
+
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct CacheDevTargetParams {
     pub meta: Device,
@@ -154,7 +158,7 @@ impl FromStr for CacheDevTargetParams {
 
 impl TargetParams for CacheDevTargetParams {
     fn target_type(&self) -> TargetTypeBuf {
-        TargetTypeBuf::new("cache".into()).expect("< max length")
+        TargetTypeBuf::new(CACHE_TARGET_NAME.into()).expect("< max length")
     }
 }
 
@@ -218,7 +222,7 @@ impl TargetTable for CacheDevTargetTable {
         }
         let line = table.first().expect("table.len() == 1");
         let target_type = &line.2.to_string();
-        if target_type != "cache" {
+        if target_type != CACHE_TARGET_NAME {
             let err_msg = format!("Parsing a cache table entry but found target type {}",
                                   target_type);
             return Err(DmError::Dm(ErrorEnum::Invalid, err_msg));
