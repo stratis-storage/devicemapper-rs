@@ -145,8 +145,8 @@ pub fn table_reload<T: TargetParams>(dm: &DM,
         .iter()
         .map(|x| (x.start, x.length, x.target_type.clone(), x.params.to_string()))
         .collect::<Vec<_>>();
-    let dev_info = dm.table_load(id, &table)?;
     dm.device_suspend(id, DmFlags::DM_SUSPEND)?;
+    let dev_info = dm.table_load(id, &table)?;
     dm.device_suspend(id, DmFlags::empty())?;
     Ok(dev_info)
 }
