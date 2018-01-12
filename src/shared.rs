@@ -7,7 +7,6 @@
 
 use std::fmt;
 use std::path::{Path, PathBuf};
-use std::str::FromStr;
 
 use super::device::{Device, devnode_to_devno};
 use super::deviceinfo::DeviceInfo;
@@ -17,8 +16,7 @@ use super::types::{DevId, DmName, DmUuid, Sectors, TargetTypeBuf};
 
 
 /// The trait for properties of the params string of TargetType
-pub trait TargetParams
-    : Clone + fmt::Debug + fmt::Display + Eq + FromStr + PartialEq {
+pub trait TargetParams: Clone + fmt::Debug + fmt::Display + Eq + PartialEq {
     fn target_type(&self) -> TargetTypeBuf;
 }
 

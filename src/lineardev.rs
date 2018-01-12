@@ -7,6 +7,8 @@ use std::fmt;
 use std::path::PathBuf;
 use std::str::FromStr;
 
+use either::{Either, Left, Right};
+
 use super::device::Device;
 use super::deviceinfo::DeviceInfo;
 use super::dm::{DM, DmFlags};
@@ -225,10 +227,45 @@ impl TargetParams for FlakeyTargetParams {
     }
 }
 
+#[derive(Clone, Debug, Eq, PartialEq)]
+/// The union of the two possible params which are linear and flakey.
+/// Wraps either, but does not use it directly, since rules of trait
+/// implementation make this impossible.
+struct LinearDevTargetParams {
+    value: Either<LinearTargetParams, FlakeyTargetParams>,
+}
+
+impl LinearDevTargetParams {
+    fn new_linear(params: LinearTargetParams) -> LinearDevTargetParams {
+        LinearDevTargetParams { value: Left(params) }
+    }
+
+    fn new_flakey(params: FlakeyTargetParams) -> LinearDevTargetParams {
+        LinearDevTargetParams { value: Right(params) }
+    }
+}
+
+impl fmt::Display for LinearDevTargetParams {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self.value {
+            Left(ref linear) => linear.fmt(f),
+            Right(ref flakey) => flakey.fmt(f),
+        }
+    }
+}
+
+impl TargetParams for LinearDevTargetParams {
+    fn target_type(&self) -> TargetTypeBuf {
+        self.value
+            .as_ref()
+            .either(|x| x.target_type(), |x| x.target_type())
+    }
+}
+
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct LinearDevTargetTable {
-    table: Vec<TargetLine<LinearTargetParams>>,
+    table: Vec<TargetLine<LinearDevTargetParams>>,
 }
 
 impl LinearDevTargetTable {
@@ -245,7 +282,9 @@ impl LinearDevTargetTable {
             let line = TargetLine {
                 start: logical_start_offset,
                 length: length,
-                params: LinearTargetParams::new(segment.device, physical_start_offset),
+                params: LinearDevTargetParams::new_linear(
+                    LinearTargetParams::new(segment.device,
+                                            physical_start_offset)),
             };
             table.push(line);
             logical_start_offset += length;
@@ -267,10 +306,10 @@ impl TargetTable for LinearDevTargetTable {
         Ok(LinearDevTargetTable {
                table: table
                    .into_iter()
-                   .map(|x| -> DmResult<TargetLine<LinearTargetParams>> {
+                   .map(|x| -> DmResult<TargetLine<LinearDevTargetParams>> {
 
             let target_type = &x.2.to_string();
-            if target_type != "linear" {
+            if target_type != "linear" && target_type != "flakey" {
                 let err_msg = format!("Parsing a linear table entry but found target type {}",
                                       target_type);
                 return Err(DmError::Dm(ErrorEnum::Invalid, err_msg));
@@ -278,7 +317,11 @@ impl TargetTable for LinearDevTargetTable {
             Ok(TargetLine {
                    start: x.0,
                    length: x.1,
-                   params: x.3.parse::<LinearTargetParams>()?,
+                   params: if target_type == "linear" {
+                       LinearDevTargetParams::new_linear(x.3.parse::<LinearTargetParams>()?)
+                   } else {
+                       LinearDevTargetParams::new_flakey(x.3.parse::<FlakeyTargetParams>()?)
+                   },
                })
         })
                    .collect::<DmResult<Vec<_>>>()?,
@@ -501,8 +544,8 @@ mod tests {
             .unwrap()
             .table;
         assert_eq!(table.len(), count);
-        assert_eq!(table[0].params.device, dev);
-        assert_eq!(table[1].params.device, dev);
+        assert_eq!(table[0].params.value.as_ref().left().unwrap().device, dev);
+        assert_eq!(table[1].params.value.as_ref().left().unwrap().device, dev);
 
         assert_eq!(blkdev_size(&OpenOptions::new()
                                     .read(true)
