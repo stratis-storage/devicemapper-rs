@@ -19,6 +19,7 @@ macro-attr = "0.2.0"
 serde = "1"
 clippy = {version = "0", optional = true}
 error-chain = "0.11"
+either = "1"
 
 [dev-dependencies]
 loopdev = "0.2"
