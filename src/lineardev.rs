@@ -18,30 +18,30 @@ use super::types::{DevId, DmName, DmUuid, Sectors, TargetTypeBuf};
 
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub struct LinearDevTargetParams {
+pub struct LinearTargetParams {
     pub device: Device,
     pub physical_start_offset: Sectors,
 }
 
-impl LinearDevTargetParams {
-    pub fn new(device: Device, physical_start_offset: Sectors) -> LinearDevTargetParams {
-        LinearDevTargetParams {
+impl LinearTargetParams {
+    pub fn new(device: Device, physical_start_offset: Sectors) -> LinearTargetParams {
+        LinearTargetParams {
             device: device,
             physical_start_offset: physical_start_offset,
         }
     }
 }
 
-impl fmt::Display for LinearDevTargetParams {
+impl fmt::Display for LinearTargetParams {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{} {}", self.device, *self.physical_start_offset)
     }
 }
 
-impl FromStr for LinearDevTargetParams {
+impl FromStr for LinearTargetParams {
     type Err = DmError;
 
-    fn from_str(s: &str) -> DmResult<LinearDevTargetParams> {
+    fn from_str(s: &str) -> DmResult<LinearTargetParams> {
         let vals = s.split(' ').collect::<Vec<_>>();
         if vals.len() != 2 {
             let err_msg = format!("expected two values in params string \"{}\", found {}",
@@ -60,11 +60,11 @@ impl FromStr for LinearDevTargetParams {
                             format!("failed to parse value for physical start offset \"{}\"",
                                     vals[1]))})?;
 
-        Ok(LinearDevTargetParams::new(device, start))
+        Ok(LinearTargetParams::new(device, start))
     }
 }
 
-impl TargetParams for LinearDevTargetParams {
+impl TargetParams for LinearTargetParams {
     fn target_type(&self) -> TargetTypeBuf {
         TargetTypeBuf::new("linear".into()).expect("< max length")
     }
@@ -72,7 +72,7 @@ impl TargetParams for LinearDevTargetParams {
 
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub struct FlakeyDevTargetParams {
+pub struct FlakeyTargetParams {
     pub linear_dev: Device,
     pub start_offset: Sectors,
     pub up_interval: u64,
@@ -80,14 +80,14 @@ pub struct FlakeyDevTargetParams {
     pub feature_args: HashSet<String>,
 }
 
-impl FlakeyDevTargetParams {
+impl FlakeyTargetParams {
     pub fn new(device: Device,
                start_offset: Sectors,
                up_interval: u64,
                down_interval: u64,
                feature_args: Vec<String>)
-               -> FlakeyDevTargetParams {
-        FlakeyDevTargetParams {
+               -> FlakeyTargetParams {
+        FlakeyTargetParams {
             linear_dev: device,
             start_offset: start_offset,
             up_interval: up_interval,
@@ -97,7 +97,7 @@ impl FlakeyDevTargetParams {
     }
 }
 
-impl fmt::Display for FlakeyDevTargetParams {
+impl fmt::Display for FlakeyTargetParams {
     /// Generate params to be passed to DM.  The format of the params is:
     /// <dev path> <offset> <up interval> <down interval> \
     ///   [<num_features> [<feature arguments>]]
@@ -158,10 +158,10 @@ impl fmt::Display for FlakeyDevTargetParams {
     }
 }
 
-impl FromStr for FlakeyDevTargetParams {
+impl FromStr for FlakeyTargetParams {
     type Err = DmError;
 
-    fn from_str(s: &str) -> DmResult<FlakeyDevTargetParams> {
+    fn from_str(s: &str) -> DmResult<FlakeyTargetParams> {
         let vals = s.split(' ').collect::<Vec<_>>();
 
         if vals.len() < 5 {
@@ -211,15 +211,15 @@ impl FromStr for FlakeyDevTargetParams {
             .map(|x| x.to_string())
             .collect();
 
-        Ok(FlakeyDevTargetParams::new(device,
-                                      start_offset,
-                                      up_interval,
-                                      down_interval,
-                                      feature_args))
+        Ok(FlakeyTargetParams::new(device,
+                                   start_offset,
+                                   up_interval,
+                                   down_interval,
+                                   feature_args))
     }
 }
 
-impl TargetParams for FlakeyDevTargetParams {
+impl TargetParams for FlakeyTargetParams {
     fn target_type(&self) -> TargetTypeBuf {
         TargetTypeBuf::new("flakey".into()).expect("< max length")
     }
@@ -228,7 +228,7 @@ impl TargetParams for FlakeyDevTargetParams {
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct LinearDevTargetTable {
-    table: Vec<TargetLine<LinearDevTargetParams>>,
+    table: Vec<TargetLine<LinearTargetParams>>,
 }
 
 impl LinearDevTargetTable {
@@ -245,7 +245,7 @@ impl LinearDevTargetTable {
             let line = TargetLine {
                 start: logical_start_offset,
                 length: length,
-                params: LinearDevTargetParams::new(segment.device, physical_start_offset),
+                params: LinearTargetParams::new(segment.device, physical_start_offset),
             };
             table.push(line);
             logical_start_offset += length;
@@ -267,7 +267,7 @@ impl TargetTable for LinearDevTargetTable {
         Ok(LinearDevTargetTable {
                table: table
                    .into_iter()
-                   .map(|x| -> DmResult<TargetLine<LinearDevTargetParams>> {
+                   .map(|x| -> DmResult<TargetLine<LinearTargetParams>> {
 
             let target_type = &x.2.to_string();
             if target_type != "linear" {
@@ -278,7 +278,7 @@ impl TargetTable for LinearDevTargetTable {
             Ok(TargetLine {
                    start: x.0,
                    length: x.1,
-                   params: x.3.parse::<LinearDevTargetParams>()?,
+                   params: x.3.parse::<LinearTargetParams>()?,
                })
         })
                    .collect::<DmResult<Vec<_>>>()?,
