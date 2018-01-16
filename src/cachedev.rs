@@ -10,10 +10,10 @@ use std::str::FromStr;
 use super::device::Device;
 use super::deviceinfo::DeviceInfo;
 use super::dm::{DM, DmFlags};
-use super::lineardev::LinearDev;
+use super::lineardev::{LinearDev, LinearDevTargetTable};
 use super::result::{DmResult, DmError, ErrorEnum};
 use super::shared::{DmDevice, TargetLine, TargetParams, TargetTable, device_create, device_exists,
-                    device_match, parse_device};
+                    device_match, parse_device, table_reload};
 use super::types::{DataBlocks, DevId, DmName, DmUuid, MetaBlocks, Sectors, TargetTypeBuf};
 
 
@@ -488,6 +488,22 @@ impl CacheDev {
         };
 
         Ok(dev)
+    }
+
+    /// Set the table for the existing origin device.
+    /// Warning: It is the client's responsibility to make sure the designated
+    /// table is compatible with the device's existing table.
+    /// If not, this function will still succeed, but some kind of
+    /// data corruption will be the inevitable result.
+    pub fn set_origin_table(&mut self, dm: &DM, table: LinearDevTargetTable) -> DmResult<()> {
+        self.origin_dev.set_table(dm, table)?;
+
+        let mut table = self.table.clone();
+        table.table.length = self.origin_dev.size();
+        table_reload(dm, &DevId::Name(self.name()), &table)?;
+        self.table = table;
+
+        Ok(())
     }
 
     /// Generate a table to be passed to DM. The format of the table
