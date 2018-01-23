@@ -19,9 +19,13 @@ use super::types::{DevId, DmName, DmUuid, Sectors, TargetTypeBuf};
 /// The trait for properties of the params string of TargetType
 pub trait TargetParams
     : Clone + fmt::Debug + fmt::Display + Eq + FromStr + PartialEq {
+    /// Return the param string only
+    fn param_str(&self) -> String;
+
+    /// Return the target type
+    fn target_type(&self) -> TargetTypeBuf;
 }
 
-impl TargetParams for String {}
 
 /// One line of a device mapper table.
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -30,8 +34,6 @@ pub struct TargetLine<T: TargetParams> {
     pub start: Sectors,
     /// The length of the segment
     pub length: Sectors,
-    /// The target type
-    pub target_type: TargetTypeBuf,
     /// The target specific parameters
     pub params: T,
 }
@@ -59,8 +61,7 @@ pub trait DmDevice<T: TargetParams> {
                      Ok(TargetLine {
                             start: x.0,
                             length: x.1,
-                            target_type: x.2,
-                            params: x.3.parse::<T>()?,
+                            params: format!("{} {}", x.2.to_string(), x.3).parse::<T>()?,
                         })
                  })
             .collect()
@@ -97,7 +98,7 @@ pub fn device_create<T: TargetParams>(dm: &DM,
     let id = DevId::Name(name);
     let table = table
         .iter()
-        .map(|x| (x.start, x.length, x.target_type.clone(), x.params.to_string()))
+        .map(|x| (x.start, x.length, x.params.target_type(), x.params.param_str()))
         .collect::<Vec<_>>();
     let dev_info = match dm.table_load(&id, &table) {
         Err(e) => {
@@ -145,7 +146,7 @@ pub fn table_reload<T: TargetParams>(dm: &DM,
                                      -> DmResult<DeviceInfo> {
     let table = table
         .iter()
-        .map(|x| (x.start, x.length, x.target_type.clone(), x.params.to_string()))
+        .map(|x| (x.start, x.length, x.params.target_type(), x.params.param_str()))
         .collect::<Vec<_>>();
     let dev_info = dm.table_load(id, &table)?;
     dm.device_suspend(id, DmFlags::DM_SUSPEND)?;

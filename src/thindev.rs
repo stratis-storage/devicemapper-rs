@@ -16,6 +16,7 @@ use super::thindevid::ThinDevId;
 use super::thinpooldev::ThinPoolDev;
 use super::types::{DevId, DmName, DmUuid, Sectors, TargetTypeBuf};
 
+const THIN_TARGET_NAME: &str = "thin";
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ThinTargetParams {
@@ -39,10 +40,7 @@ impl ThinTargetParams {
 
 impl fmt::Display for ThinTargetParams {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        match self.external_origin_dev {
-            None => write!(f, "{} {}", self.pool, self.thin_id),
-            Some(dev) => write!(f, "{} {} {}", self.pool, self.thin_id, dev),
-        }
+        write!(f, "{} {}", THIN_TARGET_NAME, self.param_str())
     }
 }
 
@@ -52,24 +50,41 @@ impl FromStr for ThinTargetParams {
     fn from_str(s: &str) -> DmResult<ThinTargetParams> {
         let vals = s.split(' ').collect::<Vec<_>>();
         let len = vals.len();
-        if len < 2 || len > 3 {
-            let err_msg = format!("expected two or three values in params string \"{}\", found {}",
+        if len < 3 || len > 4 {
+            let err_msg = format!("expected 3 or 4 values in params string \"{}\", found {}",
                                   s,
                                   len);
             return Err(DmError::Dm(ErrorEnum::Invalid, err_msg));
         }
 
-        Ok(ThinTargetParams::new(parse_device(vals[0])?,
-                                 vals[1].parse::<ThinDevId>()?,
-                                 if len == 2 {
+        if vals[0] != THIN_TARGET_NAME {
+            let err_msg = format!("Expected a thin target entry but found target type {}",
+                                  vals[0]);
+            return Err(DmError::Dm(ErrorEnum::Invalid, err_msg));
+        }
+
+        Ok(ThinTargetParams::new(parse_device(vals[1])?,
+                                 vals[2].parse::<ThinDevId>()?,
+                                 if len == 3 {
                                      None
                                  } else {
-                                     Some(parse_device(vals[2])?)
+                                     Some(parse_device(vals[3])?)
                                  }))
     }
 }
 
-impl TargetParams for ThinTargetParams {}
+impl TargetParams for ThinTargetParams {
+    fn param_str(&self) -> String {
+        match self.external_origin_dev {
+            None => format!("{} {}", self.pool, self.thin_id),
+            Some(dev) => format!("{} {} {}", self.pool, self.thin_id, dev),
+        }
+    }
+
+    fn target_type(&self) -> TargetTypeBuf {
+        TargetTypeBuf::new(THIN_TARGET_NAME.into()).expect("THIN_TARGET_NAME is valid")
+    }
+}
 
 
 /// DM construct for a thin block device
@@ -266,7 +281,6 @@ impl ThinDev {
         vec![TargetLine {
                  start: Sectors::default(),
                  length: length,
-                 target_type: TargetTypeBuf::new("thin".into()).expect("< length limit"),
                  params: ThinTargetParams::new(thin_pool, thin_id, None),
              }]
     }

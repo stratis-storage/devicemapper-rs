@@ -17,6 +17,8 @@ use super::shared::{DmDevice, TargetLine, TargetParams, device_create, device_ex
 use super::types::{DataBlocks, DevId, DmName, DmUuid, MetaBlocks, Sectors, TargetTypeBuf};
 
 
+const CACHE_TARGET_NAME: &str = "cache";
+
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct CacheTargetParams {
     pub meta: Device,
@@ -51,39 +53,7 @@ impl CacheTargetParams {
 
 impl fmt::Display for CacheTargetParams {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        let feature_args = if self.feature_args.is_empty() {
-            "0".to_owned()
-        } else {
-            format!("{} {}",
-                    self.feature_args.len(),
-                    self.feature_args
-                        .iter()
-                        .cloned()
-                        .collect::<Vec<_>>()
-                        .join(" "))
-        };
-
-        let policy_args = if self.policy_args.is_empty() {
-            "0".to_owned()
-        } else {
-            format!("{} {}",
-                    self.policy_args.len(),
-                    self.policy_args
-                        .iter()
-                        .map(|(k, v)| format!("{} {}", k, v))
-                        .collect::<Vec<String>>()
-                        .join(" "))
-        };
-
-        write!(f,
-               "{} {} {} {} {} {} {}",
-               self.meta,
-               self.cache,
-               self.origin,
-               *self.cache_block_size,
-               feature_args,
-               self.policy,
-               policy_args)
+        write!(f, "{} {}", CACHE_TARGET_NAME, self.param_str())
     }
 }
 
@@ -93,34 +63,40 @@ impl FromStr for CacheTargetParams {
     fn from_str(s: &str) -> DmResult<CacheTargetParams> {
         let vals = s.split(' ').collect::<Vec<_>>();
 
-        if vals.len() < 7 {
-            let err_msg = format!("expected at least 7 values in params string \"{}\", found {}",
+        if vals.len() < 8 {
+            let err_msg = format!("expected at least 8 values in params string \"{}\", found {}",
                                   s,
                                   vals.len());
             return Err(DmError::Dm(ErrorEnum::Invalid, err_msg));
         }
 
-        let metadata_dev = parse_device(vals[0])?;
-        let cache_dev = parse_device(vals[1])?;
-        let origin_dev = parse_device(vals[2])?;
+        if vals[0] != CACHE_TARGET_NAME {
+            let err_msg = format!("Expected a cache target entry but found target type {}",
+                                  vals[0]);
+            return Err(DmError::Dm(ErrorEnum::Invalid, err_msg));
+        }
 
-        let block_size = vals[3]
+        let metadata_dev = parse_device(vals[1])?;
+        let cache_dev = parse_device(vals[2])?;
+        let origin_dev = parse_device(vals[3])?;
+
+        let block_size = vals[4]
             .parse::<u64>()
             .map(Sectors)
             .map_err(|_| {
                 DmError::Dm(ErrorEnum::Invalid,
                             format!("failed to parse value for data block size from \"{}\"",
-                                    vals[3]))})?;
+                                    vals[4]))})?;
 
-        let num_feature_args = vals[4]
+        let num_feature_args = vals[5]
             .parse::<usize>()
             .map_err(|_| {
                 DmError::Dm(ErrorEnum::Invalid,
                             format!("failed to parse value for number of feature args from \"{}\"",
-                                    vals[4]))})?;
+                                    vals[5]))})?;
 
-        let end_feature_args_index = 5 + num_feature_args;
-        let feature_args: Vec<String> = vals[5..end_feature_args_index]
+        let end_feature_args_index = 6 + num_feature_args;
+        let feature_args: Vec<String> = vals[6..end_feature_args_index]
             .iter()
             .map(|x| x.to_string())
             .collect();
@@ -153,7 +129,46 @@ impl FromStr for CacheTargetParams {
     }
 }
 
-impl TargetParams for CacheTargetParams {}
+impl TargetParams for CacheTargetParams {
+    fn param_str(&self) -> String {
+        let feature_args = if self.feature_args.is_empty() {
+            "0".to_owned()
+        } else {
+            format!("{} {}",
+                    self.feature_args.len(),
+                    self.feature_args
+                        .iter()
+                        .cloned()
+                        .collect::<Vec<_>>()
+                        .join(" "))
+        };
+
+        let policy_args = if self.policy_args.is_empty() {
+            "0".to_owned()
+        } else {
+            format!("{} {}",
+                    self.policy_args.len(),
+                    self.policy_args
+                        .iter()
+                        .map(|(k, v)| format!("{} {}", k, v))
+                        .collect::<Vec<String>>()
+                        .join(" "))
+        };
+
+        format!("{} {} {} {} {} {} {}",
+                self.meta,
+                self.cache,
+                self.origin,
+                *self.cache_block_size,
+                feature_args,
+                self.policy,
+                policy_args)
+    }
+
+    fn target_type(&self) -> TargetTypeBuf {
+        TargetTypeBuf::new(CACHE_TARGET_NAME.into()).expect("CACHE_TARGET_NAME is valid")
+    }
+}
 
 
 /// Cache usage
@@ -358,7 +373,6 @@ impl DmDevice<CacheTargetParams> for CacheDev {
         let right = right.first().expect("right.len() == 1");
 
         Ok(left.start == right.start && left.length == right.length &&
-           left.target_type == right.target_type &&
            left.params.meta == right.params.meta &&
            left.params.origin == right.params.origin &&
            left.params.cache_block_size == right.params.cache_block_size &&
@@ -469,7 +483,6 @@ impl CacheDev {
         vec![TargetLine {
                  start: Sectors::default(),
                  length: origin.size(),
-                 target_type: TargetTypeBuf::new("cache".into()).expect("< length limit"),
                  params: CacheTargetParams::new(meta.device(),
                                                 cache.device(),
                                                 origin.device(),

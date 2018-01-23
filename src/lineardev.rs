@@ -16,6 +16,9 @@ use super::shared::{DmDevice, TargetLine, TargetParams, device_create, device_ex
 use super::types::{DevId, DmName, DmUuid, Sectors, TargetTypeBuf};
 
 
+const LINEAR_TARGET_NAME: &str = "linear";
+
+
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct LinearTargetParams {
     pub device: Device,
@@ -33,7 +36,7 @@ impl LinearTargetParams {
 
 impl fmt::Display for LinearTargetParams {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{} {}", self.device, *self.physical_start_offset)
+        write!(f, "{} {}", LINEAR_TARGET_NAME, self.param_str())
     }
 }
 
@@ -42,28 +45,42 @@ impl FromStr for LinearTargetParams {
 
     fn from_str(s: &str) -> DmResult<LinearTargetParams> {
         let vals = s.split(' ').collect::<Vec<_>>();
-        if vals.len() != 2 {
-            let err_msg = format!("expected two values in params string \"{}\", found {}",
+        if vals.len() != 3 {
+            let err_msg = format!("expected 3 values in params string \"{}\", found {}",
                                   s,
                                   vals.len());
             return Err(DmError::Dm(ErrorEnum::Invalid, err_msg));
         }
 
-        let device = parse_device(vals[0])?;
+        if vals[0] != LINEAR_TARGET_NAME {
+            let err_msg = format!("Expected a linear target entry but found target type {}",
+                                  vals[0]);
+            return Err(DmError::Dm(ErrorEnum::Invalid, err_msg));
+        }
 
-        let start = vals[1]
+        let device = parse_device(vals[1])?;
+
+        let start = vals[2]
             .parse::<u64>()
             .map(Sectors)
             .map_err(|_| {
                 DmError::Dm(ErrorEnum::Invalid,
                             format!("failed to parse value for physical start offset \"{}\"",
-                                    vals[1]))})?;
+                                    vals[2]))})?;
 
         Ok(LinearTargetParams::new(device, start))
     }
 }
 
-impl TargetParams for LinearTargetParams {}
+impl TargetParams for LinearTargetParams {
+    fn param_str(&self) -> String {
+        format!("{} {}", self.device, *self.physical_start_offset)
+    }
+
+    fn target_type(&self) -> TargetTypeBuf {
+        TargetTypeBuf::new(LINEAR_TARGET_NAME.into()).expect("LINEAR_TARGET_NAME is valid")
+    }
+}
 
 
 /// A DM construct of combined Segments
@@ -182,7 +199,6 @@ impl LinearDev {
             let line = TargetLine {
                 start: logical_start_offset,
                 length: length,
-                target_type: TargetTypeBuf::new("linear".into()).expect("< length limit"),
                 params: LinearTargetParams::new(segment.device, physical_start_offset),
             };
             table.push(line);

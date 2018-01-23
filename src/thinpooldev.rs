@@ -22,6 +22,7 @@ use std::path::Path;
 #[cfg(test)]
 use super::device::devnode_to_devno;
 
+const THINPOOL_TARGET_NAME: &str = "thin-pool";
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ThinPoolTargetParams {
@@ -51,25 +52,7 @@ impl ThinPoolTargetParams {
 
 impl fmt::Display for ThinPoolTargetParams {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        let feature_args = if self.feature_args.is_empty() {
-            "0".to_owned()
-        } else {
-            format!("{} {}",
-                    self.feature_args.len(),
-                    self.feature_args
-                        .iter()
-                        .cloned()
-                        .collect::<Vec<_>>()
-                        .join(" "))
-        };
-
-        write!(f,
-               "{} {} {} {} {}",
-               self.metadata_dev,
-               self.data_dev,
-               *self.data_block_size,
-               *self.low_water_mark,
-               feature_args)
+        write!(f, "{} {}", THINPOOL_TARGET_NAME, self.param_str())
     }
 }
 
@@ -79,40 +62,46 @@ impl FromStr for ThinPoolTargetParams {
     fn from_str(s: &str) -> DmResult<ThinPoolTargetParams> {
         let vals = s.split(' ').collect::<Vec<_>>();
 
-        if vals.len() < 5 {
-            let err_msg = format!("expected at least five values in params string \"{}\", found {}",
+        if vals.len() < 6 {
+            let err_msg = format!("expected at least 6 values in params string \"{}\", found {}",
                                   s,
                                   vals.len());
             return Err(DmError::Dm(ErrorEnum::Invalid, err_msg));
         }
 
-        let metadata_dev = parse_device(vals[0])?;
-        let data_dev = parse_device(vals[1])?;
+        if vals[0] != THINPOOL_TARGET_NAME {
+            let err_msg = format!("Expected a thin-pool target entry but found target type {}",
+                                  vals[0]);
+            return Err(DmError::Dm(ErrorEnum::Invalid, err_msg));
+        }
 
-        let data_block_size = vals[2]
+        let metadata_dev = parse_device(vals[1])?;
+        let data_dev = parse_device(vals[2])?;
+
+        let data_block_size = vals[3]
             .parse::<u64>()
             .map(Sectors)
             .map_err(|_| {
                 DmError::Dm(ErrorEnum::Invalid,
                             format!("failed to parse value for data block size from \"{}\"",
-                                    vals[2]))})?;
+                                    vals[3]))})?;
 
-        let low_water_mark = vals[3]
+        let low_water_mark = vals[4]
             .parse::<u64>()
             .map(DataBlocks)
             .map_err(|_| {
                          DmError::Dm(ErrorEnum::Invalid,
                                      format!("failed to parse value for low water mark from \"{}\"",
-                                             vals[3]))
+                                             vals[4]))
                      })?;
-        let num_feature_args = vals[4]
+        let num_feature_args = vals[5]
             .parse::<usize>()
             .map_err(|_| {
                 DmError::Dm(ErrorEnum::Invalid,
                             format!("failed to parse value for number of feature args from \"{}\"",
-                                    vals[4]))})?;
+                                    vals[5]))})?;
 
-        let feature_args: Vec<String> = vals[5..5 + num_feature_args]
+        let feature_args: Vec<String> = vals[6..6 + num_feature_args]
             .iter()
             .map(|x| x.to_string())
             .collect();
@@ -125,7 +114,32 @@ impl FromStr for ThinPoolTargetParams {
     }
 }
 
-impl TargetParams for ThinPoolTargetParams {}
+impl TargetParams for ThinPoolTargetParams {
+    fn param_str(&self) -> String {
+        let feature_args = if self.feature_args.is_empty() {
+            "0".to_owned()
+        } else {
+            format!("{} {}",
+                    self.feature_args.len(),
+                    self.feature_args
+                        .iter()
+                        .cloned()
+                        .collect::<Vec<_>>()
+                        .join(" "))
+        };
+
+        format!("{} {} {} {} {}",
+                self.metadata_dev,
+                self.data_dev,
+                *self.data_block_size,
+                *self.low_water_mark,
+                feature_args)
+    }
+
+    fn target_type(&self) -> TargetTypeBuf {
+        TargetTypeBuf::new(THINPOOL_TARGET_NAME.into()).expect("THINPOOL_TARGET_NAME is valid")
+    }
+}
 
 
 /// DM construct to contain thin provisioned devices
@@ -365,7 +379,6 @@ impl ThinPoolDev {
         vec![TargetLine {
                  start: Sectors::default(),
                  length: data.size(),
-                 target_type: TargetTypeBuf::new("thin-pool".into()).expect("< length limit"),
                  params: ThinPoolTargetParams::new(meta.device(),
                                                    data.device(),
                                                    data_block_size,
