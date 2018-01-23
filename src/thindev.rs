@@ -18,18 +18,18 @@ use super::types::{DevId, DmName, DmUuid, Sectors, TargetTypeBuf};
 
 
 #[derive(Debug, Eq, PartialEq)]
-pub struct ThinDevTargetParams {
+pub struct ThinTargetParams {
     pub pool: Device,
     pub thin_id: ThinDevId,
     pub external_origin_dev: Option<Device>,
 }
 
-impl ThinDevTargetParams {
+impl ThinTargetParams {
     pub fn new(pool: Device,
                thin_id: ThinDevId,
                external_origin_dev: Option<Device>)
-               -> ThinDevTargetParams {
-        ThinDevTargetParams {
+               -> ThinTargetParams {
+        ThinTargetParams {
             pool: pool,
             thin_id: thin_id,
             external_origin_dev: external_origin_dev,
@@ -37,7 +37,7 @@ impl ThinDevTargetParams {
     }
 }
 
-impl fmt::Display for ThinDevTargetParams {
+impl fmt::Display for ThinTargetParams {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self.external_origin_dev {
             None => write!(f, "{} {}", self.pool, self.thin_id),
@@ -46,10 +46,10 @@ impl fmt::Display for ThinDevTargetParams {
     }
 }
 
-impl FromStr for ThinDevTargetParams {
+impl FromStr for ThinTargetParams {
     type Err = DmError;
 
-    fn from_str(s: &str) -> DmResult<ThinDevTargetParams> {
+    fn from_str(s: &str) -> DmResult<ThinTargetParams> {
         let vals = s.split(' ').collect::<Vec<_>>();
         let len = vals.len();
         if len < 2 || len > 3 {
@@ -59,17 +59,17 @@ impl FromStr for ThinDevTargetParams {
             return Err(DmError::Dm(ErrorEnum::Invalid, err_msg));
         }
 
-        Ok(ThinDevTargetParams::new(parse_device(vals[0])?,
-                                    vals[1].parse::<ThinDevId>()?,
-                                    if len == 2 {
-                                        None
-                                    } else {
-                                        Some(parse_device(vals[2])?)
-                                    }))
+        Ok(ThinTargetParams::new(parse_device(vals[0])?,
+                                 vals[1].parse::<ThinDevId>()?,
+                                 if len == 2 {
+                                     None
+                                 } else {
+                                     Some(parse_device(vals[2])?)
+                                 }))
     }
 }
 
-impl TargetParams for ThinDevTargetParams {}
+impl TargetParams for ThinTargetParams {}
 
 
 /// DM construct for a thin block device
@@ -81,7 +81,7 @@ pub struct ThinDev {
     thinpool: Device,
 }
 
-impl DmDevice<ThinDevTargetParams> for ThinDev {
+impl DmDevice<ThinTargetParams> for ThinDev {
     fn device(&self) -> Device {
         device!(self)
     }
@@ -92,8 +92,8 @@ impl DmDevice<ThinDevTargetParams> for ThinDev {
 
     // This method is incomplete. It is expected that it will be refined so
     // that it will return true in more cases, i.e., to be less stringent.
-    fn equivalent_tables(left: &[TargetLine<ThinDevTargetParams>],
-                         right: &[TargetLine<ThinDevTargetParams>])
+    fn equivalent_tables(left: &[TargetLine<ThinTargetParams>],
+                         right: &[TargetLine<ThinTargetParams>])
                          -> DmResult<bool> {
         Ok(left == right)
     }
@@ -262,12 +262,12 @@ impl ThinDev {
     fn gen_default_table(length: Sectors,
                          thin_pool: Device,
                          thin_id: ThinDevId)
-                         -> Vec<TargetLine<ThinDevTargetParams>> {
+                         -> Vec<TargetLine<ThinTargetParams>> {
         vec![TargetLine {
                  start: Sectors::default(),
                  length: length,
                  target_type: TargetTypeBuf::new("thin".into()).expect("< length limit"),
-                 params: ThinDevTargetParams::new(thin_pool, thin_id, None),
+                 params: ThinTargetParams::new(thin_pool, thin_id, None),
              }]
     }
 

@@ -17,30 +17,30 @@ use super::types::{DevId, DmName, DmUuid, Sectors, TargetTypeBuf};
 
 
 #[derive(Debug, Eq, PartialEq)]
-pub struct LinearDevTargetParams {
+pub struct LinearTargetParams {
     pub device: Device,
     pub physical_start_offset: Sectors,
 }
 
-impl LinearDevTargetParams {
-    pub fn new(device: Device, physical_start_offset: Sectors) -> LinearDevTargetParams {
-        LinearDevTargetParams {
+impl LinearTargetParams {
+    pub fn new(device: Device, physical_start_offset: Sectors) -> LinearTargetParams {
+        LinearTargetParams {
             device: device,
             physical_start_offset: physical_start_offset,
         }
     }
 }
 
-impl fmt::Display for LinearDevTargetParams {
+impl fmt::Display for LinearTargetParams {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{} {}", self.device, *self.physical_start_offset)
     }
 }
 
-impl FromStr for LinearDevTargetParams {
+impl FromStr for LinearTargetParams {
     type Err = DmError;
 
-    fn from_str(s: &str) -> DmResult<LinearDevTargetParams> {
+    fn from_str(s: &str) -> DmResult<LinearTargetParams> {
         let vals = s.split(' ').collect::<Vec<_>>();
         if vals.len() != 2 {
             let err_msg = format!("expected two values in params string \"{}\", found {}",
@@ -59,11 +59,11 @@ impl FromStr for LinearDevTargetParams {
                             format!("failed to parse value for physical start offset \"{}\"",
                                     vals[1]))})?;
 
-        Ok(LinearDevTargetParams::new(device, start))
+        Ok(LinearTargetParams::new(device, start))
     }
 }
 
-impl TargetParams for LinearDevTargetParams {}
+impl TargetParams for LinearTargetParams {}
 
 
 /// A DM construct of combined Segments
@@ -74,7 +74,7 @@ pub struct LinearDev {
     segments: Vec<Segment>,
 }
 
-impl DmDevice<LinearDevTargetParams> for LinearDev {
+impl DmDevice<LinearTargetParams> for LinearDev {
     fn device(&self) -> Device {
         device!(self)
     }
@@ -86,8 +86,8 @@ impl DmDevice<LinearDevTargetParams> for LinearDev {
     // Since linear devices have no default or configuration parameters,
     // and the ordering of segments matters, two linear devices represent
     // the same linear device only if their tables match exactly.
-    fn equivalent_tables(left: &[TargetLine<LinearDevTargetParams>],
-                         right: &[TargetLine<LinearDevTargetParams>])
+    fn equivalent_tables(left: &[TargetLine<LinearTargetParams>],
+                         right: &[TargetLine<LinearTargetParams>])
                          -> DmResult<bool> {
         Ok(left == right)
     }
@@ -172,7 +172,7 @@ impl LinearDev {
     /// <maj:min> <physical start offset>
     /// The table has no configuration parameters, so the segments argument
     /// fully specifies the table.
-    fn gen_table(segments: &[Segment]) -> Vec<TargetLine<LinearDevTargetParams>> {
+    fn gen_table(segments: &[Segment]) -> Vec<TargetLine<LinearTargetParams>> {
         assert_ne!(segments.len(), 0);
 
         let mut table = Vec::new();
@@ -183,7 +183,7 @@ impl LinearDev {
                 start: logical_start_offset,
                 length: length,
                 target_type: TargetTypeBuf::new("linear".into()).expect("< length limit"),
-                params: LinearDevTargetParams::new(segment.device, physical_start_offset),
+                params: LinearTargetParams::new(segment.device, physical_start_offset),
             };
             table.push(line);
             logical_start_offset += length;

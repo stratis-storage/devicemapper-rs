@@ -17,7 +17,7 @@ use super::shared::{DmDevice, TargetLine, TargetParams, device_create, device_ex
 use super::types::{DataBlocks, DevId, DmName, DmUuid, MetaBlocks, Sectors, TargetTypeBuf};
 
 #[derive(Debug, Eq, PartialEq)]
-pub struct CacheDevTargetParams {
+pub struct CacheTargetParams {
     pub meta: Device,
     pub cache: Device,
     pub origin: Device,
@@ -27,7 +27,7 @@ pub struct CacheDevTargetParams {
     pub policy_args: HashMap<String, String>,
 }
 
-impl CacheDevTargetParams {
+impl CacheTargetParams {
     pub fn new(meta: Device,
                cache: Device,
                origin: Device,
@@ -35,8 +35,8 @@ impl CacheDevTargetParams {
                feature_args: Vec<String>,
                policy: String,
                policy_args: Vec<(String, String)>)
-               -> CacheDevTargetParams {
-        CacheDevTargetParams {
+               -> CacheTargetParams {
+        CacheTargetParams {
             meta: meta,
             cache: cache,
             origin: origin,
@@ -48,7 +48,7 @@ impl CacheDevTargetParams {
     }
 }
 
-impl fmt::Display for CacheDevTargetParams {
+impl fmt::Display for CacheTargetParams {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let feature_args = if self.feature_args.is_empty() {
             "0".to_owned()
@@ -86,10 +86,10 @@ impl fmt::Display for CacheDevTargetParams {
     }
 }
 
-impl FromStr for CacheDevTargetParams {
+impl FromStr for CacheTargetParams {
     type Err = DmError;
 
-    fn from_str(s: &str) -> DmResult<CacheDevTargetParams> {
+    fn from_str(s: &str) -> DmResult<CacheTargetParams> {
         let vals = s.split(' ').collect::<Vec<_>>();
 
         if vals.len() < 7 {
@@ -141,18 +141,18 @@ impl FromStr for CacheDevTargetParams {
                 .map(|x| (x[0].to_string(), x[1].to_string()))
                 .collect();
 
-        Ok(CacheDevTargetParams::new(metadata_dev,
-                                     cache_dev,
-                                     origin_dev,
-                                     block_size,
-                                     feature_args,
-                                     policy,
-                                     policy_args))
+        Ok(CacheTargetParams::new(metadata_dev,
+                                  cache_dev,
+                                  origin_dev,
+                                  block_size,
+                                  feature_args,
+                                  policy,
+                                  policy_args))
 
     }
 }
 
-impl TargetParams for CacheDevTargetParams {}
+impl TargetParams for CacheTargetParams {}
 
 
 /// Cache usage
@@ -312,7 +312,7 @@ pub struct CacheDev {
     block_size: Sectors,
 }
 
-impl DmDevice<CacheDevTargetParams> for CacheDev {
+impl DmDevice<CacheTargetParams> for CacheDev {
     fn device(&self) -> Device {
         device!(self)
     }
@@ -339,8 +339,8 @@ impl DmDevice<CacheDevTargetParams> for CacheDev {
     // there is no straightforward programmatic way of determining the default
     // policy for a given kernel, and we are assured that the default policy
     // can vary between kernels, and may of course, change in future.
-    fn equivalent_tables(left: &[TargetLine<CacheDevTargetParams>],
-                         right: &[TargetLine<CacheDevTargetParams>])
+    fn equivalent_tables(left: &[TargetLine<CacheTargetParams>],
+                         right: &[TargetLine<CacheTargetParams>])
                          -> DmResult<bool> {
         if left.len() != 1 {
             let err_msg = format!("cache dev tables have exactly one line, found {} lines in table",
@@ -464,18 +464,18 @@ impl CacheDev {
                          cache: &LinearDev,
                          origin: &LinearDev,
                          cache_block_size: Sectors)
-                         -> Vec<TargetLine<CacheDevTargetParams>> {
+                         -> Vec<TargetLine<CacheTargetParams>> {
         vec![TargetLine {
                  start: Sectors::default(),
                  length: origin.size(),
                  target_type: TargetTypeBuf::new("cache".into()).expect("< length limit"),
-                 params: CacheDevTargetParams::new(meta.device(),
-                                                   cache.device(),
-                                                   origin.device(),
-                                                   cache_block_size,
-                                                   vec![],
-                                                   "default".to_owned(),
-                                                   vec![]),
+                 params: CacheTargetParams::new(meta.device(),
+                                                cache.device(),
+                                                origin.device(),
+                                                cache_block_size,
+                                                vec![],
+                                                "default".to_owned(),
+                                                vec![]),
              }]
     }
 

@@ -24,7 +24,7 @@ use super::device::devnode_to_devno;
 
 
 #[derive(Debug, Eq, PartialEq)]
-pub struct ThinPoolDevTargetParams {
+pub struct ThinPoolTargetParams {
     pub metadata_dev: Device,
     pub data_dev: Device,
     pub data_block_size: Sectors,
@@ -32,14 +32,14 @@ pub struct ThinPoolDevTargetParams {
     pub feature_args: HashSet<String>,
 }
 
-impl ThinPoolDevTargetParams {
+impl ThinPoolTargetParams {
     pub fn new(metadata_dev: Device,
                data_dev: Device,
                data_block_size: Sectors,
                low_water_mark: DataBlocks,
                feature_args: Vec<String>)
-               -> ThinPoolDevTargetParams {
-        ThinPoolDevTargetParams {
+               -> ThinPoolTargetParams {
+        ThinPoolTargetParams {
             metadata_dev: metadata_dev,
             data_dev: data_dev,
             data_block_size: data_block_size,
@@ -49,7 +49,7 @@ impl ThinPoolDevTargetParams {
     }
 }
 
-impl fmt::Display for ThinPoolDevTargetParams {
+impl fmt::Display for ThinPoolTargetParams {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let feature_args = if self.feature_args.is_empty() {
             "0".to_owned()
@@ -73,10 +73,10 @@ impl fmt::Display for ThinPoolDevTargetParams {
     }
 }
 
-impl FromStr for ThinPoolDevTargetParams {
+impl FromStr for ThinPoolTargetParams {
     type Err = DmError;
 
-    fn from_str(s: &str) -> DmResult<ThinPoolDevTargetParams> {
+    fn from_str(s: &str) -> DmResult<ThinPoolTargetParams> {
         let vals = s.split(' ').collect::<Vec<_>>();
 
         if vals.len() < 5 {
@@ -117,15 +117,15 @@ impl FromStr for ThinPoolDevTargetParams {
             .map(|x| x.to_string())
             .collect();
 
-        Ok(ThinPoolDevTargetParams::new(metadata_dev,
-                                        data_dev,
-                                        data_block_size,
-                                        low_water_mark,
-                                        feature_args))
+        Ok(ThinPoolTargetParams::new(metadata_dev,
+                                     data_dev,
+                                     data_block_size,
+                                     low_water_mark,
+                                     feature_args))
     }
 }
 
-impl TargetParams for ThinPoolDevTargetParams {}
+impl TargetParams for ThinPoolTargetParams {}
 
 
 /// DM construct to contain thin provisioned devices
@@ -138,7 +138,7 @@ pub struct ThinPoolDev {
     low_water_mark: DataBlocks,
 }
 
-impl DmDevice<ThinPoolDevTargetParams> for ThinPoolDev {
+impl DmDevice<ThinPoolTargetParams> for ThinPoolDev {
     fn device(&self) -> Device {
         device!(self)
     }
@@ -149,8 +149,8 @@ impl DmDevice<ThinPoolDevTargetParams> for ThinPoolDev {
 
     // This method is incomplete. It is expected that it will be refined so
     // that it will return true in more cases, i.e., to be less stringent.
-    fn equivalent_tables(left: &[TargetLine<ThinPoolDevTargetParams>],
-                         right: &[TargetLine<ThinPoolDevTargetParams>])
+    fn equivalent_tables(left: &[TargetLine<ThinPoolTargetParams>],
+                         right: &[TargetLine<ThinPoolTargetParams>])
                          -> DmResult<bool> {
         Ok(left == right)
     }
@@ -361,16 +361,16 @@ impl ThinPoolDev {
                          data: &LinearDev,
                          data_block_size: Sectors,
                          low_water_mark: DataBlocks)
-                         -> Vec<TargetLine<ThinPoolDevTargetParams>> {
+                         -> Vec<TargetLine<ThinPoolTargetParams>> {
         vec![TargetLine {
                  start: Sectors::default(),
                  length: data.size(),
                  target_type: TargetTypeBuf::new("thin-pool".into()).expect("< length limit"),
-                 params: ThinPoolDevTargetParams::new(meta.device(),
-                                                      data.device(),
-                                                      data_block_size,
-                                                      low_water_mark,
-                                                      vec!["skip_block_zeroing".to_owned()]),
+                 params: ThinPoolTargetParams::new(meta.device(),
+                                                   data.device(),
+                                                   data_block_size,
+                                                   low_water_mark,
+                                                   vec!["skip_block_zeroing".to_owned()]),
              }]
     }
 
