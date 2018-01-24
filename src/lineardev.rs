@@ -260,6 +260,57 @@ impl TargetParams for FlakeyTargetParams {
 }
 
 
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum LinearDevTargetParams {
+    Flakey(FlakeyTargetParams),
+    Linear(LinearTargetParams),
+}
+
+impl fmt::Display for LinearDevTargetParams {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match *self {
+            LinearDevTargetParams::Flakey(ref flakey) => flakey.fmt(f),
+            LinearDevTargetParams::Linear(ref linear) => linear.fmt(f),
+        }
+    }
+}
+
+impl FromStr for LinearDevTargetParams {
+    type Err = DmError;
+
+    fn from_str(s: &str) -> DmResult<LinearDevTargetParams> {
+        let target_type = s.splitn(2, ' ').next().ok_or_else(|| {
+                DmError::Dm(ErrorEnum::Invalid,
+                            format!("target line string \"{}\" did not contain any values", s))
+        })?;
+        if target_type == FLAKEY_TARGET_NAME {
+            Ok(LinearDevTargetParams::Flakey(s.parse::<FlakeyTargetParams>()?))
+        } else if target_type == LINEAR_TARGET_NAME {
+            Ok(LinearDevTargetParams::Linear(s.parse::<LinearTargetParams>()?))
+        } else {
+            Err(DmError::Dm(ErrorEnum::Invalid,
+                            format!("unexpected target type \"{}\"", target_type)))
+        }
+    }
+}
+
+impl TargetParams for LinearDevTargetParams {
+    fn param_str(&self) -> String {
+        match *self {
+            LinearDevTargetParams::Flakey(ref flakey) => flakey.param_str(),
+            LinearDevTargetParams::Linear(ref linear) => linear.param_str(),
+        }
+    }
+
+    fn target_type(&self) -> TargetTypeBuf {
+        match *self {
+            LinearDevTargetParams::Flakey(ref flakey) => flakey.target_type(),
+            LinearDevTargetParams::Linear(ref linear) => linear.target_type(),
+        }
+    }
+}
+
+
 /// A DM construct of combined Segments
 #[derive(Debug)]
 pub struct LinearDev {
