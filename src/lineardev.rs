@@ -12,7 +12,7 @@ use super::deviceinfo::DeviceInfo;
 use super::dm::{DM, DmFlags};
 use super::result::{DmResult, DmError, ErrorEnum};
 use super::segment::Segment;
-use super::shared::{DmDevice, TargetLine, TargetParams, device_create, device_exists,
+use super::shared::{DmDevice, TargetLine, TargetParams, TargetTable, device_create, device_exists,
                     device_match, parse_device, table_reload};
 use super::types::{DevId, DmName, DmUuid, Sectors, TargetTypeBuf};
 
@@ -307,6 +307,38 @@ impl TargetParams for LinearDevTargetParams {
             LinearDevTargetParams::Flakey(ref flakey) => flakey.target_type(),
             LinearDevTargetParams::Linear(ref linear) => linear.target_type(),
         }
+    }
+}
+
+
+#[derive(Debug, Eq, PartialEq)]
+pub struct LinearDevTargetTable {
+    table: Vec<TargetLine<LinearDevTargetParams>>,
+}
+
+impl TargetTable for LinearDevTargetTable {
+    fn from_raw_table(table: &[(Sectors, Sectors, TargetTypeBuf, String)])
+                      -> DmResult<LinearDevTargetTable> {
+        Ok(LinearDevTargetTable {
+               table: table
+                   .into_iter()
+                   .map(|x| -> DmResult<TargetLine<LinearDevTargetParams>> {
+                            Ok(TargetLine {
+                                   start: x.0,
+                                   length: x.1,
+                                   params: format!("{} {}", x.2.to_string(), x.3)
+                                       .parse::<LinearDevTargetParams>()?,
+                               })
+                        })
+                   .collect::<DmResult<Vec<_>>>()?,
+           })
+    }
+
+    fn to_raw_table(&self) -> Vec<(Sectors, Sectors, TargetTypeBuf, String)> {
+        self.table
+            .iter()
+            .map(|x| (x.start, x.length, x.params.target_type(), x.params.param_str()))
+            .collect::<Vec<_>>()
     }
 }
 

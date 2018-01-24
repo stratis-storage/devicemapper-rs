@@ -38,6 +38,14 @@ pub struct TargetLine<T: TargetParams> {
     pub params: T,
 }
 
+pub trait TargetTable: fmt::Debug + Eq + PartialEq + Sized {
+    /// Constructs a table from a raw table returned by DM::table_status()
+    fn from_raw_table(table: &[(Sectors, Sectors, TargetTypeBuf, String)]) -> DmResult<Self>;
+
+    /// Generates a table that can be loaded by DM::table_load()
+    fn to_raw_table(&self) -> Vec<(Sectors, Sectors, TargetTypeBuf, String)>;
+}
+
 
 /// A trait capturing some shared properties of DM devices.
 pub trait DmDevice<T: TargetParams> {

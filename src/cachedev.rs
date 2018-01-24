@@ -12,7 +12,7 @@ use super::deviceinfo::DeviceInfo;
 use super::dm::{DM, DmFlags};
 use super::lineardev::LinearDev;
 use super::result::{DmResult, DmError, ErrorEnum};
-use super::shared::{DmDevice, TargetLine, TargetParams, device_create, device_exists,
+use super::shared::{DmDevice, TargetLine, TargetParams, TargetTable, device_create, device_exists,
                     device_match, parse_device};
 use super::types::{DataBlocks, DevId, DmName, DmUuid, MetaBlocks, Sectors, TargetTypeBuf};
 
@@ -167,6 +167,43 @@ impl TargetParams for CacheTargetParams {
 
     fn target_type(&self) -> TargetTypeBuf {
         TargetTypeBuf::new(CACHE_TARGET_NAME.into()).expect("CACHE_TARGET_NAME is valid")
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct CacheDevTargetTable {
+    table: TargetLine<CacheTargetParams>,
+}
+
+impl CacheDevTargetTable {
+    pub fn new(start: Sectors, length: Sectors, params: CacheTargetParams) -> CacheDevTargetTable {
+        CacheDevTargetTable {
+            table: TargetLine {
+                start: start,
+                length: length,
+                params: params,
+            },
+        }
+    }
+}
+
+impl TargetTable for CacheDevTargetTable {
+    fn from_raw_table(table: &[(Sectors, Sectors, TargetTypeBuf, String)])
+                      -> DmResult<CacheDevTargetTable> {
+        if table.len() != 1 {
+            let err_msg = format!("CacheDev table should have exactly one line, has {} lines",
+                                  table.len());
+            return Err(DmError::Dm(ErrorEnum::Invalid, err_msg));
+        }
+        let line = table.first().expect("table.len() == 1");
+        Ok(CacheDevTargetTable::new(line.0,
+                                    line.1,
+                                    format!("{} {}", line.2.to_string(), line.3)
+                                        .parse::<CacheTargetParams>()?))
+    }
+
+    fn to_raw_table(&self) -> Vec<(Sectors, Sectors, TargetTypeBuf, String)> {
+        to_raw_table_unique!(self)
     }
 }
 

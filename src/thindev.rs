@@ -10,7 +10,7 @@ use super::device::Device;
 use super::deviceinfo::DeviceInfo;
 use super::dm::{DM, DmFlags};
 use super::result::{DmError, DmResult, ErrorEnum};
-use super::shared::{DmDevice, TargetLine, TargetParams, device_create, device_exists,
+use super::shared::{DmDevice, TargetLine, TargetParams, TargetTable, device_create, device_exists,
                     device_match, message, parse_device, table_reload};
 use super::thindevid::ThinDevId;
 use super::thinpooldev::ThinPoolDev;
@@ -86,6 +86,42 @@ impl TargetParams for ThinTargetParams {
     }
 }
 
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ThinDevTargetTable {
+    table: TargetLine<ThinTargetParams>,
+}
+
+impl ThinDevTargetTable {
+    pub fn new(start: Sectors, length: Sectors, params: ThinTargetParams) -> ThinDevTargetTable {
+        ThinDevTargetTable {
+            table: TargetLine {
+                start: start,
+                length: length,
+                params: params,
+            },
+        }
+    }
+}
+
+impl TargetTable for ThinDevTargetTable {
+    fn from_raw_table(table: &[(Sectors, Sectors, TargetTypeBuf, String)])
+                      -> DmResult<ThinDevTargetTable> {
+        if table.len() != 1 {
+            let err_msg = format!("ThinDev table should have exactly one line, has {} lines",
+                                  table.len());
+            return Err(DmError::Dm(ErrorEnum::Invalid, err_msg));
+        }
+        let line = table.first().expect("table.len() == 1");
+        Ok(ThinDevTargetTable::new(line.0,
+                                   line.1,
+                                   format!("{} {}", line.2.to_string(), line.3)
+                                       .parse::<ThinTargetParams>()?))
+    }
+
+    fn to_raw_table(&self) -> Vec<(Sectors, Sectors, TargetTypeBuf, String)> {
+        to_raw_table_unique!(self)
+    }
+}
 
 /// DM construct for a thin block device
 #[derive(Debug)]

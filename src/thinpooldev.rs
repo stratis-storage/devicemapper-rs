@@ -13,7 +13,7 @@ use super::dm::{DM, DmFlags};
 use super::lineardev::LinearDev;
 use super::result::{DmResult, DmError, ErrorEnum};
 use super::segment::Segment;
-use super::shared::{DmDevice, TargetLine, TargetParams, device_create, device_exists,
+use super::shared::{DmDevice, TargetLine, TargetParams, TargetTable, device_create, device_exists,
                     device_match, parse_device, table_reload};
 use super::types::{DataBlocks, DevId, DmName, DmUuid, MetaBlocks, Sectors, TargetTypeBuf};
 
@@ -138,6 +138,46 @@ impl TargetParams for ThinPoolTargetParams {
 
     fn target_type(&self) -> TargetTypeBuf {
         TargetTypeBuf::new(THINPOOL_TARGET_NAME.into()).expect("THINPOOL_TARGET_NAME is valid")
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ThinPoolDevTargetTable {
+    table: TargetLine<ThinPoolTargetParams>,
+}
+
+impl ThinPoolDevTargetTable {
+    pub fn new(start: Sectors,
+               length: Sectors,
+               params: ThinPoolTargetParams)
+               -> ThinPoolDevTargetTable {
+        ThinPoolDevTargetTable {
+            table: TargetLine {
+                start: start,
+                length: length,
+                params: params,
+            },
+        }
+    }
+}
+
+impl TargetTable for ThinPoolDevTargetTable {
+    fn from_raw_table(table: &[(Sectors, Sectors, TargetTypeBuf, String)])
+                      -> DmResult<ThinPoolDevTargetTable> {
+        if table.len() != 1 {
+            let err_msg = format!("ThinPoolDev table should have exactly one line, has {} lines",
+                                  table.len());
+            return Err(DmError::Dm(ErrorEnum::Invalid, err_msg));
+        }
+        let line = table.first().expect("table.len() == 1");
+        Ok(ThinPoolDevTargetTable::new(line.0,
+                                       line.1,
+                                       format!("{} {}", line.2.to_string(), line.3)
+                                           .parse::<ThinPoolTargetParams>()?))
+    }
+
+    fn to_raw_table(&self) -> Vec<(Sectors, Sectors, TargetTypeBuf, String)> {
+        to_raw_table_unique!(self)
     }
 }
 
