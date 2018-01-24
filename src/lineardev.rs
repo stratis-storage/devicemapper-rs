@@ -351,7 +351,7 @@ pub struct LinearDev {
     segments: Vec<Segment>,
 }
 
-impl DmDevice<LinearTargetParams> for LinearDev {
+impl DmDevice<LinearDevTargetTable> for LinearDev {
     fn device(&self) -> Device {
         device!(self)
     }
@@ -363,8 +363,8 @@ impl DmDevice<LinearTargetParams> for LinearDev {
     // Since linear devices have no default or configuration parameters,
     // and the ordering of segments matters, two linear devices represent
     // the same linear device only if their tables match exactly.
-    fn equivalent_tables(left: &[TargetLine<LinearTargetParams>],
-                         right: &[TargetLine<LinearTargetParams>])
+    fn equivalent_tables(left: &LinearDevTargetTable,
+                         right: &LinearDevTargetTable)
                          -> DmResult<bool> {
         Ok(left == right)
     }
@@ -450,7 +450,7 @@ impl LinearDev {
     /// Note that the segments argument does not fully specify the table. This
     /// method assumes a default placement of the segments on the device, i.e.,
     /// adjacent and in the same order as in the slice.
-    fn gen_default_table(segments: &[Segment]) -> Vec<TargetLine<LinearTargetParams>> {
+    fn gen_default_table(segments: &[Segment]) -> LinearDevTargetTable {
         assert_ne!(segments.len(), 0);
 
         let mut table = Vec::new();
@@ -460,13 +460,15 @@ impl LinearDev {
             let line = TargetLine {
                 start: logical_start_offset,
                 length: length,
-                params: LinearTargetParams::new(segment.device, physical_start_offset),
+                params:
+                    LinearDevTargetParams::Linear(LinearTargetParams::new(segment.device,
+                                                                          physical_start_offset)),
             };
             table.push(line);
             logical_start_offset += length;
         }
 
-        table
+        LinearDevTargetTable { table: table }
     }
 
     /// Set the segments for this linear device.
@@ -577,10 +579,18 @@ mod tests {
                                   segments)
                 .unwrap();
 
-        let table = LinearDev::load_table(&dm, &DevId::Name(ld.name())).unwrap();
+        let table = LinearDev::load_table(&dm, &DevId::Name(ld.name()))
+            .unwrap()
+            .table;
         assert_eq!(table.len(), count);
-        assert_eq!(table[0].params.device, dev);
-        assert_eq!(table[1].params.device, dev);
+        match table[0].params {
+            LinearDevTargetParams::Linear(ref device) => assert_eq!(device.device, dev),
+            _ => panic!("unexpected param type"),
+        }
+        match table[1].params {
+            LinearDevTargetParams::Linear(ref device) => assert_eq!(device.device, dev),
+            _ => panic!("unexpected param type"),
+        }
 
         assert_eq!(blkdev_size(&OpenOptions::new()
                                     .read(true)

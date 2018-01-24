@@ -132,7 +132,7 @@ pub struct ThinDev {
     thinpool: Device,
 }
 
-impl DmDevice<ThinTargetParams> for ThinDev {
+impl DmDevice<ThinDevTargetTable> for ThinDev {
     fn device(&self) -> Device {
         device!(self)
     }
@@ -143,9 +143,7 @@ impl DmDevice<ThinTargetParams> for ThinDev {
 
     // This method is incomplete. It is expected that it will be refined so
     // that it will return true in more cases, i.e., to be less stringent.
-    fn equivalent_tables(left: &[TargetLine<ThinTargetParams>],
-                         right: &[TargetLine<ThinTargetParams>])
-                         -> DmResult<bool> {
+    fn equivalent_tables(left: &ThinDevTargetTable, right: &ThinDevTargetTable) -> DmResult<bool> {
         Ok(left == right)
     }
 
@@ -313,12 +311,10 @@ impl ThinDev {
     fn gen_default_table(length: Sectors,
                          thin_pool: Device,
                          thin_id: ThinDevId)
-                         -> Vec<TargetLine<ThinTargetParams>> {
-        vec![TargetLine {
-                 start: Sectors::default(),
-                 length: length,
-                 params: ThinTargetParams::new(thin_pool, thin_id, None),
-             }]
+                         -> ThinDevTargetTable {
+        ThinDevTargetTable::new(Sectors::default(),
+                                length,
+                                ThinTargetParams::new(thin_pool, thin_id, None))
     }
 
     /// return the thin id of the linear device
@@ -462,12 +458,12 @@ mod tests {
         let td_size = MIN_THIN_DEV_SIZE;
         let td = ThinDev::new(&dm, &id, None, td_size, &tp, thin_id).unwrap();
 
-        let table = ThinDev::load_table(&dm, &DevId::Name(td.name())).unwrap();
-        assert_eq!(table.len(), 1);
+        let table = ThinDev::load_table(&dm, &DevId::Name(td.name()))
+            .unwrap()
+            .table;
 
-        let line = &table[0];
-        assert_eq!(line.params.pool, tp.device());
-        assert_eq!(line.params.thin_id, thin_id);
+        assert_eq!(table.params.pool, tp.device());
+        assert_eq!(table.params.thin_id, thin_id);
 
         assert!(match td.status(&dm).unwrap() {
                     ThinStatus::Fail => false,

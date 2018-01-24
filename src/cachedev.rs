@@ -365,7 +365,7 @@ pub struct CacheDev {
     block_size: Sectors,
 }
 
-impl DmDevice<CacheTargetParams> for CacheDev {
+impl DmDevice<CacheDevTargetTable> for CacheDev {
     fn device(&self) -> Device {
         device!(self)
     }
@@ -392,22 +392,11 @@ impl DmDevice<CacheTargetParams> for CacheDev {
     // there is no straightforward programmatic way of determining the default
     // policy for a given kernel, and we are assured that the default policy
     // can vary between kernels, and may of course, change in future.
-    fn equivalent_tables(left: &[TargetLine<CacheTargetParams>],
-                         right: &[TargetLine<CacheTargetParams>])
+    fn equivalent_tables(left: &CacheDevTargetTable,
+                         right: &CacheDevTargetTable)
                          -> DmResult<bool> {
-        if left.len() != 1 {
-            let err_msg = format!("cache dev tables have exactly one line, found {} lines in table",
-                                  left.len());
-            return Err(DmError::Dm(ErrorEnum::Invalid, err_msg));
-        }
-        if right.len() != 1 {
-            let err_msg = format!("cache dev tables have exactly one line, found {} lines in table",
-                                  right.len());
-            return Err(DmError::Dm(ErrorEnum::Invalid, err_msg));
-        }
-
-        let left = left.first().expect("left.len() == 1");
-        let right = right.first().expect("right.len() == 1");
+        let left = &left.table;
+        let right = &right.table;
 
         Ok(left.start == right.start && left.length == right.length &&
            left.params.meta == right.params.meta &&
@@ -516,18 +505,16 @@ impl CacheDev {
                          cache: &LinearDev,
                          origin: &LinearDev,
                          cache_block_size: Sectors)
-                         -> Vec<TargetLine<CacheTargetParams>> {
-        vec![TargetLine {
-                 start: Sectors::default(),
-                 length: origin.size(),
-                 params: CacheTargetParams::new(meta.device(),
-                                                cache.device(),
-                                                origin.device(),
-                                                cache_block_size,
-                                                vec![],
-                                                "default".to_owned(),
-                                                vec![]),
-             }]
+                         -> CacheDevTargetTable {
+        CacheDevTargetTable::new(Sectors::default(),
+                                 origin.size(),
+                                 CacheTargetParams::new(meta.device(),
+                                                        cache.device(),
+                                                        origin.device(),
+                                                        cache_block_size,
+                                                        vec![],
+                                                        "default".to_owned(),
+                                                        vec![]))
     }
 
     /// Parse pairs of arguments from a slice
@@ -767,11 +754,11 @@ mod tests {
             _ => assert!(false),
         }
 
-        let table = CacheDev::load_table(&dm, &DevId::Name(cache.name())).unwrap();
-        assert_eq!(table.len(), 1);
+        let table = CacheDev::load_table(&dm, &DevId::Name(cache.name()))
+            .unwrap()
+            .table;
 
-        let line = &table[0];
-        let params = &line.params;
+        let params = &table.params;
         assert_eq!(params.cache_block_size, MIN_CACHE_BLOCK_SIZE);
         assert_eq!(params.feature_args, HashSet::new());
         assert_eq!(params.policy, "default");

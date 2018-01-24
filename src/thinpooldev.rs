@@ -192,7 +192,7 @@ pub struct ThinPoolDev {
     low_water_mark: DataBlocks,
 }
 
-impl DmDevice<ThinPoolTargetParams> for ThinPoolDev {
+impl DmDevice<ThinPoolDevTargetTable> for ThinPoolDev {
     fn device(&self) -> Device {
         device!(self)
     }
@@ -203,8 +203,8 @@ impl DmDevice<ThinPoolTargetParams> for ThinPoolDev {
 
     // This method is incomplete. It is expected that it will be refined so
     // that it will return true in more cases, i.e., to be less stringent.
-    fn equivalent_tables(left: &[TargetLine<ThinPoolTargetParams>],
-                         right: &[TargetLine<ThinPoolTargetParams>])
+    fn equivalent_tables(left: &ThinPoolDevTargetTable,
+                         right: &ThinPoolDevTargetTable)
                          -> DmResult<bool> {
         Ok(left == right)
     }
@@ -415,16 +415,15 @@ impl ThinPoolDev {
                          data: &LinearDev,
                          data_block_size: Sectors,
                          low_water_mark: DataBlocks)
-                         -> Vec<TargetLine<ThinPoolTargetParams>> {
-        vec![TargetLine {
-                 start: Sectors::default(),
-                 length: data.size(),
-                 params: ThinPoolTargetParams::new(meta.device(),
-                                                   data.device(),
-                                                   data_block_size,
-                                                   low_water_mark,
-                                                   vec!["skip_block_zeroing".to_owned()]),
-             }]
+                         -> ThinPoolDevTargetTable {
+        ThinPoolDevTargetTable::new(Sectors::default(),
+                                    data.size(),
+                                    ThinPoolTargetParams::new(meta.device(),
+                                                              data.device(),
+                                                              data_block_size,
+                                                              low_water_mark,
+                                                              vec!["skip_block_zeroing"
+                                                                       .to_owned()]))
     }
 
     /// Get the current status of the thinpool.
@@ -630,11 +629,10 @@ mod tests {
             _ => assert!(false),
         }
 
-        let table = ThinPoolDev::load_table(&dm, &DevId::Name(tp.name())).unwrap();
-        assert_eq!(table.len(), 1);
-
-        let line = &table[0];
-        let params = &line.params;
+        let table = ThinPoolDev::load_table(&dm, &DevId::Name(tp.name()))
+            .unwrap()
+            .table;
+        let params = &table.params;
         assert_eq!(params.metadata_dev, tp.meta_dev().device());
         assert_eq!(params.data_dev, tp.data_dev().device());
 
