@@ -716,7 +716,7 @@ mod tests {
             _ => assert!(false),
         }
 
-        let table = cache.load_table(&dm).unwrap();
+        let table = CacheDev::load_table(&dm, &DevId::Name(cache.name())).unwrap();
         assert_eq!(table.len(), 1);
 
         let line = &table[0];

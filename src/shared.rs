@@ -47,10 +47,10 @@ pub trait DmDevice<T: TargetParams> {
     fn equivalent_tables(left: &[TargetLine<T>], right: &[TargetLine<T>]) -> DmResult<bool>;
 
     /// The devicemapper table
-    fn load_table(&self, dm: &DM) -> DmResult<Vec<TargetLine<T>>>
+    fn load_table(dm: &DM, id: &DevId) -> DmResult<Vec<TargetLine<T>>>
         where DmError: From<<T as FromStr>::Err>
     {
-        let (_, table) = dm.table_status(&DevId::Name(self.name()), DmFlags::DM_STATUS_TABLE)?;
+        let (_, table) = dm.table_status(id, DmFlags::DM_STATUS_TABLE)?;
         table
             .into_iter()
             .map(|x| -> DmResult<TargetLine<T>> {
@@ -117,7 +117,7 @@ pub fn device_match<T: TargetParams, D: DmDevice<T>>(dm: &DM,
                                                      -> DmResult<()>
     where DmError: From<<T as FromStr>::Err>
 {
-    let kernel_table = dev.load_table(dm)?;
+    let kernel_table = D::load_table(dm, &DevId::Name(dev.name()))?;
     if !D::equivalent_tables(&kernel_table, table)? {
         let err_msg = format!("Specified new table \"{:?}\" does not match kernel table \"{:?}\"",
                               table,

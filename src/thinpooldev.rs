@@ -577,7 +577,7 @@ mod tests {
             _ => assert!(false),
         }
 
-        let table = tp.load_table(&dm).unwrap();
+        let table = ThinPoolDev::load_table(&dm, &DevId::Name(tp.name())).unwrap();
         assert_eq!(table.len(), 1);
 
         let line = &table[0];
