@@ -158,7 +158,7 @@ impl LinearDev {
                                    "linear device must have at least one segment".into()));
         }
 
-        let table = LinearDev::gen_table(segments);
+        let table = LinearDev::gen_default_table(segments);
         let dev = if device_exists(dm, name)? {
             let dev_info = dm.device_info(&DevId::Name(name))?;
             let dev = LinearDev {
@@ -187,9 +187,10 @@ impl LinearDev {
     /// <logical start offset> <length> "linear" <linear-specific string>
     /// where the linear-specific string has the format:
     /// <maj:min> <physical start offset>
-    /// The table has no configuration parameters, so the segments argument
-    /// fully specifies the table.
-    fn gen_table(segments: &[Segment]) -> Vec<TargetLine<LinearTargetParams>> {
+    /// Note that the segments argument does not fully specify the table. This
+    /// method assumes a default placement of the segments on the device, i.e.,
+    /// adjacent and in the same order as in the slice.
+    fn gen_default_table(segments: &[Segment]) -> Vec<TargetLine<LinearTargetParams>> {
         assert_ne!(segments.len(), 0);
 
         let mut table = Vec::new();
@@ -219,7 +220,7 @@ impl LinearDev {
                                    "linear device must have at least one segment".into()));
         }
 
-        let table = LinearDev::gen_table(segments);
+        let table = LinearDev::gen_default_table(segments);
         table_reload(dm, &DevId::Name(self.name()), &table)?;
         self.segments = segments.to_vec();
         Ok(())
@@ -350,7 +351,8 @@ mod tests {
                 .unwrap();
 
         let table = LinearDev::load_table(&dm, &DevId::Name(ld.name())).unwrap();
-        assert!(LinearDev::equivalent_tables(&table, &LinearDev::gen_table(&segments)).unwrap());
+        assert!(LinearDev::equivalent_tables(&table, &LinearDev::gen_default_table(&segments))
+                    .unwrap());
 
         ld.teardown(&dm).unwrap();
     }
