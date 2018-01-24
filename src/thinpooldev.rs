@@ -23,7 +23,7 @@ use std::path::Path;
 use super::device::devnode_to_devno;
 
 
-#[derive(Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ThinPoolTargetParams {
     pub metadata_dev: Device,
     pub data_dev: Device,

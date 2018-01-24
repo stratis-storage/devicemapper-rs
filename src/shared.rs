@@ -17,12 +17,14 @@ use super::types::{DevId, DmName, DmUuid, Sectors, TargetTypeBuf};
 
 
 /// The trait for properties of the params string of TargetType
-pub trait TargetParams: fmt::Debug + fmt::Display + Eq + FromStr + PartialEq {}
+pub trait TargetParams
+    : Clone + fmt::Debug + fmt::Display + Eq + FromStr + PartialEq {
+}
 
 impl TargetParams for String {}
 
 /// One line of a device mapper table.
-#[derive(Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct TargetLine<T: TargetParams> {
     /// The start of the segment
     pub start: Sectors,

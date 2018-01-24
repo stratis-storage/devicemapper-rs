@@ -16,7 +16,7 @@ use super::shared::{DmDevice, TargetLine, TargetParams, device_create, device_ex
 use super::types::{DevId, DmName, DmUuid, Sectors, TargetTypeBuf};
 
 
-#[derive(Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct LinearTargetParams {
     pub device: Device,
     pub physical_start_offset: Sectors,
