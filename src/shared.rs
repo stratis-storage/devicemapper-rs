@@ -38,6 +38,17 @@ pub struct TargetLine<T: TargetParams> {
     pub params: T,
 }
 
+impl<T: TargetParams> TargetLine<T> {
+    /// Make a new TargetLine struct
+    pub fn new(start: Sectors, length: Sectors, params: T) -> TargetLine<T> {
+        TargetLine {
+            start: start,
+            length: length,
+            params: params,
+        }
+    }
+}
+
 pub trait TargetTable: Clone + fmt::Debug + Eq + PartialEq + Sized {
     /// Constructs a table from a raw table returned by DM::table_status()
     fn from_raw_table(table: &[(Sectors, Sectors, TargetTypeBuf, String)]) -> DmResult<Self>;

@@ -93,13 +93,7 @@ pub struct ThinDevTargetTable {
 
 impl ThinDevTargetTable {
     pub fn new(start: Sectors, length: Sectors, params: ThinTargetParams) -> ThinDevTargetTable {
-        ThinDevTargetTable {
-            table: TargetLine {
-                start: start,
-                length: length,
-                params: params,
-            },
-        }
+        ThinDevTargetTable { table: TargetLine::new(start, length, params) }
     }
 }
 

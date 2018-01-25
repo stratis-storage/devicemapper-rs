@@ -177,13 +177,7 @@ pub struct CacheDevTargetTable {
 
 impl CacheDevTargetTable {
     pub fn new(start: Sectors, length: Sectors, params: CacheTargetParams) -> CacheDevTargetTable {
-        CacheDevTargetTable {
-            table: TargetLine {
-                start: start,
-                length: length,
-                params: params,
-            },
-        }
+        CacheDevTargetTable { table: TargetLine::new(start, length, params) }
     }
 }
 
@@ -681,14 +675,11 @@ mod tests {
 
         // Minimum recommended metadata size for thinpool
         let meta_length = Sectors(4 * IEC::Ki);
+        let meta_params = LinearTargetParams::new(dev1, Sectors(0));
         let meta_table = LinearDevTargetTable {
-            table: vec![TargetLine {
-                            start: Sectors(0),
-                            length: meta_length,
-                            params:
-                                LinearDevTargetParams::Linear(LinearTargetParams::new(dev1,
-                                                                                      Sectors(0))),
-                        }],
+            table: vec![TargetLine::new(Sectors(0),
+                                        meta_length,
+                                        LinearDevTargetParams::Linear(meta_params))],
         };
         let meta = LinearDev::setup(&dm, meta_name, None, meta_table).unwrap();
 
@@ -697,11 +688,9 @@ mod tests {
         let cache_length = MIN_CACHE_BLOCK_SIZE;
         let cache_params = LinearTargetParams::new(dev1, cache_offset);
         let cache_table = LinearDevTargetTable {
-            table: vec![TargetLine {
-                            start: Sectors(0),
-                            length: cache_length,
-                            params: LinearDevTargetParams::Linear(cache_params),
-                        }],
+            table: vec![TargetLine::new(Sectors(0),
+                                        cache_length,
+                                        LinearDevTargetParams::Linear(cache_params))],
         };
         let cache = LinearDev::setup(&dm, cache_name, None, cache_table).unwrap();
 
@@ -711,11 +700,9 @@ mod tests {
         let origin_length = 512u64 * MIN_CACHE_BLOCK_SIZE;
         let origin_params = LinearTargetParams::new(dev2, Sectors(0));
         let origin_table = LinearDevTargetTable {
-            table: vec![TargetLine {
-                            start: Sectors(0),
-                            length: origin_length,
-                            params: LinearDevTargetParams::Linear(origin_params),
-                        }],
+            table: vec![TargetLine::new(Sectors(0),
+                                        origin_length,
+                                        LinearDevTargetParams::Linear(origin_params))],
         };
         let origin = LinearDev::setup(&dm, origin_name, None, origin_table).unwrap();
 

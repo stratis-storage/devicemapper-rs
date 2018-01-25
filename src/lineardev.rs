@@ -332,12 +332,10 @@ impl TargetTable for LinearDevTargetTable {
                table: table
                    .into_iter()
                    .map(|x| -> DmResult<TargetLine<LinearDevTargetParams>> {
-                            Ok(TargetLine {
-                                   start: x.0,
-                                   length: x.1,
-                                   params: format!("{} {}", x.2.to_string(), x.3)
-                                       .parse::<LinearDevTargetParams>()?,
-                               })
+                            Ok(TargetLine::new(x.0,
+                                               x.1,
+                                               format!("{} {}", x.2.to_string(), x.3)
+                                                   .parse::<LinearDevTargetParams>()?))
                         })
                    .collect::<DmResult<Vec<_>>>()?,
            })
@@ -505,11 +503,9 @@ mod tests {
         let dev = Device::from(devnode_to_devno(&paths[0]).unwrap().unwrap());
         let params = LinearTargetParams::new(dev, Sectors(0));
         let table = LinearDevTargetTable {
-            table: vec![TargetLine {
-                            start: Sectors(0),
-                            length: Sectors(1),
-                            params: LinearDevTargetParams::Linear(params),
-                        }],
+            table: vec![TargetLine::new(Sectors(0),
+                                        Sectors(1),
+                                        LinearDevTargetParams::Linear(params))],
         };
         let mut ld = LinearDev::setup(&dm, DmName::new(name).expect("valid format"), None, table)
             .unwrap();
@@ -530,11 +526,9 @@ mod tests {
         let dev = Device::from(devnode_to_devno(&paths[0]).unwrap().unwrap());
         let params = LinearTargetParams::new(dev, Sectors(0));
         let table = LinearDevTargetTable {
-            table: vec![TargetLine {
-                            start: Sectors(0),
-                            length: Sectors(1),
-                            params: LinearDevTargetParams::Linear(params),
-                        }],
+            table: vec![TargetLine::new(Sectors(0),
+                                        Sectors(1),
+                                        LinearDevTargetParams::Linear(params))],
         };
         let mut ld = LinearDev::setup(&dm, DmName::new(name).expect("valid format"), None, table)
             .unwrap();
@@ -559,16 +553,12 @@ mod tests {
         let dev = Device::from(devnode_to_devno(&paths[0]).unwrap().unwrap());
         let params = LinearTargetParams::new(dev, Sectors(0));
         let table = LinearDevTargetTable {
-            table: vec![TargetLine {
-                            start: Sectors(0),
-                            length: Sectors(1),
-                            params: LinearDevTargetParams::Linear(params.clone()),
-                        },
-                        TargetLine {
-                            start: Sectors(1),
-                            length: Sectors(1),
-                            params: LinearDevTargetParams::Linear(params),
-                        }],
+            table: vec![TargetLine::new(Sectors(0),
+                                        Sectors(1),
+                                        LinearDevTargetParams::Linear(params.clone())),
+                        TargetLine::new(Sectors(1),
+                                        Sectors(1),
+                                        LinearDevTargetParams::Linear(params))],
         };
         let range: Sectors = table.table.iter().map(|s| s.length).sum();
         let count = table.table.len();
@@ -608,12 +598,10 @@ mod tests {
         let dev = Device::from(devnode_to_devno(&paths[0]).unwrap().unwrap());
         let table = (0..5)
             .map(|n| {
-                     TargetLine {
-                         start: Sectors(n),
-                         length: Sectors(1),
-                         params: LinearDevTargetParams::Linear(LinearTargetParams::new(dev,
-                                                                                       Sectors(n))),
-                     }
+                     TargetLine::new(Sectors(n),
+                                Sectors(1),
+                                LinearDevTargetParams::Linear(LinearTargetParams::new(dev,
+                                                                                      Sectors(n))))
                  })
             .collect::<Vec<_>>();
         let table = LinearDevTargetTable { table: table };
@@ -639,11 +627,9 @@ mod tests {
         let dev = Device::from(devnode_to_devno(&paths[0]).unwrap().unwrap());
         let params = LinearTargetParams::new(dev, Sectors(0));
         let table = LinearDevTargetTable {
-            table: vec![TargetLine {
-                            start: Sectors(0),
-                            length: Sectors(1),
-                            params: LinearDevTargetParams::Linear(params),
-                        }],
+            table: vec![TargetLine::new(Sectors(0),
+                                        Sectors(1),
+                                        LinearDevTargetParams::Linear(params))],
         };
         let ld = LinearDev::setup(&dm,
                                   DmName::new(name).expect("valid format"),
@@ -652,11 +638,9 @@ mod tests {
                 .unwrap();
         let params2 = LinearTargetParams::new(dev, Sectors(1));
         let table2 = LinearDevTargetTable {
-            table: vec![TargetLine {
-                            start: Sectors(0),
-                            length: Sectors(1),
-                            params: LinearDevTargetParams::Linear(params2),
-                        }],
+            table: vec![TargetLine::new(Sectors(0),
+                                        Sectors(1),
+                                        LinearDevTargetParams::Linear(params2))],
         };
         assert!(LinearDev::setup(&dm, DmName::new(name).expect("valid format"), None, table2)
                     .is_err());
@@ -673,11 +657,9 @@ mod tests {
         let dev = Device::from(devnode_to_devno(&paths[0]).unwrap().unwrap());
         let params = LinearTargetParams::new(dev, Sectors(0));
         let table = LinearDevTargetTable {
-            table: vec![TargetLine {
-                            start: Sectors(0),
-                            length: Sectors(1),
-                            params: LinearDevTargetParams::Linear(params),
-                        }],
+            table: vec![TargetLine::new(Sectors(0),
+                                        Sectors(1),
+                                        LinearDevTargetParams::Linear(params))],
         };
         let ld = LinearDev::setup(&dm,
                                   DmName::new("name").expect("valid format"),

@@ -112,7 +112,7 @@ pub use device::{Device, devnode_to_devno};
 pub use lineardev::{FlakeyTargetParams, LinearDev, LinearDevTargetParams, LinearDevTargetTable,
                     LinearTargetParams};
 pub use result::{DmResult, DmError, ErrorEnum};
-pub use shared::{DmDevice, device_exists};
+pub use shared::{DmDevice, TargetLine, device_exists};
 pub use thinpooldev::{ThinPoolUsage, ThinPoolDev, ThinPoolNoSpacePolicy, ThinPoolStatus,
                       ThinPoolStatusSummary, ThinPoolWorkingStatus};
 pub use thindev::{ThinDev, ThinDevWorkingStatus, ThinStatus};
