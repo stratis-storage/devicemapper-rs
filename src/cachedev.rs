@@ -659,8 +659,8 @@ mod tests {
 
     use super::super::consts::IEC;
     use super::super::device::devnode_to_devno;
+    use super::super::lineardev::{LinearDevTargetParams, LinearDevTargetTable, LinearTargetParams};
     use super::super::loopbacked::test_with_spec;
-    use super::super::segment::Segment;
 
     use super::*;
 
@@ -681,30 +681,43 @@ mod tests {
 
         // Minimum recommended metadata size for thinpool
         let meta_length = Sectors(4 * IEC::Ki);
-        let meta = LinearDev::setup(&dm,
-                                    meta_name,
-                                    None,
-                                    &[Segment::new(dev1, Sectors(0), meta_length)])
-                .unwrap();
+        let meta_table = LinearDevTargetTable {
+            table: vec![TargetLine {
+                            start: Sectors(0),
+                            length: meta_length,
+                            params:
+                                LinearDevTargetParams::Linear(LinearTargetParams::new(dev1,
+                                                                                      Sectors(0))),
+                        }],
+        };
+        let meta = LinearDev::setup(&dm, meta_name, None, meta_table).unwrap();
 
         let cache_name = DmName::new("cache-cache").expect("valid format");
         let cache_offset = meta_length;
         let cache_length = MIN_CACHE_BLOCK_SIZE;
-        let cache = LinearDev::setup(&dm,
-                                     cache_name,
-                                     None,
-                                     &[Segment::new(dev1, cache_offset, cache_length)])
-                .unwrap();
+        let cache_params = LinearTargetParams::new(dev1, cache_offset);
+        let cache_table = LinearDevTargetTable {
+            table: vec![TargetLine {
+                            start: Sectors(0),
+                            length: cache_length,
+                            params: LinearDevTargetParams::Linear(cache_params),
+                        }],
+        };
+        let cache = LinearDev::setup(&dm, cache_name, None, cache_table).unwrap();
 
         let dev2 = Device::from(devnode_to_devno(paths[1]).unwrap().unwrap());
 
         let origin_name = DmName::new("cache-origin").expect("valid format");
         let origin_length = 512u64 * MIN_CACHE_BLOCK_SIZE;
-        let origin = LinearDev::setup(&dm,
-                                      origin_name,
-                                      None,
-                                      &[Segment::new(dev2, Sectors(0), origin_length)])
-                .unwrap();
+        let origin_params = LinearTargetParams::new(dev2, Sectors(0));
+        let origin_table = LinearDevTargetTable {
+            table: vec![TargetLine {
+                            start: Sectors(0),
+                            length: origin_length,
+                            params: LinearDevTargetParams::Linear(origin_params),
+                        }],
+        };
+        let origin = LinearDev::setup(&dm, origin_name, None, origin_table).unwrap();
 
         let cache = CacheDev::new(&dm,
                                   DmName::new("cache").expect("valid format"),

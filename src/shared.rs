@@ -38,7 +38,7 @@ pub struct TargetLine<T: TargetParams> {
     pub params: T,
 }
 
-pub trait TargetTable: fmt::Debug + Eq + PartialEq + Sized {
+pub trait TargetTable: Clone + fmt::Debug + Eq + PartialEq + Sized {
     /// Constructs a table from a raw table returned by DM::table_status()
     fn from_raw_table(table: &[(Sectors, Sectors, TargetTypeBuf, String)]) -> DmResult<Self>;
 

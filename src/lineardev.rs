@@ -11,7 +11,6 @@ use super::device::Device;
 use super::deviceinfo::DeviceInfo;
 use super::dm::{DM, DmFlags};
 use super::result::{DmResult, DmError, ErrorEnum};
-use super::segment::Segment;
 use super::shared::{DmDevice, TargetLine, TargetParams, TargetTable, device_create, device_exists,
                     device_match, parse_device, table_reload};
 use super::types::{DevId, DmName, DmUuid, Sectors, TargetTypeBuf};
@@ -21,17 +20,21 @@ const FLAKEY_TARGET_NAME: &str = "flakey";
 const LINEAR_TARGET_NAME: &str = "linear";
 
 
+/// Struct representing params for a linear target
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct LinearTargetParams {
+    /// Device on which this segment resides.
     pub device: Device,
-    pub physical_start_offset: Sectors,
+    /// Start offset in device on which this segment resides.
+    pub start_offset: Sectors,
 }
 
 impl LinearTargetParams {
-    pub fn new(device: Device, physical_start_offset: Sectors) -> LinearTargetParams {
+    /// Create a new LinearTargetParams struct
+    pub fn new(device: Device, start_offset: Sectors) -> LinearTargetParams {
         LinearTargetParams {
             device: device,
-            physical_start_offset: physical_start_offset,
+            start_offset: start_offset,
         }
     }
 }
@@ -76,7 +79,7 @@ impl FromStr for LinearTargetParams {
 
 impl TargetParams for LinearTargetParams {
     fn param_str(&self) -> String {
-        format!("{} {}", self.device, *self.physical_start_offset)
+        format!("{} {}", self.device, *self.start_offset)
     }
 
     fn target_type(&self) -> TargetTypeBuf {
@@ -260,9 +263,12 @@ impl TargetParams for FlakeyTargetParams {
 }
 
 
+/// Target params for linear dev. These are either flakey or linear.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum LinearDevTargetParams {
+    /// A flakey target
     Flakey(FlakeyTargetParams),
+    /// A linear target
     Linear(LinearTargetParams),
 }
 
@@ -311,9 +317,12 @@ impl TargetParams for LinearDevTargetParams {
 }
 
 
-#[derive(Debug, Eq, PartialEq)]
+/// A target table for a linear device. Such a table allows flakey targets
+/// as well as linear targets.
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct LinearDevTargetTable {
-    table: Vec<TargetLine<LinearDevTargetParams>>,
+    /// The device's table
+    pub table: Vec<TargetLine<LinearDevTargetParams>>,
 }
 
 impl TargetTable for LinearDevTargetTable {
@@ -415,14 +424,13 @@ impl LinearDev {
     pub fn setup(dm: &DM,
                  name: &DmName,
                  uuid: Option<&DmUuid>,
-                 segments: &[Segment])
+                 table: LinearDevTargetTable)
                  -> DmResult<LinearDev> {
-        if segments.is_empty() {
+        if table.table.is_empty() {
             return Err(DmError::Dm(ErrorEnum::Invalid,
                                    "linear device must have at least one segment".into()));
         }
 
-        let table = LinearDev::gen_default_table(segments);
         let dev = if device_exists(dm, name)? {
             let dev_info = dm.device_info(&DevId::Name(name))?;
             let dev = LinearDev {
@@ -441,47 +449,17 @@ impl LinearDev {
         Ok(dev)
     }
 
-    /// Generate a table to be passed to DM.  The format of the table entries
-    /// is:
-    /// <logical start offset> <length> "linear" <linear-specific string>
-    /// where the linear-specific string has the format:
-    /// <maj:min> <physical start offset>
-    /// Note that the segments argument does not fully specify the table. This
-    /// method assumes a default placement of the segments on the device, i.e.,
-    /// adjacent and in the same order as in the slice.
-    fn gen_default_table(segments: &[Segment]) -> LinearDevTargetTable {
-        assert_ne!(segments.len(), 0);
-
-        let mut table = Vec::new();
-        let mut logical_start_offset = Sectors(0);
-        for segment in segments {
-            let (physical_start_offset, length) = (segment.start, segment.length);
-            let line = TargetLine {
-                start: logical_start_offset,
-                length: length,
-                params:
-                    LinearDevTargetParams::Linear(LinearTargetParams::new(segment.device,
-                                                                          physical_start_offset)),
-            };
-            table.push(line);
-            logical_start_offset += length;
-        }
-
-        LinearDevTargetTable { table: table }
-    }
-
     /// Set the segments for this linear device.
     /// Warning: It is the client's responsibility to make sure the designated
     /// segments are compatible with the device's existing segments.
     /// If they are not, this function will still succeed, but some kind of
     /// data corruption will be the inevitable result.
-    pub fn set_segments(&mut self, dm: &DM, segments: &[Segment]) -> DmResult<()> {
-        if segments.is_empty() {
+    pub fn set_table(&mut self, dm: &DM, table: LinearDevTargetTable) -> DmResult<()> {
+        if table.table.is_empty() {
             return Err(DmError::Dm(ErrorEnum::Invalid,
                                    "linear device must have at least one segment".into()));
         }
 
-        let table = LinearDev::gen_default_table(segments);
         table_reload(dm, &DevId::Name(self.name()), &table)?;
         self.table = table;
         Ok(())
@@ -500,6 +478,7 @@ impl LinearDev {
 
 #[cfg(test)]
 mod tests {
+    use std::clone::Clone;
     use std::fs::OpenOptions;
     use std::path::Path;
 
@@ -513,7 +492,7 @@ mod tests {
         assert!(LinearDev::setup(&DM::new().unwrap(),
                                  DmName::new("new").expect("valid format"),
                                  None,
-                                 &[])
+                                 LinearDevTargetTable { table: vec![] })
                         .is_err());
     }
 
@@ -524,11 +503,16 @@ mod tests {
         let dm = DM::new().unwrap();
         let name = "name";
         let dev = Device::from(devnode_to_devno(&paths[0]).unwrap().unwrap());
-        let mut ld = LinearDev::setup(&dm,
-                                      DmName::new(name).expect("valid format"),
-                                      None,
-                                      &[Segment::new(dev, Sectors(0), Sectors(1))])
-                .unwrap();
+        let params = LinearTargetParams::new(dev, Sectors(0));
+        let table = LinearDevTargetTable {
+            table: vec![TargetLine {
+                            start: Sectors(0),
+                            length: Sectors(1),
+                            params: LinearDevTargetParams::Linear(params),
+                        }],
+        };
+        let mut ld = LinearDev::setup(&dm, DmName::new(name).expect("valid format"), None, table)
+            .unwrap();
 
         ld.set_name(&dm, DmName::new(name).expect("valid format"))
             .unwrap();
@@ -544,11 +528,16 @@ mod tests {
         let dm = DM::new().unwrap();
         let name = "name";
         let dev = Device::from(devnode_to_devno(&paths[0]).unwrap().unwrap());
-        let mut ld = LinearDev::setup(&dm,
-                                      DmName::new(name).expect("valid format"),
-                                      None,
-                                      &[Segment::new(dev, Sectors(0), Sectors(1))])
-                .unwrap();
+        let params = LinearTargetParams::new(dev, Sectors(0));
+        let table = LinearDevTargetTable {
+            table: vec![TargetLine {
+                            start: Sectors(0),
+                            length: Sectors(1),
+                            params: LinearDevTargetParams::Linear(params),
+                        }],
+        };
+        let mut ld = LinearDev::setup(&dm, DmName::new(name).expect("valid format"), None, table)
+            .unwrap();
 
         let new_name = "new_name";
         ld.set_name(&dm, DmName::new(new_name).expect("valid format"))
@@ -568,15 +557,23 @@ mod tests {
         let dm = DM::new().unwrap();
         let name = "name";
         let dev = Device::from(devnode_to_devno(&paths[0]).unwrap().unwrap());
-        let segments = &[Segment::new(dev, Sectors(0), Sectors(1)),
-                         Segment::new(dev, Sectors(0), Sectors(1))];
-        let range: Sectors = segments.iter().map(|s| s.length).sum();
-        let count = segments.len();
-        let ld = LinearDev::setup(&dm,
-                                  DmName::new(name).expect("valid format"),
-                                  None,
-                                  segments)
-                .unwrap();
+        let params = LinearTargetParams::new(dev, Sectors(0));
+        let table = LinearDevTargetTable {
+            table: vec![TargetLine {
+                            start: Sectors(0),
+                            length: Sectors(1),
+                            params: LinearDevTargetParams::Linear(params.clone()),
+                        },
+                        TargetLine {
+                            start: Sectors(1),
+                            length: Sectors(1),
+                            params: LinearDevTargetParams::Linear(params),
+                        }],
+        };
+        let range: Sectors = table.table.iter().map(|s| s.length).sum();
+        let count = table.table.len();
+        let ld = LinearDev::setup(&dm, DmName::new(name).expect("valid format"), None, table)
+            .unwrap();
 
         let table = LinearDev::load_table(&dm, &DevId::Name(ld.name()))
             .unwrap()
@@ -609,19 +606,25 @@ mod tests {
         let dm = DM::new().unwrap();
         let name = "name";
         let dev = Device::from(devnode_to_devno(&paths[0]).unwrap().unwrap());
-        let segments = (0..5)
-            .map(|n| Segment::new(dev, Sectors(n), Sectors(1)))
-            .collect::<Vec<Segment>>();
-
+        let table = (0..5)
+            .map(|n| {
+                     TargetLine {
+                         start: Sectors(n),
+                         length: Sectors(1),
+                         params: LinearDevTargetParams::Linear(LinearTargetParams::new(dev,
+                                                                                       Sectors(n))),
+                     }
+                 })
+            .collect::<Vec<_>>();
+        let table = LinearDevTargetTable { table: table };
         let ld = LinearDev::setup(&dm,
                                   DmName::new(name).expect("valid format"),
                                   None,
-                                  &segments)
+                                  table.clone())
                 .unwrap();
 
-        let table = LinearDev::load_table(&dm, &DevId::Name(ld.name())).unwrap();
-        assert!(LinearDev::equivalent_tables(&table, &LinearDev::gen_default_table(&segments))
-                    .unwrap());
+        let loaded_table = LinearDev::load_table(&dm, &DevId::Name(ld.name())).unwrap();
+        assert!(LinearDev::equivalent_tables(&table, &loaded_table).unwrap());
 
         ld.teardown(&dm).unwrap();
     }
@@ -634,22 +637,31 @@ mod tests {
         let dm = DM::new().unwrap();
         let name = "name";
         let dev = Device::from(devnode_to_devno(&paths[0]).unwrap().unwrap());
-        let segments = &[Segment::new(dev, Sectors(0), Sectors(1))];
+        let params = LinearTargetParams::new(dev, Sectors(0));
+        let table = LinearDevTargetTable {
+            table: vec![TargetLine {
+                            start: Sectors(0),
+                            length: Sectors(1),
+                            params: LinearDevTargetParams::Linear(params),
+                        }],
+        };
         let ld = LinearDev::setup(&dm,
                                   DmName::new(name).expect("valid format"),
                                   None,
-                                  segments)
+                                  table.clone())
                 .unwrap();
-        assert!(LinearDev::setup(&dm,
-                                 DmName::new(name).expect("valid format"),
-                                 None,
-                                 &[Segment::new(dev, Sectors(1), Sectors(1))])
-                        .is_err());
-        assert!(LinearDev::setup(&dm,
-                                 DmName::new(name).expect("valid format"),
-                                 None,
-                                 segments)
-                        .is_ok());
+        let params2 = LinearTargetParams::new(dev, Sectors(1));
+        let table2 = LinearDevTargetTable {
+            table: vec![TargetLine {
+                            start: Sectors(0),
+                            length: Sectors(1),
+                            params: LinearDevTargetParams::Linear(params2),
+                        }],
+        };
+        assert!(LinearDev::setup(&dm, DmName::new(name).expect("valid format"), None, table2)
+                    .is_err());
+        assert!(LinearDev::setup(&dm, DmName::new(name).expect("valid format"), None, table)
+                    .is_ok());
         ld.teardown(&dm).unwrap();
     }
 
@@ -659,16 +671,23 @@ mod tests {
 
         let dm = DM::new().unwrap();
         let dev = Device::from(devnode_to_devno(&paths[0]).unwrap().unwrap());
-        let segments = &[Segment::new(dev, Sectors(0), Sectors(1))];
+        let params = LinearTargetParams::new(dev, Sectors(0));
+        let table = LinearDevTargetTable {
+            table: vec![TargetLine {
+                            start: Sectors(0),
+                            length: Sectors(1),
+                            params: LinearDevTargetParams::Linear(params),
+                        }],
+        };
         let ld = LinearDev::setup(&dm,
                                   DmName::new("name").expect("valid format"),
                                   None,
-                                  segments)
+                                  table.clone())
                 .unwrap();
         let ld2 = LinearDev::setup(&dm,
                                    DmName::new("ersatz").expect("valid format"),
                                    None,
-                                   segments);
+                                   table);
         assert!(ld2.is_ok());
 
         ld2.unwrap().teardown(&dm).unwrap();

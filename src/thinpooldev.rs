@@ -10,9 +10,8 @@ use std::str::FromStr;
 use super::device::Device;
 use super::deviceinfo::DeviceInfo;
 use super::dm::{DM, DmFlags};
-use super::lineardev::LinearDev;
+use super::lineardev::{LinearDev, LinearDevTargetTable};
 use super::result::{DmResult, DmError, ErrorEnum};
-use super::segment::Segment;
 use super::shared::{DmDevice, TargetLine, TargetParams, TargetTable, device_create, device_exists,
                     device_match, parse_device, table_reload};
 use super::types::{DataBlocks, DevId, DmName, DmUuid, MetaBlocks, Sectors, TargetTypeBuf};
@@ -516,13 +515,13 @@ impl ThinPoolDev {
                                                                        needs_check))))
     }
 
-    /// Set the segments for the existing metadata device.
+    /// Set the table for the existing metadata device.
     /// Warning: It is the client's responsibility to make sure the designated
-    /// segments are compatible with the device's existing segments.
-    /// If they are not, this function will still succeed, but some kind of
+    /// table is compatible with the device's existing table.
+    /// If are not, this function will still succeed, but some kind of
     /// data corruption will be the inevitable result.
-    pub fn set_meta_segments(&mut self, dm: &DM, segments: &[Segment]) -> DmResult<()> {
-        self.meta_dev.set_segments(dm, segments)?;
+    pub fn set_meta_table(&mut self, dm: &DM, table: LinearDevTargetTable) -> DmResult<()> {
+        self.meta_dev.set_table(dm, table)?;
 
         // TODO: Verify if it is really necessary to reload the table if
         // there has been no change.
@@ -531,13 +530,13 @@ impl ThinPoolDev {
         Ok(())
     }
 
-    /// Set the data device's existing segments.
+    /// Set the data device's existing table.
     /// Warning: It is the client's responsibility to make sure the designated
-    /// segments are compatible with the device's existing segments.
-    /// If they are not, this function will still succeed, but some kind of
+    /// table is compatible with the device's existing table.
+    /// If not, this function will still succeed, but some kind of
     /// data corruption will be the inevitable result.
-    pub fn set_data_segments(&mut self, dm: &DM, segments: &[Segment]) -> DmResult<()> {
-        self.data_dev.set_segments(dm, segments)?;
+    pub fn set_data_table(&mut self, dm: &DM, table: LinearDevTargetTable) -> DmResult<()> {
+        self.data_dev.set_table(dm, table)?;
 
         let mut table = self.table.clone();
         table.table.length = self.data_dev.size();
@@ -552,6 +551,8 @@ impl ThinPoolDev {
 use std::fs::OpenOptions;
 #[cfg(test)]
 use super::consts::IEC;
+#[cfg(test)]
+use super::lineardev::{LinearDevTargetParams, LinearTargetParams};
 #[cfg(test)]
 use super::loopbacked::blkdev_size;
 
@@ -573,18 +574,32 @@ const MAX_RECOMMENDED_METADATA_SIZE: Sectors = Sectors(32 * IEC::Mi); // 16 GiB
 pub fn minimal_thinpool(dm: &DM, path: &Path) -> ThinPoolDev {
     let dev_size = blkdev_size(&OpenOptions::new().read(true).open(path).unwrap()).sectors();
     let dev = Device::from(devnode_to_devno(path).unwrap().unwrap());
+    let meta_params = LinearTargetParams::new(dev, Sectors(0));
+    let meta_table = LinearDevTargetTable {
+        table: vec![TargetLine {
+                        start: Sectors(0),
+                        length: MIN_RECOMMENDED_METADATA_SIZE,
+                        params: LinearDevTargetParams::Linear(meta_params),
+                    }],
+    };
     let meta = LinearDev::setup(dm,
                                 DmName::new("meta").expect("valid format"),
                                 None,
-                                &[Segment::new(dev, Sectors(0), MIN_RECOMMENDED_METADATA_SIZE)])
+                                meta_table)
             .unwrap();
 
+    let data_params = LinearTargetParams::new(dev, MIN_RECOMMENDED_METADATA_SIZE);
+    let data_table = LinearDevTargetTable {
+        table: vec![TargetLine {
+                        start: Sectors(0),
+                        length: dev_size - MIN_RECOMMENDED_METADATA_SIZE,
+                        params: LinearDevTargetParams::Linear(data_params),
+                    }],
+    };
     let data = LinearDev::setup(dm,
                                 DmName::new("data").expect("valid format"),
                                 None,
-                                &[Segment::new(dev,
-                                               MIN_RECOMMENDED_METADATA_SIZE,
-                                               dev_size - MIN_RECOMMENDED_METADATA_SIZE)])
+                                data_table)
             .unwrap();
 
     ThinPoolDev::new(dm,
@@ -651,21 +666,26 @@ mod tests {
         let dm = DM::new().unwrap();
 
         let meta_name = DmName::new("meta").expect("valid format");
-        let meta =
-            LinearDev::setup(&dm,
-                             meta_name,
-                             None,
-                             &[Segment::new(dev, Sectors(0), MIN_RECOMMENDED_METADATA_SIZE)])
-                    .unwrap();
+        let meta_params = LinearTargetParams::new(dev, Sectors(0));
+        let meta_table = LinearDevTargetTable {
+            table: vec![TargetLine {
+                            start: Sectors(0),
+                            length: MIN_RECOMMENDED_METADATA_SIZE,
+                            params: LinearDevTargetParams::Linear(meta_params),
+                        }],
+        };
+        let meta = LinearDev::setup(&dm, meta_name, None, meta_table).unwrap();
 
         let data_name = DmName::new("data").expect("valid format");
-        let data = LinearDev::setup(&dm,
-                                    data_name,
-                                    None,
-                                    &[Segment::new(dev,
-                                                   MIN_RECOMMENDED_METADATA_SIZE,
-                                                   512u64 * MIN_DATA_BLOCK_SIZE)])
-                .unwrap();
+        let data_params = LinearTargetParams::new(dev, MIN_RECOMMENDED_METADATA_SIZE);
+        let data_table = LinearDevTargetTable {
+            table: vec![TargetLine {
+                            start: Sectors(0),
+                            length: 512u64 * MIN_DATA_BLOCK_SIZE,
+                            params: LinearDevTargetParams::Linear(data_params),
+                        }],
+        };
+        let data = LinearDev::setup(&dm, data_name, None, data_table).unwrap();
 
         assert!(match ThinPoolDev::new(&dm,
                                        DmName::new("pool").expect("valid format"),
