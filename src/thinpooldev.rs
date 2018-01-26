@@ -569,11 +569,9 @@ pub fn minimal_thinpool(dm: &DM, path: &Path) -> ThinPoolDev {
     let dev_size = blkdev_size(&OpenOptions::new().read(true).open(path).unwrap()).sectors();
     let dev = Device::from(devnode_to_devno(path).unwrap().unwrap());
     let meta_params = LinearTargetParams::new(dev, Sectors(0));
-    let meta_table = LinearDevTargetTable {
-        table: vec![TargetLine::new(Sectors(0),
+    let meta_table = LinearDevTargetTable::new(vec![TargetLine::new(Sectors(0),
                                     MIN_RECOMMENDED_METADATA_SIZE,
-                                    LinearDevTargetParams::Linear(meta_params))],
-    };
+                                    LinearDevTargetParams::Linear(meta_params))]);
     let meta = LinearDev::setup(dm,
                                 DmName::new("meta").expect("valid format"),
                                 None,
@@ -581,11 +579,9 @@ pub fn minimal_thinpool(dm: &DM, path: &Path) -> ThinPoolDev {
             .unwrap();
 
     let data_params = LinearTargetParams::new(dev, MIN_RECOMMENDED_METADATA_SIZE);
-    let data_table = LinearDevTargetTable {
-        table: vec![TargetLine::new(Sectors(0),
+    let data_table = LinearDevTargetTable::new(vec![TargetLine::new(Sectors(0),
                                     dev_size - MIN_RECOMMENDED_METADATA_SIZE,
-                                    LinearDevTargetParams::Linear(data_params))],
-    };
+                                    LinearDevTargetParams::Linear(data_params))]);
     let data = LinearDev::setup(dm,
                                 DmName::new("data").expect("valid format"),
                                 None,
@@ -657,20 +653,16 @@ mod tests {
 
         let meta_name = DmName::new("meta").expect("valid format");
         let meta_params = LinearTargetParams::new(dev, Sectors(0));
-        let meta_table = LinearDevTargetTable {
-            table: vec![TargetLine::new(Sectors(0),
+        let meta_table = LinearDevTargetTable::new(vec![TargetLine::new(Sectors(0),
                                         MIN_RECOMMENDED_METADATA_SIZE,
-                                        LinearDevTargetParams::Linear(meta_params))],
-        };
+                                        LinearDevTargetParams::Linear(meta_params))]);
         let meta = LinearDev::setup(&dm, meta_name, None, meta_table).unwrap();
 
         let data_name = DmName::new("data").expect("valid format");
         let data_params = LinearTargetParams::new(dev, MIN_RECOMMENDED_METADATA_SIZE);
-        let data_table = LinearDevTargetTable {
-            table: vec![TargetLine::new(Sectors(0),
+        let data_table = LinearDevTargetTable::new(vec![TargetLine::new(Sectors(0),
                                         512u64 * MIN_DATA_BLOCK_SIZE,
-                                        LinearDevTargetParams::Linear(data_params))],
-        };
+                                        LinearDevTargetParams::Linear(data_params))]);
         let data = LinearDev::setup(&dm, data_name, None, data_table).unwrap();
 
         assert!(match ThinPoolDev::new(&dm,
