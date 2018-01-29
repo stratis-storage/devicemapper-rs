@@ -10,7 +10,7 @@ use std::str::FromStr;
 use super::device::Device;
 use super::deviceinfo::DeviceInfo;
 use super::dm::{DM, DmFlags};
-use super::lineardev::{LinearDev, LinearDevTargetTable};
+use super::lineardev::{LinearDev, LinearDevTargetParams};
 use super::result::{DmResult, DmError, ErrorEnum};
 use super::shared::{DmDevice, TargetLine, TargetParams, TargetTable, device_create, device_exists,
                     device_match, parse_device, table_reload};
@@ -495,7 +495,10 @@ impl CacheDev {
     /// table is compatible with the device's existing table.
     /// If not, this function will still succeed, but some kind of
     /// data corruption will be the inevitable result.
-    pub fn set_origin_table(&mut self, dm: &DM, table: LinearDevTargetTable) -> DmResult<()> {
+    pub fn set_origin_table(&mut self,
+                            dm: &DM,
+                            table: Vec<TargetLine<LinearDevTargetParams>>)
+                            -> DmResult<()> {
         self.origin_dev.set_table(dm, table)?;
 
         let mut table = self.table.clone();
@@ -669,7 +672,7 @@ mod tests {
 
     use super::super::consts::IEC;
     use super::super::device::devnode_to_devno;
-    use super::super::lineardev::{LinearDevTargetParams, LinearDevTargetTable, LinearTargetParams};
+    use super::super::lineardev::{LinearDevTargetParams, LinearTargetParams};
     use super::super::loopbacked::test_with_spec;
 
     use super::*;
@@ -692,18 +695,18 @@ mod tests {
         // Minimum recommended metadata size for thinpool
         let meta_length = Sectors(4 * IEC::Ki);
         let meta_params = LinearTargetParams::new(dev1, Sectors(0));
-        let meta_table = LinearDevTargetTable::new(vec![TargetLine::new(Sectors(0),
-                                        meta_length,
-                                        LinearDevTargetParams::Linear(meta_params))]);
+        let meta_table = vec![TargetLine::new(Sectors(0),
+                                              meta_length,
+                                              LinearDevTargetParams::Linear(meta_params))];
         let meta = LinearDev::setup(&dm, meta_name, None, meta_table).unwrap();
 
         let cache_name = DmName::new("cache-cache").expect("valid format");
         let cache_offset = meta_length;
         let cache_length = MIN_CACHE_BLOCK_SIZE;
         let cache_params = LinearTargetParams::new(dev1, cache_offset);
-        let cache_table = LinearDevTargetTable::new(vec![TargetLine::new(Sectors(0),
-                                        cache_length,
-                                        LinearDevTargetParams::Linear(cache_params))]);
+        let cache_table = vec![TargetLine::new(Sectors(0),
+                                               cache_length,
+                                               LinearDevTargetParams::Linear(cache_params))];
         let cache = LinearDev::setup(&dm, cache_name, None, cache_table).unwrap();
 
         let dev2 = Device::from(devnode_to_devno(paths[1]).unwrap().unwrap());
@@ -711,9 +714,9 @@ mod tests {
         let origin_name = DmName::new("cache-origin").expect("valid format");
         let origin_length = 512u64 * MIN_CACHE_BLOCK_SIZE;
         let origin_params = LinearTargetParams::new(dev2, Sectors(0));
-        let origin_table = LinearDevTargetTable::new(vec![TargetLine::new(Sectors(0),
-                                        origin_length,
-                                        LinearDevTargetParams::Linear(origin_params))]);
+        let origin_table = vec![TargetLine::new(Sectors(0),
+                                                origin_length,
+                                                LinearDevTargetParams::Linear(origin_params))];
         let origin = LinearDev::setup(&dm, origin_name, None, origin_table).unwrap();
 
         let cache = CacheDev::new(&dm,
