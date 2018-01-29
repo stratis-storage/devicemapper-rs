@@ -431,11 +431,6 @@ impl LinearDev {
                  uuid: Option<&DmUuid>,
                  table: LinearDevTargetTable)
                  -> DmResult<LinearDev> {
-        if table.table.is_empty() {
-            return Err(DmError::Dm(ErrorEnum::Invalid,
-                                   "linear device must have at least one segment".into()));
-        }
-
         let dev = if device_exists(dm, name)? {
             let dev_info = dm.device_info(&DevId::Name(name))?;
             let dev = LinearDev {
@@ -460,11 +455,6 @@ impl LinearDev {
     /// If they are not, this function will still succeed, but some kind of
     /// data corruption will be the inevitable result.
     pub fn set_table(&mut self, dm: &DM, table: LinearDevTargetTable) -> DmResult<()> {
-        if table.table.is_empty() {
-            return Err(DmError::Dm(ErrorEnum::Invalid,
-                                   "linear device must have at least one segment".into()));
-        }
-
         table_reload(dm, &DevId::Name(self.name()), &table)?;
         self.table = table;
         Ok(())
@@ -499,6 +489,25 @@ mod tests {
                                  None,
                                  LinearDevTargetTable { table: vec![] })
                         .is_err());
+    }
+
+    /// Verify that setting an empty table on an existing DM device fails.
+    fn test_empty_table_set(paths: &[&Path]) -> () {
+        assert!(paths.len() >= 1);
+
+        let dm = DM::new().unwrap();
+        let name = "name";
+        let dev = Device::from(devnode_to_devno(&paths[0]).unwrap().unwrap());
+        let params = LinearTargetParams::new(dev, Sectors(0));
+        let table = LinearDevTargetTable::new(vec![TargetLine::new(Sectors(0),
+                                         Sectors(1),
+                                         LinearDevTargetParams::Linear(params))]);
+        let mut ld = LinearDev::setup(&dm, DmName::new(name).expect("valid format"), None, table)
+            .unwrap();
+
+        assert!(ld.set_table(&dm, LinearDevTargetTable::new(vec![]))
+                    .is_err());
+        ld.teardown(&dm).unwrap();
     }
 
     /// Verify that id rename succeeds.
@@ -691,6 +700,11 @@ mod tests {
     #[test]
     fn loop_test_empty() {
         test_with_spec(0, test_empty);
+    }
+
+    #[test]
+    fn loop_test_empty_table_set() {
+        test_with_spec(1, test_empty_table_set);
     }
 
     #[test]
