@@ -399,7 +399,7 @@ impl ThinPoolDev {
 
     /// Generate a table to be passed to DM. The format of the table
     /// entries is:
-    /// <start sec> <length> "thin-pool" <thin-pool-specific string>
+    /// <start sec (0)> <length> "thin-pool" <thin-pool-specific string>
     /// where the thin-pool-specific string has the format:
     /// <meta maj:min> <data maj:min> <block size> <low water mark>
     /// There is exactly one entry in the table.

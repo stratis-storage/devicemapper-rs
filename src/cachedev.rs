@@ -508,7 +508,7 @@ impl CacheDev {
 
     /// Generate a table to be passed to DM. The format of the table
     /// entries is:
-    /// <start sec> <length> "cache" <cache-specific string>
+    /// <start sec (0)> <length> "cache" <cache-specific string>
     /// where the cache-specific string has the format:
     /// <meta maj:min> <cache maj:min> <origin maj:min> <block size>
     /// <#num feature args (0)> <replacement policy (default)>

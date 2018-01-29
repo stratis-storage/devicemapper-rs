@@ -289,7 +289,7 @@ impl ThinDev {
 
     /// Generate a table to be passed to DM. The format of the table
     /// entries is:
-    /// <start> <length> "thin" <thin device specific string>
+    /// <start (0)> <length> "thin" <thin device specific string>
     /// where the thin device specific string has the format:
     /// <thinpool maj:min> <thin_id>
     /// There is exactly one entry in the table.
