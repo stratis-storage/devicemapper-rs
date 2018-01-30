@@ -412,7 +412,6 @@ impl DM {
     ///
     /// ```no_run
     /// use devicemapper::{DM, DevId, DmFlags, DmName};
-
     /// let dm = DM::new().unwrap();
     ///
     /// let name = DmName::new("example-dev").expect("is valid DM name");
