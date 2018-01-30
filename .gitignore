@@ -2,6 +2,7 @@ target
 Cargo.lock
 .project 
 .settings
+.vscode
 
 *.bk
 *.swo
