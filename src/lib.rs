@@ -86,8 +86,6 @@ mod thindevid;
 mod thinpooldev;
 /// cachedev
 mod cachedev;
-/// struct to represent a location, offset and size of a set of disk sectors
-mod segment;
 /// return results container
 mod result;
 /// wrapper for C interface for DM
@@ -111,10 +109,10 @@ pub use consts::{IEC, SECTOR_SIZE};
 pub use dm::{DM, DmFlags};
 
 pub use device::{Device, devnode_to_devno};
-pub use lineardev::LinearDev;
+pub use lineardev::{FlakeyTargetParams, LinearDev, LinearDevTargetParams, LinearDevTargetTable,
+                    LinearTargetParams};
 pub use result::{DmResult, DmError, ErrorEnum};
-pub use segment::Segment;
-pub use shared::{DmDevice, device_exists};
+pub use shared::{DmDevice, TargetLine, device_exists};
 pub use thinpooldev::{ThinPoolUsage, ThinPoolDev, ThinPoolNoSpacePolicy, ThinPoolStatus,
                       ThinPoolStatusSummary, ThinPoolWorkingStatus};
 pub use thindev::{ThinDev, ThinDevWorkingStatus, ThinStatus};

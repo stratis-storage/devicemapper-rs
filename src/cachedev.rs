@@ -10,14 +10,17 @@ use std::str::FromStr;
 use super::device::Device;
 use super::deviceinfo::DeviceInfo;
 use super::dm::{DM, DmFlags};
-use super::lineardev::LinearDev;
+use super::lineardev::{LinearDev, LinearDevTargetParams};
 use super::result::{DmResult, DmError, ErrorEnum};
-use super::shared::{DmDevice, TargetLine, TargetParams, device_create, device_exists,
-                    device_match, parse_device};
+use super::shared::{DmDevice, TargetLine, TargetParams, TargetTable, device_create, device_exists,
+                    device_match, parse_device, table_reload};
 use super::types::{DataBlocks, DevId, DmName, DmUuid, MetaBlocks, Sectors, TargetTypeBuf};
 
-#[derive(Debug, Eq, PartialEq)]
-pub struct CacheDevTargetParams {
+
+const CACHE_TARGET_NAME: &str = "cache";
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct CacheTargetParams {
     pub meta: Device,
     pub cache: Device,
     pub origin: Device,
@@ -27,7 +30,7 @@ pub struct CacheDevTargetParams {
     pub policy_args: HashMap<String, String>,
 }
 
-impl CacheDevTargetParams {
+impl CacheTargetParams {
     pub fn new(meta: Device,
                cache: Device,
                origin: Device,
@@ -35,8 +38,8 @@ impl CacheDevTargetParams {
                feature_args: Vec<String>,
                policy: String,
                policy_args: Vec<(String, String)>)
-               -> CacheDevTargetParams {
-        CacheDevTargetParams {
+               -> CacheTargetParams {
+        CacheTargetParams {
             meta: meta,
             cache: cache,
             origin: origin,
@@ -48,8 +51,86 @@ impl CacheDevTargetParams {
     }
 }
 
-impl fmt::Display for CacheDevTargetParams {
+impl fmt::Display for CacheTargetParams {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{} {}", CACHE_TARGET_NAME, self.param_str())
+    }
+}
+
+impl FromStr for CacheTargetParams {
+    type Err = DmError;
+
+    fn from_str(s: &str) -> DmResult<CacheTargetParams> {
+        let vals = s.split(' ').collect::<Vec<_>>();
+
+        if vals.len() < 8 {
+            let err_msg = format!("expected at least 8 values in params string \"{}\", found {}",
+                                  s,
+                                  vals.len());
+            return Err(DmError::Dm(ErrorEnum::Invalid, err_msg));
+        }
+
+        if vals[0] != CACHE_TARGET_NAME {
+            let err_msg = format!("Expected a cache target entry but found target type {}",
+                                  vals[0]);
+            return Err(DmError::Dm(ErrorEnum::Invalid, err_msg));
+        }
+
+        let metadata_dev = parse_device(vals[1])?;
+        let cache_dev = parse_device(vals[2])?;
+        let origin_dev = parse_device(vals[3])?;
+
+        let block_size = vals[4]
+            .parse::<u64>()
+            .map(Sectors)
+            .map_err(|_| {
+                DmError::Dm(ErrorEnum::Invalid,
+                            format!("failed to parse value for data block size from \"{}\"",
+                                    vals[4]))})?;
+
+        let num_feature_args = vals[5]
+            .parse::<usize>()
+            .map_err(|_| {
+                DmError::Dm(ErrorEnum::Invalid,
+                            format!("failed to parse value for number of feature args from \"{}\"",
+                                    vals[5]))})?;
+
+        let end_feature_args_index = 6 + num_feature_args;
+        let feature_args: Vec<String> = vals[6..end_feature_args_index]
+            .iter()
+            .map(|x| x.to_string())
+            .collect();
+
+        let policy = vals[end_feature_args_index].to_owned();
+
+        let num_policy_args = vals[end_feature_args_index + 1]
+            .parse::<usize>()
+            .map_err(|_| {
+                DmError::Dm(ErrorEnum::Invalid,
+                            format!("failed to parse value for number of policy args from \"{}\"",
+                                    vals[end_feature_args_index + 1]))})?;
+
+        let start_policy_args_index = end_feature_args_index + 2;
+        let end_policy_args_index = start_policy_args_index + num_policy_args;
+        let policy_args: Vec<(String, String)> = vals[start_policy_args_index..
+        end_policy_args_index]
+                .chunks(2)
+                .map(|x| (x[0].to_string(), x[1].to_string()))
+                .collect();
+
+        Ok(CacheTargetParams::new(metadata_dev,
+                                  cache_dev,
+                                  origin_dev,
+                                  block_size,
+                                  feature_args,
+                                  policy,
+                                  policy_args))
+
+    }
+}
+
+impl TargetParams for CacheTargetParams {
+    fn param_str(&self) -> String {
         let feature_args = if self.feature_args.is_empty() {
             "0".to_owned()
         } else {
@@ -74,85 +155,51 @@ impl fmt::Display for CacheDevTargetParams {
                         .join(" "))
         };
 
-        write!(f,
-               "{} {} {} {} {} {} {}",
-               self.meta,
-               self.cache,
-               self.origin,
-               *self.cache_block_size,
-               feature_args,
-               self.policy,
-               policy_args)
+        format!("{} {} {} {} {} {} {}",
+                self.meta,
+                self.cache,
+                self.origin,
+                *self.cache_block_size,
+                feature_args,
+                self.policy,
+                policy_args)
+    }
+
+    fn target_type(&self) -> TargetTypeBuf {
+        TargetTypeBuf::new(CACHE_TARGET_NAME.into()).expect("CACHE_TARGET_NAME is valid")
     }
 }
 
-impl FromStr for CacheDevTargetParams {
-    type Err = DmError;
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct CacheDevTargetTable {
+    table: TargetLine<CacheTargetParams>,
+}
 
-    fn from_str(s: &str) -> DmResult<CacheDevTargetParams> {
-        let vals = s.split(' ').collect::<Vec<_>>();
+impl CacheDevTargetTable {
+    pub fn new(start: Sectors, length: Sectors, params: CacheTargetParams) -> CacheDevTargetTable {
+        CacheDevTargetTable { table: TargetLine::new(start, length, params) }
+    }
+}
 
-        if vals.len() < 7 {
-            let err_msg = format!("expected at least 7 values in params string \"{}\", found {}",
-                                  s,
-                                  vals.len());
+impl TargetTable for CacheDevTargetTable {
+    fn from_raw_table(table: &[(Sectors, Sectors, TargetTypeBuf, String)])
+                      -> DmResult<CacheDevTargetTable> {
+        if table.len() != 1 {
+            let err_msg = format!("CacheDev table should have exactly one line, has {} lines",
+                                  table.len());
             return Err(DmError::Dm(ErrorEnum::Invalid, err_msg));
         }
+        let line = table.first().expect("table.len() == 1");
+        Ok(CacheDevTargetTable::new(line.0,
+                                    line.1,
+                                    format!("{} {}", line.2.to_string(), line.3)
+                                        .parse::<CacheTargetParams>()?))
+    }
 
-        let metadata_dev = parse_device(vals[0])?;
-        let cache_dev = parse_device(vals[1])?;
-        let origin_dev = parse_device(vals[2])?;
-
-        let block_size = vals[3]
-            .parse::<u64>()
-            .map(Sectors)
-            .map_err(|_| {
-                DmError::Dm(ErrorEnum::Invalid,
-                            format!("failed to parse value for data block size from \"{}\"",
-                                    vals[3]))})?;
-
-        let num_feature_args = vals[4]
-            .parse::<usize>()
-            .map_err(|_| {
-                DmError::Dm(ErrorEnum::Invalid,
-                            format!("failed to parse value for number of feature args from \"{}\"",
-                                    vals[4]))})?;
-
-        let end_feature_args_index = 5 + num_feature_args;
-        let feature_args: Vec<String> = vals[5..end_feature_args_index]
-            .iter()
-            .map(|x| x.to_string())
-            .collect();
-
-        let policy = vals[end_feature_args_index].to_owned();
-
-        let num_policy_args = vals[end_feature_args_index + 1]
-            .parse::<usize>()
-            .map_err(|_| {
-                DmError::Dm(ErrorEnum::Invalid,
-                            format!("failed to parse value for number of policy args from \"{}\"",
-                                    vals[end_feature_args_index + 1]))})?;
-
-        let start_policy_args_index = end_feature_args_index + 2;
-        let end_policy_args_index = start_policy_args_index + num_policy_args;
-        let policy_args: Vec<(String, String)> = vals[start_policy_args_index..
-        end_policy_args_index]
-                .chunks(2)
-                .map(|x| (x[0].to_string(), x[1].to_string()))
-                .collect();
-
-        Ok(CacheDevTargetParams::new(metadata_dev,
-                                     cache_dev,
-                                     origin_dev,
-                                     block_size,
-                                     feature_args,
-                                     policy,
-                                     policy_args))
-
+    fn to_raw_table(&self) -> Vec<(Sectors, Sectors, TargetTypeBuf, String)> {
+        to_raw_table_unique!(self)
     }
 }
-
-impl TargetParams for CacheDevTargetParams {}
 
 
 /// Cache usage
@@ -309,10 +356,10 @@ pub struct CacheDev {
     meta_dev: LinearDev,
     cache_dev: LinearDev,
     origin_dev: LinearDev,
-    block_size: Sectors,
+    table: CacheDevTargetTable,
 }
 
-impl DmDevice<CacheDevTargetParams> for CacheDev {
+impl DmDevice<CacheDevTargetTable> for CacheDev {
     fn device(&self) -> Device {
         device!(self)
     }
@@ -339,25 +386,13 @@ impl DmDevice<CacheDevTargetParams> for CacheDev {
     // there is no straightforward programmatic way of determining the default
     // policy for a given kernel, and we are assured that the default policy
     // can vary between kernels, and may of course, change in future.
-    fn equivalent_tables(left: &[TargetLine<CacheDevTargetParams>],
-                         right: &[TargetLine<CacheDevTargetParams>])
+    fn equivalent_tables(left: &CacheDevTargetTable,
+                         right: &CacheDevTargetTable)
                          -> DmResult<bool> {
-        if left.len() != 1 {
-            let err_msg = format!("cache dev tables have exactly one line, found {} lines in table",
-                                  left.len());
-            return Err(DmError::Dm(ErrorEnum::Invalid, err_msg));
-        }
-        if right.len() != 1 {
-            let err_msg = format!("cache dev tables have exactly one line, found {} lines in table",
-                                  right.len());
-            return Err(DmError::Dm(ErrorEnum::Invalid, err_msg));
-        }
-
-        let left = left.first().expect("left.len() == 1");
-        let right = right.first().expect("right.len() == 1");
+        let left = &left.table;
+        let right = &right.table;
 
         Ok(left.start == right.start && left.length == right.length &&
-           left.target_type == right.target_type &&
            left.params.meta == right.params.meta &&
            left.params.origin == right.params.origin &&
            left.params.cache_block_size == right.params.cache_block_size &&
@@ -371,6 +406,10 @@ impl DmDevice<CacheDevTargetParams> for CacheDev {
 
     fn size(&self) -> Sectors {
         self.origin_dev.size()
+    }
+
+    fn table(&self) -> &CacheDevTargetTable {
+        table!(self)
     }
 
     fn teardown(self, dm: &DM) -> DmResult<()> {
@@ -412,7 +451,7 @@ impl CacheDev {
                meta_dev: meta,
                cache_dev: cache,
                origin_dev: origin,
-               block_size: cache_block_size,
+               table: table,
            })
     }
 
@@ -433,9 +472,9 @@ impl CacheDev {
                 meta_dev: meta,
                 cache_dev: cache,
                 origin_dev: origin,
-                block_size: cache_block_size,
+                table: table,
             };
-            device_match(dm, &dev, uuid, &table)?;
+            device_match(dm, &dev, uuid)?;
             dev
         } else {
             let dev_info = device_create(dm, name, uuid, &table)?;
@@ -444,16 +483,35 @@ impl CacheDev {
                 meta_dev: meta,
                 cache_dev: cache,
                 origin_dev: origin,
-                block_size: cache_block_size,
+                table: table,
             }
         };
 
         Ok(dev)
     }
 
+    /// Set the table for the existing origin device.
+    /// Warning: It is the client's responsibility to make sure the designated
+    /// table is compatible with the device's existing table.
+    /// If not, this function will still succeed, but some kind of
+    /// data corruption will be the inevitable result.
+    pub fn set_origin_table(&mut self,
+                            dm: &DM,
+                            table: Vec<TargetLine<LinearDevTargetParams>>)
+                            -> DmResult<()> {
+        self.origin_dev.set_table(dm, table)?;
+
+        let mut table = self.table.clone();
+        table.table.length = self.origin_dev.size();
+        table_reload(dm, &DevId::Name(self.name()), &table)?;
+        self.table = table;
+
+        Ok(())
+    }
+
     /// Generate a table to be passed to DM. The format of the table
     /// entries is:
-    /// <start sec> <length> "cache" <cache-specific string>
+    /// <start sec (0)> <length> "cache" <cache-specific string>
     /// where the cache-specific string has the format:
     /// <meta maj:min> <cache maj:min> <origin maj:min> <block size>
     /// <#num feature args (0)> <replacement policy (default)>
@@ -464,19 +522,16 @@ impl CacheDev {
                          cache: &LinearDev,
                          origin: &LinearDev,
                          cache_block_size: Sectors)
-                         -> Vec<TargetLine<CacheDevTargetParams>> {
-        vec![TargetLine {
-                 start: Sectors::default(),
-                 length: origin.size(),
-                 target_type: TargetTypeBuf::new("cache".into()).expect("< length limit"),
-                 params: CacheDevTargetParams::new(meta.device(),
-                                                   cache.device(),
-                                                   origin.device(),
-                                                   cache_block_size,
-                                                   vec![],
-                                                   "default".to_owned(),
-                                                   vec![]),
-             }]
+                         -> CacheDevTargetTable {
+        CacheDevTargetTable::new(Sectors::default(),
+                                 origin.size(),
+                                 CacheTargetParams::new(meta.device(),
+                                                        cache.device(),
+                                                        origin.device(),
+                                                        cache_block_size,
+                                                        vec![],
+                                                        "default".to_owned(),
+                                                        vec![]))
     }
 
     /// Parse pairs of arguments from a slice
@@ -617,8 +672,8 @@ mod tests {
 
     use super::super::consts::IEC;
     use super::super::device::devnode_to_devno;
+    use super::super::lineardev::{LinearDevTargetParams, LinearTargetParams};
     use super::super::loopbacked::test_with_spec;
-    use super::super::segment::Segment;
 
     use super::*;
 
@@ -639,30 +694,30 @@ mod tests {
 
         // Minimum recommended metadata size for thinpool
         let meta_length = Sectors(4 * IEC::Ki);
-        let meta = LinearDev::setup(&dm,
-                                    meta_name,
-                                    None,
-                                    &[Segment::new(dev1, Sectors(0), meta_length)])
-                .unwrap();
+        let meta_params = LinearTargetParams::new(dev1, Sectors(0));
+        let meta_table = vec![TargetLine::new(Sectors(0),
+                                              meta_length,
+                                              LinearDevTargetParams::Linear(meta_params))];
+        let meta = LinearDev::setup(&dm, meta_name, None, meta_table).unwrap();
 
         let cache_name = DmName::new("cache-cache").expect("valid format");
         let cache_offset = meta_length;
         let cache_length = MIN_CACHE_BLOCK_SIZE;
-        let cache = LinearDev::setup(&dm,
-                                     cache_name,
-                                     None,
-                                     &[Segment::new(dev1, cache_offset, cache_length)])
-                .unwrap();
+        let cache_params = LinearTargetParams::new(dev1, cache_offset);
+        let cache_table = vec![TargetLine::new(Sectors(0),
+                                               cache_length,
+                                               LinearDevTargetParams::Linear(cache_params))];
+        let cache = LinearDev::setup(&dm, cache_name, None, cache_table).unwrap();
 
         let dev2 = Device::from(devnode_to_devno(paths[1]).unwrap().unwrap());
 
         let origin_name = DmName::new("cache-origin").expect("valid format");
         let origin_length = 512u64 * MIN_CACHE_BLOCK_SIZE;
-        let origin = LinearDev::setup(&dm,
-                                      origin_name,
-                                      None,
-                                      &[Segment::new(dev2, Sectors(0), origin_length)])
-                .unwrap();
+        let origin_params = LinearTargetParams::new(dev2, Sectors(0));
+        let origin_table = vec![TargetLine::new(Sectors(0),
+                                                origin_length,
+                                                LinearDevTargetParams::Linear(origin_params))];
+        let origin = LinearDev::setup(&dm, origin_name, None, origin_table).unwrap();
 
         let cache = CacheDev::new(&dm,
                                   DmName::new("cache").expect("valid format"),
@@ -683,7 +738,8 @@ mod tests {
                 assert!(usage.used_meta > MetaBlocks(0));
 
                 assert_eq!(usage.cache_block_size, MIN_CACHE_BLOCK_SIZE);
-                assert_eq!(usage.cache_block_size, cache.block_size);
+                assert_eq!(usage.cache_block_size,
+                           cache.table.table.params.cache_block_size);
 
                 // No data means no cache blocks used
                 assert_eq!(usage.used_cache, DataBlocks(0));
@@ -716,11 +772,11 @@ mod tests {
             _ => assert!(false),
         }
 
-        let table = cache.table(&dm).unwrap();
-        assert_eq!(table.len(), 1);
+        let table = CacheDev::load_table(&dm, &DevId::Name(cache.name()))
+            .unwrap()
+            .table;
 
-        let line = &table[0];
-        let params = &line.params;
+        let params = &table.params;
         assert_eq!(params.cache_block_size, MIN_CACHE_BLOCK_SIZE);
         assert_eq!(params.feature_args, HashSet::new());
         assert_eq!(params.policy, "default");
