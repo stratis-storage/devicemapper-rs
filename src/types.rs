@@ -148,6 +148,7 @@ NewtypeDeref! { () pub struct DataBlocks(u64); }
 NewtypeFrom! { () pub struct DataBlocks(u64); }
 NewtypeSub! { () pub struct DataBlocks(u64); }
 NewtypeSubAssign! { () pub struct DataBlocks(u64); }
+NewtypeDisplay! { () pub struct DataBlocks(u64); }
 
 self_div!(DataBlocks);
 serde!(DataBlocks);
@@ -163,12 +164,6 @@ unsigned_mul!(u32, DataBlocks);
 unsigned_mul!(u16, DataBlocks);
 unsigned_mul!(u8, DataBlocks);
 unsigned_mul!(usize, DataBlocks);
-
-impl fmt::Display for DataBlocks {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{} data blocks", self.0)
-    }
-}
 
 macro_attr! {
     #[derive(Clone, Copy, Debug, Default, Eq, Ord, PartialEq, PartialOrd)]
@@ -190,6 +185,7 @@ NewtypeDeref! { () pub struct MetaBlocks(u64); }
 NewtypeFrom! { () pub struct MetaBlocks(u64); }
 NewtypeSub! { () pub struct MetaBlocks(u64); }
 NewtypeSubAssign! { () pub struct MetaBlocks(u64); }
+NewtypeDisplay! { () pub struct MetaBlocks(u64); }
 
 self_div!(MetaBlocks);
 serde!(MetaBlocks);
@@ -205,12 +201,6 @@ unsigned_mul!(u32, MetaBlocks);
 unsigned_mul!(u16, MetaBlocks);
 unsigned_mul!(u8, MetaBlocks);
 unsigned_mul!(usize, MetaBlocks);
-
-impl fmt::Display for MetaBlocks {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{} meta blocks", self.0)
-    }
-}
 
 macro_attr! {
     #[derive(Clone, Copy, Debug, Default, Eq, Ord, PartialEq, PartialOrd)]
@@ -233,6 +223,7 @@ NewtypeDeref! { () pub struct Bytes(u64); }
 NewtypeFrom! { () pub struct Bytes(u64); }
 NewtypeSub! { () pub struct Bytes(u64); }
 NewtypeSubAssign! { () pub struct Bytes(u64); }
+NewtypeDisplay! { () pub struct Bytes(u64); }
 
 self_div!(Bytes);
 serde!(Bytes);
@@ -249,12 +240,6 @@ unsigned_mul!(u32, Bytes);
 unsigned_mul!(u16, Bytes);
 unsigned_mul!(u8, Bytes);
 unsigned_mul!(usize, Bytes);
-
-impl fmt::Display for Bytes {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{} bytes", self.0)
-    }
-}
 
 macro_attr! {
     #[derive(Clone, Copy, Debug, Default, Eq, Ord, PartialEq, PartialOrd)]
@@ -283,6 +268,7 @@ NewtypeDeref! { () pub struct Sectors(u64); }
 NewtypeFrom! { () pub struct Sectors(u64); }
 NewtypeSub! { () pub struct Sectors(u64); }
 NewtypeSubAssign! { () pub struct Sectors(u64); }
+NewtypeDisplay! { () pub struct Sectors(u64); }
 
 self_div!(Sectors);
 serde!(Sectors);
@@ -305,12 +291,6 @@ unsigned_rem!(u32, Sectors);
 unsigned_rem!(u16, Sectors);
 unsigned_rem!(u8, Sectors);
 unsigned_rem!(usize, Sectors);
-
-impl fmt::Display for Sectors {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{} sectors", self.0)
-    }
-}
 
 /// Returns an error if value is unsuitable.
 fn str_check(value: &str, max_allowed_chars: usize) -> DmResult<()> {
