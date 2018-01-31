@@ -12,11 +12,15 @@ use super::deviceinfo::DeviceInfo;
 use super::dm::{DM, DmFlags};
 use super::lineardev::LinearDev;
 use super::result::{DmResult, DmError, ErrorEnum};
-use super::shared::{DmDevice, TargetLine, TargetParams, device_create, device_exists,
+use super::shared::{DmDevice, TargetLine, TargetParams, TargetTable, device_create, device_exists,
                     device_match, parse_device};
 use super::types::{DataBlocks, DevId, DmName, DmUuid, MetaBlocks, Sectors, TargetTypeBuf};
 
-#[derive(Debug, Eq, PartialEq)]
+
+const CACHE_TARGET_NAME: &str = "cache";
+
+
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct CacheDevTargetParams {
     pub meta: Device,
     pub cache: Device,
@@ -152,7 +156,92 @@ impl FromStr for CacheDevTargetParams {
     }
 }
 
-impl TargetParams for CacheDevTargetParams {}
+impl TargetParams for CacheDevTargetParams {
+    fn target_type(&self) -> TargetTypeBuf {
+        TargetTypeBuf::new(CACHE_TARGET_NAME.into()).expect("< max length")
+    }
+}
+
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct CacheDevTargetTable {
+    table: TargetLine<CacheDevTargetParams>,
+}
+
+impl CacheDevTargetTable {
+    pub fn new(start: Sectors,
+               length: Sectors,
+               params: CacheDevTargetParams)
+               -> CacheDevTargetTable {
+        CacheDevTargetTable {
+            table: TargetLine {
+                start: start,
+                length: length,
+                params: params,
+            },
+        }
+    }
+}
+
+impl TargetTable for CacheDevTargetTable {
+    // Omit replacement policy field from equality test when checking that
+    // two devices are the same. Equality of replacement policies is not a
+    // necessary requirement for equality of devices as the replacement
+    // policy can be changed dynamically by a reload of of the device's table.
+    // It is convenient that this is the case, because checking equality of
+    // replacement policies is somewhat hard. "default", which is a valid
+    // policy string, is not a particular policy, but an alias for the default
+    // policy for this version of devicemapper. Therefore, using string
+    // equality to check equivalence can result in false negatives, as
+    // "default" != "smq", the current default policy in the recent kernel.
+    // Note: There is the possibility of implementing the following somewhat
+    // complicated check. Without loss of generality, let
+    // left[0].params.policy = "default" and
+    // right[0].params.policy = X, where X != "default". Then, if X is the
+    // default policy, return true, otherwise return false. Unfortunately,
+    // there is no straightforward programmatic way of determining the default
+    // policy for a given kernel, and we are assured that the default policy
+    // can vary between kernels, and may of course, change in future.
+    fn equivalent_devices(left: &CacheDevTargetTable, right: &CacheDevTargetTable) -> bool {
+        let left = &left.table;
+        let right = &right.table;
+
+        left.start == right.start && left.length == right.length &&
+        left.params.meta == right.params.meta &&
+        left.params.origin == right.params.origin &&
+        left.params.cache_block_size == right.params.cache_block_size &&
+        left.params.feature_args == right.params.feature_args &&
+        left.params.policy_args == right.params.policy_args
+    }
+
+    fn read(table: &[(Sectors, Sectors, TargetTypeBuf, String)]) -> DmResult<CacheDevTargetTable> {
+        if table.len() != 1 {
+            let err_msg = format!("CacheDev table should have exactly one line, has {} lines",
+                                  table.len());
+            return Err(DmError::Dm(ErrorEnum::Invalid, err_msg));
+        }
+        let line = table.first().expect("table.len() == 1");
+        let target_type = &line.2.to_string();
+        if target_type != CACHE_TARGET_NAME {
+            let err_msg = format!("Parsing a cache table entry but found target type {}",
+                                  target_type);
+            return Err(DmError::Dm(ErrorEnum::Invalid, err_msg));
+        }
+        Ok(CacheDevTargetTable {
+               table: TargetLine {
+                   start: line.0,
+                   length: line.1,
+                   params: line.3.parse::<CacheDevTargetParams>()?,
+               },
+           })
+
+    }
+
+    fn as_raw_table(&self) -> Vec<(Sectors, Sectors, TargetTypeBuf, String)> {
+        let line = &self.table;
+        vec![(line.start, line.length, line.params.target_type(), line.params.to_string())]
+    }
+}
 
 
 /// Cache usage
@@ -309,10 +398,10 @@ pub struct CacheDev {
     meta_dev: LinearDev,
     cache_dev: LinearDev,
     origin_dev: LinearDev,
-    block_size: Sectors,
+    table: CacheDevTargetTable,
 }
 
-impl DmDevice<CacheDevTargetParams> for CacheDev {
+impl DmDevice<CacheDevTargetTable> for CacheDev {
     fn device(&self) -> Device {
         device!(self)
     }
@@ -321,56 +410,16 @@ impl DmDevice<CacheDevTargetParams> for CacheDev {
         devnode!(self)
     }
 
-    // Omit replacement policy field from equality test when checking that
-    // two devices are the same. Equality of replacement policies is not a
-    // necessary requirement for equality of devices as the replacement
-    // policy can be changed dynamically by a reload of of the device's table.
-    // It is convenient that this is the case, because checking equality of
-    // replacement policies is somewhat hard. "default", which is a valid
-    // policy string, is not a particular policy, but an alias for the default
-    // policy for this version of devicemapper. Therefore, using string
-    // equality to check equivalence can result in false negatives, as
-    // "default" != "smq", the current default policy in the recent kernel.
-    // Note: There is the possibility of implementing the following somewhat
-    // complicated check. Without loss of generality, let
-    // left[0].params.policy = "default" and
-    // right[0].params.policy = X, where X != "default". Then, if X is the
-    // default policy, return true, otherwise return false. Unfortunately,
-    // there is no straightforward programmatic way of determining the default
-    // policy for a given kernel, and we are assured that the default policy
-    // can vary between kernels, and may of course, change in future.
-    fn equivalent_tables(left: &[TargetLine<CacheDevTargetParams>],
-                         right: &[TargetLine<CacheDevTargetParams>])
-                         -> DmResult<bool> {
-        if left.len() != 1 {
-            let err_msg = format!("cache dev tables have exactly one line, found {} lines in table",
-                                  left.len());
-            return Err(DmError::Dm(ErrorEnum::Invalid, err_msg));
-        }
-        if right.len() != 1 {
-            let err_msg = format!("cache dev tables have exactly one line, found {} lines in table",
-                                  right.len());
-            return Err(DmError::Dm(ErrorEnum::Invalid, err_msg));
-        }
-
-        let left = left.first().expect("left.len() == 1");
-        let right = right.first().expect("right.len() == 1");
-
-        Ok(left.start == right.start && left.length == right.length &&
-           left.target_type == right.target_type &&
-           left.params.meta == right.params.meta &&
-           left.params.origin == right.params.origin &&
-           left.params.cache_block_size == right.params.cache_block_size &&
-           left.params.feature_args == right.params.feature_args &&
-           left.params.policy_args == right.params.policy_args)
-    }
-
     fn name(&self) -> &DmName {
         name!(self)
     }
 
     fn size(&self) -> Sectors {
         self.origin_dev.size()
+    }
+
+    fn table(&self) -> &CacheDevTargetTable {
+        table!(self)
     }
 
     fn teardown(self, dm: &DM) -> DmResult<()> {
@@ -412,7 +461,7 @@ impl CacheDev {
                meta_dev: meta,
                cache_dev: cache,
                origin_dev: origin,
-               block_size: cache_block_size,
+               table: table,
            })
     }
 
@@ -433,9 +482,9 @@ impl CacheDev {
                 meta_dev: meta,
                 cache_dev: cache,
                 origin_dev: origin,
-                block_size: cache_block_size,
+                table: table,
             };
-            device_match(dm, &dev, uuid, &table)?;
+            device_match(dm, &dev, uuid)?;
             dev
         } else {
             let dev_info = device_create(dm, name, uuid, &table)?;
@@ -444,7 +493,7 @@ impl CacheDev {
                 meta_dev: meta,
                 cache_dev: cache,
                 origin_dev: origin,
-                block_size: cache_block_size,
+                table: table,
             }
         };
 
@@ -464,19 +513,16 @@ impl CacheDev {
                          cache: &LinearDev,
                          origin: &LinearDev,
                          cache_block_size: Sectors)
-                         -> Vec<TargetLine<CacheDevTargetParams>> {
-        vec![TargetLine {
-                 start: Sectors::default(),
-                 length: origin.size(),
-                 target_type: TargetTypeBuf::new("cache".into()).expect("< length limit"),
-                 params: CacheDevTargetParams::new(meta.device(),
-                                                   cache.device(),
-                                                   origin.device(),
-                                                   cache_block_size,
-                                                   vec![],
-                                                   "default".to_owned(),
-                                                   vec![]),
-             }]
+                         -> CacheDevTargetTable {
+        CacheDevTargetTable::new(Sectors::default(),
+                                 origin.size(),
+                                 CacheDevTargetParams::new(meta.device(),
+                                                           cache.device(),
+                                                           origin.device(),
+                                                           cache_block_size,
+                                                           vec![],
+                                                           "default".to_owned(),
+                                                           vec![]))
     }
 
     /// Parse pairs of arguments from a slice
@@ -683,7 +729,8 @@ mod tests {
                 assert!(usage.used_meta > MetaBlocks(0));
 
                 assert_eq!(usage.cache_block_size, MIN_CACHE_BLOCK_SIZE);
-                assert_eq!(usage.cache_block_size, cache.block_size);
+                assert_eq!(usage.cache_block_size,
+                           cache.table.table.params.cache_block_size);
 
                 // No data means no cache blocks used
                 assert_eq!(usage.used_cache, DataBlocks(0));
@@ -716,10 +763,9 @@ mod tests {
             _ => assert!(false),
         }
 
-        let table = cache.table(&dm).unwrap();
-        assert_eq!(table.len(), 1);
-
-        let line = &table[0];
+        let line = CacheDev::load_table(&dm, &DevId::Name(cache.name()))
+            .unwrap()
+            .table;
         let params = &line.params;
         assert_eq!(params.cache_block_size, MIN_CACHE_BLOCK_SIZE);
         assert_eq!(params.feature_args, HashSet::new());

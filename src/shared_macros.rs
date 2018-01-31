@@ -28,3 +28,9 @@ macro_rules! devnode {
         ["/dev", &format!("dm-{}", $s.dev_info.device().minor)].iter().collect()
     }
 }
+
+macro_rules! table {
+    ($s: ident) => {
+        &$s.table
+    }
+}

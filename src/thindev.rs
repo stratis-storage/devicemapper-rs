@@ -10,14 +10,17 @@ use super::device::Device;
 use super::deviceinfo::DeviceInfo;
 use super::dm::{DM, DmFlags};
 use super::result::{DmError, DmResult, ErrorEnum};
-use super::shared::{DmDevice, TargetLine, TargetParams, device_create, device_exists,
+use super::shared::{DmDevice, TargetLine, TargetParams, TargetTable, device_create, device_exists,
                     device_match, message, parse_device, table_reload};
 use super::thindevid::ThinDevId;
 use super::thinpooldev::ThinPoolDev;
 use super::types::{DevId, DmName, DmUuid, Sectors, TargetTypeBuf};
 
 
-#[derive(Debug, Eq, PartialEq)]
+const THIN_TARGET_NAME: &str = "thin";
+
+
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ThinDevTargetParams {
     pub pool: Device,
     pub thin_id: ThinDevId,
@@ -69,19 +72,78 @@ impl FromStr for ThinDevTargetParams {
     }
 }
 
-impl TargetParams for ThinDevTargetParams {}
+impl TargetParams for ThinDevTargetParams {
+    fn target_type(&self) -> TargetTypeBuf {
+        TargetTypeBuf::new(THIN_TARGET_NAME.into()).expect("< max length")
+    }
+}
+
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct ThinDevTargetTable {
+    table: TargetLine<ThinDevTargetParams>,
+}
+
+impl ThinDevTargetTable {
+    /// Create a ThinDevTargetTable
+    pub fn new(start: Sectors, length: Sectors, params: ThinDevTargetParams) -> ThinDevTargetTable {
+        ThinDevTargetTable {
+            table: TargetLine {
+                start: start,
+                length: length,
+                params: params,
+            },
+        }
+    }
+}
+
+impl TargetTable for ThinDevTargetTable {
+    // This method is incomplete. It is expected that it will be refined so
+    // that it will return true in more cases, i.e., to be less stringent.
+    fn equivalent_devices(left: &ThinDevTargetTable, right: &ThinDevTargetTable) -> bool {
+        left == right
+    }
+
+    fn read(table: &[(Sectors, Sectors, TargetTypeBuf, String)]) -> DmResult<ThinDevTargetTable> {
+        if table.len() != 1 {
+            let err_msg = format!("ThinDev table should have exactly one line, has {} lines",
+                                  table.len());
+            return Err(DmError::Dm(ErrorEnum::Invalid, err_msg));
+        }
+        let line = table.first().expect("table.len() == 1");
+
+        let target_type = &line.2.to_string();
+        if target_type != THIN_TARGET_NAME {
+            let err_msg = format!("Parsing a thindev table entry but found target type {}",
+                                  target_type);
+            return Err(DmError::Dm(ErrorEnum::Invalid, err_msg));
+        }
+
+        Ok(ThinDevTargetTable {
+               table: TargetLine {
+                   start: line.0,
+                   length: line.1,
+                   params: line.3.parse::<ThinDevTargetParams>()?,
+               },
+           })
+
+    }
+
+    fn as_raw_table(&self) -> Vec<(Sectors, Sectors, TargetTypeBuf, String)> {
+        let line = &self.table;
+        vec![(line.start, line.length, line.params.target_type(), line.params.to_string())]
+    }
+}
 
 
 /// DM construct for a thin block device
 #[derive(Debug)]
 pub struct ThinDev {
     dev_info: Box<DeviceInfo>,
-    thin_id: ThinDevId,
-    size: Sectors,
-    thinpool: Device,
+    table: ThinDevTargetTable,
 }
 
-impl DmDevice<ThinDevTargetParams> for ThinDev {
+impl DmDevice<ThinDevTargetTable> for ThinDev {
     fn device(&self) -> Device {
         device!(self)
     }
@@ -90,20 +152,16 @@ impl DmDevice<ThinDevTargetParams> for ThinDev {
         devnode!(self)
     }
 
-    // This method is incomplete. It is expected that it will be refined so
-    // that it will return true in more cases, i.e., to be less stringent.
-    fn equivalent_tables(left: &[TargetLine<ThinDevTargetParams>],
-                         right: &[TargetLine<ThinDevTargetParams>])
-                         -> DmResult<bool> {
-        Ok(left == right)
-    }
-
     fn name(&self) -> &DmName {
         name!(self)
     }
 
     fn size(&self) -> Sectors {
-        self.size
+        self.table.table.length
+    }
+
+    fn table(&self) -> &ThinDevTargetTable {
+        table!(self)
     }
 
     fn teardown(self, dm: &DM) -> DmResult<()> {
@@ -174,9 +232,7 @@ impl ThinDev {
 
         Ok(ThinDev {
                dev_info: Box::new(dev_info),
-               thin_id: thin_id,
-               size: length,
-               thinpool: thin_pool_device,
+               table: table,
            })
     }
 
@@ -203,19 +259,15 @@ impl ThinDev {
             let dev_info = dm.device_info(&DevId::Name(name))?;
             let dev = ThinDev {
                 dev_info: Box::new(dev_info),
-                thin_id: thin_id,
-                size: length,
-                thinpool: thin_pool_device,
+                table: table,
             };
-            device_match(dm, &dev, uuid, &table)?;
+            device_match(dm, &dev, uuid)?;
             dev
         } else {
             let dev_info = device_create(dm, name, uuid, &table)?;
             ThinDev {
                 dev_info: Box::new(dev_info),
-                thin_id: thin_id,
-                size: length,
-                thinpool: thin_pool_device,
+                table: table,
             }
         };
         Ok(dev)
@@ -236,25 +288,21 @@ impl ThinDev {
         dm.device_suspend(&source_id, DmFlags::DM_SUSPEND)?;
         message(dm,
                 thin_pool,
-                &format!("create_snap {} {}", snapshot_thin_id, self.thin_id))?;
+                &format!("create_snap {} {}",
+                         snapshot_thin_id,
+                         self.table.table.params.thin_id))?;
         dm.device_suspend(&source_id, DmFlags::empty())?;
-        let dev_info = Box::new(device_create(dm,
-                                              snapshot_name,
-                                              None,
-                                              &ThinDev::gen_default_table(self.size(),
-                                                                          thin_pool.device(),
-                                                                          snapshot_thin_id))?);
+        let table = ThinDev::gen_default_table(self.size(), thin_pool.device(), snapshot_thin_id);
+        let dev_info = Box::new(device_create(dm, snapshot_name, None, &table)?);
         Ok(ThinDev {
                dev_info: dev_info,
-               thin_id: snapshot_thin_id,
-               size: self.size(),
-               thinpool: thin_pool.device(),
+               table: table,
            })
     }
 
     /// Generate a table to be passed to DM. The format of the table
     /// entries is:
-    /// <start> <length> "thin" <thin device specific string>
+    /// <start (0)> <length> "thin" <thin device specific string>
     /// where the thin device specific string has the format:
     /// <thinpool maj:min> <thin_id>
     /// There is exactly one entry in the table.
@@ -262,18 +310,15 @@ impl ThinDev {
     fn gen_default_table(length: Sectors,
                          thin_pool: Device,
                          thin_id: ThinDevId)
-                         -> Vec<TargetLine<ThinDevTargetParams>> {
-        vec![TargetLine {
-                 start: Sectors::default(),
-                 length: length,
-                 target_type: TargetTypeBuf::new("thin".into()).expect("< length limit"),
-                 params: ThinDevTargetParams::new(thin_pool, thin_id, None),
-             }]
+                         -> ThinDevTargetTable {
+        ThinDevTargetTable::new(Sectors::default(),
+                                length,
+                                ThinDevTargetParams::new(thin_pool, thin_id, None))
     }
 
     /// return the thin id of the linear device
     pub fn id(&self) -> ThinDevId {
-        self.thin_id
+        self.table.table.params.thin_id
     }
 
     /// Get the current status of the thin device.
@@ -311,19 +356,18 @@ impl ThinDev {
 
     /// Extend the thin device's (virtual) size by the number of
     /// sectors given.
-    pub fn extend(&mut self, dm: &DM, sectors: Sectors) -> DmResult<()> {
-        let new_size = self.size + sectors;
-        table_reload(dm,
-                     &DevId::Name(self.name()),
-                     &ThinDev::gen_default_table(new_size, self.thinpool, self.thin_id))?;
-        self.size = new_size;
+    pub fn extend(&mut self, dm: &DM, extend_amt: Sectors) -> DmResult<()> {
+        let mut table = self.table.clone();
+        table.table.length = self.table.table.length + extend_amt;
+        table_reload(dm, &DevId::Name(self.name()), &table)?;
+        self.table = table;
         Ok(())
     }
 
     /// Tear down the DM device, and also delete resources associated
     /// with its thin id from the thinpool.
     pub fn destroy(self, dm: &DM, thin_pool: &ThinPoolDev) -> DmResult<()> {
-        let thin_id = self.thin_id;
+        let thin_id = self.table.table.params.thin_id;
         self.teardown(dm)?;
         message(dm, thin_pool, &format!("delete {}", thin_id))?;
         Ok(())
@@ -412,10 +456,9 @@ mod tests {
         let td_size = MIN_THIN_DEV_SIZE;
         let td = ThinDev::new(&dm, &id, None, td_size, &tp, thin_id).unwrap();
 
-        let table = td.table(&dm).unwrap();
-        assert_eq!(table.len(), 1);
-
-        let line = &table[0];
+        let line = ThinDev::load_table(&dm, &DevId::Name(td.name()))
+            .unwrap()
+            .table;
         assert_eq!(line.params.pool, tp.device());
         assert_eq!(line.params.thin_id, thin_id);
 
