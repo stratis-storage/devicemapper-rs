@@ -55,10 +55,7 @@ impl FromStr for Device {
                         format!("could not parse \"{}\" to obtain minor number",
                                                                       vals[0])).into())
                      })?;
-        Ok(Device {
-               major: major,
-               minor: minor,
-           })
+        Ok(Device { major, minor })
     }
 }
 

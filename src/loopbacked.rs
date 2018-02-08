@@ -68,7 +68,7 @@ impl LoopTestDev {
         // left on the device even after a teardown.
         wipe_sectors(&ld.path().unwrap(), Sectors(0), Bytes(IEC::Mi).sectors()).unwrap();
 
-        LoopTestDev { ld: ld }
+        LoopTestDev { ld }
     }
 
     fn path(&self) -> PathBuf {

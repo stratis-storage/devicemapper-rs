@@ -31,9 +31,9 @@ impl ThinTargetParams {
                external_origin_dev: Option<Device>)
                -> ThinTargetParams {
         ThinTargetParams {
-            pool: pool,
-            thin_id: thin_id,
-            external_origin_dev: external_origin_dev,
+            pool,
+            thin_id,
+            external_origin_dev,
         }
     }
 }
@@ -176,8 +176,8 @@ impl ThinDevWorkingStatus {
                highest_mapped_sector: Option<Sectors>)
                -> ThinDevWorkingStatus {
         ThinDevWorkingStatus {
-            nr_mapped_sectors: nr_mapped_sectors,
-            highest_mapped_sector: highest_mapped_sector,
+            nr_mapped_sectors,
+            highest_mapped_sector,
         }
     }
 }
@@ -219,7 +219,7 @@ impl ThinDev {
 
         Ok(ThinDev {
                dev_info: Box::new(dev_info),
-               table: table,
+               table,
            })
     }
 
@@ -246,7 +246,7 @@ impl ThinDev {
             let dev_info = dm.device_info(&DevId::Name(name))?;
             let dev = ThinDev {
                 dev_info: Box::new(dev_info),
-                table: table,
+                table,
             };
             device_match(dm, &dev, uuid)?;
             dev
@@ -254,7 +254,7 @@ impl ThinDev {
             let dev_info = device_create(dm, name, uuid, &table)?;
             ThinDev {
                 dev_info: Box::new(dev_info),
-                table: table,
+                table,
             }
         };
         Ok(dev)
@@ -281,10 +281,7 @@ impl ThinDev {
         dm.device_suspend(&source_id, DmFlags::empty())?;
         let table = ThinDev::gen_default_table(self.size(), thin_pool.device(), snapshot_thin_id);
         let dev_info = Box::new(device_create(dm, snapshot_name, None, &table)?);
-        Ok(ThinDev {
-               dev_info: dev_info,
-               table: table,
-           })
+        Ok(ThinDev { dev_info, table })
     }
 
     /// Generate a table to be passed to DM. The format of the table

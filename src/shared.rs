@@ -42,9 +42,9 @@ impl<T: TargetParams> TargetLine<T> {
     /// Make a new TargetLine struct
     pub fn new(start: Sectors, length: Sectors, params: T) -> TargetLine<T> {
         TargetLine {
-            start: start,
-            length: length,
-            params: params,
+            start,
+            length,
+            params,
         }
     }
 }

@@ -33,8 +33,8 @@ impl LinearTargetParams {
     /// Create a new LinearTargetParams struct
     pub fn new(device: Device, start_offset: Sectors) -> LinearTargetParams {
         LinearTargetParams {
-            device: device,
-            start_offset: start_offset,
+            device,
+            start_offset,
         }
     }
 }
@@ -116,10 +116,10 @@ impl FlakeyTargetParams {
                feature_args: Vec<String>)
                -> FlakeyTargetParams {
         FlakeyTargetParams {
-            device: device,
-            start_offset: start_offset,
-            up_interval: up_interval,
-            down_interval: down_interval,
+            device,
+            start_offset,
+            up_interval,
+            down_interval,
             feature_args: feature_args.into_iter().collect::<HashSet<_>>(),
         }
     }
@@ -328,7 +328,7 @@ pub struct LinearDevTargetTable {
 impl LinearDevTargetTable {
     /// Make a new LinearDevTargetTable from a suitable vec
     pub fn new(table: Vec<TargetLine<LinearDevTargetParams>>) -> LinearDevTargetTable {
-        LinearDevTargetTable { table: table }
+        LinearDevTargetTable { table }
     }
 }
 
@@ -436,7 +436,7 @@ impl LinearDev {
             let dev_info = dm.device_info(&DevId::Name(name))?;
             let dev = LinearDev {
                 dev_info: Box::new(dev_info),
-                table: table,
+                table,
             };
             device_match(dm, &dev, uuid)?;
             dev
@@ -444,7 +444,7 @@ impl LinearDev {
             let dev_info = device_create(dm, name, uuid, &table)?;
             LinearDev {
                 dev_info: Box::new(dev_info),
-                table: table,
+                table,
             }
         };
         Ok(dev)
