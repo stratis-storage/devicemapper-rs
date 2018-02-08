@@ -109,9 +109,9 @@ impl ::std::clone::Clone for Struct_dm_ioctl {
             event_nr: self.event_nr,
             padding: self.padding,
             dev: self.dev,
-            name: name,
-            uuid: uuid,
-            data: data,
+            name,
+            uuid,
+            data,
         }
     }
 }

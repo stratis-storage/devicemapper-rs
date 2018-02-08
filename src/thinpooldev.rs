@@ -40,10 +40,10 @@ impl ThinPoolTargetParams {
                feature_args: Vec<String>)
                -> ThinPoolTargetParams {
         ThinPoolTargetParams {
-            metadata_dev: metadata_dev,
-            data_dev: data_dev,
-            data_block_size: data_block_size,
-            low_water_mark: low_water_mark,
+            metadata_dev,
+            data_dev,
+            data_block_size,
+            low_water_mark,
             feature_args: feature_args.into_iter().collect::<HashSet<_>>(),
         }
     }
@@ -290,12 +290,12 @@ impl ThinPoolWorkingStatus {
                needs_check: bool)
                -> ThinPoolWorkingStatus {
         ThinPoolWorkingStatus {
-            transaction_id: transaction_id,
-            usage: usage,
-            discard_passdown: discard_passdown,
-            no_space_policy: no_space_policy,
-            summary: summary,
-            needs_check: needs_check,
+            transaction_id,
+            usage,
+            discard_passdown,
+            no_space_policy,
+            summary,
+            needs_check,
         }
 
     }
@@ -341,7 +341,7 @@ impl ThinPoolDev {
                dev_info: Box::new(dev_info),
                meta_dev: meta,
                data_dev: data,
-               table: table,
+               table,
            })
     }
 
@@ -381,7 +381,7 @@ impl ThinPoolDev {
                 dev_info: Box::new(dev_info),
                 meta_dev: meta,
                 data_dev: data,
-                table: table,
+                table,
             };
             device_match(dm, &dev, uuid)?;
             dev
@@ -391,7 +391,7 @@ impl ThinPoolDev {
                 dev_info: Box::new(dev_info),
                 meta_dev: meta,
                 data_dev: data,
-                table: table,
+                table,
             }
         };
         Ok(dev)

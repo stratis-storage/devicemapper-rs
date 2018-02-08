@@ -865,7 +865,7 @@ mod tests {
         let dm = DM::new().unwrap();
         let name = DmName::new("example-dev").expect("is valid DM name");
         let result = dm.device_create(name, None, DmFlags::empty()).unwrap();
-        assert!(result.name() == name);
+        assert_eq!(result.name(), name);
         dm.device_remove(&DevId::Name(name), DmFlags::empty())
             .unwrap();
     }

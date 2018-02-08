@@ -40,12 +40,12 @@ impl CacheTargetParams {
                policy_args: Vec<(String, String)>)
                -> CacheTargetParams {
         CacheTargetParams {
-            meta: meta,
-            cache: cache,
-            origin: origin,
-            cache_block_size: cache_block_size,
+            meta,
+            cache,
+            origin,
+            cache_block_size,
             feature_args: feature_args.into_iter().collect::<HashSet<_>>(),
-            policy: policy,
+            policy,
             policy_args: policy_args.into_iter().collect::<HashMap<_, _>>(),
         }
     }
@@ -232,12 +232,12 @@ impl CacheDevUsage {
         // This is defined at the kernel level and should not change.
         assert_eq!(meta_block_size, Sectors(8));
         CacheDevUsage {
-            meta_block_size: meta_block_size,
-            used_meta: used_meta,
-            total_meta: total_meta,
-            cache_block_size: cache_block_size,
-            used_cache: used_cache,
-            total_cache: total_cache,
+            meta_block_size,
+            used_meta,
+            total_meta,
+            cache_block_size,
+            used_cache,
+            total_cache,
         }
     }
 }
@@ -272,13 +272,13 @@ impl CacheDevPerformance {
                dirty: u64)
                -> CacheDevPerformance {
         CacheDevPerformance {
-            read_hits: read_hits,
-            read_misses: read_misses,
-            write_hits: write_hits,
-            write_misses: write_misses,
-            demotions: demotions,
-            promotions: promotions,
-            dirty: dirty,
+            read_hits,
+            read_misses,
+            write_hits,
+            write_misses,
+            demotions,
+            promotions,
+            dirty,
         }
     }
 }
@@ -327,14 +327,14 @@ impl CacheDevWorkingStatus {
                needs_check: bool)
                -> CacheDevWorkingStatus {
         CacheDevWorkingStatus {
-            usage: usage,
-            performance: performance,
-            feature_args: feature_args,
-            core_args: core_args,
-            policy: policy,
-            policy_args: policy_args,
-            metadata_mode: metadata_mode,
-            needs_check: needs_check,
+            usage,
+            performance,
+            feature_args,
+            core_args,
+            policy,
+            policy_args,
+            metadata_mode,
+            needs_check,
         }
     }
 }
@@ -451,7 +451,7 @@ impl CacheDev {
                meta_dev: meta,
                cache_dev: cache,
                origin_dev: origin,
-               table: table,
+               table,
            })
     }
 
@@ -472,7 +472,7 @@ impl CacheDev {
                 meta_dev: meta,
                 cache_dev: cache,
                 origin_dev: origin,
-                table: table,
+                table,
             };
             device_match(dm, &dev, uuid)?;
             dev
@@ -483,7 +483,7 @@ impl CacheDev {
                 meta_dev: meta,
                 cache_dev: cache,
                 origin_dev: origin,
-                table: table,
+                table,
             }
         };
 

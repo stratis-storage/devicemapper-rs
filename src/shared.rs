@@ -42,9 +42,9 @@ impl<T: TargetParams> TargetLine<T> {
     /// Make a new TargetLine struct
     pub fn new(start: Sectors, length: Sectors, params: T) -> TargetLine<T> {
         TargetLine {
-            start: start,
-            length: length,
-            params: params,
+            start,
+            length,
+            params,
         }
     }
 }
@@ -60,11 +60,11 @@ pub trait TargetTable: Clone + fmt::Debug + Eq + PartialEq + Sized {
 
 /// A trait capturing some shared properties of DM devices.
 pub trait DmDevice<T: TargetTable> {
-    /// The device's device node.
-    fn devnode(&self) -> PathBuf;
-
     /// The device.
     fn device(&self) -> Device;
+
+    /// The device's device node.
+    fn devnode(&self) -> PathBuf;
 
     /// Check if tables indicate an equivalent device.
     fn equivalent_tables(left: &T, right: &T) -> DmResult<bool>;
