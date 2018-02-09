@@ -11,8 +11,8 @@ keywords = ["Linux", "device", "mapper", "libdm", "storage"]
 license = "MPL-2.0"
 
 [dependencies]
-libc = "0.2.31"
-nix = "0.9"
+libc = "0.2.36"
+nix = "0.10"
 bitflags = "1"
 newtype_derive = "0.1"
 macro-attr = "0.2.0"
