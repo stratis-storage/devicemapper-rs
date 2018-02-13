@@ -3,11 +3,9 @@
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 use std::fs::File;
-use std::io;
+use std::{cmp, io, slice};
 use std::os::unix::io::AsRawFd;
 use std::mem::{size_of, transmute};
-use std::slice;
-use std::cmp;
 
 use nix::libc::ioctl as nix_ioctl;
 use nix::libc::c_ulong;
