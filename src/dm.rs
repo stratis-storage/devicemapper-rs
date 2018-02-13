@@ -2,20 +2,18 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
+use std::{cmp, io, slice};
 use std::fs::File;
-use std::io;
-use std::os::unix::io::AsRawFd;
 use std::mem::{size_of, transmute};
-use std::slice;
-use std::cmp;
+use std::os::unix::io::AsRawFd;
 
 use nix::libc::ioctl as nix_ioctl;
 use nix::libc::c_ulong;
 
-use super::errors::{Error, ErrorKind};
 use super::device::Device;
 use super::deviceinfo::{DM_NAME_LEN, DM_UUID_LEN, DeviceInfo};
 use super::dm_ioctl as dmi;
+use super::errors::{Error, ErrorKind};
 use super::result::DmResult;
 use super::types::{DevId, DmName, DmNameBuf, DmUuid, Sectors, TargetTypeBuf};
 use super::util::{align_to, slice_to_null};
