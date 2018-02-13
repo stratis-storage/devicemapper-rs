@@ -20,7 +20,7 @@ use std::borrow::Borrow;
 use std::fmt;
 use std::iter::Sum;
 use std::mem::transmute;
-use std::ops::{Deref, Div, Mul, Rem, Add};
+use std::ops::{Add, Deref, Div, Mul, Rem};
 
 use serde;
 
