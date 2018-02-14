@@ -11,8 +11,7 @@ use std::path::{Path, PathBuf};
 use loopdev::{LoopControl, LoopDevice};
 use tempdir::TempDir;
 
-use super::consts::{IEC, SECTOR_SIZE};
-use super::types::{Bytes, Sectors};
+use devicemapper::{Bytes, IEC, Sectors, SECTOR_SIZE};
 
 
 /// send IOCTL via blkgetsize64
