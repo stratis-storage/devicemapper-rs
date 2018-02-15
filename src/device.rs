@@ -8,7 +8,7 @@ use std::path::Path;
 use std::str::FromStr;
 
 use libc::{dev_t, major, makedev, minor};
-use nix::sys::stat::{S_IFBLK, S_IFMT};
+use nix::sys::stat::SFlag;
 
 use super::errors::{Error, ErrorKind};
 use super::result::{DmError, DmResult};
@@ -101,7 +101,7 @@ impl Device {
 pub fn devnode_to_devno(path: &Path) -> DmResult<Option<u64>> {
     match path.metadata() {
         Ok(metadata) => {
-            Ok(if metadata.st_mode() & S_IFMT.bits() == S_IFBLK.bits() {
+            Ok(if metadata.st_mode() & SFlag::S_IFMT.bits() == SFlag::S_IFBLK.bits() {
                    Some(metadata.st_rdev())
                } else {
                    None

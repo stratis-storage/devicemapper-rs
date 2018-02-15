@@ -366,7 +366,7 @@ mod tests {
     use std::path::Path;
     use std::process::Command;
 
-    use nix::mount::{MNT_DETACH, MsFlags, mount, umount2};
+    use nix::mount::{MntFlags, MsFlags, mount, umount2};
     use tempdir::TempDir;
     use uuid::Uuid;
 
@@ -580,7 +580,7 @@ mod tests {
                      "data")
                     .unwrap();
         }
-        umount2(tmp_dir.path(), MNT_DETACH).unwrap();
+        umount2(tmp_dir.path(), MntFlags::MNT_DETACH).unwrap();
 
         let data_usage_2 = match tp.status(&dm).unwrap() {
             ThinPoolStatus::Working(ref status) => status.usage.used_data,
