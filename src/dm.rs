@@ -253,30 +253,7 @@ impl DM {
                 // drivers/md/dm-ioctl.c:list_devices
                 let event_nr = {
                     match hdr.version[1] {
-                        minor @ 0...36 => {
-                            if minor == 36 {
-                                // A bug in minor version 36 was corrected in
-                                // subsequent versions. See thread:
-                                // https://www.redhat.com/archives/dm-devel/
-                                // 2017-September/msg00231.html
-                                // This block is a makeshift to allow early access to
-                                // the event number value.  Once minor version 37 is
-                                // widely available, this block is to be removed and
-                                // other necessary changes made so that event number
-                                // is None for minor version 36.
-
-                                let mut offset = size_of::<dmi::Struct_dm_name_list>();
-                                offset += slc.len() + 1; // trailing NULL char
-                                offset += 7; // ALIGN_MASK
-                                let aligned_offset = align_to(offset, size_of::<u64>());
-                                let new_slc = &result[aligned_offset..];
-                                let nr = unsafe { *(new_slc.as_ptr() as *const u32) };
-
-                                Some(nr)
-                            } else {
-                                None
-                            }
-                        }
+                        0...36 => None,
                         _ => {
                             // offsetof "name" in Struct_dm_name_list.
                             // TODO: Consider using pointer::offset_to when stable
