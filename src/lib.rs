@@ -130,7 +130,7 @@ mod loopbacked;
 
 
 pub use cachedev::{CacheDev, CacheDevPerformance, CacheDevStatus, CacheDevUsage,
-                   CacheDevWorkingStatus};
+                   CacheDevWorkingStatus, MAX_CACHE_BLOCK_SIZE, MIN_CACHE_BLOCK_SIZE};
 pub use consts::{IEC, SECTOR_SIZE};
 pub use dm::{DM, DmFlags};
 

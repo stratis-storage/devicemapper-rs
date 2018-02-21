@@ -666,67 +666,90 @@ impl CacheDev {
     }
 }
 
+
+#[cfg(test)]
+use std::fs::OpenOptions;
+#[cfg(test)]
+use std::path::Path;
+
+#[cfg(test)]
+use super::consts::IEC;
+#[cfg(test)]
+use super::device::devnode_to_devno;
+#[cfg(test)]
+use super::lineardev::LinearTargetParams;
+#[cfg(test)]
+use super::loopbacked::blkdev_size;
+
+// Specified in kernel docs
+/// The minimum size recommended in the docs for a cache block.
+pub const MIN_CACHE_BLOCK_SIZE: Sectors = Sectors(64); // 32 KiB
+/// The maximum size recommended in the docs for a cache block.
+#[allow(decimal_literal_representation)]
+pub const MAX_CACHE_BLOCK_SIZE: Sectors = Sectors(2_097_152); // 1 GiB
+
+#[cfg(test)]
+// Make a minimal cachedev. Put the meta and cache on one device, and put
+// the origin on a separate device. paths.len() must be at least 2 or the
+// method will fail.
+pub fn minimal_cachedev(dm: &DM, paths: &[&Path]) -> CacheDev {
+    assert!(paths.len() >= 2);
+    let dev1 = Device::from(devnode_to_devno(paths[0]).unwrap().unwrap());
+
+    let meta_name = DmName::new("cache-meta").expect("valid format");
+
+    // Minimum recommended metadata size for thinpool
+    let meta_length = Sectors(4 * IEC::Ki);
+    let meta_params = LinearTargetParams::new(dev1, Sectors(0));
+    let meta_table = vec![TargetLine::new(Sectors(0),
+                                          meta_length,
+                                          LinearDevTargetParams::Linear(meta_params))];
+    let meta = LinearDev::setup(&dm, meta_name, None, meta_table).unwrap();
+
+    let cache_name = DmName::new("cache-cache").expect("valid format");
+    let cache_offset = meta_length;
+    let cache_length = MIN_CACHE_BLOCK_SIZE;
+    let cache_params = LinearTargetParams::new(dev1, cache_offset);
+    let cache_table = vec![TargetLine::new(Sectors(0),
+                                           cache_length,
+                                           LinearDevTargetParams::Linear(cache_params))];
+    let cache = LinearDev::setup(&dm, cache_name, None, cache_table).unwrap();
+
+    let dev2_size = blkdev_size(&OpenOptions::new().read(true).open(paths[1]).unwrap()).sectors();
+    let dev2 = Device::from(devnode_to_devno(paths[1]).unwrap().unwrap());
+
+    let origin_name = DmName::new("cache-origin").expect("valid format");
+    let origin_params = LinearTargetParams::new(dev2, Sectors(0));
+    let origin_table = vec![TargetLine::new(Sectors(0),
+                                            dev2_size,
+                                            LinearDevTargetParams::Linear(origin_params))];
+    let origin = LinearDev::setup(&dm, origin_name, None, origin_table).unwrap();
+
+    CacheDev::new(&dm,
+                  DmName::new("cache").expect("valid format"),
+                  None,
+                  meta,
+                  cache,
+                  origin,
+                  MIN_CACHE_BLOCK_SIZE)
+            .unwrap()
+}
+
 #[cfg(test)]
 mod tests {
     use std::path::Path;
 
-    use super::super::consts::IEC;
-    use super::super::device::devnode_to_devno;
-    use super::super::lineardev::{LinearDevTargetParams, LinearTargetParams};
     use super::super::loopbacked::test_with_spec;
 
     use super::*;
 
-    // Specified in kernel docs
-    const MIN_CACHE_BLOCK_SIZE: Sectors = Sectors(64); // 32 KiB
-    #[allow(dead_code)]
-    const MAX_CACHE_BLOCK_SIZE: Sectors = Sectors(2_097_152); // 1 GiB
 
     // Test creating a minimal cache dev.
     // Verify that status method executes and gives reasonable values.
     fn test_minimal_cache_dev(paths: &[&Path]) -> () {
         assert!(paths.len() >= 2);
-        let dev1 = Device::from(devnode_to_devno(paths[0]).unwrap().unwrap());
-
         let dm = DM::new().unwrap();
-
-        let meta_name = DmName::new("cache-meta").expect("valid format");
-
-        // Minimum recommended metadata size for thinpool
-        let meta_length = Sectors(4 * IEC::Ki);
-        let meta_params = LinearTargetParams::new(dev1, Sectors(0));
-        let meta_table = vec![TargetLine::new(Sectors(0),
-                                              meta_length,
-                                              LinearDevTargetParams::Linear(meta_params))];
-        let meta = LinearDev::setup(&dm, meta_name, None, meta_table).unwrap();
-
-        let cache_name = DmName::new("cache-cache").expect("valid format");
-        let cache_offset = meta_length;
-        let cache_length = MIN_CACHE_BLOCK_SIZE;
-        let cache_params = LinearTargetParams::new(dev1, cache_offset);
-        let cache_table = vec![TargetLine::new(Sectors(0),
-                                               cache_length,
-                                               LinearDevTargetParams::Linear(cache_params))];
-        let cache = LinearDev::setup(&dm, cache_name, None, cache_table).unwrap();
-
-        let dev2 = Device::from(devnode_to_devno(paths[1]).unwrap().unwrap());
-
-        let origin_name = DmName::new("cache-origin").expect("valid format");
-        let origin_length = 512u64 * MIN_CACHE_BLOCK_SIZE;
-        let origin_params = LinearTargetParams::new(dev2, Sectors(0));
-        let origin_table = vec![TargetLine::new(Sectors(0),
-                                                origin_length,
-                                                LinearDevTargetParams::Linear(origin_params))];
-        let origin = LinearDev::setup(&dm, origin_name, None, origin_table).unwrap();
-
-        let cache = CacheDev::new(&dm,
-                                  DmName::new("cache").expect("valid format"),
-                                  None,
-                                  meta,
-                                  cache,
-                                  origin,
-                                  MIN_CACHE_BLOCK_SIZE)
-                .unwrap();
+        let cache = minimal_cachedev(&dm, paths);
 
         match cache.status(&dm).unwrap() {
             CacheDevStatus::Working(ref status) => {
