@@ -267,8 +267,9 @@ impl ThinDev {
     /// snapshot.
     pub fn snapshot(&self,
                     dm: &DM,
-                    thin_pool: &ThinPoolDev,
                     snapshot_name: &DmName,
+                    snapshot_uuid: Option<&DmUuid>,
+                    thin_pool: &ThinPoolDev,
                     snapshot_thin_id: ThinDevId)
                     -> DmResult<ThinDev> {
         let source_id = DevId::Name(self.name());
@@ -280,7 +281,7 @@ impl ThinDev {
                          self.table.table.params.thin_id))?;
         dm.device_suspend(&source_id, DmFlags::empty())?;
         let table = ThinDev::gen_default_table(self.size(), thin_pool.device(), snapshot_thin_id);
-        let dev_info = Box::new(device_create(dm, snapshot_name, None, &table)?);
+        let dev_info = Box::new(device_create(dm, snapshot_name, snapshot_uuid, &table)?);
         Ok(ThinDev { dev_info, table })
     }
 
@@ -513,7 +514,7 @@ mod tests {
         // Create a snapshot of the source
         let ss_id = ThinDevId::new_u64(1).expect("is below limit");
         let ss_name = DmName::new("snap_name").expect("is valid DM name");
-        let ss = td.snapshot(&dm, &tp, ss_name, ss_id).unwrap();
+        let ss = td.snapshot(&dm, ss_name, None, &tp, ss_id).unwrap();
 
         let data_usage_2 = match tp.status(&dm).unwrap() {
             ThinPoolStatus::Working(ref status) => status.usage.used_data,
@@ -632,7 +633,9 @@ mod tests {
         // Create a snapshot of the source
         let ss_id = ThinDevId::new_u64(1).expect("is below limit");
         let ss_name = DmName::new("snap_name").expect("is valid DM name");
-        let ss = td.snapshot(&dm, &tp, ss_name, ss_id).unwrap();
+        let ss_uuid = DmUuid::new("snap_uuid").expect("is valid DM uuid");
+        let ss = td.snapshot(&dm, ss_name, Some(ss_uuid), &tp, ss_id)
+            .unwrap();
 
         let data_usage_2 = match tp.status(&dm).unwrap() {
             ThinPoolStatus::Working(ref status) => status.usage.used_data,
