@@ -514,7 +514,7 @@ impl CacheDev {
     /// <start sec (0)> <length> "cache" <cache-specific string>
     /// where the cache-specific string has the format:
     /// <meta maj:min> <cache maj:min> <origin maj:min> <block size>
-    /// <#num feature args (0)> <replacement policy (default)>
+    /// <#num feature args (1)> writethrough <replacement policy (default)>
     /// <#num policy args (0)>
     /// There is exactly one entry in the table.
     /// Various defaults are hard coded in the method.
@@ -529,7 +529,7 @@ impl CacheDev {
                                                         cache.device(),
                                                         origin.device(),
                                                         cache_block_size,
-                                                        vec![],
+                                                        vec!["writethrough".into()],
                                                         "default".to_owned(),
                                                         vec![]))
     }
@@ -779,7 +779,7 @@ mod tests {
                 assert_eq!(performance.dirty, 0);
 
                 // The current defaults for configuration values
-                assert_eq!(status.feature_args, vec!["writeback"]);
+                assert_eq!(status.feature_args, vec!["writethrough"]);
                 assert_eq!(status.core_args,
                            vec![("migration_threshold".to_string(), "2048".to_string())]);
                 assert_eq!(status.policy, "smq");
@@ -801,7 +801,10 @@ mod tests {
 
         let params = &table.params;
         assert_eq!(params.cache_block_size, MIN_CACHE_BLOCK_SIZE);
-        assert_eq!(params.feature_args, HashSet::new());
+        assert_eq!(params.feature_args,
+                   vec!["writethrough".into()]
+                       .into_iter()
+                       .collect::<HashSet<_>>());
         assert_eq!(params.policy, "default");
 
         cache.teardown(&dm).unwrap();
