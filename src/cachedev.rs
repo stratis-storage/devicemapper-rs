@@ -509,6 +509,24 @@ impl CacheDev {
         Ok(())
     }
 
+    /// Set the table for the existing cache sub-device.
+    /// Warning: It is the client's responsibility to make sure the designated
+    /// table is compatible with the device's existing table.
+    /// If not, this function will still succeed, but some kind of
+    /// data corruption will be the inevitable result.
+    pub fn set_cache_table(&mut self,
+                           dm: &DM,
+                           table: Vec<TargetLine<LinearDevTargetParams>>)
+                           -> DmResult<()> {
+        self.cache_dev.set_table(dm, table)?;
+
+        // TODO: Verify if it is really necessary to reload the table if
+        // there has been no change.
+        table_reload(dm, &DevId::Name(self.name()), &self.table)?;
+
+        Ok(())
+    }
+
     /// Generate a table to be passed to DM. The format of the table
     /// entries is:
     /// <start sec (0)> <length> "cache" <cache-specific string>
@@ -813,5 +831,46 @@ mod tests {
     #[test]
     fn loop_test_minimal_cache_dev() {
         test_with_spec(2, test_minimal_cache_dev);
+    }
+
+    /// Basic test of cache size change
+    /// This executes the code paths, but is not enough to ensure correctness.
+    /// * Construct a minimal cache
+    /// * Expand the cache by one more block
+    /// * Decrease the cache to its original size
+    fn test_cache_size_change(paths: &[&Path]) {
+        assert!(paths.len() >= 3);
+
+        let dm = DM::new().unwrap();
+        let mut cache = minimal_cachedev(&dm, paths);
+
+        let dev1 = Device::from(devnode_to_devno(paths[0]).unwrap().unwrap());
+
+        let cache_offset = Sectors(4 * IEC::Ki);
+        let cache_length = MIN_CACHE_BLOCK_SIZE;
+        let cache_params = LinearTargetParams::new(dev1, cache_offset);
+        let mut cache_table = vec![TargetLine::new(Sectors(0),
+                                                   cache_length,
+                                                   LinearDevTargetParams::Linear(cache_params))];
+        let dev3 = Device::from(devnode_to_devno(paths[2]).unwrap().unwrap());
+
+        let extra_length = MIN_CACHE_BLOCK_SIZE;
+        let cache_params = LinearTargetParams::new(dev3, Sectors(0));
+        let current_length = cache.cache_dev.size();
+        cache_table.push(TargetLine::new(current_length,
+                                         extra_length,
+                                         LinearDevTargetParams::Linear(cache_params)));
+        assert!(cache.set_cache_table(&dm, cache_table.clone()).is_ok());
+
+        cache_table.pop();
+
+        assert!(cache.set_cache_table(&dm, cache_table).is_ok());
+
+        cache.teardown(&dm).unwrap();
+    }
+
+    #[test]
+    fn loop_test_cache_size_change() {
+        test_with_spec(3, test_cache_size_change);
     }
 }
