@@ -12,8 +12,10 @@ use super::deviceinfo::DeviceInfo;
 use super::dm::DM;
 use super::dm_options::DmOptions;
 use super::result::{DmError, DmResult, ErrorEnum};
-use super::shared::{device_create, device_exists, device_match, parse_device, DmDevice,
-                    TargetLine, TargetParams, TargetTable};
+use super::shared::{
+    device_create, device_exists, device_match, parse_device, DmDevice, TargetLine, TargetParams,
+    TargetTable,
+};
 use super::types::{DevId, DmName, DmUuid, Sectors, TargetTypeBuf};
 
 const FLAKEY_TARGET_NAME: &str = "flakey";
@@ -308,11 +310,11 @@ impl FromStr for LinearDevTargetParams {
         })?;
         if target_type == FLAKEY_TARGET_NAME {
             Ok(LinearDevTargetParams::Flakey(
-                s.parse::<FlakeyTargetParams>()?,
+                s.parse::<FlakeyTargetParams>()?
             ))
         } else if target_type == LINEAR_TARGET_NAME {
             Ok(LinearDevTargetParams::Linear(
-                s.parse::<LinearTargetParams>()?,
+                s.parse::<LinearTargetParams>()?
             ))
         } else {
             Err(DmError::Dm(
@@ -527,7 +529,7 @@ mod tests {
     use std::path::Path;
 
     use super::super::device::{devnode_to_devno, Device};
-    use super::super::loopbacked::{blkdev_size, test_with_spec};
+    use super::super::loopbacked::{blkdev_size, test_with_spec, wipe_sectors};
     use super::super::test_lib::test_name;
 
     use super::*;
@@ -552,13 +554,11 @@ mod tests {
         let name = test_name("name").expect("valid format");
         let dev = Device::from(devnode_to_devno(&paths[0]).unwrap().unwrap());
         let params = LinearTargetParams::new(dev, Sectors(0));
-        let table = vec![
-            TargetLine::new(
-                Sectors(0),
-                Sectors(1),
-                LinearDevTargetParams::Linear(params),
-            ),
-        ];
+        let table = vec![TargetLine::new(
+            Sectors(0),
+            Sectors(1),
+            LinearDevTargetParams::Linear(params),
+        )];
         let mut ld = LinearDev::setup(&dm, &name, None, table).unwrap();
 
         assert!(ld.set_table(&dm, vec![]).is_err());
@@ -574,13 +574,11 @@ mod tests {
         let name = test_name("name").expect("valid format");
         let dev = Device::from(devnode_to_devno(&paths[0]).unwrap().unwrap());
         let params = LinearTargetParams::new(dev, Sectors(0));
-        let table = vec![
-            TargetLine::new(
-                Sectors(0),
-                Sectors(1),
-                LinearDevTargetParams::Linear(params),
-            ),
-        ];
+        let table = vec![TargetLine::new(
+            Sectors(0),
+            Sectors(1),
+            LinearDevTargetParams::Linear(params),
+        )];
         let mut ld = LinearDev::setup(&dm, &name, None, table).unwrap();
 
         ld.set_name(&dm, &name).unwrap();
@@ -597,13 +595,11 @@ mod tests {
         let name = test_name("name").expect("valid format");
         let dev = Device::from(devnode_to_devno(&paths[0]).unwrap().unwrap());
         let params = LinearTargetParams::new(dev, Sectors(0));
-        let table = vec![
-            TargetLine::new(
-                Sectors(0),
-                Sectors(1),
-                LinearDevTargetParams::Linear(params),
-            ),
-        ];
+        let table = vec![TargetLine::new(
+            Sectors(0),
+            Sectors(1),
+            LinearDevTargetParams::Linear(params),
+        )];
         let mut ld = LinearDev::setup(&dm, &name, None, table).unwrap();
 
         let new_name = test_name("new_name").expect("valid format");
@@ -688,6 +684,46 @@ mod tests {
         ld.teardown(&dm).unwrap();
     }
 
+    fn test_flakey_target(paths: &[&Path]) -> () {
+        assert!(paths.len() >= 1);
+
+        let dm = DM::new().unwrap();
+        let name = "flakey-dev";
+        let dev = Device::from(devnode_to_devno(&Path::new(paths[0])).unwrap().unwrap());
+        let linear_len = 4096;
+        let flakey_len = 4096;
+
+        let linear = LinearTargetParams::new(dev, Sectors(linear_len));
+        // Setup the flakey target with a down interval of 0.  Currently if the
+        // flakey segment is setup to fail, IO to the linear segment fails.
+        let flakey = FlakeyTargetParams::new(dev, Sectors(0), 1, 0, vec![]);
+
+        let mut table: Vec<TargetLine<LinearDevTargetParams>> = Vec::new();
+
+        // If we don't add the Flakey target line the write of the linear
+        // works.  With the target line it fails.
+        table.push(TargetLine::new(
+            Sectors(0),
+            Sectors(flakey_len),
+            LinearDevTargetParams::Flakey(flakey),
+        ));
+        table.push(TargetLine::new(
+            Sectors(flakey_len),
+            Sectors(linear_len),
+            LinearDevTargetParams::Linear(linear),
+        ));
+
+        let ld = LinearDev::setup(
+            &dm,
+            DmName::new(name).expect("valid format"),
+            None,
+            table.clone(),
+        ).unwrap();
+        wipe_sectors(&ld.devnode(), Sectors(flakey_len), Sectors(linear_len)).unwrap();
+        assert!(wipe_sectors(&ld.devnode(), Sectors(0), Sectors(flakey_len)).is_err());
+        ld.teardown(&dm).unwrap();
+    }
+
     /// Verify that constructing a second dev with the same name succeeds
     /// only if it has the same list of segments.
     fn test_same_name(paths: &[&Path]) -> () {
@@ -697,22 +733,18 @@ mod tests {
         let name = test_name("name").expect("valid format");
         let dev = Device::from(devnode_to_devno(&paths[0]).unwrap().unwrap());
         let params = LinearTargetParams::new(dev, Sectors(0));
-        let table = vec![
-            TargetLine::new(
-                Sectors(0),
-                Sectors(1),
-                LinearDevTargetParams::Linear(params),
-            ),
-        ];
+        let table = vec![TargetLine::new(
+            Sectors(0),
+            Sectors(1),
+            LinearDevTargetParams::Linear(params),
+        )];
         let ld = LinearDev::setup(&dm, &name, None, table.clone()).unwrap();
         let params2 = LinearTargetParams::new(dev, Sectors(1));
-        let table2 = vec![
-            TargetLine::new(
-                Sectors(0),
-                Sectors(1),
-                LinearDevTargetParams::Linear(params2),
-            ),
-        ];
+        let table2 = vec![TargetLine::new(
+            Sectors(0),
+            Sectors(1),
+            LinearDevTargetParams::Linear(params2),
+        )];
         assert!(LinearDev::setup(&dm, &name, None, table2).is_err());
         assert!(LinearDev::setup(&dm, &name, None, table).is_ok());
         ld.teardown(&dm).unwrap();
@@ -727,13 +759,11 @@ mod tests {
         let ersatz = test_name("ersatz").expect("valid format");
         let dev = Device::from(devnode_to_devno(&paths[0]).unwrap().unwrap());
         let params = LinearTargetParams::new(dev, Sectors(0));
-        let table = vec![
-            TargetLine::new(
-                Sectors(0),
-                Sectors(1),
-                LinearDevTargetParams::Linear(params),
-            ),
-        ];
+        let table = vec![TargetLine::new(
+            Sectors(0),
+            Sectors(1),
+            LinearDevTargetParams::Linear(params),
+        )];
         let ld = LinearDev::setup(&dm, &name, None, table.clone()).unwrap();
         let ld2 = LinearDev::setup(&dm, &ersatz, None, table);
         assert!(ld2.is_ok());
@@ -750,13 +780,11 @@ mod tests {
         let name = test_name("name").expect("valid format");
         let dev = Device::from(devnode_to_devno(&paths[0]).unwrap().unwrap());
         let params = LinearTargetParams::new(dev, Sectors(0));
-        let table = vec![
-            TargetLine::new(
-                Sectors(0),
-                Sectors(1),
-                LinearDevTargetParams::Linear(params),
-            ),
-        ];
+        let table = vec![TargetLine::new(
+            Sectors(0),
+            Sectors(1),
+            LinearDevTargetParams::Linear(params),
+        )];
         let mut ld = LinearDev::setup(&dm, &name, None, table).unwrap();
 
         ld.suspend(&dm, false).unwrap();
@@ -810,5 +838,10 @@ mod tests {
     #[test]
     fn loop_test_suspend() {
         test_with_spec(1, test_suspend);
+    }
+
+    #[test]
+    fn loop_test_flakey_target() {
+        test_with_spec(1, test_flakey_target);
     }
 }
