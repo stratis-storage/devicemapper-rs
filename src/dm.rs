@@ -2,6 +2,13 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
+// These errors originate in bitflags! macro and are not ours to fix.
+// Their scope is the whole file because the bitflags! macro generates a
+// lot of stuff, and so placing the annotation right on the use of the
+// bitflags! macro does not actually cover the suspicious code generated.
+#![allow(redundant_field_names)]
+#![allow(suspicious_arithmetic_impl)]
+
 use std::{cmp, io, slice};
 use std::fs::File;
 use std::mem::{size_of, transmute};
