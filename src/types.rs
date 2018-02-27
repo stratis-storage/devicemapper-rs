@@ -32,7 +32,7 @@ use super::result::{DmError, DmResult};
 /// a DM meta device may store cache device or thinpool device metadata
 /// defined in drivers/md/persistent-data/dm-space-map-metadata.h as
 /// DM_SM_METADATA_BLOCK_SIZE.
-const META_BLOCK_SIZE: Sectors = Sectors(8);
+pub const META_BLOCK_SIZE: Sectors = Sectors(8);
 
 /// The maximum size of a metadata device.
 /// defined in drivers/md/persistent-data/dm-space-map-metadata.h as
