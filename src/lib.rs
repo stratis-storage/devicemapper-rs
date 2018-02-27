@@ -143,5 +143,5 @@ pub use thinpooldev::{ThinPoolUsage, ThinPoolDev, ThinPoolNoSpacePolicy, ThinPoo
                       ThinPoolStatusSummary, ThinPoolWorkingStatus};
 pub use thindev::{ThinDev, ThinDevWorkingStatus, ThinStatus};
 pub use thindevid::ThinDevId;
-pub use types::{Bytes, DataBlocks, DevId, DmName, DmNameBuf, DmUuid, DmUuidBuf, MetaBlocks,
-                Sectors, TargetType, TargetTypeBuf};
+pub use types::{Bytes, DataBlocks, DevId, DmName, DmNameBuf, DmUuid, DmUuidBuf, META_BLOCK_SIZE,
+                MetaBlocks, Sectors, TargetType, TargetTypeBuf};
