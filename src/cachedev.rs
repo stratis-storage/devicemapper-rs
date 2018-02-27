@@ -464,7 +464,7 @@ impl CacheDev {
                  origin: LinearDev,
                  cache_block_size: Sectors)
                  -> DmResult<CacheDev> {
-        let table = CacheDev::gen_default_table(&meta, &origin, &cache, cache_block_size);
+        let table = CacheDev::gen_default_table(&meta, &cache, &origin, cache_block_size);
         let dev = if device_exists(dm, name)? {
             let dev_info = dm.device_info(&DevId::Name(name))?;
             let dev = CacheDev {
