@@ -866,4 +866,20 @@ mod tests {
     fn loop_test_cache_size_change() {
         test_with_spec(3, test_cache_size_change);
     }
+
+    /// Verify that suspending and resuming the cache doesn't fail.
+    fn test_suspend(paths: &[&Path]) {
+        assert!(paths.len() >= 2);
+
+        let dm = DM::new().unwrap();
+        let mut cache = minimal_cachedev(&dm, paths);
+        cache.suspend(&dm).unwrap();
+        cache.resume(&dm).unwrap();
+        cache.teardown(&dm).unwrap();
+    }
+
+    #[test]
+    fn loop_test_suspend() {
+        test_with_spec(2, test_suspend);
+    }
 }

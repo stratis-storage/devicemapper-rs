@@ -78,8 +78,20 @@ pub trait DmDevice<T: TargetTable> {
     /// The device's name.
     fn name(&self) -> &DmName;
 
+    /// Resume I/O on the device.
+    fn resume(&mut self, dm: &DM) -> DmResult<()> {
+        dm.device_suspend(&DevId::Name(self.name()), DmFlags::empty())?;
+        Ok(())
+    }
+
     /// The number of sectors available for user data.
     fn size(&self) -> Sectors;
+
+    /// Suspend I/O on the device.
+    fn suspend(&mut self, dm: &DM) -> DmResult<()> {
+        dm.device_suspend(&DevId::Name(self.name()), DmFlags::DM_SUSPEND)?;
+        Ok(())
+    }
 
     /// What the device thinks its table is.
     fn table(&self) -> &T;

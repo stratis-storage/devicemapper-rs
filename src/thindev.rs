@@ -373,6 +373,7 @@ mod tests {
 
     use super::super::consts::IEC;
     use super::super::loopbacked::{blkdev_size, test_with_spec};
+    use super::super::shared::DmDevice;
     use super::super::thinpooldev::{ThinPoolStatus, minimal_thinpool};
     use super::super::types::DataBlocks;
 
@@ -429,7 +430,8 @@ mod tests {
     /// Verify that calling new() for the second time fails. Verify that
     /// setup() is idempotent, calling setup() twice in succession succeeds.
     /// Verify that setup() succeeds on an existing device, whether or not
-    /// it has been torn down.
+    /// it has been torn down. Verify that it is possible to suspend and resume
+    /// the device.
     fn test_basic(paths: &[&Path]) -> () {
         assert!(paths.len() >= 1);
 
@@ -476,10 +478,12 @@ mod tests {
 
         // Teardown the thindev, then set it back up.
         td.teardown(&dm).unwrap();
-        let td = ThinDev::setup(&dm, &id, None, td_size, &tp, thin_id);
-        assert!(td.is_ok());
+        let mut td = ThinDev::setup(&dm, &id, None, td_size, &tp, thin_id).unwrap();
 
-        td.unwrap().destroy(&dm, &tp).unwrap();
+        td.suspend(&dm).unwrap();
+        td.resume(&dm).unwrap();
+
+        td.destroy(&dm, &tp).unwrap();
         tp.teardown(&dm).unwrap();
     }
 

@@ -692,4 +692,20 @@ mod tests {
     fn loop_test_low_data_block_size() {
         test_with_spec(1, test_low_data_block_size);
     }
+
+    /// Just test that suspending and resuming a thinpool has no errors.
+    fn test_suspend(paths: &[&Path]) -> () {
+        assert!(paths.len() >= 1);
+
+        let dm = DM::new().unwrap();
+        let mut tp = minimal_thinpool(&dm, paths[0]);
+        tp.suspend(&dm).unwrap();
+        tp.resume(&dm).unwrap();
+        tp.teardown(&dm).unwrap();
+    }
+
+    #[test]
+    fn loop_test_suspend() {
+        test_with_spec(1, test_suspend);
+    }
 }

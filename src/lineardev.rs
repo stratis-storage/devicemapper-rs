@@ -684,6 +684,25 @@ mod tests {
         ld.teardown(&dm).unwrap();
     }
 
+    /// Verify that suspending and immediately resuming doesn't fail.
+    fn test_suspend(paths: &[&Path]) -> () {
+        assert!(paths.len() >= 1);
+
+        let dm = DM::new().unwrap();
+        let dev = Device::from(devnode_to_devno(&paths[0]).unwrap().unwrap());
+        let params = LinearTargetParams::new(dev, Sectors(0));
+        let table = vec![TargetLine::new(Sectors(0),
+                                         Sectors(1),
+                                         LinearDevTargetParams::Linear(params))];
+        let mut ld = LinearDev::setup(&dm, DmName::new("name").expect("valid format"), None, table)
+            .unwrap();
+
+        ld.suspend(&dm).unwrap();
+        ld.resume(&dm).unwrap();
+
+        ld.teardown(&dm).unwrap();
+    }
+
     #[test]
     fn loop_test_duplicate_segments() {
         test_with_spec(1, test_duplicate_segments);
@@ -722,5 +741,10 @@ mod tests {
     #[test]
     fn loop_test_several_segments() {
         test_with_spec(1, test_several_segments);
+    }
+
+    #[test]
+    fn loop_test_suspend() {
+        test_with_spec(1, test_suspend);
     }
 }
