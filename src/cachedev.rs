@@ -844,14 +844,7 @@ mod tests {
         let dm = DM::new().unwrap();
         let mut cache = minimal_cachedev(&dm, paths);
 
-        let dev1 = Device::from(devnode_to_devno(paths[0]).unwrap().unwrap());
-
-        let cache_offset = Sectors(4 * IEC::Ki);
-        let cache_length = MIN_CACHE_BLOCK_SIZE;
-        let cache_params = LinearTargetParams::new(dev1, cache_offset);
-        let mut cache_table = vec![TargetLine::new(Sectors(0),
-                                                   cache_length,
-                                                   LinearDevTargetParams::Linear(cache_params))];
+        let mut cache_table = cache.cache_dev.table().table.clone();
         let dev3 = Device::from(devnode_to_devno(paths[2]).unwrap().unwrap());
 
         let extra_length = MIN_CACHE_BLOCK_SIZE;
