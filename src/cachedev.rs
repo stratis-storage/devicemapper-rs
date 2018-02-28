@@ -499,11 +499,21 @@ impl CacheDev {
                             dm: &DM,
                             table: Vec<TargetLine<LinearDevTargetParams>>)
                             -> DmResult<()> {
+        // Follow resize_origin example in device-mapper-test-suite file
+        // cache_stack.rb. This looks funky, but it does seem to be exactly
+        // what the test is doing.
+        self.suspend(dm)?;
+
+        self.origin_dev.suspend(dm)?;
         self.origin_dev.set_table(dm, table)?;
+        self.origin_dev.resume(dm)?;
 
         let mut table = self.table.clone();
         table.table.length = self.origin_dev.size();
         table_reload(dm, &DevId::Name(self.name()), &table)?;
+
+        self.resume(dm)?;
+
         self.table = table;
 
         Ok(())
@@ -518,11 +528,16 @@ impl CacheDev {
                            dm: &DM,
                            table: Vec<TargetLine<LinearDevTargetParams>>)
                            -> DmResult<()> {
-        self.cache_dev.set_table(dm, table)?;
+        // Follow resize_ssd example in device-mapper-test-suite file
+        // cache_stack.rb. This looks funky, but it does seem to be exactly
+        // what the test is doing.
+        self.suspend(dm)?;
 
-        // TODO: Verify if it is really necessary to reload the table if
-        // there has been no change.
-        table_reload(dm, &DevId::Name(self.name()), &self.table)?;
+        self.cache_dev.suspend(dm)?;
+        self.cache_dev.set_table(dm, table)?;
+        self.cache_dev.resume(dm)?;
+
+        self.resume(dm)?;
 
         Ok(())
     }
