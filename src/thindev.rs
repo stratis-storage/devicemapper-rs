@@ -88,7 +88,7 @@ impl TargetParams for ThinTargetParams {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ThinDevTargetTable {
-    table: TargetLine<ThinTargetParams>,
+    pub table: TargetLine<ThinTargetParams>,
 }
 
 impl ThinDevTargetTable {
