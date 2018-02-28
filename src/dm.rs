@@ -834,8 +834,9 @@ mod tests {
         dm.device_create(name, None, DmFlags::empty()).unwrap();
 
         let devices = dm.list_devices().unwrap();
-        assert_eq!(devices.len(), 1);
-        assert_eq!(devices[0].0.as_ref(), name);
+
+        assert_eq!(devices.iter().map(|x| x.0.as_ref()).collect::<Vec<_>>(),
+                   vec![name]);
         assert_eq!(devices[0].2.unwrap_or(0), 0);
         dm.device_remove(&DevId::Name(name), DmFlags::empty())
             .unwrap();
