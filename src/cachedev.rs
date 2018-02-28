@@ -172,7 +172,7 @@ impl TargetParams for CacheTargetParams {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct CacheDevTargetTable {
-    table: TargetLine<CacheTargetParams>,
+    pub table: TargetLine<CacheTargetParams>,
 }
 
 impl CacheDevTargetTable {

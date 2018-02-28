@@ -142,7 +142,7 @@ impl TargetParams for ThinPoolTargetParams {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ThinPoolDevTargetTable {
-    table: TargetLine<ThinPoolTargetParams>,
+    pub table: TargetLine<ThinPoolTargetParams>,
 }
 
 impl ThinPoolDevTargetTable {

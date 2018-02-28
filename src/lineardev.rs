@@ -322,7 +322,7 @@ impl TargetParams for LinearDevTargetParams {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct LinearDevTargetTable {
     /// The device's table
-    table: Vec<TargetLine<LinearDevTargetParams>>,
+    pub table: Vec<TargetLine<LinearDevTargetParams>>,
 }
 
 impl LinearDevTargetTable {
