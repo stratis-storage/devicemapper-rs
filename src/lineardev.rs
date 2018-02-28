@@ -12,7 +12,7 @@ use super::deviceinfo::DeviceInfo;
 use super::dm::{DM, DmFlags};
 use super::result::{DmError, DmResult, ErrorEnum};
 use super::shared::{DmDevice, TargetLine, TargetParams, TargetTable, device_create, device_exists,
-                    device_match, parse_device, table_reload};
+                    device_match, parse_device};
 use super::types::{DevId, DmName, DmUuid, Sectors, TargetTypeBuf};
 
 
@@ -460,7 +460,9 @@ impl LinearDev {
                      table: Vec<TargetLine<LinearDevTargetParams>>)
                      -> DmResult<()> {
         let table = LinearDevTargetTable::new(table);
-        table_reload(dm, &DevId::Name(self.name()), &table)?;
+        self.suspend(dm)?;
+        self.table_load(dm, &table)?;
+        self.resume(dm)?;
         self.table = table;
         Ok(())
     }

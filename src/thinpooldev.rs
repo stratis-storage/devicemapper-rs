@@ -13,7 +13,7 @@ use super::dm::{DM, DmFlags};
 use super::lineardev::{LinearDev, LinearDevTargetParams};
 use super::result::{DmError, DmResult, ErrorEnum};
 use super::shared::{DmDevice, TargetLine, TargetParams, TargetTable, device_create, device_exists,
-                    device_match, parse_device, table_reload};
+                    device_match, parse_device};
 use super::types::{DataBlocks, DevId, DmName, DmUuid, MetaBlocks, Sectors, TargetTypeBuf};
 
 #[cfg(test)]
@@ -518,11 +518,16 @@ impl ThinPoolDev {
                           dm: &DM,
                           table: Vec<TargetLine<LinearDevTargetParams>>)
                           -> DmResult<()> {
+        // Follow examples in various tests in devicemapper-test-suite file
+        // metadata_resize_tests.
+        self.suspend(dm)?;
         self.meta_dev.set_table(dm, table)?;
 
-        // TODO: Verify if it is really necessary to reload the table if
-        // there has been no change.
-        table_reload(dm, &DevId::Name(self.name()), &self.table)?;
+        // Reload the table even though it is unchanged.
+        // See comment on CacheDev::set_cache_table for reason.
+        self.table_load(dm, self.table())?;
+
+        self.resume(dm)?;
 
         Ok(())
     }
@@ -536,11 +541,18 @@ impl ThinPoolDev {
                           dm: &DM,
                           table: Vec<TargetLine<LinearDevTargetParams>>)
                           -> DmResult<()> {
+        // Follow various example in devicemapper-test-suite file
+        // pool_resize_tests.rb.
+        self.suspend(dm)?;
+
         self.data_dev.set_table(dm, table)?;
 
         let mut table = self.table.clone();
         table.table.length = self.data_dev.size();
-        table_reload(dm, &DevId::Name(self.name()), &table)?;
+        self.table_load(dm, &table)?;
+
+        self.resume(dm)?;
+
         self.table = table;
 
         Ok(())

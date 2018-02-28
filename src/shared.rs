@@ -96,6 +96,12 @@ pub trait DmDevice<T: TargetTable> {
     /// What the device thinks its table is.
     fn table(&self) -> &T;
 
+    /// Load a table
+    fn table_load(&self, dm: &DM, table: &T) -> DmResult<()> {
+        dm.table_load(&DevId::Name(self.name()), &table.to_raw_table())?;
+        Ok(())
+    }
+
     /// Erase the kernel's memory of this device.
     fn teardown(self, dm: &DM) -> DmResult<()>;
 
