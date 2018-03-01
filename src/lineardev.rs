@@ -12,7 +12,7 @@ use super::deviceinfo::DeviceInfo;
 use super::dm::{DM, DmFlags};
 use super::result::{DmError, DmResult, ErrorEnum};
 use super::shared::{DmDevice, TargetLine, TargetParams, TargetTable, device_create, device_exists,
-                    device_match, parse_device, table_reload};
+                    device_match, parse_device};
 use super::types::{DevId, DmName, DmUuid, Sectors, TargetTypeBuf};
 
 
@@ -460,7 +460,9 @@ impl LinearDev {
                      table: Vec<TargetLine<LinearDevTargetParams>>)
                      -> DmResult<()> {
         let table = LinearDevTargetTable::new(table);
-        table_reload(dm, &DevId::Name(self.name()), &table)?;
+        self.suspend(dm)?;
+        self.table_load(dm, &table)?;
+        self.resume(dm)?;
         self.table = table;
         Ok(())
     }
@@ -684,6 +686,25 @@ mod tests {
         ld.teardown(&dm).unwrap();
     }
 
+    /// Verify that suspending and immediately resuming doesn't fail.
+    fn test_suspend(paths: &[&Path]) -> () {
+        assert!(paths.len() >= 1);
+
+        let dm = DM::new().unwrap();
+        let dev = Device::from(devnode_to_devno(&paths[0]).unwrap().unwrap());
+        let params = LinearTargetParams::new(dev, Sectors(0));
+        let table = vec![TargetLine::new(Sectors(0),
+                                         Sectors(1),
+                                         LinearDevTargetParams::Linear(params))];
+        let mut ld = LinearDev::setup(&dm, DmName::new("name").expect("valid format"), None, table)
+            .unwrap();
+
+        ld.suspend(&dm).unwrap();
+        ld.resume(&dm).unwrap();
+
+        ld.teardown(&dm).unwrap();
+    }
+
     #[test]
     fn loop_test_duplicate_segments() {
         test_with_spec(1, test_duplicate_segments);
@@ -722,5 +743,10 @@ mod tests {
     #[test]
     fn loop_test_several_segments() {
         test_with_spec(1, test_several_segments);
+    }
+
+    #[test]
+    fn loop_test_suspend() {
+        test_with_spec(1, test_suspend);
     }
 }

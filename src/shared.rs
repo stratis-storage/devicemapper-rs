@@ -78,11 +78,29 @@ pub trait DmDevice<T: TargetTable> {
     /// The device's name.
     fn name(&self) -> &DmName;
 
+    /// Resume I/O on the device.
+    fn resume(&mut self, dm: &DM) -> DmResult<()> {
+        dm.device_suspend(&DevId::Name(self.name()), DmFlags::empty())?;
+        Ok(())
+    }
+
     /// The number of sectors available for user data.
     fn size(&self) -> Sectors;
 
+    /// Suspend I/O on the device.
+    fn suspend(&mut self, dm: &DM) -> DmResult<()> {
+        dm.device_suspend(&DevId::Name(self.name()), DmFlags::DM_SUSPEND)?;
+        Ok(())
+    }
+
     /// What the device thinks its table is.
     fn table(&self) -> &T;
+
+    /// Load a table
+    fn table_load(&self, dm: &DM, table: &T) -> DmResult<()> {
+        dm.table_load(&DevId::Name(self.name()), &table.to_raw_table())?;
+        Ok(())
+    }
 
     /// Erase the kernel's memory of this device.
     fn teardown(self, dm: &DM) -> DmResult<()>;
@@ -142,14 +160,6 @@ pub fn device_match<T: TargetTable, D: DmDevice<T>>(dm: &DM,
         return Err(DmError::Dm(ErrorEnum::Invalid, err_msg));
     }
     Ok(())
-}
-
-/// Reload the table for a device
-pub fn table_reload<T: TargetTable>(dm: &DM, id: &DevId, table: &T) -> DmResult<DeviceInfo> {
-    let dev_info = dm.table_load(id, &table.to_raw_table())?;
-    dm.device_suspend(id, DmFlags::DM_SUSPEND)?;
-    dm.device_suspend(id, DmFlags::empty())?;
-    Ok(dev_info)
 }
 
 /// Check if a device of the given name exists.

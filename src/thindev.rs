@@ -11,7 +11,7 @@ use super::deviceinfo::DeviceInfo;
 use super::dm::{DM, DmFlags};
 use super::result::{DmError, DmResult, ErrorEnum};
 use super::shared::{DmDevice, TargetLine, TargetParams, TargetTable, device_create, device_exists,
-                    device_match, message, parse_device, table_reload};
+                    device_match, message, parse_device};
 use super::thindevid::ThinDevId;
 use super::thinpooldev::ThinPoolDev;
 use super::types::{DevId, DmName, DmUuid, Sectors, TargetTypeBuf};
@@ -344,7 +344,11 @@ impl ThinDev {
     pub fn extend(&mut self, dm: &DM, extend_amt: Sectors) -> DmResult<()> {
         let mut table = self.table.clone();
         table.table.length = self.table.table.length + extend_amt;
-        table_reload(dm, &DevId::Name(self.name()), &table)?;
+
+        self.suspend(dm)?;
+        self.table_load(dm, &table)?;
+        self.resume(dm)?;
+
         self.table = table;
         Ok(())
     }
@@ -373,6 +377,7 @@ mod tests {
 
     use super::super::consts::IEC;
     use super::super::loopbacked::{blkdev_size, test_with_spec};
+    use super::super::shared::DmDevice;
     use super::super::thinpooldev::{ThinPoolStatus, minimal_thinpool};
     use super::super::types::DataBlocks;
 
@@ -429,7 +434,8 @@ mod tests {
     /// Verify that calling new() for the second time fails. Verify that
     /// setup() is idempotent, calling setup() twice in succession succeeds.
     /// Verify that setup() succeeds on an existing device, whether or not
-    /// it has been torn down.
+    /// it has been torn down. Verify that it is possible to suspend and resume
+    /// the device.
     fn test_basic(paths: &[&Path]) -> () {
         assert!(paths.len() >= 1);
 
@@ -476,10 +482,12 @@ mod tests {
 
         // Teardown the thindev, then set it back up.
         td.teardown(&dm).unwrap();
-        let td = ThinDev::setup(&dm, &id, None, td_size, &tp, thin_id);
-        assert!(td.is_ok());
+        let mut td = ThinDev::setup(&dm, &id, None, td_size, &tp, thin_id).unwrap();
 
-        td.unwrap().destroy(&dm, &tp).unwrap();
+        td.suspend(&dm).unwrap();
+        td.resume(&dm).unwrap();
+
+        td.destroy(&dm, &tp).unwrap();
         tp.teardown(&dm).unwrap();
     }
 
