@@ -13,7 +13,7 @@ use super::dm::{DM, DmFlags};
 use super::lineardev::{LinearDev, LinearDevTargetParams};
 use super::result::{DmError, DmResult, ErrorEnum};
 use super::shared::{DmDevice, TargetLine, TargetParams, TargetTable, device_create, device_exists,
-                    device_match, parse_device, table_reload};
+                    device_match, parse_device};
 use super::types::{DataBlocks, DevId, DmName, DmUuid, MetaBlocks, Sectors, TargetTypeBuf};
 
 
@@ -504,13 +504,11 @@ impl CacheDev {
         // what the test is doing.
         self.suspend(dm)?;
 
-        self.origin_dev.suspend(dm)?;
         self.origin_dev.set_table(dm, table)?;
-        self.origin_dev.resume(dm)?;
 
         let mut table = self.table.clone();
         table.table.length = self.origin_dev.size();
-        table_reload(dm, &DevId::Name(self.name()), &table)?;
+        self.table_load(dm, &table)?;
 
         self.resume(dm)?;
 
@@ -532,11 +530,7 @@ impl CacheDev {
         // cache_stack.rb. This looks funky, but it does seem to be exactly
         // what the test is doing.
         self.suspend(dm)?;
-
-        self.cache_dev.suspend(dm)?;
         self.cache_dev.set_table(dm, table)?;
-        self.cache_dev.resume(dm)?;
-
         self.resume(dm)?;
 
         Ok(())
