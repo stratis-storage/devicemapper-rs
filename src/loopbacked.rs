@@ -35,7 +35,7 @@ fn write_sectors<P: AsRef<Path>>(path: P,
                                  -> io::Result<()> {
     let mut f = OpenOptions::new().write(true).open(path)?;
 
-    f.seek(SeekFrom::Start(*offset))?;
+    f.seek(SeekFrom::Start(*offset.bytes()))?;
     for _ in 0..*length {
         f.write_all(buf)?;
     }
