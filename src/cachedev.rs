@@ -531,6 +531,12 @@ impl CacheDev {
         // what the test is doing.
         self.suspend(dm)?;
         self.cache_dev.set_table(dm, table)?;
+
+        // Reload the table, even though it is unchanged. Otherwise, we
+        // suffer from whacky smq bug documented in the following PR:
+        // https://github.com/stratis-storage/devicemapper-rs/pull/279.
+        self.table_load(dm, self.table())?;
+
         self.resume(dm)?;
 
         Ok(())
