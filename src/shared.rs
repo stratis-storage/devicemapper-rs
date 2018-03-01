@@ -162,14 +162,6 @@ pub fn device_match<T: TargetTable, D: DmDevice<T>>(dm: &DM,
     Ok(())
 }
 
-/// Reload the table for a device
-pub fn table_reload<T: TargetTable>(dm: &DM, id: &DevId, table: &T) -> DmResult<DeviceInfo> {
-    let dev_info = dm.table_load(id, &table.to_raw_table())?;
-    dm.device_suspend(id, DmFlags::DM_SUSPEND)?;
-    dm.device_suspend(id, DmFlags::empty())?;
-    Ok(dev_info)
-}
-
 /// Check if a device of the given name exists.
 pub fn device_exists(dm: &DM, name: &DmName) -> DmResult<bool> {
     // TODO: Why do we have to call .as_ref() here instead of relying on deref
