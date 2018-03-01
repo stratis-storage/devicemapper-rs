@@ -11,7 +11,7 @@ use super::deviceinfo::DeviceInfo;
 use super::dm::{DM, DmFlags};
 use super::result::{DmError, DmResult, ErrorEnum};
 use super::shared::{DmDevice, TargetLine, TargetParams, TargetTable, device_create, device_exists,
-                    device_match, message, parse_device, table_reload};
+                    device_match, message, parse_device};
 use super::thindevid::ThinDevId;
 use super::thinpooldev::ThinPoolDev;
 use super::types::{DevId, DmName, DmUuid, Sectors, TargetTypeBuf};
@@ -344,7 +344,11 @@ impl ThinDev {
     pub fn extend(&mut self, dm: &DM, extend_amt: Sectors) -> DmResult<()> {
         let mut table = self.table.clone();
         table.table.length = self.table.table.length + extend_amt;
-        table_reload(dm, &DevId::Name(self.name()), &table)?;
+
+        self.suspend(dm)?;
+        self.table_load(dm, &table)?;
+        self.resume(dm)?;
+
         self.table = table;
         Ok(())
     }
