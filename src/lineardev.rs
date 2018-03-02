@@ -701,6 +701,8 @@ mod tests {
             .unwrap();
 
         ld.suspend(&dm).unwrap();
+        ld.suspend(&dm).unwrap();
+        ld.resume(&dm).unwrap();
         ld.resume(&dm).unwrap();
 
         ld.teardown(&dm).unwrap();

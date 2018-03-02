@@ -779,6 +779,8 @@ mod tests {
         let dm = DM::new().unwrap();
         let mut tp = minimal_thinpool(&dm, paths[0]);
         tp.suspend(&dm).unwrap();
+        tp.suspend(&dm).unwrap();
+        tp.resume(&dm).unwrap();
         tp.resume(&dm).unwrap();
         tp.teardown(&dm).unwrap();
     }

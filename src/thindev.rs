@@ -485,6 +485,8 @@ mod tests {
         let mut td = ThinDev::setup(&dm, &id, None, td_size, &tp, thin_id).unwrap();
 
         td.suspend(&dm).unwrap();
+        td.suspend(&dm).unwrap();
+        td.resume(&dm).unwrap();
         td.resume(&dm).unwrap();
 
         td.destroy(&dm, &tp).unwrap();

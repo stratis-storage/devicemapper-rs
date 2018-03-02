@@ -947,6 +947,8 @@ mod tests {
         let dm = DM::new().unwrap();
         let mut cache = minimal_cachedev(&dm, paths);
         cache.suspend(&dm).unwrap();
+        cache.suspend(&dm).unwrap();
+        cache.resume(&dm).unwrap();
         cache.resume(&dm).unwrap();
         cache.teardown(&dm).unwrap();
     }
