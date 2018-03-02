@@ -451,6 +451,7 @@ impl LinearDev {
     }
 
     /// Set the segments for this linear device.
+    /// This action puts the device in a state where it is ready to be resumed.
     /// Warning: It is the client's responsibility to make sure the designated
     /// segments are compatible with the device's existing segments.
     /// If they are not, this function will still succeed, but some kind of
@@ -462,7 +463,6 @@ impl LinearDev {
         let table = LinearDevTargetTable::new(table);
         self.suspend(dm)?;
         self.table_load(dm, &table)?;
-        self.resume(dm)?;
         self.table = table;
         Ok(())
     }
@@ -513,6 +513,7 @@ mod tests {
             .unwrap();
 
         assert!(ld.set_table(&dm, vec![]).is_err());
+        ld.resume(&dm).unwrap();
         ld.teardown(&dm).unwrap();
     }
 

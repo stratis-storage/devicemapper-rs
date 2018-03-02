@@ -510,6 +510,7 @@ impl ThinPoolDev {
     }
 
     /// Set the table for the existing metadata device.
+    /// This action puts the device in a state where it is ready to be resumed.
     /// Warning: It is the client's responsibility to make sure the designated
     /// table is compatible with the device's existing table.
     /// If are not, this function will still succeed, but some kind of
@@ -518,21 +519,19 @@ impl ThinPoolDev {
                           dm: &DM,
                           table: Vec<TargetLine<LinearDevTargetParams>>)
                           -> DmResult<()> {
-        // Follow examples in various tests in devicemapper-test-suite file
-        // metadata_resize_tests.
         self.suspend(dm)?;
         self.meta_dev.set_table(dm, table)?;
+        self.meta_dev.resume(dm)?;
 
         // Reload the table even though it is unchanged.
         // See comment on CacheDev::set_cache_table for reason.
         self.table_load(dm, self.table())?;
 
-        self.resume(dm)?;
-
         Ok(())
     }
 
     /// Set the data device's existing table.
+    /// This action puts the device in a state where it is ready to be resumed.
     /// Warning: It is the client's responsibility to make sure the designated
     /// table is compatible with the device's existing table.
     /// If not, this function will still succeed, but some kind of
@@ -541,17 +540,14 @@ impl ThinPoolDev {
                           dm: &DM,
                           table: Vec<TargetLine<LinearDevTargetParams>>)
                           -> DmResult<()> {
-        // Follow various example in devicemapper-test-suite file
-        // pool_resize_tests.rb.
         self.suspend(dm)?;
 
         self.data_dev.set_table(dm, table)?;
+        self.data_dev.resume(dm)?;
 
         let mut table = self.table.clone();
         table.table.length = self.data_dev.size();
         self.table_load(dm, &table)?;
-
-        self.resume(dm)?;
 
         self.table = table;
 
@@ -722,6 +718,7 @@ mod tests {
                                         data_size,
                                         LinearDevTargetParams::Linear(data_params)));
         tp.set_data_table(&dm, data_table).unwrap();
+        tp.resume(&dm).unwrap();
 
         match tp.status(&dm).unwrap() {
             ThinPoolStatus::Working(ref status) => {
@@ -757,6 +754,7 @@ mod tests {
                                         meta_size,
                                         LinearDevTargetParams::Linear(meta_params)));
         tp.set_meta_table(&dm, meta_table).unwrap();
+        tp.resume(&dm).unwrap();
 
         match tp.status(&dm).unwrap() {
             ThinPoolStatus::Working(ref status) => {

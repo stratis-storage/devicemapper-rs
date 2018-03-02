@@ -491,6 +491,7 @@ impl CacheDev {
     }
 
     /// Set the table for the existing origin device.
+    /// This action puts the device in a state where it is ready to be resumed.
     /// Warning: It is the client's responsibility to make sure the designated
     /// table is compatible with the device's existing table.
     /// If not, this function will still succeed, but some kind of
@@ -499,18 +500,14 @@ impl CacheDev {
                             dm: &DM,
                             table: Vec<TargetLine<LinearDevTargetParams>>)
                             -> DmResult<()> {
-        // Follow resize_origin example in device-mapper-test-suite file
-        // cache_stack.rb. This looks funky, but it does seem to be exactly
-        // what the test is doing.
         self.suspend(dm)?;
 
         self.origin_dev.set_table(dm, table)?;
+        self.origin_dev.resume(dm)?;
 
         let mut table = self.table.clone();
         table.table.length = self.origin_dev.size();
         self.table_load(dm, &table)?;
-
-        self.resume(dm)?;
 
         self.table = table;
 
@@ -518,6 +515,7 @@ impl CacheDev {
     }
 
     /// Set the table for the existing cache sub-device.
+    /// This action puts the device in a state where it is ready to be resumed.
     /// Warning: It is the client's responsibility to make sure the designated
     /// table is compatible with the device's existing table.
     /// If not, this function will still succeed, but some kind of
@@ -526,18 +524,14 @@ impl CacheDev {
                            dm: &DM,
                            table: Vec<TargetLine<LinearDevTargetParams>>)
                            -> DmResult<()> {
-        // Follow resize_ssd example in device-mapper-test-suite file
-        // cache_stack.rb. This looks funky, but it does seem to be exactly
-        // what the test is doing.
         self.suspend(dm)?;
         self.cache_dev.set_table(dm, table)?;
+        self.cache_dev.resume(dm)?;
 
         // Reload the table, even though it is unchanged. Otherwise, we
         // suffer from whacky smq bug documented in the following PR:
         // https://github.com/stratis-storage/devicemapper-rs/pull/279.
         self.table_load(dm, self.table())?;
-
-        self.resume(dm)?;
 
         Ok(())
     }
@@ -878,6 +872,7 @@ mod tests {
                                          extra_length,
                                          LinearDevTargetParams::Linear(cache_params)));
         assert!(cache.set_cache_table(&dm, cache_table.clone()).is_ok());
+        cache.resume(&dm).unwrap();
 
         match cache.status(&dm).unwrap() {
             CacheDevStatus::Working(ref status) => {
@@ -891,6 +886,7 @@ mod tests {
         cache_table.pop();
 
         assert!(cache.set_cache_table(&dm, cache_table).is_ok());
+        cache.resume(&dm).unwrap();
 
         match cache.status(&dm).unwrap() {
             CacheDevStatus::Working(ref status) => {
@@ -930,6 +926,7 @@ mod tests {
                                           LinearDevTargetParams::Linear(origin_params)));
 
         cache.set_origin_table(&dm, origin_table).unwrap();
+        cache.resume(&dm).unwrap();
 
         let origin_size = origin_size + dev3_size;
         assert_eq!(cache.origin_dev.size(), origin_size);
