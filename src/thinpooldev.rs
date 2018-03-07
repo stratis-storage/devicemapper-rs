@@ -13,7 +13,7 @@ use super::dm::{DM, DmFlags};
 use super::lineardev::{LinearDev, LinearDevTargetParams};
 use super::result::{DmError, DmResult, ErrorEnum};
 use super::shared::{DmDevice, TargetLine, TargetParams, TargetTable, device_create, device_exists,
-                    device_match, parse_device, table_reload};
+                    device_match, parse_device};
 use super::types::{DataBlocks, DevId, DmName, DmUuid, MetaBlocks, Sectors, TargetTypeBuf};
 
 #[cfg(test)]
@@ -510,6 +510,7 @@ impl ThinPoolDev {
     }
 
     /// Set the table for the existing metadata device.
+    /// This action puts the device in a state where it is ready to be resumed.
     /// Warning: It is the client's responsibility to make sure the designated
     /// table is compatible with the device's existing table.
     /// If are not, this function will still succeed, but some kind of
@@ -518,16 +519,19 @@ impl ThinPoolDev {
                           dm: &DM,
                           table: Vec<TargetLine<LinearDevTargetParams>>)
                           -> DmResult<()> {
+        self.suspend(dm)?;
         self.meta_dev.set_table(dm, table)?;
+        self.meta_dev.resume(dm)?;
 
-        // TODO: Verify if it is really necessary to reload the table if
-        // there has been no change.
-        table_reload(dm, &DevId::Name(self.name()), &self.table)?;
+        // Reload the table even though it is unchanged.
+        // See comment on CacheDev::set_cache_table for reason.
+        self.table_load(dm, self.table())?;
 
         Ok(())
     }
 
     /// Set the data device's existing table.
+    /// This action puts the device in a state where it is ready to be resumed.
     /// Warning: It is the client's responsibility to make sure the designated
     /// table is compatible with the device's existing table.
     /// If not, this function will still succeed, but some kind of
@@ -536,11 +540,15 @@ impl ThinPoolDev {
                           dm: &DM,
                           table: Vec<TargetLine<LinearDevTargetParams>>)
                           -> DmResult<()> {
+        self.suspend(dm)?;
+
         self.data_dev.set_table(dm, table)?;
+        self.data_dev.resume(dm)?;
 
         let mut table = self.table.clone();
         table.table.length = self.data_dev.size();
-        table_reload(dm, &DevId::Name(self.name()), &table)?;
+        self.table_load(dm, &table)?;
+
         self.table = table;
 
         Ok(())
@@ -691,5 +699,94 @@ mod tests {
     #[test]
     fn loop_test_low_data_block_size() {
         test_with_spec(1, test_low_data_block_size);
+    }
+
+    /// Verify that setting the data table does not fail and results in
+    /// the correct size data device.
+    fn test_set_data(paths: &[&Path]) -> () {
+        assert!(paths.len() > 1);
+
+        let dm = DM::new().unwrap();
+        let mut tp = minimal_thinpool(&dm, paths[0]);
+
+        let mut data_table = tp.data_dev.table().table.clone();
+        let data_size = tp.data_dev.size();
+
+        let dev2 = Device::from(devnode_to_devno(paths[1]).unwrap().unwrap());
+        let data_params = LinearTargetParams::new(dev2, Sectors(0));
+        data_table.push(TargetLine::new(data_size,
+                                        data_size,
+                                        LinearDevTargetParams::Linear(data_params)));
+        tp.set_data_table(&dm, data_table).unwrap();
+        tp.resume(&dm).unwrap();
+
+        match tp.status(&dm).unwrap() {
+            ThinPoolStatus::Working(ref status) => {
+                let usage = &status.usage;
+                assert_eq!(*usage.total_data * tp.table().table.params.data_block_size,
+                           2u8 * data_size);
+            }
+            ThinPoolStatus::Fail => panic!("thin pool should not have failed"),
+        }
+
+        tp.teardown(&dm).unwrap();
+    }
+
+    #[test]
+    fn loop_test_set_data() {
+        test_with_spec(2, test_set_data);
+    }
+
+    /// Verify that setting the meta table does not fail and results in
+    /// the correct size meta device.
+    fn test_set_meta(paths: &[&Path]) -> () {
+        assert!(paths.len() > 1);
+
+        let dm = DM::new().unwrap();
+        let mut tp = minimal_thinpool(&dm, paths[0]);
+
+        let mut meta_table = tp.meta_dev.table().table.clone();
+        let meta_size = tp.meta_dev.size();
+
+        let dev2 = Device::from(devnode_to_devno(paths[1]).unwrap().unwrap());
+        let meta_params = LinearTargetParams::new(dev2, Sectors(0));
+        meta_table.push(TargetLine::new(meta_size,
+                                        meta_size,
+                                        LinearDevTargetParams::Linear(meta_params)));
+        tp.set_meta_table(&dm, meta_table).unwrap();
+        tp.resume(&dm).unwrap();
+
+        match tp.status(&dm).unwrap() {
+            ThinPoolStatus::Working(ref status) => {
+                let usage = &status.usage;
+                assert_eq!(usage.total_meta.sectors(), 2u8 * meta_size);
+            }
+            ThinPoolStatus::Fail => panic!("thin pool should not have failed"),
+        }
+
+        tp.teardown(&dm).unwrap();
+    }
+
+    #[test]
+    fn loop_test_set_meta() {
+        test_with_spec(2, test_set_meta);
+    }
+
+    /// Just test that suspending and resuming a thinpool has no errors.
+    fn test_suspend(paths: &[&Path]) -> () {
+        assert!(paths.len() >= 1);
+
+        let dm = DM::new().unwrap();
+        let mut tp = minimal_thinpool(&dm, paths[0]);
+        tp.suspend(&dm).unwrap();
+        tp.suspend(&dm).unwrap();
+        tp.resume(&dm).unwrap();
+        tp.resume(&dm).unwrap();
+        tp.teardown(&dm).unwrap();
+    }
+
+    #[test]
+    fn loop_test_suspend() {
+        test_with_spec(1, test_suspend);
     }
 }

@@ -13,7 +13,7 @@ use super::dm::{DM, DmFlags};
 use super::lineardev::{LinearDev, LinearDevTargetParams};
 use super::result::{DmError, DmResult, ErrorEnum};
 use super::shared::{DmDevice, TargetLine, TargetParams, TargetTable, device_create, device_exists,
-                    device_match, parse_device, table_reload};
+                    device_match, parse_device};
 use super::types::{DataBlocks, DevId, DmName, DmUuid, MetaBlocks, Sectors, TargetTypeBuf};
 
 
@@ -491,6 +491,7 @@ impl CacheDev {
     }
 
     /// Set the table for the existing origin device.
+    /// This action puts the device in a state where it is ready to be resumed.
     /// Warning: It is the client's responsibility to make sure the designated
     /// table is compatible with the device's existing table.
     /// If not, this function will still succeed, but some kind of
@@ -499,17 +500,22 @@ impl CacheDev {
                             dm: &DM,
                             table: Vec<TargetLine<LinearDevTargetParams>>)
                             -> DmResult<()> {
+        self.suspend(dm)?;
+
         self.origin_dev.set_table(dm, table)?;
+        self.origin_dev.resume(dm)?;
 
         let mut table = self.table.clone();
         table.table.length = self.origin_dev.size();
-        table_reload(dm, &DevId::Name(self.name()), &table)?;
+        self.table_load(dm, &table)?;
+
         self.table = table;
 
         Ok(())
     }
 
     /// Set the table for the existing cache sub-device.
+    /// This action puts the device in a state where it is ready to be resumed.
     /// Warning: It is the client's responsibility to make sure the designated
     /// table is compatible with the device's existing table.
     /// If not, this function will still succeed, but some kind of
@@ -518,11 +524,14 @@ impl CacheDev {
                            dm: &DM,
                            table: Vec<TargetLine<LinearDevTargetParams>>)
                            -> DmResult<()> {
+        self.suspend(dm)?;
         self.cache_dev.set_table(dm, table)?;
+        self.cache_dev.resume(dm)?;
 
-        // TODO: Verify if it is really necessary to reload the table if
-        // there has been no change.
-        table_reload(dm, &DevId::Name(self.name()), &self.table)?;
+        // Reload the table, even though it is unchanged. Otherwise, we
+        // suffer from whacky smq bug documented in the following PR:
+        // https://github.com/stratis-storage/devicemapper-rs/pull/279.
+        self.table_load(dm, self.table())?;
 
         Ok(())
     }
@@ -850,14 +859,42 @@ mod tests {
         let extra_length = MIN_CACHE_BLOCK_SIZE;
         let cache_params = LinearTargetParams::new(dev3, Sectors(0));
         let current_length = cache.cache_dev.size();
+
+        match cache.status(&dm).unwrap() {
+            CacheDevStatus::Working(ref status) => {
+                let usage = &status.usage;
+                assert_eq!(*usage.total_cache * usage.cache_block_size, current_length);
+            }
+            CacheDevStatus::Fail => panic!("cache should not have failed"),
+        }
+
         cache_table.push(TargetLine::new(current_length,
                                          extra_length,
                                          LinearDevTargetParams::Linear(cache_params)));
         assert!(cache.set_cache_table(&dm, cache_table.clone()).is_ok());
+        cache.resume(&dm).unwrap();
+
+        match cache.status(&dm).unwrap() {
+            CacheDevStatus::Working(ref status) => {
+                let usage = &status.usage;
+                assert_eq!(*usage.total_cache * usage.cache_block_size,
+                           current_length + extra_length);
+            }
+            CacheDevStatus::Fail => panic!("cache should not have failed"),
+        }
 
         cache_table.pop();
 
         assert!(cache.set_cache_table(&dm, cache_table).is_ok());
+        cache.resume(&dm).unwrap();
+
+        match cache.status(&dm).unwrap() {
+            CacheDevStatus::Working(ref status) => {
+                let usage = &status.usage;
+                assert_eq!(*usage.total_cache * usage.cache_block_size, current_length);
+            }
+            CacheDevStatus::Fail => panic!("cache should not have failed"),
+        }
 
         cache.teardown(&dm).unwrap();
     }
@@ -865,5 +902,59 @@ mod tests {
     #[test]
     fn loop_test_cache_size_change() {
         test_with_spec(3, test_cache_size_change);
+    }
+
+    /// Test changing the size of the origin device.
+    /// Verify that once changed, the new size is reflected in origin device
+    /// and cache device.
+    fn test_origin_size_change(paths: &[&Path]) {
+        assert!(paths.len() >= 3);
+
+        let dm = DM::new().unwrap();
+        let mut cache = minimal_cachedev(&dm, paths);
+
+        let mut origin_table = cache.origin_dev.table().table.clone();
+        let origin_size = cache.origin_dev.size();
+
+        let dev3_size = blkdev_size(&OpenOptions::new().read(true).open(paths[2]).unwrap())
+            .sectors();
+        let dev3 = Device::from(devnode_to_devno(paths[2]).unwrap().unwrap());
+        let origin_params = LinearTargetParams::new(dev3, Sectors(0));
+
+        origin_table.push(TargetLine::new(origin_size,
+                                          dev3_size,
+                                          LinearDevTargetParams::Linear(origin_params)));
+
+        cache.set_origin_table(&dm, origin_table).unwrap();
+        cache.resume(&dm).unwrap();
+
+        let origin_size = origin_size + dev3_size;
+        assert_eq!(cache.origin_dev.size(), origin_size);
+        assert_eq!(cache.size(), origin_size);
+
+        cache.teardown(&dm).unwrap();
+    }
+
+    #[test]
+    fn loop_test_origin_size_change() {
+        test_with_spec(3, test_origin_size_change);
+    }
+
+    /// Verify that suspending and resuming the cache doesn't fail.
+    fn test_suspend(paths: &[&Path]) {
+        assert!(paths.len() >= 2);
+
+        let dm = DM::new().unwrap();
+        let mut cache = minimal_cachedev(&dm, paths);
+        cache.suspend(&dm).unwrap();
+        cache.suspend(&dm).unwrap();
+        cache.resume(&dm).unwrap();
+        cache.resume(&dm).unwrap();
+        cache.teardown(&dm).unwrap();
+    }
+
+    #[test]
+    fn loop_test_suspend() {
+        test_with_spec(2, test_suspend);
     }
 }
