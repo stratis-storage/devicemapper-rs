@@ -11,7 +11,8 @@ use std::str::FromStr;
 
 use super::device::{Device, devnode_to_devno};
 use super::deviceinfo::DeviceInfo;
-use super::dm::{DM, DmFlags};
+use super::dm::DM;
+use super::dm_flags::DmFlags;
 use super::result::{DmError, DmResult, ErrorEnum};
 use super::types::{DevId, DmName, DmUuid, Sectors, TargetTypeBuf};
 

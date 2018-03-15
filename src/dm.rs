@@ -2,13 +2,6 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-// These errors originate in bitflags! macro and are not ours to fix.
-// Their scope is the whole file because the bitflags! macro generates a
-// lot of stuff, and so placing the annotation right on the use of the
-// bitflags! macro does not actually cover the suspicious code generated.
-#![allow(redundant_field_names)]
-#![allow(suspicious_arithmetic_impl)]
-
 use std::{cmp, io, slice};
 use std::fs::File;
 use std::mem::{size_of, transmute};
@@ -19,6 +12,7 @@ use nix::libc::c_ulong;
 
 use super::device::Device;
 use super::deviceinfo::{DM_NAME_LEN, DM_UUID_LEN, DeviceInfo};
+use super::dm_flags::DmFlags;
 use super::dm_ioctl as dmi;
 use super::errors::{Error, ErrorKind};
 use super::result::DmResult;
@@ -38,51 +32,6 @@ const DM_VERSION_PATCHLEVEL: u32 = 0;
 
 /// Start with a large buffer to make BUFFER_FULL rare. Libdm does this too.
 const MIN_BUF_SIZE: usize = 16 * 1024;
-
-bitflags! {
-    /// Flags used by devicemapper.
-    #[derive(Default)]
-    pub struct DmFlags: dmi::__u32 {
-        /// In: Device should be read-only.
-        /// Out: Device is read-only.
-        #[allow(identity_op)]
-        const DM_READONLY             = (1 << 0);
-        /// In: Device should be suspended.
-        /// Out: Device is suspended.
-        const DM_SUSPEND              = (1 << 1);
-        /// In: Use passed-in minor number.
-        const DM_PERSISTENT_DEV       = (1 << 3);
-        /// In: STATUS command returns table info instead of status.
-        const DM_STATUS_TABLE         = (1 << 4);
-        /// Out: Active table is present.
-        const DM_ACTIVE_PRESENT       = (1 << 5);
-        /// Out: Inactive table is present.
-        const DM_INACTIVE_PRESENT     = (1 << 6);
-        /// Out: Passed-in buffer was too small.
-        const DM_BUFFER_FULL          = (1 << 8);
-        /// Obsolete.
-        const DM_SKIP_BDGET           = (1 << 9);
-        /// In: Avoid freezing filesystem when suspending.
-        const DM_SKIP_LOCKFS          = (1 << 10);
-        /// In: Suspend without flushing queued I/Os.
-        const DM_NOFLUSH              = (1 << 11);
-        /// In: Query inactive table instead of active.
-        const DM_QUERY_INACTIVE_TABLE = (1 << 12);
-        /// Out: A uevent was generated, the caller may need to wait for it.
-        const DM_UEVENT_GENERATED     = (1 << 13);
-        /// In: Rename affects UUID field, not name field.
-        const DM_UUID                 = (1 << 14);
-        /// In: All buffers are wiped after use. Use when handling crypto keys.
-        const DM_SECURE_DATA          = (1 << 15);
-        /// Out: A message generated output data.
-        const DM_DATA_OUT             = (1 << 16);
-        /// In: Do not remove in-use devices.
-        /// Out: Device scheduled to be removed when closed.
-        const DM_DEFERRED_REMOVE      = (1 << 17);
-        /// Out: Device is suspended internally.
-        const DM_INTERNAL_SUSPEND     = (1 << 18);
-    }
-}
 
 /// Context needed for communicating with devicemapper.
 pub struct DM {
