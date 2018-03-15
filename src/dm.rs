@@ -6,6 +6,7 @@ use std::{cmp, io, slice};
 use std::fs::File;
 use std::mem::{size_of, transmute};
 use std::os::unix::io::AsRawFd;
+use std::sync::{Once, ONCE_INIT};
 
 use nix::libc::ioctl as nix_ioctl;
 use nix::libc::c_ulong;
@@ -748,6 +749,24 @@ impl DM {
         Ok(DeviceInfo::new(hdr))
     }
 }
+
+static INIT: Once = ONCE_INIT;
+static mut DM_CONTEXT: Option<DM> = None;
+
+/// Obtain a reference to a devicemapper context
+/// The first time this is invoked, the devicemapper context is obtained,
+/// and the method may panic. On all subsequent calls, the context has
+/// already been obtained, and the method can not fail.
+pub fn get_dm_context() -> &'static DM {
+    unsafe {
+        INIT.call_once(|| DM_CONTEXT = Some(DM::new().unwrap()));
+        match DM_CONTEXT {
+            Some(ref context) => context,
+            _ => panic!("DM_CONTEXT.is_some()"),
+        }
+    }
+}
+
 
 #[cfg(test)]
 mod tests {
