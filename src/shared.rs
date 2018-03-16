@@ -70,8 +70,8 @@ pub trait DmDevice<T: TargetTable> {
     /// Check if tables indicate an equivalent device.
     fn equivalent_tables(left: &T, right: &T) -> DmResult<bool>;
 
-    /// The devicemapper table
-    fn load_table(dm: &DM, id: &DevId) -> DmResult<T> {
+    /// Read the devicemapper table
+    fn read_kernel_table(dm: &DM, id: &DevId) -> DmResult<T> {
         let (_, table) = dm.table_status(id, DmFlags::DM_STATUS_TABLE)?;
         T::from_raw_table(&table)
     }
@@ -143,7 +143,7 @@ pub fn device_match<T: TargetTable, D: DmDevice<T>>(dm: &DM,
                                                     dev: &D,
                                                     uuid: Option<&DmUuid>)
                                                     -> DmResult<()> {
-    let kernel_table = D::load_table(dm, &DevId::Name(dev.name()))?;
+    let kernel_table = D::read_kernel_table(dm, &DevId::Name(dev.name()))?;
     let device_table = dev.table();
     if !D::equivalent_tables(&kernel_table, device_table)? {
         let err_msg = format!("Specified new table \"{:?}\" does not match kernel table \"{:?}\"",
