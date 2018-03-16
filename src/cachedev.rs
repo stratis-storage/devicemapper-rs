@@ -823,7 +823,7 @@ mod tests {
             _ => assert!(false),
         }
 
-        let table = CacheDev::load_table(&dm, &DevId::Name(cache.name()))
+        let table = CacheDev::read_kernel_table(&dm, &DevId::Name(cache.name()))
             .unwrap()
             .table;
 

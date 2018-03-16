@@ -448,7 +448,7 @@ mod tests {
         let td_size = MIN_THIN_DEV_SIZE;
         let td = ThinDev::new(&dm, &id, None, td_size, &tp, thin_id).unwrap();
 
-        let table = ThinDev::load_table(&dm, &DevId::Name(td.name()))
+        let table = ThinDev::read_kernel_table(&dm, &DevId::Name(td.name()))
             .unwrap()
             .table;
 

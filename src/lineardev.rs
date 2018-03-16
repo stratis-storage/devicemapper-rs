@@ -583,7 +583,7 @@ mod tests {
         let ld = LinearDev::setup(&dm, DmName::new(name).expect("valid format"), None, table)
             .unwrap();
 
-        let table = LinearDev::load_table(&dm, &DevId::Name(ld.name()))
+        let table = LinearDev::read_kernel_table(&dm, &DevId::Name(ld.name()))
             .unwrap()
             .table;
         assert_eq!(table.len(), count);
@@ -628,7 +628,7 @@ mod tests {
                                   table.clone())
                 .unwrap();
 
-        let loaded_table = LinearDev::load_table(&dm, &DevId::Name(ld.name())).unwrap();
+        let loaded_table = LinearDev::read_kernel_table(&dm, &DevId::Name(ld.name())).unwrap();
         assert!(LinearDev::equivalent_tables(&LinearDevTargetTable::new(table), &loaded_table)
                     .unwrap());
 

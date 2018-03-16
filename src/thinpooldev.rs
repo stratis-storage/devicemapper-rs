@@ -644,7 +644,7 @@ mod tests {
             _ => assert!(false),
         }
 
-        let table = ThinPoolDev::load_table(&dm, &DevId::Name(tp.name()))
+        let table = ThinPoolDev::read_kernel_table(&dm, &DevId::Name(tp.name()))
             .unwrap()
             .table;
         let params = &table.params;
