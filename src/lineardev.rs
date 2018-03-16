@@ -9,7 +9,8 @@ use std::str::FromStr;
 
 use super::device::Device;
 use super::deviceinfo::DeviceInfo;
-use super::dm::{DM, DmFlags};
+use super::dm::DM;
+use super::dm_flags::DmFlags;
 use super::result::{DmError, DmResult, ErrorEnum};
 use super::shared::{DmDevice, TargetLine, TargetParams, TargetTable, device_create, device_exists,
                     device_match, parse_device};

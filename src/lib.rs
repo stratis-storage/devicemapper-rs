@@ -120,6 +120,8 @@ mod deviceinfo;
 mod device;
 /// core lower level API
 mod dm;
+/// DM flags
+mod dm_flags;
 /// functionality shared between devices
 mod shared;
 /// error chain errors for core dm
@@ -132,9 +134,9 @@ mod loopbacked;
 pub use cachedev::{CacheDev, CacheDevPerformance, CacheDevStatus, CacheDevUsage,
                    CacheDevWorkingStatus, MAX_CACHE_BLOCK_SIZE, MIN_CACHE_BLOCK_SIZE};
 pub use consts::{IEC, SECTOR_SIZE};
-pub use dm::{DM, DmFlags};
-
 pub use device::{Device, devnode_to_devno};
+pub use dm::DM;
+pub use dm_flags::DmFlags;
 pub use lineardev::{FlakeyTargetParams, LinearDev, LinearDevTargetParams, LinearDevTargetTable,
                     LinearTargetParams};
 pub use result::{DmResult, DmError, ErrorEnum};
