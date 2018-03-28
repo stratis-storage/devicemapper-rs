@@ -182,6 +182,13 @@ impl CacheDevTargetTable {
     }
 }
 
+impl fmt::Display for CacheDevTargetTable {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let table = &self.table;
+        writeln!(f, "{} {} {}", *table.start, *table.length, table.params)
+    }
+}
+
 impl TargetTable for CacheDevTargetTable {
     fn from_raw_table(table: &[(Sectors, Sectors, TargetTypeBuf, String)])
                       -> DmResult<CacheDevTargetTable> {

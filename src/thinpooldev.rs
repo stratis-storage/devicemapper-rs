@@ -155,6 +155,13 @@ impl ThinPoolDevTargetTable {
     }
 }
 
+impl fmt::Display for ThinPoolDevTargetTable {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let table = &self.table;
+        writeln!(f, "{} {} {}", *table.start, *table.length, table.params)
+    }
+}
+
 impl TargetTable for ThinPoolDevTargetTable {
     fn from_raw_table(table: &[(Sectors, Sectors, TargetTypeBuf, String)])
                       -> DmResult<ThinPoolDevTargetTable> {
