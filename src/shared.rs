@@ -94,6 +94,13 @@ pub trait DmDevice<T: TargetTable> {
         Ok(())
     }
 
+    /// Suspend I/O on the device without flushing.
+    fn suspend_noflush(&mut self, dm: &DM) -> DmResult<()> {
+        dm.device_suspend(&DevId::Name(self.name()),
+                            DmFlags::DM_SUSPEND | DmFlags::DM_NOFLUSH)?;
+        Ok(())
+    }
+
     /// What the device thinks its table is.
     fn table(&self) -> &T;
 
