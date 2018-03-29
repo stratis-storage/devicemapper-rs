@@ -520,7 +520,7 @@ impl ThinPoolDev {
                           dm: &DM,
                           table: Vec<TargetLine<LinearDevTargetParams>>)
                           -> DmResult<()> {
-        self.suspend(dm)?;
+        self.suspend(dm, false)?;
         self.meta_dev.set_table(dm, table)?;
         self.meta_dev.resume(dm)?;
 
@@ -541,7 +541,7 @@ impl ThinPoolDev {
                           dm: &DM,
                           table: Vec<TargetLine<LinearDevTargetParams>>)
                           -> DmResult<()> {
-        self.suspend(dm)?;
+        self.suspend(dm, false)?;
 
         self.data_dev.set_table(dm, table)?;
         self.data_dev.resume(dm)?;
@@ -779,8 +779,8 @@ mod tests {
 
         let dm = DM::new().unwrap();
         let mut tp = minimal_thinpool(&dm, paths[0]);
-        tp.suspend(&dm).unwrap();
-        tp.suspend(&dm).unwrap();
+        tp.suspend(&dm, false).unwrap();
+        tp.suspend(&dm, false).unwrap();
         tp.resume(&dm).unwrap();
         tp.resume(&dm).unwrap();
         tp.teardown(&dm).unwrap();
