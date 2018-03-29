@@ -340,12 +340,9 @@ impl ThinDev {
         Ok(ThinStatus::Working(Box::new(ThinDevWorkingStatus::new(count, highest))))
     }
 
-    /// Extend the thin device's (virtual) size by the number of
-    /// sectors given.
-    pub fn extend(&mut self, dm: &DM, extend_amt: Sectors) -> DmResult<()> {
-        let mut table = self.table.clone();
-        table.table.length = self.table.table.length + extend_amt;
-
+    /// Set the table for the thin device's target
+    pub fn set_table(&mut self, dm: &DM, table: TargetLine<ThinTargetParams>) -> DmResult<()> {
+        let table = ThinDevTargetTable::new(table.start, table.length, table.params);
         self.suspend(dm)?;
         self.table_load(dm, &table)?;
         self.resume(dm)?;
