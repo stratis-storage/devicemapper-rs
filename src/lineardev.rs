@@ -462,7 +462,7 @@ impl LinearDev {
                      table: Vec<TargetLine<LinearDevTargetParams>>)
                      -> DmResult<()> {
         let table = LinearDevTargetTable::new(table);
-        self.suspend(dm)?;
+        self.suspend(dm, false)?;
         self.table_load(dm, &table)?;
         self.table = table;
         Ok(())
@@ -701,8 +701,8 @@ mod tests {
         let mut ld = LinearDev::setup(&dm, DmName::new("name").expect("valid format"), None, table)
             .unwrap();
 
-        ld.suspend(&dm).unwrap();
-        ld.suspend(&dm).unwrap();
+        ld.suspend(&dm, false).unwrap();
+        ld.suspend(&dm, false).unwrap();
         ld.resume(&dm).unwrap();
         ld.resume(&dm).unwrap();
 

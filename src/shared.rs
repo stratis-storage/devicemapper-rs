@@ -88,9 +88,14 @@ pub trait DmDevice<T: TargetTable> {
     /// The number of sectors available for user data.
     fn size(&self) -> Sectors;
 
-    /// Suspend I/O on the device.
-    fn suspend(&mut self, dm: &DM) -> DmResult<()> {
-        dm.device_suspend(&DevId::Name(self.name()), DmFlags::DM_SUSPEND)?;
+    /// Suspend I/O on the device. If flush is true, flush the device first.
+    fn suspend(&mut self, dm: &DM, flush: bool) -> DmResult<()> {
+        let flags = if flush {
+            DmFlags::DM_SUSPEND
+        } else {
+            DmFlags::DM_SUSPEND | DmFlags::DM_NOFLUSH
+        };
+        dm.device_suspend(&DevId::Name(self.name()), flags)?;
         Ok(())
     }
 

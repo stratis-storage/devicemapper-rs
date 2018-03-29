@@ -501,7 +501,7 @@ impl CacheDev {
                             dm: &DM,
                             table: Vec<TargetLine<LinearDevTargetParams>>)
                             -> DmResult<()> {
-        self.suspend(dm)?;
+        self.suspend(dm, false)?;
 
         self.origin_dev.set_table(dm, table)?;
         self.origin_dev.resume(dm)?;
@@ -525,7 +525,7 @@ impl CacheDev {
                            dm: &DM,
                            table: Vec<TargetLine<LinearDevTargetParams>>)
                            -> DmResult<()> {
-        self.suspend(dm)?;
+        self.suspend(dm, false)?;
         self.cache_dev.set_table(dm, table)?;
         self.cache_dev.resume(dm)?;
 
@@ -947,8 +947,8 @@ mod tests {
 
         let dm = DM::new().unwrap();
         let mut cache = minimal_cachedev(&dm, paths);
-        cache.suspend(&dm).unwrap();
-        cache.suspend(&dm).unwrap();
+        cache.suspend(&dm, false).unwrap();
+        cache.suspend(&dm, false).unwrap();
         cache.resume(&dm).unwrap();
         cache.resume(&dm).unwrap();
         cache.teardown(&dm).unwrap();

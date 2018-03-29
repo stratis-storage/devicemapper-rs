@@ -343,7 +343,7 @@ impl ThinDev {
     /// Set the table for the thin device's target
     pub fn set_table(&mut self, dm: &DM, table: TargetLine<ThinTargetParams>) -> DmResult<()> {
         let table = ThinDevTargetTable::new(table.start, table.length, table.params);
-        self.suspend(dm)?;
+        self.suspend(dm, false)?;
         self.table_load(dm, &table)?;
         self.resume(dm)?;
 
@@ -482,8 +482,8 @@ mod tests {
         td.teardown(&dm).unwrap();
         let mut td = ThinDev::setup(&dm, &id, None, td_size, &tp, thin_id).unwrap();
 
-        td.suspend(&dm).unwrap();
-        td.suspend(&dm).unwrap();
+        td.suspend(&dm, false).unwrap();
+        td.suspend(&dm, false).unwrap();
         td.resume(&dm).unwrap();
         td.resume(&dm).unwrap();
 
