@@ -27,9 +27,10 @@ clippy:
 	RUSTFLAGS='-D warnings' cargo build --features "clippy"
 
 .PHONY:
-	fmt
 	build
-	test
-	sudo_test
 	clippy
+	fmt
+	sudo_test
+	test
+	travis_fmt
 	tree
