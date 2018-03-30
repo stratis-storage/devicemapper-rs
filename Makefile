@@ -26,6 +26,9 @@ sudo_test:
 clippy:
 	RUSTFLAGS='-D warnings' cargo build --features "clippy"
 
+uml-graphs: ${HOME}/.cargo/bin/cargo-script
+	PATH=${HOME}/.cargo/bin:${PATH} cargo script scripts/uml_graphs.rs
+
 .PHONY:
 	build
 	clippy
