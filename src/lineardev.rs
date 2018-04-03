@@ -333,6 +333,15 @@ impl LinearDevTargetTable {
     }
 }
 
+impl fmt::Display for LinearDevTargetTable {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        for line in &self.table {
+            writeln!(f, "{} {} {}", *line.start, *line.length, line.params)?;
+        }
+        Ok(())
+    }
+}
+
 impl TargetTable for LinearDevTargetTable {
     fn from_raw_table(table: &[(Sectors, Sectors, TargetTypeBuf, String)])
                       -> DmResult<LinearDevTargetTable> {

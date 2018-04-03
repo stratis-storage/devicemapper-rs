@@ -50,7 +50,8 @@ impl<T: TargetParams> TargetLine<T> {
     }
 }
 
-pub trait TargetTable: Clone + fmt::Debug + Eq + PartialEq + Sized {
+pub trait TargetTable
+    : Clone + fmt::Debug + fmt::Display + Eq + PartialEq + Sized {
     /// Constructs a table from a raw table returned by DM::table_status()
     fn from_raw_table(table: &[(Sectors, Sectors, TargetTypeBuf, String)]) -> DmResult<Self>;
 

@@ -98,6 +98,13 @@ impl ThinDevTargetTable {
     }
 }
 
+impl fmt::Display for ThinDevTargetTable {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let table = &self.table;
+        writeln!(f, "{} {} {}", *table.start, *table.length, table.params)
+    }
+}
+
 impl TargetTable for ThinDevTargetTable {
     fn from_raw_table(table: &[(Sectors, Sectors, TargetTypeBuf, String)])
                       -> DmResult<ThinDevTargetTable> {
