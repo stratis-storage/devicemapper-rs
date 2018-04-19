@@ -30,6 +30,10 @@ const DM_VERSION_MINOR: u32 = 30;
 /// Patch level
 const DM_VERSION_PATCHLEVEL: u32 = 0;
 
+// See https://sourceware.org/git/?p=lvm2.git;a=blob;f=libdm/libdevmapper.h#l3708
+// Note: flag is only upper 16 bits.
+const DM_UDEV_PRIMARY_SOURCE_FLAG: u16 = 0x0040;
+
 /// Start with a large buffer to make BUFFER_FULL rare. Libdm does this too.
 const MIN_BUF_SIZE: usize = 16 * 1024;
 
@@ -58,6 +62,7 @@ impl DM {
         hdr.version[2] = DM_VERSION_PATCHLEVEL;
 
         hdr.flags = flags.bits();
+        hdr.event_nr = (DM_UDEV_PRIMARY_SOURCE_FLAG as u32) << 16;
 
         hdr.data_start = size_of::<dmi::Struct_dm_ioctl>() as u32;
     }
