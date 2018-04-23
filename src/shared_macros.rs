@@ -43,3 +43,17 @@ macro_rules! table {
         &$s.table
     }
 }
+
+
+/// All things we create in the unit test will have this utilized so we know what to cleanup.
+/// If we change this we need to change the "tn" macro below too.
+#[cfg(test)]
+pub static DM_TEST_ID: &'static str = "_dm-rs_ut_delme";
+
+/// Generate a test name (tn) which can be identified later, so that is can be cleaned up.
+#[cfg(test)]
+macro_rules! tn {
+    ($name: expr) => {
+        concat!($name, "_dm-rs_ut_delme")
+    }
+}

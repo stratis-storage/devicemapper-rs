@@ -779,7 +779,7 @@ mod tests {
     /// listed.
     fn sudo_test_list_devices() {
         let dm = DM::new().unwrap();
-        let name = DmName::new("example-dev").expect("is valid DM name");
+        let name = DmName::new(tn!("example-dev")).expect("is valid DM name");
         dm.device_create(name, None, DmFlags::empty()).unwrap();
 
         let devices = dm.list_devices().unwrap();
@@ -795,7 +795,7 @@ mod tests {
     /// Test that device creation gives a device with the expected name.
     fn sudo_test_create() {
         let dm = DM::new().unwrap();
-        let name = DmName::new("example-dev").expect("is valid DM name");
+        let name = DmName::new(tn!("example-dev")).expect("is valid DM name");
         let result = dm.device_create(name, None, DmFlags::empty()).unwrap();
         assert_eq!(result.name(), name);
         dm.device_remove(&DevId::Name(name), DmFlags::empty())
@@ -806,8 +806,8 @@ mod tests {
     /// Verify that creation with a UUID results in correct name and UUID.
     fn sudo_test_create_uuid() {
         let dm = DM::new().unwrap();
-        let name = DmName::new("example-dev").expect("is valid DM name");
-        let uuid = DmUuid::new("example-363333333333333").expect("is valid DM uuid");
+        let name = DmName::new(tn!("example-dev")).expect("is valid DM name");
+        let uuid = DmUuid::new(tn!("example-363333333333333")).expect("is valid DM uuid");
         let result = dm.device_create(name, Some(uuid), DmFlags::empty())
             .unwrap();
         assert_eq!(result.name(), name);
@@ -820,12 +820,12 @@ mod tests {
     /// Verify that resetting uuid fails.
     fn sudo_test_rename_uuid() {
         let dm = DM::new().unwrap();
-        let name = DmName::new("example-dev").expect("is valid DM name");
-        let uuid = DmUuid::new("example-363333333333333").expect("is valid DM uuid");
+        let name = DmName::new(tn!("example-dev")).expect("is valid DM name");
+        let uuid = DmUuid::new(tn!("example-363333333333333")).expect("is valid DM uuid");
         dm.device_create(name, Some(uuid), DmFlags::empty())
             .unwrap();
 
-        let new_uuid = DmUuid::new("example-9999999999").expect("is valid DM uuid");
+        let new_uuid = DmUuid::new(tn!("example-9999999999")).expect("is valid DM uuid");
         assert!(match dm.device_rename(name, &DevId::Uuid(new_uuid)) {
                     Err(DmError::Core(Error(ErrorKind::IoctlError(_), _))) => true,
                     _ => false,
@@ -838,8 +838,8 @@ mod tests {
     /// Verify that resetting uuid to same uuid fails.
     fn sudo_test_rename_uuid_id() {
         let dm = DM::new().unwrap();
-        let name = DmName::new("example-dev").expect("is valid DM name");
-        let uuid = DmUuid::new("example-363333333333333").expect("is valid DM uuid");
+        let name = DmName::new(tn!("example-dev")).expect("is valid DM name");
+        let uuid = DmUuid::new(tn!("example-363333333333333")).expect("is valid DM uuid");
         dm.device_create(name, Some(uuid), DmFlags::empty())
             .unwrap();
         assert!(match dm.device_rename(name, &DevId::Uuid(uuid)) {
@@ -855,10 +855,10 @@ mod tests {
     /// Note that the uuid is not set in the returned dev_info.
     fn sudo_test_set_uuid() {
         let dm = DM::new().unwrap();
-        let name = DmName::new("example-dev").expect("is valid DM name");
+        let name = DmName::new(tn!("example-dev")).expect("is valid DM name");
         dm.device_create(name, None, DmFlags::empty()).unwrap();
 
-        let uuid = DmUuid::new("example-363333333333333").expect("is valid DM uuid");
+        let uuid = DmUuid::new(tn!("example-363333333333333")).expect("is valid DM uuid");
         let result = dm.device_rename(name, &DevId::Uuid(uuid)).unwrap();
         assert_eq!(result.uuid(), None);
         assert_eq!(dm.device_info(&DevId::Name(name))
@@ -876,7 +876,7 @@ mod tests {
     /// This is unfortunate, but appears to be true.
     fn sudo_test_rename_id() {
         let dm = DM::new().unwrap();
-        let name = DmName::new("example-dev").expect("is valid DM name");
+        let name = DmName::new(tn!("example-dev")).expect("is valid DM name");
         dm.device_create(name, None, DmFlags::empty()).unwrap();
         assert!(match dm.device_rename(name, &DevId::Name(name)) {
                     Err(DmError::Core(Error(ErrorKind::IoctlError(_), _))) => true,
@@ -892,10 +892,10 @@ mod tests {
     /// the new name.
     fn sudo_test_rename() {
         let dm = DM::new().unwrap();
-        let name = DmName::new("example-dev").expect("is valid DM name");
+        let name = DmName::new(tn!("example-dev")).expect("is valid DM name");
         dm.device_create(name, None, DmFlags::empty()).unwrap();
 
-        let new_name = DmName::new("example-dev-2").expect("is valid DM name");
+        let new_name = DmName::new(tn!("example-dev-2")).expect("is valid DM name");
         dm.device_rename(name, &DevId::Name(new_name)).unwrap();
 
         assert!(match dm.device_info(&DevId::Name(name)) {
@@ -908,7 +908,7 @@ mod tests {
         assert_eq!(devices.len(), 1);
         assert_eq!(devices[0].0.as_ref(), new_name);
 
-        let third_name = DmName::new("example-dev-3").expect("is valid DM name");
+        let third_name = DmName::new(tn!("example-dev-3")).expect("is valid DM name");
         dm.device_create(third_name, None, DmFlags::empty())
             .unwrap();
         assert!(match dm.device_rename(new_name, &DevId::Name(third_name)) {
@@ -924,10 +924,10 @@ mod tests {
     #[test]
     /// Renaming a device that does not exist yields an error.
     fn sudo_test_rename_non_existant() {
-        let new_name = DmName::new("new_name").expect("is valid DM name");
+        let new_name = DmName::new(tn!("new_name")).expect("is valid DM name");
         assert!(match DM::new()
                           .unwrap()
-                          .device_rename(DmName::new("old_name").expect("is valid DM name"),
+                          .device_rename(DmName::new(tn!("old_name")).expect("is valid DM name"),
                                          &DevId::Name(&new_name)) {
                     Err(DmError::Core(Error(ErrorKind::IoctlError(_), _))) => true,
                     _ => false,
@@ -950,7 +950,7 @@ mod tests {
     /// A newly created device has no deps.
     fn sudo_test_empty_deps() {
         let dm = DM::new().unwrap();
-        let name = DmName::new("example-dev").expect("is valid DM name");
+        let name = DmName::new(tn!("example-dev")).expect("is valid DM name");
         dm.device_create(name, None, DmFlags::empty()).unwrap();
 
         let deps = dm.table_deps(&DevId::Name(name), DmFlags::empty())
@@ -991,8 +991,8 @@ mod tests {
     /// The UUID of the returned info should be the device's UUID.
     fn sudo_test_table_status() {
         let dm = DM::new().unwrap();
-        let name = DmName::new("example-dev").expect("is valid DM name");
-        let uuid = DmUuid::new("uuid").expect("is valid DM UUID");
+        let name = DmName::new(tn!("example-dev")).expect("is valid DM name");
+        let uuid = DmUuid::new(tn!("uuid")).expect("is valid DM UUID");
         dm.device_create(name, Some(uuid), DmFlags::empty())
             .unwrap();
 
@@ -1005,10 +1005,10 @@ mod tests {
     }
 
     #[test]
-    /// Verify that getting the status of a non-existant device specified
+    /// Verify that getting the status of a non-existent device specified
     /// by name returns an error.
     fn sudo_status_no_name() {
-        let name = DmName::new("example_dev").expect("is valid DM name");
+        let name = DmName::new(tn!("example_dev")).expect("is valid DM name");
         assert!(match DM::new().unwrap().device_info(&DevId::Name(name)) {
                     Err(DmError::Core(Error(ErrorKind::IoctlError(_), _))) => true,
                     _ => false,
@@ -1020,11 +1020,11 @@ mod tests {
     /// Verify that creating a device with the same uuid twice fails.
     fn sudo_test_double_creation() {
         let dm = DM::new().unwrap();
-        let name = DmName::new("example-dev").expect("is valid DM name");
-        let uuid = DmUuid::new("uuid").expect("is valid DM UUID");
+        let name = DmName::new(tn!("example-dev")).expect("is valid DM name");
+        let uuid = DmUuid::new(tn!("uuid")).expect("is valid DM UUID");
 
-        let name_alt = DmName::new("name-alt").expect("is valid DM name");
-        let uuid_alt = DmUuid::new("uuid-alt").expect("is valid DM UUID");
+        let name_alt = DmName::new(tn!("name-alt")).expect("is valid DM name");
+        let uuid_alt = DmUuid::new(tn!("uuid-alt")).expect("is valid DM UUID");
 
         dm.device_create(name, Some(uuid), DmFlags::empty())
             .unwrap();

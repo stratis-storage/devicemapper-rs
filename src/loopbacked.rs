@@ -2,8 +2,8 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
+use std::{io, panic};
 use std::fs::{File, OpenOptions};
-use std::io;
 use std::io::{Seek, SeekFrom, Write};
 use std::os::unix::prelude::AsRawFd;
 use std::path::{Path, PathBuf};
@@ -13,6 +13,7 @@ use tempdir::TempDir;
 
 use super::consts::{IEC, SECTOR_SIZE};
 use super::types::{Bytes, Sectors};
+use super::util::clean_up;
 
 
 /// send IOCTL via blkgetsize64
@@ -119,12 +120,18 @@ fn get_devices(count: u8, dir: &TempDir) -> Vec<LoopTestDev> {
 /// Then, run the designated test.
 /// Then, take down the loop devices.
 pub fn test_with_spec<F>(count: u8, test: F) -> ()
-    where F: Fn(&[&Path]) -> ()
+    where F: Fn(&[&Path]) -> () + panic::RefUnwindSafe
 {
-    let tmpdir = TempDir::new("devicemapper").unwrap();
+    clean_up().unwrap();
+
+    let tmpdir = TempDir::new(tn!("devicemapper")).unwrap();
     let loop_devices: Vec<LoopTestDev> = get_devices(count, &tmpdir);
     let device_paths: Vec<PathBuf> = loop_devices.iter().map(|x| x.path()).collect();
     let device_paths: Vec<&Path> = device_paths.iter().map(|x| x.as_path()).collect();
 
-    test(&device_paths);
+    let result = panic::catch_unwind(|| test(&device_paths));
+    let tear_down = clean_up();
+
+    result.unwrap();
+    tear_down.unwrap();
 }
