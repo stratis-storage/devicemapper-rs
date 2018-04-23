@@ -18,6 +18,8 @@ pub fn slice_to_null(slc: &[u8]) -> Option<&[u8]> {
 
 #[cfg(test)]
 use std::path::PathBuf;
+#[cfg(test)]
+use std::process::Command;
 
 #[cfg(test)]
 use mnt::get_submounts;
@@ -29,6 +31,8 @@ use nix::mount::{MntFlags, umount2};
 use super::DM;
 #[cfg(test)]
 use super::dm_flags::DmFlags;
+#[cfg(test)]
+use super::result::{DmError, DmResult, ErrorEnum};
 #[cfg(test)]
 use super::shared_macros::DM_TEST_ID;
 #[cfg(test)]
@@ -49,6 +53,25 @@ mod cleanup_errors {
 
 #[cfg(test)]
 use self::cleanup_errors::{Error, Result};
+
+
+/// Common function to call a command line utility, returning a Result with an error message which
+/// also includes stdout & stderr if it fails.
+#[cfg(test)]
+pub fn execute_cmd(cmd: &mut Command, error_msg: &str) -> DmResult<()> {
+    let result = cmd.output().unwrap();
+    if result.status.success() {
+        Ok(())
+    } else {
+        let std_out_txt = String::from_utf8_lossy(&result.stdout);
+        let std_err_txt = String::from_utf8_lossy(&result.stderr);
+        let err_msg = format!("{} stdout: {} stderr: {}",
+                              error_msg,
+                              std_out_txt,
+                              std_err_txt);
+        Err(DmError::Dm(ErrorEnum::Error, err_msg))
+    }
+}
 
 /// Attempt to remove all device mapper devices which have DM_TEST_ID contained in name.
 /// FIXME: Current implementation complicated by https://bugzilla.redhat.com/show_bug.cgi?id=1506287

@@ -385,6 +385,7 @@ mod tests {
     use super::super::shared::DmDevice;
     use super::super::thinpooldev::{ThinPoolStatus, minimal_thinpool};
     use super::super::types::DataBlocks;
+    use super::super::util::execute_cmd;
 
     use super::super::errors::{Error, ErrorKind};
 
@@ -565,12 +566,13 @@ mod tests {
         };
         assert_eq!(orig_data_usage, DataBlocks(0));
 
-        Command::new("mkfs.xfs")
-            .arg("-f")
-            .arg("-q")
-            .arg(&td.devnode())
-            .status()
-            .unwrap();
+        execute_cmd(Command::new("mkfs.xfs")
+                        .arg("-f")
+                        .arg("-q")
+                        .arg(&td.devnode()),
+                    &format!("Failed to create new filesystem at {:?}", td.devnode()))
+                .unwrap();
+
 
         let data_usage_1 = match tp.status(&dm).unwrap() {
             ThinPoolStatus::Working(ref status) => status.usage.used_data,
@@ -632,12 +634,12 @@ mod tests {
         };
         assert_eq!(orig_data_usage, DataBlocks(0));
 
-        Command::new("mkfs.xfs")
-            .arg("-f")
-            .arg("-q")
-            .arg(&td.devnode())
-            .status()
-            .unwrap();
+        execute_cmd(Command::new("mkfs.xfs")
+                        .arg("-f")
+                        .arg("-q")
+                        .arg(&td.devnode()),
+                    &format!("Failed to create new filesystem at {:?}", td.devnode()))
+                .unwrap();
 
         let data_usage_1 = match tp.status(&dm).unwrap() {
             ThinPoolStatus::Working(ref status) => status.usage.used_data,
@@ -658,12 +660,12 @@ mod tests {
         };
         assert_eq!(data_usage_2, data_usage_1);
 
-        Command::new("xfs_admin")
-            .arg("-U")
-            .arg(format!("{}", Uuid::new_v4()))
-            .arg(&ss.devnode())
-            .status()
-            .unwrap();
+        execute_cmd(Command::new("xfs_admin")
+                        .arg("-U")
+                        .arg(format!("{}", Uuid::new_v4()))
+                        .arg(&ss.devnode()),
+                    &format!("Failed to set UUID for {:?}", ss.devnode()))
+                .unwrap();
 
         // Setting the uuid of the snapshot filesystem bumps the usage,
         // but does not increase the usage quite as much as establishing
