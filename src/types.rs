@@ -17,7 +17,6 @@ use consts::SECTOR_SIZE;
 use std::borrow::Borrow;
 use std::fmt;
 use std::iter::Sum;
-use std::mem::transmute;
 use std::ops::{Add, Deref, Div, Mul, Rem};
 
 use serde;
@@ -353,7 +352,7 @@ macro_rules! str_id {
             /// Create a new borrowed identifier from a `&str`.
             pub fn new(value: &str) -> DmResult<&$B> {
                 $check(value, $MAX - 1)?;
-                Ok(unsafe { transmute(value) })
+                Ok(unsafe { &*(value as *const str as *const $B) })
             }
 
             /// Get the inner value as bytes

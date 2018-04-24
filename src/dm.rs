@@ -4,7 +4,7 @@
 
 use std::{cmp, io, slice};
 use std::fs::File;
-use std::mem::{size_of, transmute};
+use std::mem::size_of;
 use std::os::unix::io::AsRawFd;
 
 use nix::libc::ioctl as nix_ioctl;
@@ -63,13 +63,15 @@ impl DM {
     }
 
     fn hdr_set_name(hdr: &mut dmi::Struct_dm_ioctl, name: &DmName) -> () {
-        let name_dest: &mut [u8; DM_NAME_LEN] = unsafe { transmute(&mut hdr.name) };
+        let name_dest: &mut [u8; DM_NAME_LEN] =
+            unsafe { &mut *(&mut hdr.name as *mut [i8; DM_NAME_LEN] as *mut [u8; DM_NAME_LEN]) };
         let bytes = name.as_bytes();
         name_dest[..bytes.len()].clone_from_slice(bytes);
     }
 
     fn hdr_set_uuid(hdr: &mut dmi::Struct_dm_ioctl, uuid: &DmUuid) -> () {
-        let uuid_dest: &mut [u8; DM_UUID_LEN] = unsafe { transmute(&mut hdr.uuid) };
+        let uuid_dest: &mut [u8; DM_UUID_LEN] =
+            unsafe { &mut *(&mut hdr.uuid as *mut [i8; DM_UUID_LEN] as *mut [u8; DM_UUID_LEN]) };
         let bytes = uuid.as_bytes();
         uuid_dest[..bytes.len()].clone_from_slice(bytes);
     }
@@ -456,7 +458,8 @@ impl DM {
             targ.length = *t.1;
             targ.status = 0;
 
-            let dst: &mut [u8] = unsafe { transmute(&mut targ.target_type[..]) };
+            let dst: &mut [u8] =
+                unsafe { &mut *(&mut targ.target_type[..] as *mut [i8] as *mut [u8]) };
             let bytes = t.2.as_bytes();
             assert!(bytes.len() <= dst.len(),
                     "TargetType max length = targ.target_type.len()");
@@ -588,7 +591,8 @@ impl DM {
                 };
 
                 let target_type = unsafe {
-                    let cast: &[u8; 16] = transmute(&targ.target_type);
+                    let cast: &[u8; 16] = &*(&targ.target_type as *const [i8; 16] as
+                                             *const [u8; 16]);
                     let slc = slice_to_null(cast).expect("assume all parsing succeeds");
                     String::from_utf8_lossy(slc).into_owned()
                 };
