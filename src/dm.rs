@@ -122,6 +122,7 @@ impl DM {
             }
 
             let hdr = unsafe {
+                #[allow(cast_ptr_alignment)]
                 (v.as_mut_ptr() as *mut dmi::Struct_dm_ioctl)
                     .as_mut()
                     .expect("pointer to own structure v can not be NULL")
@@ -137,6 +138,7 @@ impl DM {
         }
 
         let hdr = unsafe {
+            #[allow(cast_ptr_alignment)]
             (v.as_mut_ptr() as *mut dmi::Struct_dm_ioctl)
                 .as_mut()
                 .expect("pointer to own structure v can not be NULL")
@@ -219,6 +221,8 @@ impl DM {
                             offset += slc.len() + 1; // name + trailing NULL char
                             let aligned_offset = align_to(offset, size_of::<u64>());
                             let new_slc = &result[aligned_offset..];
+
+                            #[allow(cast_ptr_alignment)]
                             let nr = unsafe { *(new_slc.as_ptr() as *const u32) };
 
                             Some(nr)
@@ -550,6 +554,7 @@ impl DM {
             };
 
             let dev_slc = unsafe {
+                #[allow(cast_ptr_alignment)]
                 slice::from_raw_parts(result[size_of::<dmi::Struct_dm_target_deps>()..].as_ptr() as
                                       *const u64,
                                       target_deps.count as usize)
@@ -585,6 +590,7 @@ impl DM {
             for _ in 0..count {
                 let result = &buf[next_off..];
                 let targ = unsafe {
+                    #[allow(cast_ptr_alignment)]
                     (result.as_ptr() as *const dmi::Struct_dm_target_spec)
                         .as_ref()
                         .expect("assume all parsing succeeds")
