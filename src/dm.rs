@@ -4,7 +4,7 @@
 
 use std::{cmp, io, slice};
 use std::fs::File;
-use std::mem::{size_of, transmute};
+use std::mem::size_of;
 use std::os::unix::io::AsRawFd;
 
 use nix::libc::ioctl as nix_ioctl;
@@ -63,13 +63,15 @@ impl DM {
     }
 
     fn hdr_set_name(hdr: &mut dmi::Struct_dm_ioctl, name: &DmName) -> () {
-        let name_dest: &mut [u8; DM_NAME_LEN] = unsafe { transmute(&mut hdr.name) };
+        let name_dest: &mut [u8; DM_NAME_LEN] =
+            unsafe { &mut *(&mut hdr.name as *mut [i8; DM_NAME_LEN] as *mut [u8; DM_NAME_LEN]) };
         let bytes = name.as_bytes();
         name_dest[..bytes.len()].clone_from_slice(bytes);
     }
 
     fn hdr_set_uuid(hdr: &mut dmi::Struct_dm_ioctl, uuid: &DmUuid) -> () {
-        let uuid_dest: &mut [u8; DM_UUID_LEN] = unsafe { transmute(&mut hdr.uuid) };
+        let uuid_dest: &mut [u8; DM_UUID_LEN] =
+            unsafe { &mut *(&mut hdr.uuid as *mut [i8; DM_UUID_LEN] as *mut [u8; DM_UUID_LEN]) };
         let bytes = uuid.as_bytes();
         uuid_dest[..bytes.len()].clone_from_slice(bytes);
     }
@@ -120,6 +122,7 @@ impl DM {
             }
 
             let hdr = unsafe {
+                #[allow(cast_ptr_alignment)]
                 (v.as_mut_ptr() as *mut dmi::Struct_dm_ioctl)
                     .as_mut()
                     .expect("pointer to own structure v can not be NULL")
@@ -135,6 +138,7 @@ impl DM {
         }
 
         let hdr = unsafe {
+            #[allow(cast_ptr_alignment)]
             (v.as_mut_ptr() as *mut dmi::Struct_dm_ioctl)
                 .as_mut()
                 .expect("pointer to own structure v can not be NULL")
@@ -217,6 +221,8 @@ impl DM {
                             offset += slc.len() + 1; // name + trailing NULL char
                             let aligned_offset = align_to(offset, size_of::<u64>());
                             let new_slc = &result[aligned_offset..];
+
+                            #[allow(cast_ptr_alignment)]
                             let nr = unsafe { *(new_slc.as_ptr() as *const u32) };
 
                             Some(nr)
@@ -456,7 +462,8 @@ impl DM {
             targ.length = *t.1;
             targ.status = 0;
 
-            let dst: &mut [u8] = unsafe { transmute(&mut targ.target_type[..]) };
+            let dst: &mut [u8] =
+                unsafe { &mut *(&mut targ.target_type[..] as *mut [i8] as *mut [u8]) };
             let bytes = t.2.as_bytes();
             assert!(bytes.len() <= dst.len(),
                     "TargetType max length = targ.target_type.len()");
@@ -547,6 +554,7 @@ impl DM {
             };
 
             let dev_slc = unsafe {
+                #[allow(cast_ptr_alignment)]
                 slice::from_raw_parts(result[size_of::<dmi::Struct_dm_target_deps>()..].as_ptr() as
                                       *const u64,
                                       target_deps.count as usize)
@@ -582,13 +590,15 @@ impl DM {
             for _ in 0..count {
                 let result = &buf[next_off..];
                 let targ = unsafe {
+                    #[allow(cast_ptr_alignment)]
                     (result.as_ptr() as *const dmi::Struct_dm_target_spec)
                         .as_ref()
                         .expect("assume all parsing succeeds")
                 };
 
                 let target_type = unsafe {
-                    let cast: &[u8; 16] = transmute(&targ.target_type);
+                    let cast: &[u8; 16] = &*(&targ.target_type as *const [i8; 16] as
+                                             *const [u8; 16]);
                     let slc = slice_to_null(cast).expect("assume all parsing succeeds");
                     String::from_utf8_lossy(slc).into_owned()
                 };
