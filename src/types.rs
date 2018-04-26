@@ -359,6 +359,11 @@ macro_rules! str_id {
             pub fn as_bytes(&self) -> &[u8] {
                 self.inner.as_bytes()
             }
+
+            /// Get the inner value as str
+            pub fn as_str(&self) -> &str {
+                &self.inner
+            }
         }
 
         impl ToOwned for $B {
