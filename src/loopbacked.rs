@@ -13,7 +13,7 @@ use tempdir::TempDir;
 
 use super::consts::{IEC, SECTOR_SIZE};
 use super::types::{Bytes, Sectors};
-use super::util::clean_up;
+use super::util::{clean_up, test_name};
 
 
 /// send IOCTL via blkgetsize64
@@ -124,7 +124,7 @@ pub fn test_with_spec<F>(count: u8, test: F) -> ()
 {
     clean_up().unwrap();
 
-    let tmpdir = TempDir::new(tn!("devicemapper")).unwrap();
+    let tmpdir = TempDir::new(test_name("devicemapper").unwrap().as_str()).unwrap();
     let loop_devices: Vec<LoopTestDev> = get_devices(count, &tmpdir);
     let device_paths: Vec<PathBuf> = loop_devices.iter().map(|x| x.path()).collect();
     let device_paths: Vec<&Path> = device_paths.iter().map(|x| x.as_path()).collect();
