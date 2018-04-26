@@ -385,6 +385,7 @@ mod tests {
     use super::super::shared::DmDevice;
     use super::super::thinpooldev::{ThinPoolStatus, minimal_thinpool};
     use super::super::types::DataBlocks;
+    use super::super::util::{execute_cmd, test_name, test_uuid};
 
     use super::super::errors::{Error, ErrorKind};
 
@@ -400,7 +401,7 @@ mod tests {
         let tp = minimal_thinpool(&dm, paths[0]);
 
         assert!(ThinDev::new(&dm,
-                             &DmName::new("name").expect("is valid DM name"),
+                             &test_name("name").expect("is valid DM name"),
                              None,
                              Sectors(0),
                              &tp,
@@ -421,7 +422,7 @@ mod tests {
 
         let td_size = MIN_THIN_DEV_SIZE;
         assert!(match ThinDev::setup(&dm,
-                                     &DmName::new("name").expect("is valid DM name"),
+                                     &test_name("name").expect("is valid DM name"),
                                      None,
                                      td_size,
                                      &tp,
@@ -447,7 +448,7 @@ mod tests {
         let dm = DM::new().unwrap();
         let tp = minimal_thinpool(&dm, paths[0]);
         let thin_id = ThinDevId::new_u64(0).expect("is below limit");
-        let id = DmName::new("name").expect("is valid DM name");
+        let id = test_name("name").expect("is valid DM name");
 
         let td_size = MIN_THIN_DEV_SIZE;
         let td = ThinDev::new(&dm, &id, None, td_size, &tp, thin_id).unwrap();
@@ -477,7 +478,7 @@ mod tests {
                 });
 
         // Verify that the device of that name does exist.
-        assert!(device_exists(&dm, id).unwrap());
+        assert!(device_exists(&dm, &id).unwrap());
 
         // Setting up the just created thin dev succeeds.
         assert!(ThinDev::setup(&dm, &id, None, td_size, &tp, thin_id).is_ok());
@@ -516,7 +517,7 @@ mod tests {
 
         // Create new ThinDev as source for snapshot
         let thin_id = ThinDevId::new_u64(0).expect("is below limit");
-        let thin_name = DmName::new("name").expect("is valid DM name");
+        let thin_name = test_name("name").expect("is valid DM name");
         let td = ThinDev::new(&dm, &thin_name, None, td_size, &tp, thin_id).unwrap();
 
         let data_usage_1 = match tp.status(&dm).unwrap() {
@@ -528,8 +529,8 @@ mod tests {
 
         // Create a snapshot of the source
         let ss_id = ThinDevId::new_u64(1).expect("is below limit");
-        let ss_name = DmName::new("snap_name").expect("is valid DM name");
-        let ss = td.snapshot(&dm, ss_name, None, &tp, ss_id).unwrap();
+        let ss_name = test_name("snap_name").expect("is valid DM name");
+        let ss = td.snapshot(&dm, &ss_name, None, &tp, ss_id).unwrap();
 
         let data_usage_2 = match tp.status(&dm).unwrap() {
             ThinPoolStatus::Working(ref status) => status.usage.used_data,
@@ -556,7 +557,7 @@ mod tests {
         let tp = minimal_thinpool(&dm, paths[0]);
 
         let thin_id = ThinDevId::new_u64(0).expect("is below limit");
-        let thin_name = DmName::new("name").expect("is valid DM name");
+        let thin_name = test_name("name").expect("is valid DM name");
         let td = ThinDev::new(&dm, &thin_name, None, tp.size(), &tp, thin_id).unwrap();
 
         let orig_data_usage = match tp.status(&dm).unwrap() {
@@ -565,12 +566,13 @@ mod tests {
         };
         assert_eq!(orig_data_usage, DataBlocks(0));
 
-        Command::new("mkfs.xfs")
-            .arg("-f")
-            .arg("-q")
-            .arg(&td.devnode())
-            .status()
-            .unwrap();
+        execute_cmd(Command::new("mkfs.xfs")
+                        .arg("-f")
+                        .arg("-q")
+                        .arg(&td.devnode()),
+                    &format!("Failed to create new filesystem at {:?}", td.devnode()))
+                .unwrap();
+
 
         let data_usage_1 = match tp.status(&dm).unwrap() {
             ThinPoolStatus::Working(ref status) => status.usage.used_data,
@@ -623,7 +625,7 @@ mod tests {
         let tp = minimal_thinpool(&dm, paths[0]);
 
         let thin_id = ThinDevId::new_u64(0).expect("is below limit");
-        let thin_name = DmName::new("name").expect("is valid DM name");
+        let thin_name = test_name("name").expect("is valid DM name");
         let td = ThinDev::new(&dm, &thin_name, None, Sectors(2 * IEC::Mi), &tp, thin_id).unwrap();
 
         let orig_data_usage = match tp.status(&dm).unwrap() {
@@ -632,12 +634,12 @@ mod tests {
         };
         assert_eq!(orig_data_usage, DataBlocks(0));
 
-        Command::new("mkfs.xfs")
-            .arg("-f")
-            .arg("-q")
-            .arg(&td.devnode())
-            .status()
-            .unwrap();
+        execute_cmd(Command::new("mkfs.xfs")
+                        .arg("-f")
+                        .arg("-q")
+                        .arg(&td.devnode()),
+                    &format!("Failed to create new filesystem at {:?}", td.devnode()))
+                .unwrap();
 
         let data_usage_1 = match tp.status(&dm).unwrap() {
             ThinPoolStatus::Working(ref status) => status.usage.used_data,
@@ -647,9 +649,9 @@ mod tests {
 
         // Create a snapshot of the source
         let ss_id = ThinDevId::new_u64(1).expect("is below limit");
-        let ss_name = DmName::new("snap_name").expect("is valid DM name");
-        let ss_uuid = DmUuid::new("snap_uuid").expect("is valid DM uuid");
-        let ss = td.snapshot(&dm, ss_name, Some(ss_uuid), &tp, ss_id)
+        let ss_name = test_name("snap_name").expect("is valid DM name");
+        let ss_uuid = test_uuid("snap_uuid").expect("is valid DM uuid");
+        let ss = td.snapshot(&dm, &ss_name, Some(&ss_uuid), &tp, ss_id)
             .unwrap();
 
         let data_usage_2 = match tp.status(&dm).unwrap() {
@@ -658,12 +660,12 @@ mod tests {
         };
         assert_eq!(data_usage_2, data_usage_1);
 
-        Command::new("xfs_admin")
-            .arg("-U")
-            .arg(format!("{}", Uuid::new_v4()))
-            .arg(&ss.devnode())
-            .status()
-            .unwrap();
+        execute_cmd(Command::new("xfs_admin")
+                        .arg("-U")
+                        .arg(format!("{}", Uuid::new_v4()))
+                        .arg(&ss.devnode()),
+                    &format!("Failed to set UUID for {:?}", ss.devnode()))
+                .unwrap();
 
         // Setting the uuid of the snapshot filesystem bumps the usage,
         // but does not increase the usage quite as much as establishing
@@ -677,7 +679,7 @@ mod tests {
         assert!(data_usage_3 - data_usage_2 > data_usage_1 / 2usize);
 
         let thin_id = ThinDevId::new_u64(2).expect("is below limit");
-        let thin_name = DmName::new("name1").expect("is valid DM name");
+        let thin_name = test_name("name1").expect("is valid DM name");
         let td1 = ThinDev::new(&dm, &thin_name, None, Sectors(2 * IEC::Gi), &tp, thin_id).unwrap();
 
         let data_usage_4 = match tp.status(&dm).unwrap() {
