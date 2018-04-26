@@ -715,6 +715,8 @@ use super::device::devnode_to_devno;
 use super::lineardev::LinearTargetParams;
 #[cfg(test)]
 use super::loopbacked::blkdev_size;
+#[cfg(test)]
+use super::util::test_name;
 
 // Specified in kernel docs
 /// The minimum size recommended in the docs for a cache block.
@@ -731,7 +733,7 @@ pub fn minimal_cachedev(dm: &DM, paths: &[&Path]) -> CacheDev {
     assert!(paths.len() >= 2);
     let dev1 = Device::from(devnode_to_devno(paths[0]).unwrap().unwrap());
 
-    let meta_name = DmName::new(tn!("cache-meta")).expect("valid format");
+    let meta_name = test_name("cache-meta").expect("valid format");
 
     // Minimum recommended metadata size for thinpool
     let meta_length = Sectors(4 * IEC::Ki);
@@ -739,29 +741,29 @@ pub fn minimal_cachedev(dm: &DM, paths: &[&Path]) -> CacheDev {
     let meta_table = vec![TargetLine::new(Sectors(0),
                                           meta_length,
                                           LinearDevTargetParams::Linear(meta_params))];
-    let meta = LinearDev::setup(&dm, meta_name, None, meta_table).unwrap();
+    let meta = LinearDev::setup(&dm, &meta_name, None, meta_table).unwrap();
 
-    let cache_name = DmName::new(tn!("cache-cache")).expect("valid format");
+    let cache_name = test_name("cache-cache").expect("valid format");
     let cache_offset = meta_length;
     let cache_length = MIN_CACHE_BLOCK_SIZE;
     let cache_params = LinearTargetParams::new(dev1, cache_offset);
     let cache_table = vec![TargetLine::new(Sectors(0),
                                            cache_length,
                                            LinearDevTargetParams::Linear(cache_params))];
-    let cache = LinearDev::setup(&dm, cache_name, None, cache_table).unwrap();
+    let cache = LinearDev::setup(&dm, &cache_name, None, cache_table).unwrap();
 
     let dev2_size = blkdev_size(&OpenOptions::new().read(true).open(paths[1]).unwrap()).sectors();
     let dev2 = Device::from(devnode_to_devno(paths[1]).unwrap().unwrap());
 
-    let origin_name = DmName::new(tn!("cache-origin")).expect("valid format");
+    let origin_name = test_name("cache-origin").expect("valid format");
     let origin_params = LinearTargetParams::new(dev2, Sectors(0));
     let origin_table = vec![TargetLine::new(Sectors(0),
                                             dev2_size,
                                             LinearDevTargetParams::Linear(origin_params))];
-    let origin = LinearDev::setup(&dm, origin_name, None, origin_table).unwrap();
+    let origin = LinearDev::setup(&dm, &origin_name, None, origin_table).unwrap();
 
     CacheDev::new(&dm,
-                  DmName::new(tn!("cache")).expect("valid format"),
+                  &test_name("cache").expect("valid format"),
                   None,
                   meta,
                   cache,

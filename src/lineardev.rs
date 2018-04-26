@@ -496,13 +496,14 @@ mod tests {
 
     use super::super::device::{Device, devnode_to_devno};
     use super::super::loopbacked::{blkdev_size, test_with_spec};
+    use super::super::util::test_name;
 
     use super::*;
 
     /// Verify that a new linear dev with 0 segments fails.
     fn test_empty(_paths: &[&Path]) -> () {
         assert!(LinearDev::setup(&DM::new().unwrap(),
-                                 DmName::new(tn!("new")).expect("valid format"),
+                                 &test_name("new").expect("valid format"),
                                  None,
                                  vec![])
                         .is_err());
@@ -513,14 +514,13 @@ mod tests {
         assert!(paths.len() >= 1);
 
         let dm = DM::new().unwrap();
-        let name = tn!("name");
+        let name = test_name("name").expect("valid format");
         let dev = Device::from(devnode_to_devno(&paths[0]).unwrap().unwrap());
         let params = LinearTargetParams::new(dev, Sectors(0));
         let table = vec![TargetLine::new(Sectors(0),
                                          Sectors(1),
                                          LinearDevTargetParams::Linear(params))];
-        let mut ld = LinearDev::setup(&dm, DmName::new(name).expect("valid format"), None, table)
-            .unwrap();
+        let mut ld = LinearDev::setup(&dm, &name, None, table).unwrap();
 
         assert!(ld.set_table(&dm, vec![]).is_err());
         ld.resume(&dm).unwrap();
@@ -532,18 +532,16 @@ mod tests {
         assert!(paths.len() >= 1);
 
         let dm = DM::new().unwrap();
-        let name = tn!("name");
+        let name = test_name("name").expect("valid format");
         let dev = Device::from(devnode_to_devno(&paths[0]).unwrap().unwrap());
         let params = LinearTargetParams::new(dev, Sectors(0));
         let table = vec![TargetLine::new(Sectors(0),
                                          Sectors(1),
                                          LinearDevTargetParams::Linear(params))];
-        let mut ld = LinearDev::setup(&dm, DmName::new(name).expect("valid format"), None, table)
-            .unwrap();
+        let mut ld = LinearDev::setup(&dm, &name, None, table).unwrap();
 
-        ld.set_name(&dm, DmName::new(name).expect("valid format"))
-            .unwrap();
-        assert_eq!(ld.name(), DmName::new(name).expect("valid format"));
+        ld.set_name(&dm, &name).unwrap();
+        assert_eq!(ld.name(), &*name);
 
         ld.teardown(&dm).unwrap();
     }
@@ -553,19 +551,17 @@ mod tests {
         assert!(paths.len() >= 1);
 
         let dm = DM::new().unwrap();
-        let name = tn!("name");
+        let name = test_name("name").expect("valid format");
         let dev = Device::from(devnode_to_devno(&paths[0]).unwrap().unwrap());
         let params = LinearTargetParams::new(dev, Sectors(0));
         let table = vec![TargetLine::new(Sectors(0),
                                          Sectors(1),
                                          LinearDevTargetParams::Linear(params))];
-        let mut ld = LinearDev::setup(&dm, DmName::new(name).expect("valid format"), None, table)
-            .unwrap();
+        let mut ld = LinearDev::setup(&dm, &name, None, table).unwrap();
 
-        let new_name = tn!("new_name");
-        ld.set_name(&dm, DmName::new(new_name).expect("valid format"))
-            .unwrap();
-        assert_eq!(ld.name(), DmName::new(new_name).expect("valid format"));
+        let new_name = test_name("new_name").expect("valid format");
+        ld.set_name(&dm, &new_name).unwrap();
+        assert_eq!(ld.name(), &*new_name);
 
         ld.teardown(&dm).unwrap();
     }
@@ -578,7 +574,7 @@ mod tests {
         assert!(paths.len() >= 1);
 
         let dm = DM::new().unwrap();
-        let name = tn!("name");
+        let name = test_name("name").expect("valid format");
         let dev = Device::from(devnode_to_devno(&paths[0]).unwrap().unwrap());
         let params = LinearTargetParams::new(dev, Sectors(0));
         let table = vec![TargetLine::new(Sectors(0),
@@ -589,8 +585,7 @@ mod tests {
                                          LinearDevTargetParams::Linear(params))];
         let range: Sectors = table.iter().map(|s| s.length).sum();
         let count = table.len();
-        let ld = LinearDev::setup(&dm, DmName::new(name).expect("valid format"), None, table)
-            .unwrap();
+        let ld = LinearDev::setup(&dm, &name, None, table).unwrap();
 
         let table = LinearDev::read_kernel_table(&dm, &DevId::Name(ld.name()))
             .unwrap()
@@ -621,7 +616,7 @@ mod tests {
         assert!(paths.len() >= 1);
 
         let dm = DM::new().unwrap();
-        let name = tn!("name");
+        let name = test_name("name").expect("valid format");
         let dev = Device::from(devnode_to_devno(&paths[0]).unwrap().unwrap());
         let table = (0..5)
             .map(|n| {
@@ -631,11 +626,7 @@ mod tests {
                                                                                       Sectors(n))))
                  })
             .collect::<Vec<_>>();
-        let ld = LinearDev::setup(&dm,
-                                  DmName::new(name).expect("valid format"),
-                                  None,
-                                  table.clone())
-                .unwrap();
+        let ld = LinearDev::setup(&dm, &name, None, table.clone()).unwrap();
 
         let loaded_table = LinearDev::read_kernel_table(&dm, &DevId::Name(ld.name())).unwrap();
         assert!(LinearDev::equivalent_tables(&LinearDevTargetTable::new(table), &loaded_table)
@@ -650,25 +641,19 @@ mod tests {
         assert!(paths.len() >= 1);
 
         let dm = DM::new().unwrap();
-        let name = tn!("name");
+        let name = test_name("name").expect("valid format");
         let dev = Device::from(devnode_to_devno(&paths[0]).unwrap().unwrap());
         let params = LinearTargetParams::new(dev, Sectors(0));
         let table = vec![TargetLine::new(Sectors(0),
                                          Sectors(1),
                                          LinearDevTargetParams::Linear(params))];
-        let ld = LinearDev::setup(&dm,
-                                  DmName::new(name).expect("valid format"),
-                                  None,
-                                  table.clone())
-                .unwrap();
+        let ld = LinearDev::setup(&dm, &name, None, table.clone()).unwrap();
         let params2 = LinearTargetParams::new(dev, Sectors(1));
         let table2 = vec![TargetLine::new(Sectors(0),
                                           Sectors(1),
                                           LinearDevTargetParams::Linear(params2))];
-        assert!(LinearDev::setup(&dm, DmName::new(name).expect("valid format"), None, table2)
-                    .is_err());
-        assert!(LinearDev::setup(&dm, DmName::new(name).expect("valid format"), None, table)
-                    .is_ok());
+        assert!(LinearDev::setup(&dm, &name, None, table2).is_err());
+        assert!(LinearDev::setup(&dm, &name, None, table).is_ok());
         ld.teardown(&dm).unwrap();
     }
 
@@ -677,20 +662,15 @@ mod tests {
         assert!(paths.len() >= 1);
 
         let dm = DM::new().unwrap();
+        let name = test_name("name").expect("valid format");
+        let ersatz = test_name("ersatz").expect("valid format");
         let dev = Device::from(devnode_to_devno(&paths[0]).unwrap().unwrap());
         let params = LinearTargetParams::new(dev, Sectors(0));
         let table = vec![TargetLine::new(Sectors(0),
                                          Sectors(1),
                                          LinearDevTargetParams::Linear(params))];
-        let ld = LinearDev::setup(&dm,
-                                  DmName::new(tn!("name")).expect("valid format"),
-                                  None,
-                                  table.clone())
-                .unwrap();
-        let ld2 = LinearDev::setup(&dm,
-                                   DmName::new(tn!("ersatz")).expect("valid format"),
-                                   None,
-                                   table);
+        let ld = LinearDev::setup(&dm, &name, None, table.clone()).unwrap();
+        let ld2 = LinearDev::setup(&dm, &ersatz, None, table);
         assert!(ld2.is_ok());
 
         ld2.unwrap().teardown(&dm).unwrap();
@@ -702,16 +682,13 @@ mod tests {
         assert!(paths.len() >= 1);
 
         let dm = DM::new().unwrap();
+        let name = test_name("name").expect("valid format");
         let dev = Device::from(devnode_to_devno(&paths[0]).unwrap().unwrap());
         let params = LinearTargetParams::new(dev, Sectors(0));
         let table = vec![TargetLine::new(Sectors(0),
                                          Sectors(1),
                                          LinearDevTargetParams::Linear(params))];
-        let mut ld = LinearDev::setup(&dm,
-                                      DmName::new(tn!("name")).expect("valid format"),
-                                      None,
-                                      table)
-                .unwrap();
+        let mut ld = LinearDev::setup(&dm, &name, None, table).unwrap();
 
         ld.suspend(&dm, false).unwrap();
         ld.suspend(&dm, false).unwrap();

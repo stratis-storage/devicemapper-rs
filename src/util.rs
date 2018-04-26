@@ -34,9 +34,7 @@ use super::dm_flags::DmFlags;
 #[cfg(test)]
 use super::result::{DmError, DmResult, ErrorEnum};
 #[cfg(test)]
-use super::shared_macros::DM_TEST_ID;
-#[cfg(test)]
-use super::types::DevId;
+use super::types::{DevId, DmNameBuf, DmUuidBuf};
 
 #[cfg(test)]
 mod cleanup_errors {
@@ -54,6 +52,22 @@ mod cleanup_errors {
 #[cfg(test)]
 use self::cleanup_errors::{Error, Result};
 
+#[cfg(test)]
+static DM_TEST_ID: &str = "_dm-rs_ut_delme";
+
+#[cfg(test)]
+pub fn test_name(name: &str) -> DmResult<DmNameBuf> {
+    let mut namestr = String::from(name);
+    namestr.push_str(DM_TEST_ID);
+    DmNameBuf::new(namestr)
+}
+
+#[cfg(test)]
+pub fn test_uuid(name: &str) -> DmResult<DmUuidBuf> {
+    let mut namestr = String::from(name);
+    namestr.push_str(DM_TEST_ID);
+    DmUuidBuf::new(namestr)
+}
 
 /// Common function to call a command line utility, returning a Result with an error message which
 /// also includes stdout & stderr if it fails.
