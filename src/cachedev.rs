@@ -9,7 +9,7 @@ use std::str::FromStr;
 
 use super::device::Device;
 use super::deviceinfo::DeviceInfo;
-use super::dm::DM;
+use super::dm;
 use super::dm_flags::DmFlags;
 use super::lineardev::{LinearDev, LinearDevTargetParams};
 use super::result::{DmError, DmResult, ErrorEnum};
@@ -420,11 +420,11 @@ impl DmDevice<CacheDevTargetTable> for CacheDev {
         table!(self)
     }
 
-    fn teardown(self, dm: &DM) -> DmResult<()> {
-        dm.device_remove(&DevId::Name(self.name()), DmFlags::empty())?;
-        self.cache_dev.teardown(dm)?;
-        self.origin_dev.teardown(dm)?;
-        self.meta_dev.teardown(dm)?;
+    fn teardown(self) -> DmResult<()> {
+        dm::device_remove(&DevId::Name(self.name()), DmFlags::empty())?;
+        self.cache_dev.teardown()?;
+        self.origin_dev.teardown()?;
+        self.meta_dev.teardown()?;
         Ok(())
     }
 
@@ -438,21 +438,20 @@ impl DmDevice<CacheDevTargetTable> for CacheDev {
 impl CacheDev {
     /// Construct a new CacheDev with the given data and meta devs.
     /// Returns an error if the device is already known to the kernel.
-    pub fn new(dm: &DM,
-               name: &DmName,
+    pub fn new(name: &DmName,
                uuid: Option<&DmUuid>,
                meta: LinearDev,
                cache: LinearDev,
                origin: LinearDev,
                cache_block_size: Sectors)
                -> DmResult<CacheDev> {
-        if device_exists(dm, name)? {
+        if device_exists(name)? {
             let err_msg = format!("cachedev {} already exists", name);
             return Err(DmError::Dm(ErrorEnum::Invalid, err_msg));
         }
 
         let table = CacheDev::gen_default_table(&meta, &cache, &origin, cache_block_size);
-        let dev_info = device_create(dm, name, uuid, &table)?;
+        let dev_info = device_create(name, uuid, &table)?;
 
         Ok(CacheDev {
                dev_info: Box::new(dev_info),
@@ -464,8 +463,7 @@ impl CacheDev {
     }
 
     /// Set up a cache device from the given metadata and data devices.
-    pub fn setup(dm: &DM,
-                 name: &DmName,
+    pub fn setup(name: &DmName,
                  uuid: Option<&DmUuid>,
                  meta: LinearDev,
                  cache: LinearDev,
@@ -473,8 +471,8 @@ impl CacheDev {
                  cache_block_size: Sectors)
                  -> DmResult<CacheDev> {
         let table = CacheDev::gen_default_table(&meta, &cache, &origin, cache_block_size);
-        let dev = if device_exists(dm, name)? {
-            let dev_info = dm.device_info(&DevId::Name(name))?;
+        let dev = if device_exists(name)? {
+            let dev_info = dm::device_info(&DevId::Name(name))?;
             let dev = CacheDev {
                 dev_info: Box::new(dev_info),
                 meta_dev: meta,
@@ -482,10 +480,10 @@ impl CacheDev {
                 origin_dev: origin,
                 table,
             };
-            device_match(dm, &dev, uuid)?;
+            device_match(&dev, uuid)?;
             dev
         } else {
-            let dev_info = device_create(dm, name, uuid, &table)?;
+            let dev_info = device_create(name, uuid, &table)?;
             CacheDev {
                 dev_info: Box::new(dev_info),
                 meta_dev: meta,
@@ -505,17 +503,16 @@ impl CacheDev {
     /// If not, this function will still succeed, but some kind of
     /// data corruption will be the inevitable result.
     pub fn set_origin_table(&mut self,
-                            dm: &DM,
                             table: Vec<TargetLine<LinearDevTargetParams>>)
                             -> DmResult<()> {
-        self.suspend(dm, false)?;
+        self.suspend(false)?;
 
-        self.origin_dev.set_table(dm, table)?;
-        self.origin_dev.resume(dm)?;
+        self.origin_dev.set_table(table)?;
+        self.origin_dev.resume()?;
 
         let mut table = self.table.clone();
         table.table.length = self.origin_dev.size();
-        self.table_load(dm, &table)?;
+        self.table_load(&table)?;
 
         self.table = table;
 
@@ -529,17 +526,16 @@ impl CacheDev {
     /// If not, this function will still succeed, but some kind of
     /// data corruption will be the inevitable result.
     pub fn set_cache_table(&mut self,
-                           dm: &DM,
                            table: Vec<TargetLine<LinearDevTargetParams>>)
                            -> DmResult<()> {
-        self.suspend(dm, false)?;
-        self.cache_dev.set_table(dm, table)?;
-        self.cache_dev.resume(dm)?;
+        self.suspend(false)?;
+        self.cache_dev.set_table(table)?;
+        self.cache_dev.resume()?;
 
         // Reload the table, even though it is unchanged. Otherwise, we
         // suffer from whacky smq bug documented in the following PR:
         // https://github.com/stratis-storage/devicemapper-rs/pull/279.
-        self.table_load(dm, self.table())?;
+        self.table_load(self.table())?;
 
         Ok(())
     }
@@ -589,8 +585,8 @@ impl CacheDev {
     /// Get the current status of the cache device.
     // Note: This method is not entirely complete. In particular, *_args values
     // may require more or better checking or processing.
-    pub fn status(&self, dm: &DM) -> DmResult<CacheDevStatus> {
-        let (_, status) = dm.table_status(&DevId::Name(self.name()), DmFlags::empty())?;
+    pub fn status(&self) -> DmResult<CacheDevStatus> {
+        let (_, status) = dm::table_status(&DevId::Name(self.name()), DmFlags::empty())?;
 
         assert_eq!(status.len(),
                    1,
@@ -727,7 +723,7 @@ pub const MAX_CACHE_BLOCK_SIZE: Sectors = Sectors(2_097_152); // 1 GiB
 // Make a minimal cachedev. Put the meta and cache on one device, and put
 // the origin on a separate device. paths.len() must be at least 2 or the
 // method will fail.
-pub fn minimal_cachedev(dm: &DM, paths: &[&Path]) -> CacheDev {
+pub fn minimal_cachedev(paths: &[&Path]) -> CacheDev {
     assert!(paths.len() >= 2);
     let dev1 = Device::from(devnode_to_devno(paths[0]).unwrap().unwrap());
 
@@ -739,7 +735,7 @@ pub fn minimal_cachedev(dm: &DM, paths: &[&Path]) -> CacheDev {
     let meta_table = vec![TargetLine::new(Sectors(0),
                                           meta_length,
                                           LinearDevTargetParams::Linear(meta_params))];
-    let meta = LinearDev::setup(&dm, meta_name, None, meta_table).unwrap();
+    let meta = LinearDev::setup(meta_name, None, meta_table).unwrap();
 
     let cache_name = DmName::new("cache-cache").expect("valid format");
     let cache_offset = meta_length;
@@ -748,7 +744,7 @@ pub fn minimal_cachedev(dm: &DM, paths: &[&Path]) -> CacheDev {
     let cache_table = vec![TargetLine::new(Sectors(0),
                                            cache_length,
                                            LinearDevTargetParams::Linear(cache_params))];
-    let cache = LinearDev::setup(&dm, cache_name, None, cache_table).unwrap();
+    let cache = LinearDev::setup(cache_name, None, cache_table).unwrap();
 
     let dev2_size = blkdev_size(&OpenOptions::new().read(true).open(paths[1]).unwrap()).sectors();
     let dev2 = Device::from(devnode_to_devno(paths[1]).unwrap().unwrap());
@@ -758,10 +754,9 @@ pub fn minimal_cachedev(dm: &DM, paths: &[&Path]) -> CacheDev {
     let origin_table = vec![TargetLine::new(Sectors(0),
                                             dev2_size,
                                             LinearDevTargetParams::Linear(origin_params))];
-    let origin = LinearDev::setup(&dm, origin_name, None, origin_table).unwrap();
+    let origin = LinearDev::setup(origin_name, None, origin_table).unwrap();
 
-    CacheDev::new(&dm,
-                  DmName::new("cache").expect("valid format"),
+    CacheDev::new(DmName::new("cache").expect("valid format"),
                   None,
                   meta,
                   cache,
@@ -783,10 +778,9 @@ mod tests {
     // Verify that status method executes and gives reasonable values.
     fn test_minimal_cache_dev(paths: &[&Path]) -> () {
         assert!(paths.len() >= 2);
-        let dm = DM::new().unwrap();
-        let cache = minimal_cachedev(&dm, paths);
+        let cache = minimal_cachedev(paths);
 
-        match cache.status(&dm).unwrap() {
+        match cache.status().unwrap() {
             CacheDevStatus::Working(ref status) => {
                 let usage = &status.usage;
 
@@ -830,7 +824,7 @@ mod tests {
             _ => assert!(false),
         }
 
-        let table = CacheDev::read_kernel_table(&dm, &DevId::Name(cache.name()))
+        let table = CacheDev::read_kernel_table(&DevId::Name(cache.name()))
             .unwrap()
             .table;
 
@@ -842,7 +836,7 @@ mod tests {
                        .collect::<HashSet<_>>());
         assert_eq!(params.policy, "default");
 
-        cache.teardown(&dm).unwrap();
+        cache.teardown().unwrap();
     }
 
     #[test]
@@ -858,8 +852,7 @@ mod tests {
     fn test_cache_size_change(paths: &[&Path]) {
         assert!(paths.len() >= 3);
 
-        let dm = DM::new().unwrap();
-        let mut cache = minimal_cachedev(&dm, paths);
+        let mut cache = minimal_cachedev(paths);
 
         let mut cache_table = cache.cache_dev.table().table.clone();
         let dev3 = Device::from(devnode_to_devno(paths[2]).unwrap().unwrap());
@@ -868,7 +861,7 @@ mod tests {
         let cache_params = LinearTargetParams::new(dev3, Sectors(0));
         let current_length = cache.cache_dev.size();
 
-        match cache.status(&dm).unwrap() {
+        match cache.status().unwrap() {
             CacheDevStatus::Working(ref status) => {
                 let usage = &status.usage;
                 assert_eq!(*usage.total_cache * usage.cache_block_size, current_length);
@@ -879,10 +872,10 @@ mod tests {
         cache_table.push(TargetLine::new(current_length,
                                          extra_length,
                                          LinearDevTargetParams::Linear(cache_params)));
-        assert!(cache.set_cache_table(&dm, cache_table.clone()).is_ok());
-        cache.resume(&dm).unwrap();
+        assert!(cache.set_cache_table(cache_table.clone()).is_ok());
+        cache.resume().unwrap();
 
-        match cache.status(&dm).unwrap() {
+        match cache.status().unwrap() {
             CacheDevStatus::Working(ref status) => {
                 let usage = &status.usage;
                 assert_eq!(*usage.total_cache * usage.cache_block_size,
@@ -893,10 +886,10 @@ mod tests {
 
         cache_table.pop();
 
-        assert!(cache.set_cache_table(&dm, cache_table).is_ok());
-        cache.resume(&dm).unwrap();
+        assert!(cache.set_cache_table(cache_table).is_ok());
+        cache.resume().unwrap();
 
-        match cache.status(&dm).unwrap() {
+        match cache.status().unwrap() {
             CacheDevStatus::Working(ref status) => {
                 let usage = &status.usage;
                 assert_eq!(*usage.total_cache * usage.cache_block_size, current_length);
@@ -904,7 +897,7 @@ mod tests {
             CacheDevStatus::Fail => panic!("cache should not have failed"),
         }
 
-        cache.teardown(&dm).unwrap();
+        cache.teardown().unwrap();
     }
 
     #[test]
@@ -918,8 +911,7 @@ mod tests {
     fn test_origin_size_change(paths: &[&Path]) {
         assert!(paths.len() >= 3);
 
-        let dm = DM::new().unwrap();
-        let mut cache = minimal_cachedev(&dm, paths);
+        let mut cache = minimal_cachedev(paths);
 
         let mut origin_table = cache.origin_dev.table().table.clone();
         let origin_size = cache.origin_dev.size();
@@ -933,14 +925,14 @@ mod tests {
                                           dev3_size,
                                           LinearDevTargetParams::Linear(origin_params)));
 
-        cache.set_origin_table(&dm, origin_table).unwrap();
-        cache.resume(&dm).unwrap();
+        cache.set_origin_table(origin_table).unwrap();
+        cache.resume().unwrap();
 
         let origin_size = origin_size + dev3_size;
         assert_eq!(cache.origin_dev.size(), origin_size);
         assert_eq!(cache.size(), origin_size);
 
-        cache.teardown(&dm).unwrap();
+        cache.teardown().unwrap();
     }
 
     #[test]
@@ -952,13 +944,12 @@ mod tests {
     fn test_suspend(paths: &[&Path]) {
         assert!(paths.len() >= 2);
 
-        let dm = DM::new().unwrap();
-        let mut cache = minimal_cachedev(&dm, paths);
-        cache.suspend(&dm, false).unwrap();
-        cache.suspend(&dm, false).unwrap();
-        cache.resume(&dm).unwrap();
-        cache.resume(&dm).unwrap();
-        cache.teardown(&dm).unwrap();
+        let mut cache = minimal_cachedev(paths);
+        cache.suspend(false).unwrap();
+        cache.suspend(false).unwrap();
+        cache.resume().unwrap();
+        cache.resume().unwrap();
+        cache.teardown().unwrap();
     }
 
     #[test]
