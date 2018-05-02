@@ -10,6 +10,7 @@ use super::device::Device;
 use super::deviceinfo::DeviceInfo;
 use super::dm;
 use super::dm_flags::DmFlags;
+use super::dm_options::DmOptions;
 use super::result::{DmError, DmResult, ErrorEnum};
 use super::shared::{DmDevice, TargetLine, TargetParams, TargetTable, device_create, device_exists,
                     device_match, message, parse_device};
@@ -160,7 +161,7 @@ impl DmDevice<ThinDevTargetTable> for ThinDev {
     }
 
     fn teardown(self) -> DmResult<()> {
-        dm::device_remove(&DevId::Name(self.name()), DmFlags::empty())?;
+        dm::device_remove(&DevId::Name(self.name()), None)?;
         Ok(())
     }
 
@@ -278,12 +279,13 @@ impl ThinDev {
                     snapshot_thin_id: ThinDevId)
                     -> DmResult<ThinDev> {
         let source_id = DevId::Name(self.name());
-        dm::device_suspend(&source_id, DmFlags::DM_SUSPEND)?;
+        dm::device_suspend(&source_id,
+                           Some(&DmOptions::new().set_flags(DmFlags::DM_SUSPEND)))?;
         message(thin_pool,
                 &format!("create_snap {} {}",
                          snapshot_thin_id,
                          self.table.table.params.thin_id))?;
-        dm::device_suspend(&source_id, DmFlags::empty())?;
+        dm::device_suspend(&source_id, None)?;
         let table = ThinDev::gen_default_table(self.size(), thin_pool.device(), snapshot_thin_id);
         let dev_info = Box::new(device_create(snapshot_name, snapshot_uuid, &table)?);
         Ok(ThinDev { dev_info, table })
@@ -312,7 +314,7 @@ impl ThinDev {
 
     /// Get the current status of the thin device.
     pub fn status(&self) -> DmResult<ThinStatus> {
-        let (_, table) = dm::table_status(&DevId::Name(self.name()), DmFlags::empty())?;
+        let (_, table) = dm::table_status(&DevId::Name(self.name()), None)?;
 
         assert_eq!(table.len(),
                    1,

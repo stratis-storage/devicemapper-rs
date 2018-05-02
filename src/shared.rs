@@ -12,6 +12,7 @@ use std::str::FromStr;
 use super::device::{Device, devnode_to_devno};
 use super::deviceinfo::DeviceInfo;
 use super::dm;
+use super::dm_options::DmOptions;
 
 use super::dm_flags::DmFlags;
 use super::result::{DmError, DmResult, ErrorEnum};
@@ -74,7 +75,9 @@ pub trait DmDevice<T: TargetTable> {
 
     /// Read the devicemapper table
     fn read_kernel_table(id: &DevId) -> DmResult<T> {
-        let (_, table) = dm::table_status(id, DmFlags::DM_STATUS_TABLE)?;
+        let (_, table) = dm::table_status(id,
+                                          Some(&DmOptions::new()
+                                                    .set_flags(DmFlags::DM_STATUS_TABLE)))?;
         T::from_raw_table(&table)
     }
 
@@ -83,7 +86,7 @@ pub trait DmDevice<T: TargetTable> {
 
     /// Resume I/O on the device.
     fn resume(&mut self) -> DmResult<()> {
-        dm::device_suspend(&DevId::Name(self.name()), DmFlags::empty())?;
+        dm::device_suspend(&DevId::Name(self.name()), None)?;
         Ok(())
     }
 
@@ -92,12 +95,13 @@ pub trait DmDevice<T: TargetTable> {
 
     /// Suspend I/O on the device. If flush is true, flush the device first.
     fn suspend(&mut self, flush: bool) -> DmResult<()> {
-        let flags = if flush {
-            DmFlags::DM_SUSPEND
+        //let mut options = DmOptions::new();
+        let options = if flush {
+            DmOptions::new().set_flags(DmFlags::DM_SUSPEND)
         } else {
-            DmFlags::DM_SUSPEND | DmFlags::DM_NOFLUSH
+            DmOptions::new().set_flags(DmFlags::DM_SUSPEND | DmFlags::DM_NOFLUSH)
         };
-        dm::device_suspend(&DevId::Name(self.name()), flags)?;
+        dm::device_suspend(&DevId::Name(self.name()), Some(&options))?;
         Ok(())
     }
 
@@ -129,17 +133,17 @@ pub fn device_create<T: TargetTable>(name: &DmName,
                                      uuid: Option<&DmUuid>,
                                      table: &T)
                                      -> DmResult<DeviceInfo> {
-    dm::device_create(name, uuid, DmFlags::empty())?;
+    dm::device_create(name, uuid, None)?;
 
     let id = DevId::Name(name);
     let dev_info = match dm::table_load(&id, &table.to_raw_table()) {
         Err(e) => {
-            dm::device_remove(&id, DmFlags::empty())?;
+            dm::device_remove(&id, None)?;
             return Err(e);
         }
         Ok(dev_info) => dev_info,
     };
-    dm::device_suspend(&id, DmFlags::empty())?;
+    dm::device_suspend(&id, None)?;
 
     Ok(dev_info)
 }

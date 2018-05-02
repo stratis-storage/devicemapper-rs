@@ -10,7 +10,6 @@ use std::str::FromStr;
 use super::device::Device;
 use super::deviceinfo::DeviceInfo;
 use super::dm;
-use super::dm_flags::DmFlags;
 use super::lineardev::{LinearDev, LinearDevTargetParams};
 use super::result::{DmError, DmResult, ErrorEnum};
 use super::shared::{DmDevice, TargetLine, TargetParams, TargetTable, device_create, device_exists,
@@ -222,7 +221,7 @@ impl DmDevice<ThinPoolDevTargetTable> for ThinPoolDev {
     }
 
     fn teardown(self) -> DmResult<()> {
-        dm::device_remove(&DevId::Name(self.name()), DmFlags::empty())?;
+        dm::device_remove(&DevId::Name(self.name()), None)?;
         self.data_dev.teardown()?;
         self.meta_dev.teardown()?;
         Ok(())
@@ -433,7 +432,7 @@ impl ThinPoolDev {
     /// pass tests unless it were correct and the kernel docs wrong.
     // Justification: see comment above DM::parse_table_status.
     pub fn status(&self) -> DmResult<ThinPoolStatus> {
-        let (_, status) = dm::table_status(&DevId::Name(self.name()), DmFlags::empty())?;
+        let (_, status) = dm::table_status(&DevId::Name(self.name()), None)?;
 
         assert_eq!(status.len(),
                    1,
@@ -683,8 +682,8 @@ mod tests {
                     _ => false,
                 });
 
-        dm::device_remove(&DevId::Name(meta_name), DmFlags::empty()).unwrap();
-        dm::device_remove(&DevId::Name(data_name), DmFlags::empty()).unwrap();
+        dm::device_remove(&DevId::Name(meta_name), None).unwrap();
+        dm::device_remove(&DevId::Name(data_name), None).unwrap();
     }
 
     #[test]

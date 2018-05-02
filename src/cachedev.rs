@@ -10,7 +10,6 @@ use std::str::FromStr;
 use super::device::Device;
 use super::deviceinfo::DeviceInfo;
 use super::dm;
-use super::dm_flags::DmFlags;
 use super::lineardev::{LinearDev, LinearDevTargetParams};
 use super::result::{DmError, DmResult, ErrorEnum};
 use super::shared::{DmDevice, TargetLine, TargetParams, TargetTable, device_create, device_exists,
@@ -421,7 +420,7 @@ impl DmDevice<CacheDevTargetTable> for CacheDev {
     }
 
     fn teardown(self) -> DmResult<()> {
-        dm::device_remove(&DevId::Name(self.name()), DmFlags::empty())?;
+        dm::device_remove(&DevId::Name(self.name()), None)?;
         self.cache_dev.teardown()?;
         self.origin_dev.teardown()?;
         self.meta_dev.teardown()?;
@@ -586,7 +585,7 @@ impl CacheDev {
     // Note: This method is not entirely complete. In particular, *_args values
     // may require more or better checking or processing.
     pub fn status(&self) -> DmResult<CacheDevStatus> {
-        let (_, status) = dm::table_status(&DevId::Name(self.name()), DmFlags::empty())?;
+        let (_, status) = dm::table_status(&DevId::Name(self.name()), None)?;
 
         assert_eq!(status.len(),
                    1,

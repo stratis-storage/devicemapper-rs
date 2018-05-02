@@ -126,6 +126,8 @@ mod dm_flags;
 mod shared;
 /// error chain errors for core dm
 mod errors;
+/// Options for dm function calls
+mod dm_options;
 
 #[cfg(test)]
 mod loopbacked;
@@ -136,6 +138,7 @@ pub use cachedev::{CacheDev, CacheDevPerformance, CacheDevStatus, CacheDevUsage,
 pub use consts::{IEC, SECTOR_SIZE};
 pub use device::{Device, devnode_to_devno};
 pub use dm_flags::DmFlags;
+pub use dm_options::DmOptions;
 pub use lineardev::{FlakeyTargetParams, LinearDev, LinearDevTargetParams, LinearDevTargetTable,
                     LinearTargetParams};
 pub use result::{DmResult, DmError, ErrorEnum};
