@@ -424,7 +424,8 @@ impl ThinPoolDev {
                                                               data_block_size,
                                                               low_water_mark,
                                                               vec!["skip_block_zeroing"
-                                                                       .to_owned()]))
+                                                                       .to_owned(),
+                                                                   "error_if_no_space".to_owned()]))
     }
 
     /// Get the current status of the thinpool.
