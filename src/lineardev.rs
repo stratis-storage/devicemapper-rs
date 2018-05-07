@@ -10,7 +10,7 @@ use std::str::FromStr;
 use super::device::Device;
 use super::deviceinfo::DeviceInfo;
 use super::dm::DM;
-use super::dm_flags::DmFlags;
+use super::dm_options::DmOptions;
 use super::result::{DmError, DmResult, ErrorEnum};
 use super::shared::{device_create, device_exists, device_match, parse_device, DmDevice,
                     TargetLine, TargetParams, TargetTable};
@@ -436,7 +436,7 @@ impl DmDevice<LinearDevTargetTable> for LinearDev {
     }
 
     fn teardown(self, dm: &DM) -> DmResult<()> {
-        dm.device_remove(&DevId::Name(self.name()), DmFlags::empty())?;
+        dm.device_remove(&DevId::Name(self.name()), &DmOptions::empty())?;
         Ok(())
     }
 
