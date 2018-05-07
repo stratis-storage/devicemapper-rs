@@ -118,8 +118,8 @@ mod result;
 mod deviceinfo;
 /// contains device major/minor and associated functions
 mod device;
-/// core lower level API
-mod dm;
+/// Core lower level API
+pub mod dm;
 /// DM flags
 mod dm_flags;
 /// functionality shared between devices
@@ -135,7 +135,6 @@ pub use cachedev::{CacheDev, CacheDevPerformance, CacheDevStatus, CacheDevUsage,
                    CacheDevWorkingStatus, MAX_CACHE_BLOCK_SIZE, MIN_CACHE_BLOCK_SIZE};
 pub use consts::{IEC, SECTOR_SIZE};
 pub use device::{Device, devnode_to_devno};
-pub use dm::DM;
 pub use dm_flags::DmFlags;
 pub use lineardev::{FlakeyTargetParams, LinearDev, LinearDevTargetParams, LinearDevTargetTable,
                     LinearTargetParams};
