@@ -25,7 +25,17 @@ impl DmOptions {
         DmOptions::new()
     }
 
-    /// Set the DmFlags value for option
+    /// Set the DmFlags value for option.  Note this call is not additive in that it sets (replaces)
+    /// entire flag value in one call.  Thus if you want to incrementally add additional flags you
+    /// need to retrieve current and '|' with new.
+    ///
+    /// ```no_run
+    /// use DmOptions;
+    ///
+    /// let mut options = DmOptions::new();
+    /// options = options.set_flags(DmFlags::DM_READONLY);
+    /// options = options
+    ///               .set_flags(DmFlags::DM_PERSISTENT_DEV | options.flags());
     pub fn set_flags(mut self, flags: DmFlags) -> DmOptions {
         self.flags = flags;
         self
