@@ -41,9 +41,9 @@ impl DmOptions {
         self
     }
 
-    /// Set the event_nr value for option
-    pub fn set_event_nr(mut self, event_nr: u32) -> DmOptions {
-        self.event_nr = event_nr;
+    /// Set the cookie value for option (overloaded meaning with event_nr in header).
+    pub fn set_cookie(mut self, value: u32) -> DmOptions {
+        self.event_nr = value;
         self
     }
 
