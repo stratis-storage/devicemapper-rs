@@ -38,12 +38,12 @@ impl DmOptions {
     }
 
     /// Retrieve the flags value
-    pub fn get_flags(&self) -> DmFlags {
+    pub fn flags(&self) -> DmFlags {
         self.flags
     }
 
     /// Retrieve the event_nr value
-    pub fn get_event_nr(&self) -> u32 {
+    pub fn event_nr(&self) -> u32 {
         self.event_nr
     }
 }

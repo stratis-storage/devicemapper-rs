@@ -79,8 +79,8 @@ impl DM {
         options: &DmOptions,
         allowable_flags: DmFlags,
     ) -> dmi::Struct_dm_ioctl {
-        let clean_flags = allowable_flags & options.get_flags();
-        let event_nr = options.get_event_nr();
+        let clean_flags = allowable_flags & options.flags();
+        let event_nr = options.event_nr();
         let mut hdr: dmi::Struct_dm_ioctl = Default::default();
 
         Self::initialize_hdr_options(&mut hdr, clean_flags, event_nr);
