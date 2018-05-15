@@ -17,6 +17,7 @@ use super::dm_ioctl as dmi;
 use super::dm_options::DmOptions;
 use super::errors::{Error, ErrorKind};
 use super::result::DmResult;
+
 use super::types::{DevId, DmName, DmNameBuf, DmUuid, Sectors, TargetTypeBuf};
 use super::util::{align_to, slice_to_null};
 
@@ -39,27 +40,11 @@ pub struct DM {
     file: File,
 }
 
-impl DM {
-    /// Create a new context for communicating with DM.
-    pub fn new() -> DmResult<DM> {
-        Ok(DM {
-            file: File::open(DM_CTL_PATH)
-                .map_err(|e| Error::with_chain(e, ErrorKind::ContextInitError))?,
-        })
-    }
-
-    /// Get the file within the DM context, likely for polling purposes.
-    pub fn file(&self) -> &File {
-        &self.file
-    }
-
-    fn generate_hdr(
-        id: Option<&DevId>,
-        options: &DmOptions,
-        allowable_flags: DmFlags,
-    ) -> dmi::Struct_dm_ioctl {
-        let clean_flags = allowable_flags & options.flags();
-        let event_nr = (options.cookie().bits() as u32) << 16;
+impl DmOptions {
+    /// Generate a header to be used for IOCTL.
+    fn hdr(&self, id: Option<&DevId>, allowable_flags: DmFlags) -> dmi::Struct_dm_ioctl {
+        let clean_flags = allowable_flags & self.flags();
+        let event_nr = (self.cookie().bits() as u32) << 16;
         let mut hdr: dmi::Struct_dm_ioctl = Default::default();
 
         hdr.version[0] = DM_VERSION_MAJOR;
@@ -73,12 +58,22 @@ impl DM {
 
         if let Some(id) = id {
             match *id {
-                DevId::Name(name) => Self::hdr_set_name(&mut hdr, name),
-                DevId::Uuid(uuid) => Self::hdr_set_uuid(&mut hdr, uuid),
+                DevId::Name(name) => DM::hdr_set_name(&mut hdr, name),
+                DevId::Uuid(uuid) => DM::hdr_set_uuid(&mut hdr, uuid),
             };
         };
 
         hdr
+    }
+}
+
+impl DM {
+    /// Create a new context for communicating with DM.
+    pub fn new() -> DmResult<DM> {
+        Ok(DM {
+            file: File::open(DM_CTL_PATH)
+                .map_err(|e| Error::with_chain(e, ErrorKind::ContextInitError))?,
+        })
     }
 
     fn hdr_set_name(hdr: &mut dmi::Struct_dm_ioctl, name: &DmName) -> () {
@@ -93,6 +88,11 @@ impl DM {
             unsafe { &mut *(&mut hdr.uuid as *mut [i8; DM_UUID_LEN] as *mut [u8; DM_UUID_LEN]) };
         let bytes = uuid.as_bytes();
         uuid_dest[..bytes.len()].clone_from_slice(bytes);
+    }
+
+    /// Get the file within the DM context, likely for polling purposes.
+    pub fn file(&self) -> &File {
+        &self.file
     }
 
     // Give this a filled-in header and optionally add'l stuff.
@@ -177,8 +177,7 @@ impl DM {
 
     /// Devicemapper version information: Major, Minor, and patchlevel versions.
     pub fn version(&self) -> DmResult<(u32, u32, u32)> {
-        let mut hdr: dmi::Struct_dm_ioctl =
-            Self::generate_hdr(None, &DmOptions::new(), DmFlags::empty());
+        let mut hdr = DmOptions::new().hdr(None, DmFlags::empty());
 
         self.do_ioctl(dmi::DM_VERSION_CMD as u8, &mut hdr, None)?;
 
@@ -193,8 +192,7 @@ impl DM {
     ///
     /// Valid flags: DM_DEFERRED_REMOVE
     pub fn remove_all(&self, options: &DmOptions) -> DmResult<()> {
-        let mut hdr: dmi::Struct_dm_ioctl =
-            Self::generate_hdr(None, options, DmFlags::DM_DEFERRED_REMOVE);
+        let mut hdr = options.hdr(None, DmFlags::DM_DEFERRED_REMOVE);
 
         self.do_ioctl(dmi::DM_REMOVE_ALL_CMD as u8, &mut hdr, None)?;
 
@@ -205,9 +203,7 @@ impl DM {
     /// holds their major and minor device numbers, and on kernels that
     /// support it, each device's last event_nr.
     pub fn list_devices(&self) -> DmResult<Vec<(DmNameBuf, Device, Option<u32>)>> {
-        let mut hdr: dmi::Struct_dm_ioctl =
-            Self::generate_hdr(None, &DmOptions::new(), DmFlags::empty());
-
+        let mut hdr = DmOptions::new().hdr(None, DmFlags::empty());
         let data_out = self.do_ioctl(dmi::DM_LIST_DEVICES_CMD as u8, &mut hdr, None)?;
 
         let mut devs = Vec::new();
@@ -286,11 +282,7 @@ impl DM {
         uuid: Option<&DmUuid>,
         options: &DmOptions,
     ) -> DmResult<DeviceInfo> {
-        let mut hdr: dmi::Struct_dm_ioctl = Self::generate_hdr(
-            None,
-            &options,
-            DmFlags::DM_READONLY | DmFlags::DM_PERSISTENT_DEV,
-        );
+        let mut hdr = options.hdr(None, DmFlags::DM_READONLY | DmFlags::DM_PERSISTENT_DEV);
 
         Self::hdr_set_name(&mut hdr, name);
         if let Some(uuid) = uuid {
@@ -310,8 +302,7 @@ impl DM {
     ///
     /// Valid flags: DM_DEFERRED_REMOVE
     pub fn device_remove(&self, id: &DevId, options: &DmOptions) -> DmResult<DeviceInfo> {
-        let mut hdr: dmi::Struct_dm_ioctl =
-            Self::generate_hdr(Some(id), options, DmFlags::DM_DEFERRED_REMOVE);
+        let mut hdr = options.hdr(Some(id), DmFlags::DM_DEFERRED_REMOVE);
 
         self.do_ioctl(dmi::DM_DEV_REMOVE_CMD as u8, &mut hdr, None)?;
 
@@ -336,8 +327,7 @@ impl DM {
         };
         data_in.push(b'\0');
 
-        let mut hdr = Self::generate_hdr(None, &options, DmFlags::DM_UUID);
-
+        let mut hdr = options.hdr(None, DmFlags::DM_UUID);
         Self::hdr_set_name(&mut hdr, old_name);
 
         self.do_ioctl(dmi::DM_DEV_RENAME_CMD as u8, &mut hdr, Some(&data_in))?;
@@ -369,9 +359,8 @@ impl DM {
     /// dm.device_suspend(&id, &DmOptions::new().set_flags(DmFlags::DM_SUSPEND)).unwrap();
     /// ```
     pub fn device_suspend(&self, id: &DevId, options: &DmOptions) -> DmResult<DeviceInfo> {
-        let mut hdr: dmi::Struct_dm_ioctl = Self::generate_hdr(
+        let mut hdr = options.hdr(
             Some(id),
-            options,
             DmFlags::DM_SUSPEND | DmFlags::DM_NOFLUSH | DmFlags::DM_SKIP_LOCKFS,
         );
 
@@ -384,8 +373,7 @@ impl DM {
     /// methods, but if just the DeviceInfo is desired then this just
     /// gets it.
     pub fn device_info(&self, id: &DevId) -> DmResult<DeviceInfo> {
-        let mut hdr: dmi::Struct_dm_ioctl =
-            Self::generate_hdr(Some(id), &DmOptions::new(), DmFlags::empty());
+        let mut hdr = DmOptions::new().hdr(Some(id), DmFlags::empty());
 
         self.do_ioctl(dmi::DM_DEV_STATUS_CMD as u8, &mut hdr, None)?;
 
@@ -405,8 +393,7 @@ impl DM {
         id: &DevId,
         options: &DmOptions,
     ) -> DmResult<(DeviceInfo, Vec<(Sectors, Sectors, TargetTypeBuf, String)>)> {
-        let mut hdr: dmi::Struct_dm_ioctl =
-            Self::generate_hdr(Some(id), options, DmFlags::DM_QUERY_INACTIVE_TABLE);
+        let mut hdr = options.hdr(Some(id), DmFlags::DM_QUERY_INACTIVE_TABLE);
 
         let data_out = self.do_ioctl(dmi::DM_DEV_WAIT_CMD as u8, &mut hdr, None)?;
 
@@ -477,8 +464,7 @@ impl DM {
             targs.push((targ, params));
         }
 
-        let mut hdr: dmi::Struct_dm_ioctl =
-            Self::generate_hdr(Some(id), &DmOptions::new(), DmFlags::empty());
+        let mut hdr = DmOptions::new().hdr(Some(id), DmFlags::empty());
 
         // io_ioctl() will set hdr.data_size but we must set target_count
         hdr.target_count = targs.len() as u32;
@@ -503,8 +489,7 @@ impl DM {
 
     /// Clear the "inactive" table for a device.
     pub fn table_clear(&self, id: &DevId) -> DmResult<DeviceInfo> {
-        let mut hdr: dmi::Struct_dm_ioctl =
-            Self::generate_hdr(Some(id), &DmOptions::new(), DmFlags::empty());
+        let mut hdr = DmOptions::new().hdr(Some(id), DmFlags::empty());
 
         self.do_ioctl(dmi::DM_TABLE_CLEAR_CMD as u8, &mut hdr, None)?;
 
@@ -519,8 +504,7 @@ impl DM {
     ///
     /// Valid flags: DM_QUERY_INACTIVE_TABLE
     pub fn table_deps(&self, id: &DevId, options: &DmOptions) -> DmResult<Vec<Device>> {
-        let mut hdr: dmi::Struct_dm_ioctl =
-            Self::generate_hdr(Some(id), options, DmFlags::DM_QUERY_INACTIVE_TABLE);
+        let mut hdr = options.hdr(Some(id), DmFlags::DM_QUERY_INACTIVE_TABLE);
 
         let data_out = self.do_ioctl(dmi::DM_TABLE_DEPS_CMD as u8, &mut hdr, None)?;
 
@@ -639,9 +623,8 @@ impl DM {
         id: &DevId,
         options: &DmOptions,
     ) -> DmResult<(DeviceInfo, Vec<(Sectors, Sectors, TargetTypeBuf, String)>)> {
-        let mut hdr: dmi::Struct_dm_ioctl = Self::generate_hdr(
+        let mut hdr = options.hdr(
             Some(id),
-            options,
             DmFlags::DM_NOFLUSH | DmFlags::DM_STATUS_TABLE | DmFlags::DM_QUERY_INACTIVE_TABLE,
         );
 
@@ -655,8 +638,7 @@ impl DM {
     /// Returns a list of each loaded target type with its name, and
     /// version broken into major, minor, and patchlevel.
     pub fn list_versions(&self) -> DmResult<Vec<(String, u32, u32, u32)>> {
-        let mut hdr: dmi::Struct_dm_ioctl =
-            Self::generate_hdr(None, &DmOptions::new(), DmFlags::empty());
+        let mut hdr = DmOptions::new().hdr(None, DmFlags::empty());
 
         let data_out = self.do_ioctl(dmi::DM_LIST_VERSIONS_CMD as u8, &mut hdr, None)?;
 
@@ -697,8 +679,7 @@ impl DM {
         sector: Option<Sectors>,
         msg: &str,
     ) -> DmResult<(DeviceInfo, Option<String>)> {
-        let mut hdr: dmi::Struct_dm_ioctl =
-            Self::generate_hdr(Some(id), &DmOptions::new(), DmFlags::empty());
+        let mut hdr = DmOptions::new().hdr(Some(id), DmFlags::empty());
 
         let mut msg_struct: dmi::Struct_dm_target_msg = Default::default();
         msg_struct.sector = *sector.unwrap_or_default();
@@ -724,8 +705,7 @@ impl DM {
     /// will continue to do so until we rearm it, which is what this method
     /// does.
     pub fn arm_poll(&self) -> DmResult<DeviceInfo> {
-        let mut hdr: dmi::Struct_dm_ioctl =
-            Self::generate_hdr(None, &DmOptions::new(), DmFlags::empty());
+        let mut hdr = DmOptions::new().hdr(None, DmFlags::empty());
 
         self.do_ioctl(dmi::DM_DEV_ARM_POLL_CMD as u8, &mut hdr, None)?;
 
