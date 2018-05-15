@@ -33,10 +33,10 @@ impl DmOptions {
     /// use devicemapper::DmOptions;
     ///
     /// let mut options = DmOptions::new();
-    /// options = options.set_flags(DmFlags::DM_READONLY);
+    /// options.set_flags(DmFlags::DM_READONLY);
     /// let flags = DmFlags::DM_PERSISTENT_DEV | options.flags();
-    /// options = options.set_flags(flags);
-    pub fn set_flags(mut self, flags: DmFlags) -> DmOptions {
+    /// options.set_flags(flags);
+    pub fn set_flags<'a>(&'a mut self, flags: DmFlags) -> &'a mut DmOptions {
         self.flags = flags;
         self
     }
@@ -51,11 +51,11 @@ impl DmOptions {
     /// use devicemapper::DmOptions;
     ///
     /// let mut options = DmOptions::new();
-    /// options = options.set_cookie(DmCookie::DM_UDEV_PRIMARY_SOURCE_FLAG);
+    /// options.set_cookie(DmCookie::DM_UDEV_PRIMARY_SOURCE_FLAG);
     ///
     /// let new_cookie = options.cookie() | DmCookie::DM_UDEV_DISABLE_DM_RULES_FLAG;
-    /// options = options.set_cookie(new_cookie);
-    pub fn set_cookie(mut self, cookie: DmCookie) -> DmOptions {
+    /// options.set_cookie(new_cookie);
+    pub fn set_cookie<'a>(&'a mut self, cookie: DmCookie) -> &'a mut DmOptions {
         self.cookie = cookie;
         self
     }

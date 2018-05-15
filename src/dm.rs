@@ -321,7 +321,7 @@ impl DM {
         let mut data_in = match *new {
             DevId::Name(name) => name.as_bytes().to_vec(),
             DevId::Uuid(uuid) => {
-                options = options.set_flags(DmFlags::DM_UUID);
+                options.set_flags(DmFlags::DM_UUID);
                 uuid.as_bytes().to_vec()
             }
         };
