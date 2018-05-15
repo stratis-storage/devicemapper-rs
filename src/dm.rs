@@ -59,7 +59,7 @@ impl DM {
         allowable_flags: DmFlags,
     ) -> dmi::Struct_dm_ioctl {
         let clean_flags = allowable_flags & options.flags();
-        let event_nr = options.event_nr();
+        let event_nr = (options.cookie().bits() as u32) << 16;
         let mut hdr: dmi::Struct_dm_ioctl = Default::default();
 
         hdr.version[0] = DM_VERSION_MAJOR;

@@ -140,7 +140,7 @@ pub use cachedev::{CacheDev, CacheDevPerformance, CacheDevStatus, CacheDevUsage,
 pub use consts::{IEC, SECTOR_SIZE};
 pub use device::{devnode_to_devno, Device};
 pub use dm::DM;
-pub use dm_flags::DmFlags;
+pub use dm_flags::{DmCookie, DmFlags};
 pub use dm_options::DmOptions;
 pub use lineardev::{FlakeyTargetParams, LinearDev, LinearDevTargetParams, LinearDevTargetTable,
                     LinearTargetParams};
