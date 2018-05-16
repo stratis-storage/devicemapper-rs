@@ -90,6 +90,8 @@ extern crate loopdev;
 extern crate tempdir;
 #[cfg(test)]
 extern crate uuid;
+#[cfg(test)]
+extern crate mnt;
 
 /// rust definitions of ioctl structs and consts
 mod dm_ioctl;
@@ -130,6 +132,8 @@ mod errors;
 #[cfg(test)]
 mod loopbacked;
 
+#[cfg(test)]
+mod test_lib;
 
 pub use cachedev::{CacheDev, CacheDevPerformance, CacheDevStatus, CacheDevUsage,
                    CacheDevWorkingStatus, MAX_CACHE_BLOCK_SIZE, MIN_CACHE_BLOCK_SIZE};

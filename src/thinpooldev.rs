@@ -572,6 +572,8 @@ use super::consts::IEC;
 use super::lineardev::LinearTargetParams;
 #[cfg(test)]
 use super::loopbacked::blkdev_size;
+#[cfg(test)]
+use super::test_lib::test_name;
 
 /// Values are explicitly stated in the device-mapper kernel documentation.
 #[cfg(test)]
@@ -596,7 +598,7 @@ pub fn minimal_thinpool(dm: &DM, path: &Path) -> ThinPoolDev {
                                           MIN_RECOMMENDED_METADATA_SIZE,
                                           LinearDevTargetParams::Linear(meta_params))];
     let meta = LinearDev::setup(dm,
-                                DmName::new("meta").expect("valid format"),
+                                &test_name("meta").expect("valid format"),
                                 None,
                                 meta_table)
             .unwrap();
@@ -606,13 +608,13 @@ pub fn minimal_thinpool(dm: &DM, path: &Path) -> ThinPoolDev {
                                           dev_size - MIN_RECOMMENDED_METADATA_SIZE,
                                           LinearDevTargetParams::Linear(data_params))];
     let data = LinearDev::setup(dm,
-                                DmName::new("data").expect("valid format"),
+                                &test_name("data").expect("valid format"),
                                 None,
                                 data_table)
             .unwrap();
 
     ThinPoolDev::new(dm,
-                     DmName::new("pool").expect("valid format"),
+                     &test_name("pool").expect("valid format"),
                      None,
                      meta,
                      data,
@@ -674,22 +676,22 @@ mod tests {
 
         let dm = DM::new().unwrap();
 
-        let meta_name = DmName::new("meta").expect("valid format");
+        let meta_name = test_name("meta").expect("valid format");
         let meta_params = LinearTargetParams::new(dev, Sectors(0));
         let meta_table = vec![TargetLine::new(Sectors(0),
                                               MIN_RECOMMENDED_METADATA_SIZE,
                                               LinearDevTargetParams::Linear(meta_params))];
-        let meta = LinearDev::setup(&dm, meta_name, None, meta_table).unwrap();
+        let meta = LinearDev::setup(&dm, &meta_name, None, meta_table).unwrap();
 
-        let data_name = DmName::new("data").expect("valid format");
+        let data_name = test_name("data").expect("valid format");
         let data_params = LinearTargetParams::new(dev, MIN_RECOMMENDED_METADATA_SIZE);
         let data_table = vec![TargetLine::new(Sectors(0),
                                               512u64 * MIN_DATA_BLOCK_SIZE,
                                               LinearDevTargetParams::Linear(data_params))];
-        let data = LinearDev::setup(&dm, data_name, None, data_table).unwrap();
+        let data = LinearDev::setup(&dm, &data_name, None, data_table).unwrap();
 
         assert!(match ThinPoolDev::new(&dm,
-                                       DmName::new("pool").expect("valid format"),
+                                       &test_name("pool").expect("valid format"),
                                        None,
                                        meta,
                                        data,
@@ -699,9 +701,9 @@ mod tests {
                     _ => false,
                 });
 
-        dm.device_remove(&DevId::Name(meta_name), DmFlags::empty())
+        dm.device_remove(&DevId::Name(&meta_name), DmFlags::empty())
             .unwrap();
-        dm.device_remove(&DevId::Name(data_name), DmFlags::empty())
+        dm.device_remove(&DevId::Name(&data_name), DmFlags::empty())
             .unwrap();
     }
 
