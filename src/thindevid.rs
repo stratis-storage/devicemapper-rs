@@ -22,10 +22,14 @@ impl ThinDevId {
     /// Return an error if value is too large to represent in 24 bits.
     pub fn new_u64(value: u64) -> DmResult<ThinDevId> {
         if value < THIN_DEV_ID_LIMIT {
-            Ok(ThinDevId { value: value as u32 })
+            Ok(ThinDevId {
+                value: value as u32,
+            })
         } else {
-            Err(DmError::Dm(ErrorEnum::Invalid,
-                            format!("argument {} unrepresentable in 24 bits", value)))
+            Err(DmError::Dm(
+                ErrorEnum::Invalid,
+                format!("argument {} unrepresentable in 24 bits", value),
+            ))
         }
     }
 }
@@ -48,16 +52,19 @@ impl FromStr for ThinDevId {
     fn from_str(s: &str) -> Result<ThinDevId, DmError> {
         s.parse::<u64>()
             .map_err(|_| {
-                         DmError::Dm(ErrorEnum::Invalid,
-                                     format!("failed to parse value for thindev id \"{}\"", s))
-                     })
+                DmError::Dm(
+                    ErrorEnum::Invalid,
+                    format!("failed to parse value for thindev id \"{}\"", s),
+                )
+            })
             .map(ThinDevId::new_u64)?
     }
 }
 
 impl serde::Serialize for ThinDevId {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-        where S: serde::Serializer
+    where
+        S: serde::Serializer,
     {
         serializer.serialize_u32(self.value)
     }
@@ -65,12 +72,14 @@ impl serde::Serialize for ThinDevId {
 
 impl<'de> serde::Deserialize<'de> for ThinDevId {
     fn deserialize<D>(deserializer: D) -> Result<ThinDevId, D::Error>
-        where D: serde::de::Deserializer<'de>
+    where
+        D: serde::de::Deserializer<'de>,
     {
-        Ok(ThinDevId { value: serde::Deserialize::deserialize(deserializer)? })
+        Ok(ThinDevId {
+            value: serde::Deserialize::deserialize(deserializer)?,
+        })
     }
 }
-
 
 #[cfg(test)]
 mod tests {

@@ -2,11 +2,11 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-use std::{io, panic};
 use std::fs::{File, OpenOptions};
 use std::io::{Seek, SeekFrom, Write};
 use std::os::unix::prelude::AsRawFd;
 use std::path::{Path, PathBuf};
+use std::{io, panic};
 
 use loopdev::{LoopControl, LoopDevice};
 use tempdir::TempDir;
@@ -14,7 +14,6 @@ use tempdir::TempDir;
 use super::consts::{IEC, SECTOR_SIZE};
 use super::test_lib::clean_up;
 use super::types::{Bytes, Sectors};
-
 
 /// send IOCTL via blkgetsize64
 ioctl!(read blkgetsize64 with 0x12, 114; u64);
@@ -27,13 +26,13 @@ pub fn blkdev_size(file: &File) -> Bytes {
     Bytes(val)
 }
 
-
 /// Write buf at offset length times.
-fn write_sectors<P: AsRef<Path>>(path: P,
-                                 offset: Sectors,
-                                 length: Sectors,
-                                 buf: &[u8; SECTOR_SIZE])
-                                 -> io::Result<()> {
+fn write_sectors<P: AsRef<Path>>(
+    path: P,
+    offset: Sectors,
+    length: Sectors,
+    buf: &[u8; SECTOR_SIZE],
+) -> io::Result<()> {
     let mut f = OpenOptions::new().write(true).open(path)?;
 
     f.seek(SeekFrom::Start(*offset.bytes()))?;
@@ -120,7 +119,8 @@ fn get_devices(count: u8, dir: &TempDir) -> Vec<LoopTestDev> {
 /// Then, run the designated test.
 /// Then, take down the loop devices.
 pub fn test_with_spec<F>(count: u8, test: F) -> ()
-    where F: Fn(&[&Path]) -> () + panic::RefUnwindSafe
+where
+    F: Fn(&[&Path]) -> () + panic::RefUnwindSafe,
 {
     clean_up().unwrap();
 

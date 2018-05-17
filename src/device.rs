@@ -2,10 +2,10 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-use std::{fmt, io};
 use std::os::linux::fs::MetadataExt;
 use std::path::Path;
 use std::str::FromStr;
+use std::{fmt, io};
 
 use libc::{dev_t, major, makedev, minor};
 use nix::sys::stat::SFlag;
@@ -40,20 +40,22 @@ impl FromStr for Device {
             let err_msg = format!("value \"{}\" split into wrong number of fields", s);
             return Err(DmError::Core(ErrorKind::InvalidArgument(err_msg).into()));
         }
-        let major = vals[0]
-            .parse::<u32>()
-            .map_err(|_| {
-                         DmError::Core(ErrorKind::InvalidArgument(
-                        format!("could not parse \"{}\" to obtain major number",
-                                                                      vals[0])).into())
-                     })?;
-        let minor = vals[1]
-            .parse::<u32>()
-            .map_err(|_| {
-                         DmError::Core(ErrorKind::InvalidArgument(
-                        format!("could not parse \"{}\" to obtain minor number",
-                                                                      vals[0])).into())
-                     })?;
+        let major = vals[0].parse::<u32>().map_err(|_| {
+            DmError::Core(
+                ErrorKind::InvalidArgument(format!(
+                    "could not parse \"{}\" to obtain major number",
+                    vals[0]
+                )).into(),
+            )
+        })?;
+        let minor = vals[1].parse::<u32>().map_err(|_| {
+            DmError::Core(
+                ErrorKind::InvalidArgument(format!(
+                    "could not parse \"{}\" to obtain minor number",
+                    vals[0]
+                )).into(),
+            )
+        })?;
         Ok(Device { major, minor })
     }
 }
@@ -100,13 +102,13 @@ impl Device {
 /// not to exist.
 pub fn devnode_to_devno(path: &Path) -> DmResult<Option<u64>> {
     match path.metadata() {
-        Ok(metadata) => {
-            Ok(if metadata.st_mode() & SFlag::S_IFMT.bits() == SFlag::S_IFBLK.bits() {
-                   Some(metadata.st_rdev())
-               } else {
-                   None
-               })
-        }
+        Ok(metadata) => Ok(
+            if metadata.st_mode() & SFlag::S_IFMT.bits() == SFlag::S_IFBLK.bits() {
+                Some(metadata.st_rdev())
+            } else {
+                None
+            },
+        ),
         Err(err) => {
             if err.kind() == io::ErrorKind::NotFound {
                 return Ok(None);

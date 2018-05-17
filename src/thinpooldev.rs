@@ -13,14 +13,14 @@ use super::dm::DM;
 use super::dm_flags::DmFlags;
 use super::lineardev::{LinearDev, LinearDevTargetParams};
 use super::result::{DmError, DmResult, ErrorEnum};
-use super::shared::{DmDevice, TargetLine, TargetParams, TargetTable, device_create, device_exists,
-                    device_match, parse_device};
+use super::shared::{device_create, device_exists, device_match, parse_device, DmDevice,
+                    TargetLine, TargetParams, TargetTable};
 use super::types::{DataBlocks, DevId, DmName, DmUuid, MetaBlocks, Sectors, TargetTypeBuf};
 
 #[cfg(test)]
-use std::path::Path;
-#[cfg(test)]
 use super::device::devnode_to_devno;
+#[cfg(test)]
+use std::path::Path;
 
 const THINPOOL_TARGET_NAME: &str = "thin-pool";
 
@@ -34,12 +34,13 @@ pub struct ThinPoolTargetParams {
 }
 
 impl ThinPoolTargetParams {
-    pub fn new(metadata_dev: Device,
-               data_dev: Device,
-               data_block_size: Sectors,
-               low_water_mark: DataBlocks,
-               feature_args: Vec<String>)
-               -> ThinPoolTargetParams {
+    pub fn new(
+        metadata_dev: Device,
+        data_dev: Device,
+        data_block_size: Sectors,
+        low_water_mark: DataBlocks,
+        feature_args: Vec<String>,
+    ) -> ThinPoolTargetParams {
         ThinPoolTargetParams {
             metadata_dev,
             data_dev,
@@ -63,54 +64,66 @@ impl FromStr for ThinPoolTargetParams {
         let vals = s.split(' ').collect::<Vec<_>>();
 
         if vals.len() < 6 {
-            let err_msg = format!("expected at least 6 values in params string \"{}\", found {}",
-                                  s,
-                                  vals.len());
+            let err_msg = format!(
+                "expected at least 6 values in params string \"{}\", found {}",
+                s,
+                vals.len()
+            );
             return Err(DmError::Dm(ErrorEnum::Invalid, err_msg));
         }
 
         if vals[0] != THINPOOL_TARGET_NAME {
-            let err_msg = format!("Expected a thin-pool target entry but found target type {}",
-                                  vals[0]);
+            let err_msg = format!(
+                "Expected a thin-pool target entry but found target type {}",
+                vals[0]
+            );
             return Err(DmError::Dm(ErrorEnum::Invalid, err_msg));
         }
 
         let metadata_dev = parse_device(vals[1])?;
         let data_dev = parse_device(vals[2])?;
 
-        let data_block_size = vals[3]
-            .parse::<u64>()
-            .map(Sectors)
-            .map_err(|_| {
-                DmError::Dm(ErrorEnum::Invalid,
-                            format!("failed to parse value for data block size from \"{}\"",
-                                    vals[3]))})?;
+        let data_block_size = vals[3].parse::<u64>().map(Sectors).map_err(|_| {
+            DmError::Dm(
+                ErrorEnum::Invalid,
+                format!(
+                    "failed to parse value for data block size from \"{}\"",
+                    vals[3]
+                ),
+            )
+        })?;
 
-        let low_water_mark = vals[4]
-            .parse::<u64>()
-            .map(DataBlocks)
-            .map_err(|_| {
-                         DmError::Dm(ErrorEnum::Invalid,
-                                     format!("failed to parse value for low water mark from \"{}\"",
-                                             vals[4]))
-                     })?;
-        let num_feature_args = vals[5]
-            .parse::<usize>()
-            .map_err(|_| {
-                DmError::Dm(ErrorEnum::Invalid,
-                            format!("failed to parse value for number of feature args from \"{}\"",
-                                    vals[5]))})?;
+        let low_water_mark = vals[4].parse::<u64>().map(DataBlocks).map_err(|_| {
+            DmError::Dm(
+                ErrorEnum::Invalid,
+                format!(
+                    "failed to parse value for low water mark from \"{}\"",
+                    vals[4]
+                ),
+            )
+        })?;
+        let num_feature_args = vals[5].parse::<usize>().map_err(|_| {
+            DmError::Dm(
+                ErrorEnum::Invalid,
+                format!(
+                    "failed to parse value for number of feature args from \"{}\"",
+                    vals[5]
+                ),
+            )
+        })?;
 
         let feature_args: Vec<String> = vals[6..6 + num_feature_args]
             .iter()
             .map(|x| x.to_string())
             .collect();
 
-        Ok(ThinPoolTargetParams::new(metadata_dev,
-                                     data_dev,
-                                     data_block_size,
-                                     low_water_mark,
-                                     feature_args))
+        Ok(ThinPoolTargetParams::new(
+            metadata_dev,
+            data_dev,
+            data_block_size,
+            low_water_mark,
+            feature_args,
+        ))
     }
 }
 
@@ -119,21 +132,25 @@ impl TargetParams for ThinPoolTargetParams {
         let feature_args = if self.feature_args.is_empty() {
             "0".to_owned()
         } else {
-            format!("{} {}",
-                    self.feature_args.len(),
-                    self.feature_args
-                        .iter()
-                        .cloned()
-                        .collect::<Vec<_>>()
-                        .join(" "))
+            format!(
+                "{} {}",
+                self.feature_args.len(),
+                self.feature_args
+                    .iter()
+                    .cloned()
+                    .collect::<Vec<_>>()
+                    .join(" ")
+            )
         };
 
-        format!("{} {} {} {} {}",
-                self.metadata_dev,
-                self.data_dev,
-                *self.data_block_size,
-                *self.low_water_mark,
-                feature_args)
+        format!(
+            "{} {} {} {} {}",
+            self.metadata_dev,
+            self.data_dev,
+            *self.data_block_size,
+            *self.low_water_mark,
+            feature_args
+        )
     }
 
     fn target_type(&self) -> TargetTypeBuf {
@@ -147,11 +164,14 @@ pub struct ThinPoolDevTargetTable {
 }
 
 impl ThinPoolDevTargetTable {
-    pub fn new(start: Sectors,
-               length: Sectors,
-               params: ThinPoolTargetParams)
-               -> ThinPoolDevTargetTable {
-        ThinPoolDevTargetTable { table: TargetLine::new(start, length, params) }
+    pub fn new(
+        start: Sectors,
+        length: Sectors,
+        params: ThinPoolTargetParams,
+    ) -> ThinPoolDevTargetTable {
+        ThinPoolDevTargetTable {
+            table: TargetLine::new(start, length, params),
+        }
     }
 }
 
@@ -163,25 +183,28 @@ impl fmt::Display for ThinPoolDevTargetTable {
 }
 
 impl TargetTable for ThinPoolDevTargetTable {
-    fn from_raw_table(table: &[(Sectors, Sectors, TargetTypeBuf, String)])
-                      -> DmResult<ThinPoolDevTargetTable> {
+    fn from_raw_table(
+        table: &[(Sectors, Sectors, TargetTypeBuf, String)],
+    ) -> DmResult<ThinPoolDevTargetTable> {
         if table.len() != 1 {
-            let err_msg = format!("ThinPoolDev table should have exactly one line, has {} lines",
-                                  table.len());
+            let err_msg = format!(
+                "ThinPoolDev table should have exactly one line, has {} lines",
+                table.len()
+            );
             return Err(DmError::Dm(ErrorEnum::Invalid, err_msg));
         }
         let line = table.first().expect("table.len() == 1");
-        Ok(ThinPoolDevTargetTable::new(line.0,
-                                       line.1,
-                                       format!("{} {}", line.2.to_string(), line.3)
-                                           .parse::<ThinPoolTargetParams>()?))
+        Ok(ThinPoolDevTargetTable::new(
+            line.0,
+            line.1,
+            format!("{} {}", line.2.to_string(), line.3).parse::<ThinPoolTargetParams>()?,
+        ))
     }
 
     fn to_raw_table(&self) -> Vec<(Sectors, Sectors, TargetTypeBuf, String)> {
         to_raw_table_unique!(self)
     }
 }
-
 
 /// DM construct to contain thin provisioned devices
 #[derive(Debug)]
@@ -203,9 +226,10 @@ impl DmDevice<ThinPoolDevTargetTable> for ThinPoolDev {
 
     // This method is incomplete. It is expected that it will be refined so
     // that it will return true in more cases, i.e., to be less stringent.
-    fn equivalent_tables(left: &ThinPoolDevTargetTable,
-                         right: &ThinPoolDevTargetTable)
-                         -> DmResult<bool> {
+    fn equivalent_tables(
+        left: &ThinPoolDevTargetTable,
+        right: &ThinPoolDevTargetTable,
+    ) -> DmResult<bool> {
         Ok(left == right)
     }
 
@@ -290,13 +314,14 @@ pub struct ThinPoolWorkingStatus {
 
 impl ThinPoolWorkingStatus {
     /// Make a new ThinPoolWorkingStatus struct
-    pub fn new(transaction_id: u64,
-               usage: ThinPoolUsage,
-               discard_passdown: bool,
-               no_space_policy: ThinPoolNoSpacePolicy,
-               summary: ThinPoolStatusSummary,
-               needs_check: bool)
-               -> ThinPoolWorkingStatus {
+    pub fn new(
+        transaction_id: u64,
+        usage: ThinPoolUsage,
+        discard_passdown: bool,
+        no_space_policy: ThinPoolNoSpacePolicy,
+        summary: ThinPoolStatusSummary,
+        needs_check: bool,
+    ) -> ThinPoolWorkingStatus {
         ThinPoolWorkingStatus {
             transaction_id,
             usage,
@@ -305,7 +330,6 @@ impl ThinPoolWorkingStatus {
             summary,
             needs_check,
         }
-
     }
 }
 
@@ -318,7 +342,6 @@ pub enum ThinPoolStatus {
     Fail,
 }
 
-
 /// Use DM to create a "thin-pool".  A "thin-pool" is shared space for
 /// other thin provisioned devices to use.
 ///
@@ -329,14 +352,15 @@ impl ThinPoolDev {
     /// Returns an error if the device is already known to the kernel.
     /// Returns an error if data_block_size is not within required range.
     /// Precondition: the metadata device does not contain any pool metadata.
-    pub fn new(dm: &DM,
-               name: &DmName,
-               uuid: Option<&DmUuid>,
-               meta: LinearDev,
-               data: LinearDev,
-               data_block_size: Sectors,
-               low_water_mark: DataBlocks)
-               -> DmResult<ThinPoolDev> {
+    pub fn new(
+        dm: &DM,
+        name: &DmName,
+        uuid: Option<&DmUuid>,
+        meta: LinearDev,
+        data: LinearDev,
+        data_block_size: Sectors,
+        low_water_mark: DataBlocks,
+    ) -> DmResult<ThinPoolDev> {
         if device_exists(dm, name)? {
             let err_msg = format!("thinpooldev {} already exists", name);
             return Err(DmError::Dm(ErrorEnum::Invalid, err_msg));
@@ -346,11 +370,11 @@ impl ThinPoolDev {
         let dev_info = device_create(dm, name, uuid, &table)?;
 
         Ok(ThinPoolDev {
-               dev_info: Box::new(dev_info),
-               meta_dev: meta,
-               data_dev: data,
-               table,
-           })
+            dev_info: Box::new(dev_info),
+            meta_dev: meta,
+            data_dev: data,
+            table,
+        })
     }
 
     /// Obtain the meta device that backs this thin pool device.
@@ -374,14 +398,15 @@ impl ThinPoolDev {
     /// on the metadata device. If the metadata is corrupted, subsequent
     /// errors will result, so it is expected that the metadata is
     /// well-formed and consistent with the data on the data device.
-    pub fn setup(dm: &DM,
-                 name: &DmName,
-                 uuid: Option<&DmUuid>,
-                 meta: LinearDev,
-                 data: LinearDev,
-                 data_block_size: Sectors,
-                 low_water_mark: DataBlocks)
-                 -> DmResult<ThinPoolDev> {
+    pub fn setup(
+        dm: &DM,
+        name: &DmName,
+        uuid: Option<&DmUuid>,
+        meta: LinearDev,
+        data: LinearDev,
+        data_block_size: Sectors,
+        low_water_mark: DataBlocks,
+    ) -> DmResult<ThinPoolDev> {
         let table = ThinPoolDev::gen_default_table(&meta, &data, data_block_size, low_water_mark);
         let dev = if device_exists(dm, name)? {
             let dev_info = dm.device_info(&DevId::Name(name))?;
@@ -412,20 +437,26 @@ impl ThinPoolDev {
     /// <meta maj:min> <data maj:min> <block size> <low water mark>
     /// There is exactly one entry in the table.
     /// Various defaults are hard coded in the method.
-    fn gen_default_table(meta: &LinearDev,
-                         data: &LinearDev,
-                         data_block_size: Sectors,
-                         low_water_mark: DataBlocks)
-                         -> ThinPoolDevTargetTable {
-        ThinPoolDevTargetTable::new(Sectors::default(),
-                                    data.size(),
-                                    ThinPoolTargetParams::new(meta.device(),
-                                                              data.device(),
-                                                              data_block_size,
-                                                              low_water_mark,
-                                                              vec!["skip_block_zeroing"
-                                                                       .to_owned(),
-                                                                   "error_if_no_space".to_owned()]))
+    fn gen_default_table(
+        meta: &LinearDev,
+        data: &LinearDev,
+        data_block_size: Sectors,
+        low_water_mark: DataBlocks,
+    ) -> ThinPoolDevTargetTable {
+        ThinPoolDevTargetTable::new(
+            Sectors::default(),
+            data.size(),
+            ThinPoolTargetParams::new(
+                meta.device(),
+                data.device(),
+                data_block_size,
+                low_water_mark,
+                vec![
+                    "skip_block_zeroing".to_owned(),
+                    "error_if_no_space".to_owned(),
+                ],
+            ),
+        )
     }
 
     /// Get the current status of the thinpool.
@@ -438,9 +469,11 @@ impl ThinPoolDev {
     pub fn status(&self, dm: &DM) -> DmResult<ThinPoolStatus> {
         let (_, status) = dm.table_status(&DevId::Name(self.name()), DmFlags::empty())?;
 
-        assert_eq!(status.len(),
-                   1,
-                   "Kernel must return 1 line from thin pool status");
+        assert_eq!(
+            status.len(),
+            1,
+            "Kernel must return 1 line from thin pool status"
+        );
 
         let status_line = &status.first().expect("assertion above holds").3;
         if status_line.starts_with("Fail") {
@@ -448,8 +481,10 @@ impl ThinPoolDev {
         }
 
         let status_vals = status_line.split(' ').collect::<Vec<_>>();
-        assert!(status_vals.len() >= 8,
-                "Kernel must return at least 8 values from thin pool status");
+        assert!(
+            status_vals.len() >= 8,
+            "Kernel must return at least 8 values from thin pool status"
+        );
 
         let transaction_id = status_vals[0].parse::<u64>().expect("see justification");
 
@@ -457,18 +492,26 @@ impl ThinPoolDev {
             let meta_vals = status_vals[1].split('/').collect::<Vec<_>>();
             let data_vals = status_vals[2].split('/').collect::<Vec<_>>();
             ThinPoolUsage {
-                used_meta: MetaBlocks(meta_vals[0]
-                                          .parse::<u64>()
-                                          .expect("used_meta value must be valid")),
-                total_meta: MetaBlocks(meta_vals[1]
-                                           .parse::<u64>()
-                                           .expect("total_meta value must be valid")),
-                used_data: DataBlocks(data_vals[0]
-                                          .parse::<u64>()
-                                          .expect("used_data value must be valid")),
-                total_data: DataBlocks(data_vals[1]
-                                           .parse::<u64>()
-                                           .expect("total_data value must be valid")),
+                used_meta: MetaBlocks(
+                    meta_vals[0]
+                        .parse::<u64>()
+                        .expect("used_meta value must be valid"),
+                ),
+                total_meta: MetaBlocks(
+                    meta_vals[1]
+                        .parse::<u64>()
+                        .expect("total_meta value must be valid"),
+                ),
+                used_data: DataBlocks(
+                    data_vals[0]
+                        .parse::<u64>()
+                        .expect("used_data value must be valid"),
+                ),
+                total_data: DataBlocks(
+                    data_vals[1]
+                        .parse::<u64>()
+                        .expect("total_data value must be valid"),
+                ),
             }
         };
 
@@ -476,46 +519,49 @@ impl ThinPoolDev {
             "rw" => ThinPoolStatusSummary::Good,
             "ro" => ThinPoolStatusSummary::ReadOnly,
             "out_of_data_space" => ThinPoolStatusSummary::OutOfSpace,
-            val => {
-                panic!(format!("Kernel returned unexpected 5th value \"{}\" in thin pool status",
-                               val))
-            }
-
+            val => panic!(format!(
+                "Kernel returned unexpected 5th value \"{}\" in thin pool status",
+                val
+            )),
         };
 
         let discard_passdown = match status_vals[5] {
             "discard_passdown" => true,
             "no_discard_passdown" => false,
-            val => {
-                panic!(format!("Kernel returned unexpected 6th value \"{}\" in thin pool status",
-                               val))
-            }
+            val => panic!(format!(
+                "Kernel returned unexpected 6th value \"{}\" in thin pool status",
+                val
+            )),
         };
 
         let no_space_policy = match status_vals[6] {
             "error_if_no_space" => ThinPoolNoSpacePolicy::Error,
             "queue_if_no_space" => ThinPoolNoSpacePolicy::Queue,
-            val => {
-                panic!(format!("Kernel returned unexpected 7th value \"{}\" in thin pool status",
-                               val))
-            }
+            val => panic!(format!(
+                "Kernel returned unexpected 7th value \"{}\" in thin pool status",
+                val
+            )),
         };
 
         let needs_check = match status_vals[7] {
             "-" => false,
             "needs_check" => true,
-            val => {
-                panic!(format!("Kernel returned unexpected 8th value \"{}\" in thin pool status",
-                               val))
-            }
+            val => panic!(format!(
+                "Kernel returned unexpected 8th value \"{}\" in thin pool status",
+                val
+            )),
         };
 
-        Ok(ThinPoolStatus::Working(Box::new(ThinPoolWorkingStatus::new(transaction_id,
-                                                                       usage,
-                                                                       discard_passdown,
-                                                                       no_space_policy,
-                                                                       summary,
-                                                                       needs_check))))
+        Ok(ThinPoolStatus::Working(Box::new(
+            ThinPoolWorkingStatus::new(
+                transaction_id,
+                usage,
+                discard_passdown,
+                no_space_policy,
+                summary,
+                needs_check,
+            ),
+        )))
     }
 
     /// Set the table for the existing metadata device.
@@ -524,10 +570,11 @@ impl ThinPoolDev {
     /// table is compatible with the device's existing table.
     /// If are not, this function will still succeed, but some kind of
     /// data corruption will be the inevitable result.
-    pub fn set_meta_table(&mut self,
-                          dm: &DM,
-                          table: Vec<TargetLine<LinearDevTargetParams>>)
-                          -> DmResult<()> {
+    pub fn set_meta_table(
+        &mut self,
+        dm: &DM,
+        table: Vec<TargetLine<LinearDevTargetParams>>,
+    ) -> DmResult<()> {
         self.suspend(dm, false)?;
         self.meta_dev.set_table(dm, table)?;
         self.meta_dev.resume(dm)?;
@@ -545,10 +592,11 @@ impl ThinPoolDev {
     /// table is compatible with the device's existing table.
     /// If not, this function will still succeed, but some kind of
     /// data corruption will be the inevitable result.
-    pub fn set_data_table(&mut self,
-                          dm: &DM,
-                          table: Vec<TargetLine<LinearDevTargetParams>>)
-                          -> DmResult<()> {
+    pub fn set_data_table(
+        &mut self,
+        dm: &DM,
+        table: Vec<TargetLine<LinearDevTargetParams>>,
+    ) -> DmResult<()> {
         self.suspend(dm, false)?;
 
         self.data_dev.set_table(dm, table)?;
@@ -565,8 +613,6 @@ impl ThinPoolDev {
 }
 
 #[cfg(test)]
-use std::fs::OpenOptions;
-#[cfg(test)]
 use super::consts::IEC;
 #[cfg(test)]
 use super::lineardev::LinearTargetParams;
@@ -574,6 +620,8 @@ use super::lineardev::LinearTargetParams;
 use super::loopbacked::blkdev_size;
 #[cfg(test)]
 use super::test_lib::test_name;
+#[cfg(test)]
+use std::fs::OpenOptions;
 
 /// Values are explicitly stated in the device-mapper kernel documentation.
 #[cfg(test)]
@@ -594,33 +642,44 @@ pub fn minimal_thinpool(dm: &DM, path: &Path) -> ThinPoolDev {
     let dev_size = blkdev_size(&OpenOptions::new().read(true).open(path).unwrap()).sectors();
     let dev = Device::from(devnode_to_devno(path).unwrap().unwrap());
     let meta_params = LinearTargetParams::new(dev, Sectors(0));
-    let meta_table = vec![TargetLine::new(Sectors(0),
-                                          MIN_RECOMMENDED_METADATA_SIZE,
-                                          LinearDevTargetParams::Linear(meta_params))];
-    let meta = LinearDev::setup(dm,
-                                &test_name("meta").expect("valid format"),
-                                None,
-                                meta_table)
-            .unwrap();
+    let meta_table = vec![
+        TargetLine::new(
+            Sectors(0),
+            MIN_RECOMMENDED_METADATA_SIZE,
+            LinearDevTargetParams::Linear(meta_params),
+        ),
+    ];
+    let meta = LinearDev::setup(
+        dm,
+        &test_name("meta").expect("valid format"),
+        None,
+        meta_table,
+    ).unwrap();
 
     let data_params = LinearTargetParams::new(dev, MIN_RECOMMENDED_METADATA_SIZE);
-    let data_table = vec![TargetLine::new(Sectors(0),
-                                          dev_size - MIN_RECOMMENDED_METADATA_SIZE,
-                                          LinearDevTargetParams::Linear(data_params))];
-    let data = LinearDev::setup(dm,
-                                &test_name("data").expect("valid format"),
-                                None,
-                                data_table)
-            .unwrap();
+    let data_table = vec![
+        TargetLine::new(
+            Sectors(0),
+            dev_size - MIN_RECOMMENDED_METADATA_SIZE,
+            LinearDevTargetParams::Linear(data_params),
+        ),
+    ];
+    let data = LinearDev::setup(
+        dm,
+        &test_name("data").expect("valid format"),
+        None,
+        data_table,
+    ).unwrap();
 
-    ThinPoolDev::new(dm,
-                     &test_name("pool").expect("valid format"),
-                     None,
-                     meta,
-                     data,
-                     MIN_DATA_BLOCK_SIZE,
-                     DataBlocks(1))
-            .unwrap()
+    ThinPoolDev::new(
+        dm,
+        &test_name("pool").expect("valid format"),
+        None,
+        meta,
+        data,
+        MIN_DATA_BLOCK_SIZE,
+        DataBlocks(1),
+    ).unwrap()
 }
 
 #[cfg(test)]
@@ -641,15 +700,18 @@ mod tests {
         let dm = DM::new().unwrap();
         let tp = minimal_thinpool(&dm, paths[0]);
         match tp.status(&dm).unwrap() {
-            ThinPoolStatus::Working(ref status) if status.summary ==
-                                                   ThinPoolStatusSummary::Good => {
+            ThinPoolStatus::Working(ref status)
+                if status.summary == ThinPoolStatusSummary::Good =>
+            {
                 let usage = &status.usage;
                 // Even an empty thinpool requires some metadata.
                 assert!(usage.used_meta > MetaBlocks(0));
                 assert_eq!(usage.total_meta, tp.meta_dev().size().metablocks());
                 assert_eq!(usage.used_data, DataBlocks(0));
-                assert_eq!(usage.total_data,
-                           DataBlocks(tp.data_dev().size() / tp.data_block_size()));
+                assert_eq!(
+                    usage.total_data,
+                    DataBlocks(tp.data_dev().size() / tp.data_block_size())
+                );
             }
             _ => assert!(false),
         }
@@ -678,28 +740,38 @@ mod tests {
 
         let meta_name = test_name("meta").expect("valid format");
         let meta_params = LinearTargetParams::new(dev, Sectors(0));
-        let meta_table = vec![TargetLine::new(Sectors(0),
-                                              MIN_RECOMMENDED_METADATA_SIZE,
-                                              LinearDevTargetParams::Linear(meta_params))];
+        let meta_table = vec![
+            TargetLine::new(
+                Sectors(0),
+                MIN_RECOMMENDED_METADATA_SIZE,
+                LinearDevTargetParams::Linear(meta_params),
+            ),
+        ];
         let meta = LinearDev::setup(&dm, &meta_name, None, meta_table).unwrap();
 
         let data_name = test_name("data").expect("valid format");
         let data_params = LinearTargetParams::new(dev, MIN_RECOMMENDED_METADATA_SIZE);
-        let data_table = vec![TargetLine::new(Sectors(0),
-                                              512u64 * MIN_DATA_BLOCK_SIZE,
-                                              LinearDevTargetParams::Linear(data_params))];
+        let data_table = vec![
+            TargetLine::new(
+                Sectors(0),
+                512u64 * MIN_DATA_BLOCK_SIZE,
+                LinearDevTargetParams::Linear(data_params),
+            ),
+        ];
         let data = LinearDev::setup(&dm, &data_name, None, data_table).unwrap();
 
-        assert!(match ThinPoolDev::new(&dm,
-                                       &test_name("pool").expect("valid format"),
-                                       None,
-                                       meta,
-                                       data,
-                                       MIN_DATA_BLOCK_SIZE / 2u64,
-                                       DataBlocks(1)) {
-                    Err(DmError::Core(Error(ErrorKind::IoctlError(_), _))) => true,
-                    _ => false,
-                });
+        assert!(match ThinPoolDev::new(
+            &dm,
+            &test_name("pool").expect("valid format"),
+            None,
+            meta,
+            data,
+            MIN_DATA_BLOCK_SIZE / 2u64,
+            DataBlocks(1)
+        ) {
+            Err(DmError::Core(Error(ErrorKind::IoctlError(_), _))) => true,
+            _ => false,
+        });
 
         dm.device_remove(&DevId::Name(&meta_name), DmFlags::empty())
             .unwrap();
@@ -725,17 +797,21 @@ mod tests {
 
         let dev2 = Device::from(devnode_to_devno(paths[1]).unwrap().unwrap());
         let data_params = LinearTargetParams::new(dev2, Sectors(0));
-        data_table.push(TargetLine::new(data_size,
-                                        data_size,
-                                        LinearDevTargetParams::Linear(data_params)));
+        data_table.push(TargetLine::new(
+            data_size,
+            data_size,
+            LinearDevTargetParams::Linear(data_params),
+        ));
         tp.set_data_table(&dm, data_table).unwrap();
         tp.resume(&dm).unwrap();
 
         match tp.status(&dm).unwrap() {
             ThinPoolStatus::Working(ref status) => {
                 let usage = &status.usage;
-                assert_eq!(*usage.total_data * tp.table().table.params.data_block_size,
-                           2u8 * data_size);
+                assert_eq!(
+                    *usage.total_data * tp.table().table.params.data_block_size,
+                    2u8 * data_size
+                );
             }
             ThinPoolStatus::Fail => panic!("thin pool should not have failed"),
         }
@@ -761,9 +837,11 @@ mod tests {
 
         let dev2 = Device::from(devnode_to_devno(paths[1]).unwrap().unwrap());
         let meta_params = LinearTargetParams::new(dev2, Sectors(0));
-        meta_table.push(TargetLine::new(meta_size,
-                                        meta_size,
-                                        LinearDevTargetParams::Linear(meta_params)));
+        meta_table.push(TargetLine::new(
+            meta_size,
+            meta_size,
+            LinearDevTargetParams::Linear(meta_params),
+        ));
         tp.set_meta_table(&dm, meta_table).unwrap();
         tp.resume(&dm).unwrap();
 

@@ -41,62 +41,64 @@ const MAX_META_DEV_SIZE: MetaBlocks = MetaBlocks(255 * ((1 << 14) - 64));
 
 // division by self
 macro_rules! self_div {
-    ($T: ident) => {
+    ($T:ident) => {
         impl Div<$T> for $T {
             type Output = u64;
             fn div(self, rhs: $T) -> u64 {
                 self.0 / *rhs
             }
         }
-    }
+    };
 }
 
 // macros for implementing serialize and deserialize on all types
 macro_rules! serde {
-    ($T: ident) => {
+    ($T:ident) => {
         impl serde::Serialize for $T {
             fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-                where S: serde::Serializer
+            where
+                S: serde::Serializer,
             {
                 serializer.serialize_u64(**self)
             }
         }
 
-        impl <'de> serde::Deserialize<'de> for $T {
+        impl<'de> serde::Deserialize<'de> for $T {
             fn deserialize<D>(deserializer: D) -> Result<$T, D::Error>
-                where D: serde::de::Deserializer<'de>
+            where
+                D: serde::de::Deserializer<'de>,
             {
                 Ok($T(serde::Deserialize::deserialize(deserializer)?))
             }
         }
-    }
+    };
 }
 
 // macros for implementing Sum on all types
 macro_rules! sum {
-    ($T: ident) => {
+    ($T:ident) => {
         impl Sum for $T {
             fn sum<I: Iterator<Item = $T>>(iter: I) -> $T {
                 iter.fold($T::default(), Add::add)
             }
         }
-    }
+    };
 }
 
 // macros for unsigned operations on Sectors and Bytes
 macro_rules! unsigned_div {
-    ($t: ty, $T: ident) => {
+    ($t:ty, $T:ident) => {
         impl Div<$t> for $T {
             type Output = $T;
             fn div(self, rhs: $t) -> $T {
                 $T(self.0 / rhs as u64)
             }
         }
-    }
+    };
 }
 
 macro_rules! unsigned_mul {
-    ($t: ty, $T: ident) => {
+    ($t:ty, $T:ident) => {
         impl Mul<$t> for $T {
             type Output = $T;
             fn mul(self, rhs: $t) -> $T {
@@ -110,18 +112,18 @@ macro_rules! unsigned_mul {
                 $T(self as u64 * rhs.0)
             }
         }
-    }
+    };
 }
 
 macro_rules! unsigned_rem {
-    ($t: ty, $T: ident) => {
+    ($t:ty, $T:ident) => {
         impl Rem<$t> for $T {
             type Output = $T;
             fn rem(self, rhs: $t) -> $T {
                 $T(self.0 % rhs as u64)
             }
         }
-    }
+    };
 }
 
 macro_rules! checked_add {
@@ -317,14 +319,15 @@ fn str_check(value: &str, max_allowed_chars: usize) -> DmResult<()> {
     }
     let num_chars = value.len();
     if num_chars == 0 {
-        return Err(DmError::Core(ErrorKind::InvalidArgument("value has zero characters".into())
-                                     .into()));
+        return Err(DmError::Core(
+            ErrorKind::InvalidArgument("value has zero characters".into()).into(),
+        ));
     }
     if num_chars > max_allowed_chars {
-        let err_msg = format!("value {} has {} chars which is greater than maximum allowed {}",
-                              value,
-                              num_chars,
-                              max_allowed_chars);
+        let err_msg = format!(
+            "value {} has {} chars which is greater than maximum allowed {}",
+            value, num_chars, max_allowed_chars
+        );
         return Err(DmError::Core(ErrorKind::InvalidArgument(err_msg).into()));
     }
     Ok(())
@@ -335,7 +338,7 @@ fn str_check(value: &str, max_allowed_chars: usize) -> DmResult<()> {
 // This implementation follows the example of Path/PathBuf as closely as
 // possible.
 macro_rules! str_id {
-    ($B: ident, $O: ident, $MAX: ident, $check: ident) => {
+    ($B:ident, $O:ident, $MAX:ident, $check:ident) => {
         /// The borrowed version of the DM identifier.
         #[derive(Debug, PartialEq, Eq, Hash)]
         pub struct $B {
@@ -364,7 +367,9 @@ macro_rules! str_id {
         impl ToOwned for $B {
             type Owned = $O;
             fn to_owned(&self) -> $O {
-                $O { inner: self.inner.to_owned() }
+                $O {
+                    inner: self.inner.to_owned(),
+                }
             }
         }
 
@@ -400,7 +405,7 @@ macro_rules! str_id {
                 $B::new(&self.inner).expect("inner satisfies all correctness criteria for $B::new")
             }
         }
-    }
+    };
 }
 
 /// A devicemapper name. Really just a string, but also the argument type of
@@ -431,12 +436,10 @@ impl<'a> fmt::Display for DevId<'a> {
     }
 }
 
-
 /// Number of bytes in Struct_dm_target_spec::target_type field.
 const DM_TARGET_TYPE_LEN: usize = 16;
 
 str_id!(TargetType, TargetTypeBuf, DM_TARGET_TYPE_LEN, str_check);
-
 
 #[cfg(test)]
 mod tests {
@@ -455,8 +458,8 @@ mod tests {
     /// Verify that creating an empty DmName is an error.
     pub fn test_empty_name() {
         assert!(match DmName::new("") {
-                    Err(DmError::Core(Error(ErrorKind::InvalidArgument(_), _))) => true,
-                    _ => false,
-                })
+            Err(DmError::Core(Error(ErrorKind::InvalidArgument(_), _))) => true,
+            _ => false,
+        })
     }
 }
