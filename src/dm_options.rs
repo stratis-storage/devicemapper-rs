@@ -4,7 +4,7 @@
 use super::dm_flags::{DmCookie, DmFlags};
 
 /// Encapsulates options for device mapper calls
-#[derive(Debug, Clone)]
+#[derive(Debug, Default, Clone)]
 pub struct DmOptions {
     flags: DmFlags,
     cookie: DmCookie,
@@ -36,7 +36,7 @@ impl DmOptions {
     /// options.set_flags(DmFlags::DM_READONLY);
     /// let flags = DmFlags::DM_PERSISTENT_DEV | options.flags();
     /// options.set_flags(flags);
-    pub fn set_flags<'a>(&'a mut self, flags: DmFlags) -> &'a mut DmOptions {
+    pub fn set_flags(&mut self, flags: DmFlags) -> &mut DmOptions {
         self.flags = flags;
         self
     }
@@ -55,7 +55,7 @@ impl DmOptions {
     ///
     /// let new_cookie = options.cookie() | DmCookie::DM_UDEV_DISABLE_DM_RULES_FLAG;
     /// options.set_cookie(new_cookie);
-    pub fn set_cookie<'a>(&'a mut self, cookie: DmCookie) -> &'a mut DmOptions {
+    pub fn set_cookie(&mut self, cookie: DmCookie) -> &mut DmOptions {
         self.cookie = cookie;
         self
     }

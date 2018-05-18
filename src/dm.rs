@@ -44,7 +44,7 @@ impl DmOptions {
     /// Generate a header to be used for IOCTL.
     fn hdr(&self, id: Option<&DevId>, allowable_flags: DmFlags) -> dmi::Struct_dm_ioctl {
         let clean_flags = allowable_flags & self.flags();
-        let event_nr = (self.cookie().bits() as u32) << 16;
+        let event_nr = u32::from(self.cookie().bits()) << 16;
         let mut hdr: dmi::Struct_dm_ioctl = Default::default();
 
         hdr.version[0] = DM_VERSION_MAJOR;
