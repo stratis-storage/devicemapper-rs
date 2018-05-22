@@ -65,9 +65,7 @@
 #![cfg_attr(feature = "clippy", feature(plugin))]
 #![cfg_attr(feature = "clippy", plugin(clippy))]
 #![cfg_attr(not(features = "clippy"), allow(unknown_lints))]
-
 #![allow(doc_markdown)]
-
 #![warn(missing_docs)]
 
 #[macro_use]
@@ -87,47 +85,47 @@ extern crate error_chain;
 #[cfg(test)]
 extern crate loopdev;
 #[cfg(test)]
+extern crate mnt;
+#[cfg(test)]
 extern crate tempdir;
 #[cfg(test)]
 extern crate uuid;
-#[cfg(test)]
-extern crate mnt;
 
-/// rust definitions of ioctl structs and consts
-mod dm_ioctl;
-/// public utilities
-mod util;
-/// basic types (Bytes, Sectors, DataBlocks)
-mod types;
 /// shared constants
 mod consts;
+/// rust definitions of ioctl structs and consts
+mod dm_ioctl;
+/// basic types (Bytes, Sectors, DataBlocks)
+mod types;
+/// public utilities
+mod util;
 /// Macros shared by device mapper devices.
 #[macro_use]
 mod shared_macros;
+/// cachedev
+mod cachedev;
+/// contains device major/minor and associated functions
+mod device;
+/// wrapper for C interface for DM
+mod deviceinfo;
+/// core lower level API
+mod dm;
+/// DM flags
+mod dm_flags;
+/// error chain errors for core dm
+mod errors;
 /// functions to create continuous linear space given device segments
 mod lineardev;
+/// return results container
+mod result;
+/// functionality shared between devices
+mod shared;
 /// allocate a device from a pool
 mod thindev;
 /// the id the pool uses to track its devices
 mod thindevid;
 /// thinpooldev is shared space for  other thin provisioned devices to use
 mod thinpooldev;
-/// cachedev
-mod cachedev;
-/// return results container
-mod result;
-/// wrapper for C interface for DM
-mod deviceinfo;
-/// contains device major/minor and associated functions
-mod device;
-/// core lower level API
-mod dm;
-/// DM flags
-mod dm_flags;
-/// functionality shared between devices
-mod shared;
-/// error chain errors for core dm
-mod errors;
 
 #[cfg(test)]
 mod loopbacked;
@@ -138,16 +136,16 @@ mod test_lib;
 pub use cachedev::{CacheDev, CacheDevPerformance, CacheDevStatus, CacheDevUsage,
                    CacheDevWorkingStatus, MAX_CACHE_BLOCK_SIZE, MIN_CACHE_BLOCK_SIZE};
 pub use consts::{IEC, SECTOR_SIZE};
-pub use device::{Device, devnode_to_devno};
+pub use device::{devnode_to_devno, Device};
 pub use dm::DM;
 pub use dm_flags::DmFlags;
 pub use lineardev::{FlakeyTargetParams, LinearDev, LinearDevTargetParams, LinearDevTargetTable,
                     LinearTargetParams};
-pub use result::{DmResult, DmError, ErrorEnum};
-pub use shared::{DmDevice, TargetLine, device_exists};
-pub use thinpooldev::{ThinPoolUsage, ThinPoolDev, ThinPoolNoSpacePolicy, ThinPoolStatus,
-                      ThinPoolStatusSummary, ThinPoolWorkingStatus};
+pub use result::{DmError, DmResult, ErrorEnum};
+pub use shared::{device_exists, DmDevice, TargetLine};
 pub use thindev::{ThinDev, ThinDevWorkingStatus, ThinStatus};
 pub use thindevid::ThinDevId;
+pub use thinpooldev::{ThinPoolDev, ThinPoolNoSpacePolicy, ThinPoolStatus, ThinPoolStatusSummary,
+                      ThinPoolUsage, ThinPoolWorkingStatus};
 pub use types::{Bytes, DataBlocks, DevId, DmName, DmNameBuf, DmUuid, DmUuidBuf, MetaBlocks,
                 Sectors, TargetType, TargetTypeBuf};

@@ -29,7 +29,11 @@ impl DeviceInfo {
 
     /// The major, minor, and patchlevel versions of devicemapper.
     pub fn version(&self) -> (u32, u32, u32) {
-        (self.hdr.version[0], self.hdr.version[1], self.hdr.version[2])
+        (
+            self.hdr.version[0],
+            self.hdr.version[1],
+            self.hdr.version[2],
+        )
     }
 
     /// The number of times the device is currently open.

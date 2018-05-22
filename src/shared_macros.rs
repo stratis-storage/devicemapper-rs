@@ -6,40 +6,46 @@
 // devices and implemented by means of macros.
 
 macro_rules! device {
-    ($s: ident) => {
+    ($s:ident) => {
         $s.dev_info.device()
-    }
+    };
 }
 
 macro_rules! name {
-    ($s: ident) => {
+    ($s:ident) => {
         $s.dev_info.name()
-    }
+    };
 }
 
 macro_rules! uuid {
-    ($s: ident) => {
+    ($s:ident) => {
         $s.dev_info.uuid()
-    }
+    };
 }
 
 macro_rules! devnode {
-    ($s: ident) => {
-        ["/dev", &format!("dm-{}", $s.dev_info.device().minor)].iter().collect()
-    }
+    ($s:ident) => {
+        ["/dev", &format!("dm-{}", $s.dev_info.device().minor)]
+            .iter()
+            .collect()
+    };
 }
 
 macro_rules! to_raw_table_unique {
-    ($s: ident) => {
-        vec![($s.table.start,
-              $s.table.length,
-              $s.table.params.target_type(),
-              $s.table.params.param_str())]
-    }
+    ($s:ident) => {
+        vec![
+            (
+                $s.table.start,
+                $s.table.length,
+                $s.table.params.target_type(),
+                $s.table.params.param_str(),
+            ),
+        ]
+    };
 }
 
 macro_rules! table {
-    ($s: ident) => {
+    ($s:ident) => {
         &$s.table
-    }
+    };
 }

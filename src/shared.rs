@@ -9,24 +9,21 @@ use std::fmt;
 use std::path::{Path, PathBuf};
 use std::str::FromStr;
 
-use super::device::{Device, devnode_to_devno};
+use super::device::{devnode_to_devno, Device};
 use super::deviceinfo::DeviceInfo;
 use super::dm::DM;
 use super::dm_flags::DmFlags;
 use super::result::{DmError, DmResult, ErrorEnum};
 use super::types::{DevId, DmName, DmUuid, Sectors, TargetTypeBuf};
 
-
 /// The trait for properties of the params string of TargetType
-pub trait TargetParams
-    : Clone + fmt::Debug + fmt::Display + Eq + FromStr + PartialEq {
+pub trait TargetParams: Clone + fmt::Debug + fmt::Display + Eq + FromStr + PartialEq {
     /// Return the param string only
     fn param_str(&self) -> String;
 
     /// Return the target type
     fn target_type(&self) -> TargetTypeBuf;
 }
-
 
 /// One line of a device mapper table.
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -50,15 +47,13 @@ impl<T: TargetParams> TargetLine<T> {
     }
 }
 
-pub trait TargetTable
-    : Clone + fmt::Debug + fmt::Display + Eq + PartialEq + Sized {
+pub trait TargetTable: Clone + fmt::Debug + fmt::Display + Eq + PartialEq + Sized {
     /// Constructs a table from a raw table returned by DM::table_status()
     fn from_raw_table(table: &[(Sectors, Sectors, TargetTypeBuf, String)]) -> DmResult<Self>;
 
     /// Generates a table that can be loaded by DM::table_load()
     fn to_raw_table(&self) -> Vec<(Sectors, Sectors, TargetTypeBuf, String)>;
 }
-
 
 /// A trait capturing some shared properties of DM devices.
 pub trait DmDevice<T: TargetTable> {
@@ -124,11 +119,12 @@ pub fn message<T: TargetTable, D: DmDevice<T>>(dm: &DM, target: &D, msg: &str) -
 }
 
 /// Create a device, load a table, and resume it.
-pub fn device_create<T: TargetTable>(dm: &DM,
-                                     name: &DmName,
-                                     uuid: Option<&DmUuid>,
-                                     table: &T)
-                                     -> DmResult<DeviceInfo> {
+pub fn device_create<T: TargetTable>(
+    dm: &DM,
+    name: &DmName,
+    uuid: Option<&DmUuid>,
+    table: &T,
+) -> DmResult<DeviceInfo> {
     dm.device_create(name, uuid, DmFlags::empty())?;
 
     let id = DevId::Name(name);
@@ -145,24 +141,28 @@ pub fn device_create<T: TargetTable>(dm: &DM,
 }
 
 /// Verify that kernel data matches arguments passed.
-pub fn device_match<T: TargetTable, D: DmDevice<T>>(dm: &DM,
-                                                    dev: &D,
-                                                    uuid: Option<&DmUuid>)
-                                                    -> DmResult<()> {
+pub fn device_match<T: TargetTable, D: DmDevice<T>>(
+    dm: &DM,
+    dev: &D,
+    uuid: Option<&DmUuid>,
+) -> DmResult<()> {
     let kernel_table = D::read_kernel_table(dm, &DevId::Name(dev.name()))?;
     let device_table = dev.table();
     if !D::equivalent_tables(&kernel_table, device_table)? {
-        let err_msg = format!("Specified new table \"{:?}\" does not match kernel table \"{:?}\"",
-                              device_table,
-                              kernel_table);
+        let err_msg = format!(
+            "Specified new table \"{:?}\" does not match kernel table \"{:?}\"",
+            device_table, kernel_table
+        );
 
         return Err(DmError::Dm(ErrorEnum::Invalid, err_msg));
     }
 
     if dev.uuid() != uuid {
-        let err_msg = format!("Specified uuid \"{:?}\" does not match kernel uuuid \"{:?}\"",
-                              uuid,
-                              dev.uuid());
+        let err_msg = format!(
+            "Specified uuid \"{:?}\" does not match kernel uuuid \"{:?}\"",
+            uuid,
+            dev.uuid()
+        );
 
         return Err(DmError::Dm(ErrorEnum::Invalid, err_msg));
     }
@@ -174,7 +174,7 @@ pub fn device_exists(dm: &DM, name: &DmName) -> DmResult<bool> {
     // TODO: Why do we have to call .as_ref() here instead of relying on deref
     // coercion?
     Ok(dm.list_devices()
-           .map(|l| l.iter().any(|&(ref n, _, _)| n.as_ref() == name))?)
+        .map(|l| l.iter().any(|&(ref n, _, _)| n.as_ref() == name))?)
 }
 
 /// Parse a device from either of a path or a maj:min pair
@@ -182,9 +182,11 @@ pub fn parse_device(val: &str) -> DmResult<Device> {
     let device = if val.starts_with('/') {
         devnode_to_devno(Path::new(val))?
             .ok_or_else(|| {
-                            DmError::Dm(ErrorEnum::Invalid,
-                                        format!("failed to parse device number from \"{}\"", val))
-                        })?
+                DmError::Dm(
+                    ErrorEnum::Invalid,
+                    format!("failed to parse device number from \"{}\"", val),
+                )
+            })?
             .into()
     } else {
         val.parse::<Device>()?
