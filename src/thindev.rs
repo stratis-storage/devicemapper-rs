@@ -173,7 +173,7 @@ impl DmDevice<ThinDevTargetTable> for ThinDev {
     }
 
     fn teardown(self, dm: &DM) -> DmResult<()> {
-        dm.device_remove(&DevId::Name(self.name()), &DmOptions::empty())?;
+        dm.device_remove(&DevId::Name(self.name()), &DmOptions::new())?;
         Ok(())
     }
 
@@ -304,7 +304,7 @@ impl ThinDev {
                 snapshot_thin_id, self.table.table.params.thin_id
             ),
         )?;
-        dm.device_suspend(&source_id, &DmOptions::empty())?;
+        dm.device_suspend(&source_id, &DmOptions::new())?;
         let table = ThinDev::gen_default_table(self.size(), thin_pool.device(), snapshot_thin_id);
         let dev_info = Box::new(device_create(dm, snapshot_name, snapshot_uuid, &table)?);
         Ok(ThinDev { dev_info, table })
@@ -336,7 +336,7 @@ impl ThinDev {
 
     /// Get the current status of the thin device.
     pub fn status(&self, dm: &DM) -> DmResult<ThinStatus> {
-        let (_, table) = dm.table_status(&DevId::Name(self.name()), &DmOptions::empty())?;
+        let (_, table) = dm.table_status(&DevId::Name(self.name()), &DmOptions::new())?;
 
         assert_eq!(
             table.len(),

@@ -450,7 +450,7 @@ impl DmDevice<CacheDevTargetTable> for CacheDev {
     }
 
     fn teardown(self, dm: &DM) -> DmResult<()> {
-        dm.device_remove(&DevId::Name(self.name()), &DmOptions::empty())?;
+        dm.device_remove(&DevId::Name(self.name()), &DmOptions::new())?;
         self.cache_dev.teardown(dm)?;
         self.origin_dev.teardown(dm)?;
         self.meta_dev.teardown(dm)?;
@@ -629,7 +629,7 @@ impl CacheDev {
     // Note: This method is not entirely complete. In particular, *_args values
     // may require more or better checking or processing.
     pub fn status(&self, dm: &DM) -> DmResult<CacheDevStatus> {
-        let (_, status) = dm.table_status(&DevId::Name(self.name()), &DmOptions::empty())?;
+        let (_, status) = dm.table_status(&DevId::Name(self.name()), &DmOptions::new())?;
 
         assert_eq!(
             status.len(),

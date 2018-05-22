@@ -19,11 +19,6 @@ impl DmOptions {
         }
     }
 
-    /// Synonym for new()
-    pub fn empty() -> DmOptions {
-        DmOptions::new()
-    }
-
     /// Set the DmFlags value for option.  Note this call is not additive in that it sets (replaces)
     /// entire flag value in one call.  Thus if you want to incrementally add additional flags you
     /// need to retrieve current and '|' with new.

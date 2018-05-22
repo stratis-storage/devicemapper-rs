@@ -80,7 +80,7 @@ fn dm_test_devices_remove() -> Result<()> {
             .map(|d| &d.0)
             .filter(|n| n.to_string().contains(DM_TEST_ID))
         {
-            match get_dm().device_remove(&DevId::Name(n), &DmOptions::empty()) {
+            match get_dm().device_remove(&DevId::Name(n), &DmOptions::new()) {
                 Ok(_) => progress_made = true,
                 Err(_) => remain.push(n.to_string()),
             }

@@ -79,7 +79,7 @@ pub trait DmDevice<T: TargetTable> {
 
     /// Resume I/O on the device.
     fn resume(&mut self, dm: &DM) -> DmResult<()> {
-        dm.device_suspend(&DevId::Name(self.name()), &DmOptions::empty())?;
+        dm.device_suspend(&DevId::Name(self.name()), &DmOptions::new())?;
         Ok(())
     }
 
@@ -128,17 +128,17 @@ pub fn device_create<T: TargetTable>(
     uuid: Option<&DmUuid>,
     table: &T,
 ) -> DmResult<DeviceInfo> {
-    dm.device_create(name, uuid, &DmOptions::empty())?;
+    dm.device_create(name, uuid, &DmOptions::new())?;
 
     let id = DevId::Name(name);
     let dev_info = match dm.table_load(&id, &table.to_raw_table()) {
         Err(e) => {
-            dm.device_remove(&id, &DmOptions::empty())?;
+            dm.device_remove(&id, &DmOptions::new())?;
             return Err(e);
         }
         Ok(dev_info) => dev_info,
     };
-    dm.device_suspend(&id, &DmOptions::empty())?;
+    dm.device_suspend(&id, &DmOptions::new())?;
 
     Ok(dev_info)
 }

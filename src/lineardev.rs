@@ -436,7 +436,7 @@ impl DmDevice<LinearDevTargetTable> for LinearDev {
     }
 
     fn teardown(self, dm: &DM) -> DmResult<()> {
-        dm.device_remove(&DevId::Name(self.name()), &DmOptions::empty())?;
+        dm.device_remove(&DevId::Name(self.name()), &DmOptions::new())?;
         Ok(())
     }
 
