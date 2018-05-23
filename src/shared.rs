@@ -89,11 +89,12 @@ pub trait DmDevice<T: TargetTable> {
     /// Suspend I/O on the device. If flush is true, flush the device first.
     fn suspend(&mut self, dm: &DM, flush: bool) -> DmResult<()> {
         let mut options = DmOptions::new();
-        let options = if flush {
-            options.set_flags(DmFlags::DM_SUSPEND)
+        options.set_flags(if flush {
+            DmFlags::DM_SUSPEND
         } else {
-            options.set_flags(DmFlags::DM_SUSPEND | DmFlags::DM_NOFLUSH)
-        };
+            DmFlags::DM_SUSPEND | DmFlags::DM_NOFLUSH
+        });
+
         dm.device_suspend(&DevId::Name(self.name()), &options)?;
         Ok(())
     }
