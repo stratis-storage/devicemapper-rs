@@ -403,7 +403,7 @@ mod tests {
     use std::process::Command;
 
     use nix::mount::{mount, MntFlags, MsFlags, umount2};
-    use tempdir::TempDir;
+    use tempfile;
     use uuid::Uuid;
 
     use super::super::consts::IEC;
@@ -609,7 +609,10 @@ mod tests {
         };
         assert!(data_usage_1 > DataBlocks(0));
 
-        let tmp_dir = TempDir::new(&test_string("stratis_testing")).unwrap();
+        let tmp_dir = tempfile::Builder::new()
+            .prefix(&test_string("stratis_testing"))
+            .tempdir()
+            .unwrap();
         mount(
             Some(&td.devnode()),
             tmp_dir.path(),

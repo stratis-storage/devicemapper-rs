@@ -9,7 +9,7 @@ use std::path::{Path, PathBuf};
 use std::{io, panic};
 
 use loopdev::{LoopControl, LoopDevice};
-use tempdir::TempDir;
+use tempfile::{self, TempDir};
 
 use super::consts::{IEC, SECTOR_SIZE};
 use super::test_lib::clean_up;
@@ -124,7 +124,10 @@ where
 {
     clean_up().unwrap();
 
-    let tmpdir = TempDir::new("devicemapper").unwrap();
+    let tmpdir = tempfile::Builder::new()
+        .prefix("devicemapper")
+        .tempdir()
+        .unwrap();
     let loop_devices: Vec<LoopTestDev> = get_devices(count, &tmpdir);
     let device_paths: Vec<PathBuf> = loop_devices.iter().map(|x| x.path()).collect();
     let device_paths: Vec<&Path> = device_paths.iter().map(|x| x.as_path()).collect();
