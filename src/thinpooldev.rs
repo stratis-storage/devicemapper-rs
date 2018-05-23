@@ -10,7 +10,7 @@ use std::str::FromStr;
 use super::device::Device;
 use super::deviceinfo::DeviceInfo;
 use super::dm::DM;
-use super::dm_flags::DmFlags;
+use super::dm_options::DmOptions;
 use super::lineardev::{LinearDev, LinearDevTargetParams};
 use super::result::{DmError, DmResult, ErrorEnum};
 use super::shared::{device_create, device_exists, device_match, parse_device, DmDevice,
@@ -246,7 +246,7 @@ impl DmDevice<ThinPoolDevTargetTable> for ThinPoolDev {
     }
 
     fn teardown(self, dm: &DM) -> DmResult<()> {
-        dm.device_remove(&DevId::Name(self.name()), DmFlags::empty())?;
+        dm.device_remove(&DevId::Name(self.name()), &DmOptions::new())?;
         self.data_dev.teardown(dm)?;
         self.meta_dev.teardown(dm)?;
         Ok(())
@@ -467,7 +467,7 @@ impl ThinPoolDev {
     /// pass tests unless it were correct and the kernel docs wrong.
     // Justification: see comment above DM::parse_table_status.
     pub fn status(&self, dm: &DM) -> DmResult<ThinPoolStatus> {
-        let (_, status) = dm.table_status(&DevId::Name(self.name()), DmFlags::empty())?;
+        let (_, status) = dm.table_status(&DevId::Name(self.name()), &DmOptions::new())?;
 
         assert_eq!(
             status.len(),
@@ -772,10 +772,9 @@ mod tests {
             Err(DmError::Core(Error(ErrorKind::IoctlError(_), _))) => true,
             _ => false,
         });
-
-        dm.device_remove(&DevId::Name(&meta_name), DmFlags::empty())
+        dm.device_remove(&DevId::Name(&meta_name), &DmOptions::new())
             .unwrap();
-        dm.device_remove(&DevId::Name(&data_name), DmFlags::empty())
+        dm.device_remove(&DevId::Name(&data_name), &DmOptions::new())
             .unwrap();
     }
 
