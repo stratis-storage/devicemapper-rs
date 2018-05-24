@@ -73,14 +73,14 @@ extern crate macro_attr;
 #[macro_use]
 extern crate newtype_derive;
 
-extern crate libc;
-#[macro_use]
-extern crate nix;
-extern crate serde;
 #[macro_use]
 extern crate bitflags;
 #[macro_use]
 extern crate error_chain;
+extern crate libc;
+#[macro_use]
+extern crate nix;
+extern crate serde;
 
 #[cfg(test)]
 extern crate loopdev;
@@ -112,6 +112,8 @@ mod deviceinfo;
 mod dm;
 /// DM flags
 mod dm_flags;
+/// Options for dm function calls
+mod dm_options;
 /// error chain errors for core dm
 mod errors;
 /// functions to create continuous linear space given device segments
@@ -138,7 +140,8 @@ pub use cachedev::{CacheDev, CacheDevPerformance, CacheDevStatus, CacheDevUsage,
 pub use consts::{IEC, SECTOR_SIZE};
 pub use device::{devnode_to_devno, Device};
 pub use dm::DM;
-pub use dm_flags::DmFlags;
+pub use dm_flags::{DmCookie, DmFlags};
+pub use dm_options::DmOptions;
 pub use lineardev::{FlakeyTargetParams, LinearDev, LinearDevTargetParams, LinearDevTargetTable,
                     LinearTargetParams};
 pub use result::{DmError, DmResult, ErrorEnum};

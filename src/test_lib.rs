@@ -10,7 +10,7 @@ use mnt::get_submounts;
 use nix::mount::{MntFlags, umount2};
 
 use super::dm::DM;
-use super::dm_flags::DmFlags;
+use super::dm_options::DmOptions;
 use super::result::DmResult;
 use super::types::{DevId, DmNameBuf, DmUuidBuf};
 
@@ -80,7 +80,7 @@ fn dm_test_devices_remove() -> Result<()> {
             .map(|d| &d.0)
             .filter(|n| n.to_string().contains(DM_TEST_ID))
         {
-            match get_dm().device_remove(&DevId::Name(n), DmFlags::empty()) {
+            match get_dm().device_remove(&DevId::Name(n), &DmOptions::new()) {
                 Ok(_) => progress_made = true,
                 Err(_) => remain.push(n.to_string()),
             }
