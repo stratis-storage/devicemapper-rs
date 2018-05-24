@@ -87,7 +87,7 @@ extern crate loopdev;
 #[cfg(test)]
 extern crate mnt;
 #[cfg(test)]
-extern crate tempdir;
+extern crate tempfile;
 #[cfg(test)]
 extern crate uuid;
 
