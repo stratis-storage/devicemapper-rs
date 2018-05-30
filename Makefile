@@ -8,6 +8,7 @@ fmt:
 	cargo fmt
 
 travis_fmt:
+	rustup default 1.26.0
 	rustup component add rustfmt-preview
 	cargo fmt -- --write-mode=diff
 
