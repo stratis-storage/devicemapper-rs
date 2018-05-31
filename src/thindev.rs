@@ -9,7 +9,7 @@ use std::str::FromStr;
 use super::device::Device;
 use super::deviceinfo::DeviceInfo;
 use super::dm::DM;
-use super::dm_flags::DmFlags;
+use super::dm_flags::{DmCookie, DmFlags};
 use super::dm_options::DmOptions;
 use super::result::{DmError, DmResult, ErrorEnum};
 use super::shared::{device_create, device_exists, device_match, message, parse_device, DmDevice,
@@ -237,7 +237,13 @@ impl ThinDev {
 
         let thin_pool_device = thin_pool.device();
         let table = ThinDev::gen_default_table(length, thin_pool_device, thin_id);
-        let dev_info = device_create(dm, name, uuid, &table)?;
+        let dev_info = device_create(
+            dm,
+            name,
+            uuid,
+            &table,
+            &DmOptions::new().set_cookie(DmCookie::DM_UDEV_PRIMARY_SOURCE_FLAG),
+        )?;
 
         Ok(ThinDev {
             dev_info: Box::new(dev_info),
@@ -273,7 +279,7 @@ impl ThinDev {
             device_match(dm, &dev, uuid)?;
             dev
         } else {
-            let dev_info = device_create(dm, name, uuid, &table)?;
+            let dev_info = device_create(dm, name, uuid, &table, &DmOptions::new())?;
             ThinDev {
                 dev_info: Box::new(dev_info),
                 table,
@@ -306,7 +312,13 @@ impl ThinDev {
         )?;
         dm.device_suspend(&source_id, &DmOptions::new())?;
         let table = ThinDev::gen_default_table(self.size(), thin_pool.device(), snapshot_thin_id);
-        let dev_info = Box::new(device_create(dm, snapshot_name, snapshot_uuid, &table)?);
+        let dev_info = Box::new(device_create(
+            dm,
+            snapshot_name,
+            snapshot_uuid,
+            &table,
+            &DmOptions::new(),
+        )?);
         Ok(ThinDev { dev_info, table })
     }
 

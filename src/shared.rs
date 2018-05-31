@@ -122,12 +122,14 @@ pub fn message<T: TargetTable, D: DmDevice<T>>(dm: &DM, target: &D, msg: &str) -
     Ok(())
 }
 
-/// Create a device, load a table, and resume it.
+/// Create a device, load a table, and resume it allowing the caller to specify the DmOptions for
+/// resuming.
 pub fn device_create<T: TargetTable>(
     dm: &DM,
     name: &DmName,
     uuid: Option<&DmUuid>,
     table: &T,
+    suspend_options: &DmOptions,
 ) -> DmResult<DeviceInfo> {
     dm.device_create(name, uuid, &DmOptions::new())?;
 
@@ -139,7 +141,7 @@ pub fn device_create<T: TargetTable>(
         }
         Ok(dev_info) => dev_info,
     };
-    dm.device_suspend(&id, &DmOptions::new())?;
+    dm.device_suspend(&id, suspend_options)?;
 
     Ok(dev_info)
 }
