@@ -18,7 +18,6 @@ newtype_derive = "0.1"
 macro-attr = "0.2.0"
 mnt = "0.3.1"
 serde = "1"
-clippy = {version = "0", optional = true}
 error-chain = "0.11"
 
 [dev-dependencies]
