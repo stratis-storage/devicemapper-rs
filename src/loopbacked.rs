@@ -4,11 +4,12 @@
 
 use std::fs::{File, OpenOptions};
 use std::io::{Seek, SeekFrom, Write};
-use std::os::unix::prelude::AsRawFd;
+use std::os::unix::io::AsRawFd;
 use std::path::{Path, PathBuf};
 use std::{io, panic};
 
 use loopdev::{LoopControl, LoopDevice};
+use nix::{self, fcntl::{fallocate, FallocateFlags}};
 use tempfile::{self, TempDir};
 
 use super::consts::{IEC, SECTOR_SIZE};
@@ -102,10 +103,12 @@ fn get_devices(count: u8, dir: &TempDir) -> Vec<LoopTestDev> {
             .open(&path)
             .unwrap();
 
-        // the proper way to do this is fallocate, but nix doesn't implement yet.
-        // TODO: see https://github.com/nix-rust/nix/issues/596
-        f.seek(SeekFrom::Start(IEC::Gi)).unwrap();
-        f.write(&[0]).unwrap();
+        fallocate(
+            f.as_raw_fd(),
+            FallocateFlags::empty(),
+            0,
+            IEC::Gi as nix::libc::off_t,
+        ).unwrap();
         f.flush().unwrap();
 
         let ltd = LoopTestDev::new(&lc, &path);
