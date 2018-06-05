@@ -367,7 +367,7 @@ impl ThinPoolDev {
         }
 
         let table = ThinPoolDev::gen_default_table(&meta, &data, data_block_size, low_water_mark);
-        let dev_info = device_create(dm, name, uuid, &table)?;
+        let dev_info = device_create(dm, name, uuid, &table, &DmOptions::new())?;
 
         Ok(ThinPoolDev {
             dev_info: Box::new(dev_info),
@@ -419,7 +419,7 @@ impl ThinPoolDev {
             device_match(dm, &dev, uuid)?;
             dev
         } else {
-            let dev_info = device_create(dm, name, uuid, &table)?;
+            let dev_info = device_create(dm, name, uuid, &table, &DmOptions::new())?;
             ThinPoolDev {
                 dev_info: Box::new(dev_info),
                 meta_dev: meta,
