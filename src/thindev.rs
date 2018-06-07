@@ -279,7 +279,13 @@ impl ThinDev {
             device_match(dm, &dev, uuid)?;
             dev
         } else {
-            let dev_info = device_create(dm, name, uuid, &table, &DmOptions::new())?;
+            let dev_info = device_create(
+                dm,
+                name,
+                uuid,
+                &table,
+                &DmOptions::new().set_cookie(DmCookie::DM_UDEV_PRIMARY_SOURCE_FLAG),
+            )?;
             ThinDev {
                 dev_info: Box::new(dev_info),
                 table,
@@ -317,7 +323,7 @@ impl ThinDev {
             snapshot_name,
             snapshot_uuid,
             &table,
-            &DmOptions::new(),
+            &DmOptions::new().set_cookie(DmCookie::DM_UDEV_PRIMARY_SOURCE_FLAG),
         )?);
         Ok(ThinDev { dev_info, table })
     }
