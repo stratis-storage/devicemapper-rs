@@ -41,7 +41,7 @@ fn write_sectors<P: AsRef<Path>>(
         f.write_all(buf)?;
     }
 
-    f.flush()?;
+    f.sync_all()?;
     Ok(())
 }
 
@@ -109,7 +109,7 @@ fn get_devices(count: u8, dir: &TempDir) -> Vec<LoopTestDev> {
             0,
             IEC::Gi as nix::libc::off_t,
         ).unwrap();
-        f.flush().unwrap();
+        f.sync_all().unwrap();
 
         let ltd = LoopTestDev::new(&lc, &path);
 
