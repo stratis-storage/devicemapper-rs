@@ -416,11 +416,13 @@ impl ThinDev {
 #[cfg(test)]
 mod tests {
 
-    use std::fs::OpenOptions;
+    use std::collections::HashMap;
+    use std::fs::{canonicalize, OpenOptions};
     use std::io::Write;
     use std::path::Path;
     use std::process::Command;
 
+    use libudev;
     use nix::mount::{mount, MntFlags, MsFlags, umount2};
     use tempfile;
     use uuid::Uuid;
@@ -437,6 +439,38 @@ mod tests {
     use super::*;
 
     const MIN_THIN_DEV_SIZE: Sectors = Sectors(1);
+
+    fn udev_settle() -> () {
+        Command::new("udevadm").arg("settle").status().unwrap();
+    }
+
+    // Return a hashmap of key-value pairs for udev entry.
+    fn get_udev_db_entry(dev_node_search: &PathBuf) -> Option<HashMap<String, String>> {
+        // Takes a libudev device entry and returns the properties as a HashMap.
+        fn device_as_map(device: &libudev::Device) -> HashMap<String, String> {
+            let rc: HashMap<_, _> = device
+                .properties()
+                .map(|i| {
+                    (
+                        String::from(i.name().to_str().unwrap()),
+                        String::from(i.value().to_str().unwrap()),
+                    )
+                })
+                .collect();
+            rc
+        }
+
+        let context = libudev::Context::new().unwrap();
+        let mut enumerator = libudev::Enumerator::new(&context).unwrap();
+        enumerator.match_subsystem("block").unwrap();
+
+        let result = enumerator
+            .scan_devices()
+            .unwrap()
+            .find(|x| x.devnode().map_or(false, |d| dev_node_search == d))
+            .map_or(None, |dev| Some(device_as_map(&dev)));
+        result
+    }
 
     /// Verify that specifying a size of 0 Sectors will cause a failure.
     fn test_zero_size(paths: &[&Path]) -> () {
@@ -455,6 +489,8 @@ mod tests {
                 ThinDevId::new_u64(0).expect("is below limit")
             ).is_err()
         );
+
+        udev_settle();
         tp.teardown(&dm).unwrap();
     }
 
@@ -503,6 +539,8 @@ mod tests {
         let td_size = MIN_THIN_DEV_SIZE;
         let td = ThinDev::new(&dm, &id, None, td_size, &tp, thin_id).unwrap();
 
+        udev_settle();
+
         let table = ThinDev::read_kernel_table(&dm, &DevId::Name(td.name()))
             .unwrap()
             .table;
@@ -531,6 +569,7 @@ mod tests {
 
         // Setting up the just created thin dev succeeds.
         assert!(ThinDev::setup(&dm, &id, None, td_size, &tp, thin_id).is_ok());
+        udev_settle();
 
         // Setting up the just created thin dev once more succeeds.
         assert!(ThinDev::setup(&dm, &id, None, td_size, &tp, thin_id).is_ok());
@@ -538,12 +577,108 @@ mod tests {
         // Teardown the thindev, then set it back up.
         td.teardown(&dm).unwrap();
         let mut td = ThinDev::setup(&dm, &id, None, td_size, &tp, thin_id).unwrap();
+        udev_settle();
 
         td.suspend(&dm, false).unwrap();
         td.suspend(&dm, false).unwrap();
         td.resume(&dm).unwrap();
         td.resume(&dm).unwrap();
 
+        td.destroy(&dm, &tp).unwrap();
+        tp.teardown(&dm).unwrap();
+    }
+
+    /// Test thin device create, load, and snapshot and make sure that all is well with udev
+    /// db and symlink generation.
+    fn test_udev_userspace(paths: &[&Path]) -> () {
+        // Make sure we are meeting all our expectations in user space with regards to udev
+        // handling.
+        fn validate(path_uuid: &Uuid, devnode: &PathBuf) {
+            udev_settle();
+
+            // Make sure the uuid symlink was created
+            let symlink = PathBuf::from(format!("/dev/disk/by-uuid/{}", path_uuid));
+
+            assert!(symlink.exists());
+
+            // Make sure the symlink points to devnode
+            let uuid_sym = canonicalize(symlink).unwrap();
+
+            assert_eq!(*devnode, uuid_sym);
+
+            // Check the udev db to see what it's showing for the device, make sure SYSTEMD_READY=0
+            // is not present
+            let entry = get_udev_db_entry(devnode).unwrap();
+            assert!(!entry.contains_key("SYSTEMD_READY"));
+        }
+
+        // Set the FS with devnode to a new auto generated UUID
+        fn set_new_fs_uuid(devnode: &PathBuf) -> Uuid {
+            // Tmp mount & umount to complete the XFS transactions so that we can change the UUID
+            let tmp_dir = tempfile::Builder::new()
+                .prefix(&test_string("test_udev_userspace_mp"))
+                .tempdir()
+                .unwrap();
+            mount(
+                Some(devnode),
+                tmp_dir.path(),
+                Some("xfs"),
+                MsFlags::empty(),
+                None as Option<&str>,
+            ).unwrap();
+            umount2(tmp_dir.path(), MntFlags::MNT_DETACH).unwrap();
+
+            // Set the fs UUID to something new
+            let new_uuid = Uuid::new_v4();
+            Command::new("xfs_admin")
+                .arg("-U")
+                .arg(format!("{}", new_uuid))
+                .arg(devnode.clone())
+                .status()
+                .unwrap();
+            new_uuid
+        }
+
+        let dm = DM::new().unwrap();
+        let tp = minimal_thinpool(&dm, paths[0]);
+        let thin_id = ThinDevId::new_u64(0).expect("is below limit");
+        let id = test_name("udev_test_thin_dev").expect("is valid DM name");
+
+        let mut td = ThinDev::new(&dm, &id, None, tp.size(), &tp, thin_id).unwrap();
+        udev_settle();
+
+        // Create the XFS FS on top of the thin device
+        Command::new("mkfs.xfs")
+            .arg("-f")
+            .arg("-q")
+            .arg(&td.devnode())
+            .status()
+            .unwrap();
+
+        // Travis CI is old doesn't support setting uuid during FS creation.
+        let uuid = set_new_fs_uuid(&td.devnode());
+
+        validate(&uuid, &td.devnode());
+
+        // Teardown the thindev, then set it back up and make sure all is well with udev
+        td.teardown(&dm).unwrap();
+        td = ThinDev::setup(&dm, &id, None, tp.size(), &tp, thin_id).unwrap();
+        validate(&uuid, &td.devnode());
+
+        // Create a snapshot and make sure we get correct actions in user space WRT udev
+        let ss_id = ThinDevId::new_u64(1).expect("is below limit");
+        let ss_name = test_name("snap_name").expect("is valid DM name");
+        let ss = td.snapshot(&dm, &ss_name, None, &tp, ss_id).unwrap();
+        udev_settle();
+
+        let ss_new_uuid = set_new_fs_uuid(&ss.devnode());
+
+        // Validate that the symlink for original and snapshot are correct
+        validate(&ss_new_uuid, &ss.devnode());
+        validate(&uuid, &td.devnode());
+
+        // Tear everything down
+        ss.destroy(&dm, &tp).unwrap();
         td.destroy(&dm, &tp).unwrap();
         tp.teardown(&dm).unwrap();
     }
@@ -568,6 +703,7 @@ mod tests {
         let thin_id = ThinDevId::new_u64(0).expect("is below limit");
         let thin_name = test_name("name").expect("is valid DM name");
         let td = ThinDev::new(&dm, &thin_name, None, td_size, &tp, thin_id).unwrap();
+        udev_settle();
 
         let data_usage_1 = match tp.status(&dm).unwrap() {
             ThinPoolStatus::Working(ref status) => status.usage.used_data,
@@ -580,6 +716,7 @@ mod tests {
         let ss_id = ThinDevId::new_u64(1).expect("is below limit");
         let ss_name = test_name("snap_name").expect("is valid DM name");
         let ss = td.snapshot(&dm, &ss_name, None, &tp, ss_id).unwrap();
+        udev_settle();
 
         let data_usage_2 = match tp.status(&dm).unwrap() {
             ThinPoolStatus::Working(ref status) => status.usage.used_data,
@@ -608,6 +745,7 @@ mod tests {
         let thin_id = ThinDevId::new_u64(0).expect("is below limit");
         let thin_name = test_name("name").expect("is valid DM name");
         let td = ThinDev::new(&dm, &thin_name, None, tp.size(), &tp, thin_id).unwrap();
+        udev_settle();
 
         let orig_data_usage = match tp.status(&dm).unwrap() {
             ThinPoolStatus::Working(ref status) => status.usage.used_data,
@@ -680,6 +818,7 @@ mod tests {
         let thin_id = ThinDevId::new_u64(0).expect("is below limit");
         let thin_name = test_name("name").expect("is valid DM name");
         let td = ThinDev::new(&dm, &thin_name, None, Sectors(2 * IEC::Mi), &tp, thin_id).unwrap();
+        udev_settle();
 
         let orig_data_usage = match tp.status(&dm).unwrap() {
             ThinPoolStatus::Working(ref status) => status.usage.used_data,
@@ -706,6 +845,7 @@ mod tests {
         let ss_uuid = test_uuid("snap_uuid").expect("is valid DM uuid");
         let ss = td.snapshot(&dm, &ss_name, Some(&ss_uuid), &tp, ss_id)
             .unwrap();
+        udev_settle();
 
         let data_usage_2 = match tp.status(&dm).unwrap() {
             ThinPoolStatus::Working(ref status) => status.usage.used_data,
@@ -734,6 +874,7 @@ mod tests {
         let thin_id = ThinDevId::new_u64(2).expect("is below limit");
         let thin_name = test_name("name1").expect("is valid DM name");
         let td1 = ThinDev::new(&dm, &thin_name, None, Sectors(2 * IEC::Gi), &tp, thin_id).unwrap();
+        udev_settle();
 
         let data_usage_4 = match tp.status(&dm).unwrap() {
             ThinPoolStatus::Working(ref status) => status.usage.used_data,
@@ -763,6 +904,11 @@ mod tests {
     #[test]
     fn loop_test_basic() {
         test_with_spec(1, test_basic);
+    }
+
+    #[test]
+    fn loop_test_basic_udev() {
+        test_with_spec(1, test_udev_userspace);
     }
 
     #[test]
