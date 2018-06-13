@@ -9,7 +9,7 @@ use std::path::{Path, PathBuf};
 use std::{io, panic};
 
 use loopdev::{LoopControl, LoopDevice};
-use nix::{self, fcntl::{fallocate, FallocateFlags}};
+use nix;
 use tempfile::{self, TempDir};
 
 use super::consts::{IEC, SECTOR_SIZE};
@@ -88,8 +88,8 @@ impl Drop for LoopTestDev {
 }
 
 /// Setup count loop backed devices in dir.
-/// Make sure each loop device is backed by a 1 GiB file.
-/// Wipe the first 1 MiB of the file.
+/// Make sure each loop device is backed by a sparse 1 GiB file. The entire file will read back
+/// as initialized with zero.
 fn get_devices(count: u8, dir: &TempDir) -> Vec<LoopTestDev> {
     let lc = LoopControl::open().unwrap();
     let mut loop_devices = Vec::new();
@@ -103,12 +103,7 @@ fn get_devices(count: u8, dir: &TempDir) -> Vec<LoopTestDev> {
             .open(&path)
             .unwrap();
 
-        fallocate(
-            f.as_raw_fd(),
-            FallocateFlags::empty(),
-            0,
-            IEC::Gi as nix::libc::off_t,
-        ).unwrap();
+        nix::unistd::ftruncate(f.as_raw_fd(), IEC::Gi as nix::libc::off_t).unwrap();
         f.sync_all().unwrap();
 
         let ltd = LoopTestDev::new(&lc, &path);
