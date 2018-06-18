@@ -16,6 +16,7 @@ use super::result::{DmError, DmResult, ErrorEnum};
 use super::shared::{device_create, device_exists, device_match, parse_device, DmDevice,
                     TargetLine, TargetParams, TargetTable};
 use super::types::{DataBlocks, DevId, DmName, DmUuid, MetaBlocks, Sectors, TargetTypeBuf};
+use super::util::feature_args_to_string;
 
 const CACHE_TARGET_NAME: &str = "cache";
 
@@ -147,20 +148,6 @@ impl FromStr for CacheTargetParams {
 
 impl TargetParams for CacheTargetParams {
     fn param_str(&self) -> String {
-        let feature_args = if self.feature_args.is_empty() {
-            "0".to_owned()
-        } else {
-            format!(
-                "{} {}",
-                self.feature_args.len(),
-                self.feature_args
-                    .iter()
-                    .cloned()
-                    .collect::<Vec<_>>()
-                    .join(" ")
-            )
-        };
-
         let policy_args = if self.policy_args.is_empty() {
             "0".to_owned()
         } else {
@@ -181,7 +168,7 @@ impl TargetParams for CacheTargetParams {
             self.cache,
             self.origin,
             *self.cache_block_size,
-            feature_args,
+            feature_args_to_string(&self.feature_args),
             self.policy,
             policy_args
         )

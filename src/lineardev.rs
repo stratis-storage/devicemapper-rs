@@ -15,6 +15,7 @@ use super::result::{DmError, DmResult, ErrorEnum};
 use super::shared::{device_create, device_exists, device_match, parse_device, DmDevice,
                     TargetLine, TargetParams, TargetTable};
 use super::types::{DevId, DmName, DmUuid, Sectors, TargetTypeBuf};
+use super::util::feature_args_to_string;
 
 const FLAKEY_TARGET_NAME: &str = "flakey";
 const LINEAR_TARGET_NAME: &str = "linear";
@@ -253,23 +254,13 @@ impl FromStr for FlakeyTargetParams {
 
 impl TargetParams for FlakeyTargetParams {
     fn param_str(&self) -> String {
-        let feature_args = if self.feature_args.is_empty() {
-            "0".to_owned()
-        } else {
-            format!(
-                "{} {}",
-                self.feature_args.len(),
-                self.feature_args
-                    .iter()
-                    .cloned()
-                    .collect::<Vec<_>>()
-                    .join(" ")
-            )
-        };
-
         format!(
             "{} {} {} {} {}",
-            self.device, *self.start_offset, self.up_interval, self.down_interval, feature_args
+            self.device,
+            *self.start_offset,
+            self.up_interval,
+            self.down_interval,
+            feature_args_to_string(&self.feature_args)
         )
     }
 
