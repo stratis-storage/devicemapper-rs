@@ -81,6 +81,8 @@ extern crate nix;
 extern crate serde;
 
 #[cfg(test)]
+extern crate libudev;
+#[cfg(test)]
 extern crate loopdev;
 #[cfg(test)]
 extern crate mnt;
