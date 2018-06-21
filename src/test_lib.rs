@@ -3,15 +3,17 @@
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 use std::panic::catch_unwind;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
+use std::process::Command;
 use std::sync::{Once, ONCE_INIT};
 
 use mnt::get_submounts;
 use nix::mount::{MntFlags, umount2};
+use uuid::Uuid;
 
 use super::dm::DM;
 use super::dm_options::DmOptions;
-use super::result::DmResult;
+use super::result::{DmError, DmResult, ErrorEnum};
 use super::types::{DevId, DmNameBuf, DmUuidBuf};
 
 static INIT: Once = ONCE_INIT;
@@ -36,6 +38,49 @@ pub fn test_string(name: &str) -> String {
     let mut namestr = String::from(name);
     namestr.push_str(DM_TEST_ID);
     namestr
+}
+
+/// Execute command while collecting stdout & stderr.
+pub fn execute_cmd(cmd: &mut Command) -> DmResult<()> {
+    match cmd.output() {
+        Err(err) => Err(DmError::Dm(
+            ErrorEnum::Error,
+            format!("cmd: {:?}, error '{}'", cmd, err.to_string()),
+        )),
+        Ok(result) => {
+            if result.status.success() {
+                Ok(())
+            } else {
+                let std_out_txt = String::from_utf8_lossy(&result.stdout);
+                let std_err_txt = String::from_utf8_lossy(&result.stderr);
+                let err_msg = format!(
+                    "cmd: {:?} stdout: {} stderr: {}",
+                    cmd, std_out_txt, std_err_txt
+                );
+                Err(DmError::Dm(ErrorEnum::Error, err_msg))
+            }
+        }
+    }
+}
+
+/// Generate an XFS FS, does not specify UUID as that's not supported on version in Travis
+pub fn xfs_create_fs(devnode: &Path) -> DmResult<()> {
+    execute_cmd(Command::new("mkfs.xfs").arg("-f").arg("-q").arg(&devnode))
+}
+
+/// Set a UUID for a XFS volume.
+pub fn xfs_set_uuid(devnode: &Path, uuid: &Uuid) -> DmResult<()> {
+    execute_cmd(
+        Command::new("xfs_admin")
+            .arg("-U")
+            .arg(format!("{}", uuid))
+            .arg(devnode),
+    )
+}
+
+/// Wait for udev activity to be done.
+pub fn udev_settle() -> DmResult<()> {
+    execute_cmd(Command::new("udevadm").arg("settle"))
 }
 
 /// Generate the test name given the test supplied name.

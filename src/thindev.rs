@@ -420,7 +420,6 @@ mod tests {
     use std::fs::{canonicalize, OpenOptions};
     use std::io::Write;
     use std::path::Path;
-    use std::process::Command;
 
     use libudev;
     use nix::mount::{mount, MntFlags, MsFlags, umount2};
@@ -430,7 +429,8 @@ mod tests {
     use super::super::consts::IEC;
     use super::super::loopbacked::{blkdev_size, test_with_spec};
     use super::super::shared::DmDevice;
-    use super::super::test_lib::{test_name, test_string, test_uuid};
+    use super::super::test_lib::{test_name, test_string, test_uuid, udev_settle, xfs_create_fs,
+                                 xfs_set_uuid};
     use super::super::thinpooldev::{minimal_thinpool, ThinPoolStatus};
     use super::super::types::DataBlocks;
 
@@ -439,10 +439,6 @@ mod tests {
     use super::*;
 
     const MIN_THIN_DEV_SIZE: Sectors = Sectors(1);
-
-    fn udev_settle() -> () {
-        Command::new("udevadm").arg("settle").status().unwrap();
-    }
 
     // Return a hashmap of key-value pairs for udev entry.
     fn get_udev_db_entry(dev_node_search: &PathBuf) -> Option<HashMap<String, String>> {
@@ -490,7 +486,7 @@ mod tests {
             ).is_err()
         );
 
-        udev_settle();
+        udev_settle().unwrap();
         tp.teardown(&dm).unwrap();
     }
 
@@ -539,7 +535,7 @@ mod tests {
         let td_size = MIN_THIN_DEV_SIZE;
         let td = ThinDev::new(&dm, &id, None, td_size, &tp, thin_id).unwrap();
 
-        udev_settle();
+        udev_settle().unwrap();
 
         let table = ThinDev::read_kernel_table(&dm, &DevId::Name(td.name()))
             .unwrap()
@@ -569,7 +565,7 @@ mod tests {
 
         // Setting up the just created thin dev succeeds.
         assert!(ThinDev::setup(&dm, &id, None, td_size, &tp, thin_id).is_ok());
-        udev_settle();
+        udev_settle().unwrap();
 
         // Setting up the just created thin dev once more succeeds.
         assert!(ThinDev::setup(&dm, &id, None, td_size, &tp, thin_id).is_ok());
@@ -577,7 +573,7 @@ mod tests {
         // Teardown the thindev, then set it back up.
         td.teardown(&dm).unwrap();
         let mut td = ThinDev::setup(&dm, &id, None, td_size, &tp, thin_id).unwrap();
-        udev_settle();
+        udev_settle().unwrap();
 
         td.suspend(&dm, false).unwrap();
         td.suspend(&dm, false).unwrap();
@@ -594,7 +590,7 @@ mod tests {
         // Make sure we are meeting all our expectations in user space with regards to udev
         // handling.
         fn validate(path_uuid: &Uuid, devnode: &PathBuf) {
-            udev_settle();
+            udev_settle().unwrap();
 
             // Make sure the uuid symlink was created
             let symlink = PathBuf::from(format!("/dev/disk/by-uuid/{}", path_uuid));
@@ -630,12 +626,7 @@ mod tests {
 
             // Set the fs UUID to something new
             let new_uuid = Uuid::new_v4();
-            Command::new("xfs_admin")
-                .arg("-U")
-                .arg(format!("{}", new_uuid))
-                .arg(devnode.clone())
-                .status()
-                .unwrap();
+            xfs_set_uuid(devnode, &new_uuid).unwrap();
             new_uuid
         }
 
@@ -645,15 +636,10 @@ mod tests {
         let id = test_name("udev_test_thin_dev").expect("is valid DM name");
 
         let mut td = ThinDev::new(&dm, &id, None, tp.size(), &tp, thin_id).unwrap();
-        udev_settle();
+        udev_settle().unwrap();
 
         // Create the XFS FS on top of the thin device
-        Command::new("mkfs.xfs")
-            .arg("-f")
-            .arg("-q")
-            .arg(&td.devnode())
-            .status()
-            .unwrap();
+        xfs_create_fs(&td.devnode()).unwrap();
 
         // Travis CI is old doesn't support setting uuid during FS creation.
         let uuid = set_new_fs_uuid(&td.devnode());
@@ -669,7 +655,7 @@ mod tests {
         let ss_id = ThinDevId::new_u64(1).expect("is below limit");
         let ss_name = test_name("snap_name").expect("is valid DM name");
         let ss = td.snapshot(&dm, &ss_name, None, &tp, ss_id).unwrap();
-        udev_settle();
+        udev_settle().unwrap();
 
         let ss_new_uuid = set_new_fs_uuid(&ss.devnode());
 
@@ -703,7 +689,7 @@ mod tests {
         let thin_id = ThinDevId::new_u64(0).expect("is below limit");
         let thin_name = test_name("name").expect("is valid DM name");
         let td = ThinDev::new(&dm, &thin_name, None, td_size, &tp, thin_id).unwrap();
-        udev_settle();
+        udev_settle().unwrap();
 
         let data_usage_1 = match tp.status(&dm).unwrap() {
             ThinPoolStatus::Working(ref status) => status.usage.used_data,
@@ -716,7 +702,7 @@ mod tests {
         let ss_id = ThinDevId::new_u64(1).expect("is below limit");
         let ss_name = test_name("snap_name").expect("is valid DM name");
         let ss = td.snapshot(&dm, &ss_name, None, &tp, ss_id).unwrap();
-        udev_settle();
+        udev_settle().unwrap();
 
         let data_usage_2 = match tp.status(&dm).unwrap() {
             ThinPoolStatus::Working(ref status) => status.usage.used_data,
@@ -745,7 +731,7 @@ mod tests {
         let thin_id = ThinDevId::new_u64(0).expect("is below limit");
         let thin_name = test_name("name").expect("is valid DM name");
         let td = ThinDev::new(&dm, &thin_name, None, tp.size(), &tp, thin_id).unwrap();
-        udev_settle();
+        udev_settle().unwrap();
 
         let orig_data_usage = match tp.status(&dm).unwrap() {
             ThinPoolStatus::Working(ref status) => status.usage.used_data,
@@ -753,12 +739,7 @@ mod tests {
         };
         assert_eq!(orig_data_usage, DataBlocks(0));
 
-        Command::new("mkfs.xfs")
-            .arg("-f")
-            .arg("-q")
-            .arg(&td.devnode())
-            .status()
-            .unwrap();
+        xfs_create_fs(&td.devnode()).unwrap();
 
         let data_usage_1 = match tp.status(&dm).unwrap() {
             ThinPoolStatus::Working(ref status) => status.usage.used_data,
@@ -818,7 +799,7 @@ mod tests {
         let thin_id = ThinDevId::new_u64(0).expect("is below limit");
         let thin_name = test_name("name").expect("is valid DM name");
         let td = ThinDev::new(&dm, &thin_name, None, Sectors(2 * IEC::Mi), &tp, thin_id).unwrap();
-        udev_settle();
+        udev_settle().unwrap();
 
         let orig_data_usage = match tp.status(&dm).unwrap() {
             ThinPoolStatus::Working(ref status) => status.usage.used_data,
@@ -826,12 +807,7 @@ mod tests {
         };
         assert_eq!(orig_data_usage, DataBlocks(0));
 
-        Command::new("mkfs.xfs")
-            .arg("-f")
-            .arg("-q")
-            .arg(&td.devnode())
-            .status()
-            .unwrap();
+        xfs_create_fs(&td.devnode()).unwrap();
 
         let data_usage_1 = match tp.status(&dm).unwrap() {
             ThinPoolStatus::Working(ref status) => status.usage.used_data,
@@ -845,7 +821,7 @@ mod tests {
         let ss_uuid = test_uuid("snap_uuid").expect("is valid DM uuid");
         let ss = td.snapshot(&dm, &ss_name, Some(&ss_uuid), &tp, ss_id)
             .unwrap();
-        udev_settle();
+        udev_settle().unwrap();
 
         let data_usage_2 = match tp.status(&dm).unwrap() {
             ThinPoolStatus::Working(ref status) => status.usage.used_data,
@@ -853,12 +829,7 @@ mod tests {
         };
         assert_eq!(data_usage_2, data_usage_1);
 
-        Command::new("xfs_admin")
-            .arg("-U")
-            .arg(format!("{}", Uuid::new_v4()))
-            .arg(&ss.devnode())
-            .status()
-            .unwrap();
+        xfs_set_uuid(&ss.devnode(), &Uuid::new_v4()).unwrap();
 
         // Setting the uuid of the snapshot filesystem bumps the usage,
         // but does not increase the usage quite as much as establishing
@@ -874,7 +845,7 @@ mod tests {
         let thin_id = ThinDevId::new_u64(2).expect("is below limit");
         let thin_name = test_name("name1").expect("is valid DM name");
         let td1 = ThinDev::new(&dm, &thin_name, None, Sectors(2 * IEC::Gi), &tp, thin_id).unwrap();
-        udev_settle();
+        udev_settle().unwrap();
 
         let data_usage_4 = match tp.status(&dm).unwrap() {
             ThinPoolStatus::Working(ref status) => status.usage.used_data,
@@ -882,12 +853,7 @@ mod tests {
         };
         assert_eq!(data_usage_4, data_usage_3);
 
-        Command::new("mkfs.xfs")
-            .arg("-f")
-            .arg("-q")
-            .arg(&td1.devnode())
-            .status()
-            .unwrap();
+        xfs_create_fs(&td1.devnode()).unwrap();
 
         let data_usage_5 = match tp.status(&dm).unwrap() {
             ThinPoolStatus::Working(ref status) => status.usage.used_data,
