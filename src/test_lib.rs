@@ -93,6 +93,7 @@ pub fn test_uuid(name: &str) -> DmResult<DmUuidBuf> {
     DmUuidBuf::new(test_string(name))
 }
 
+#[allow(renamed_and_removed_lints)]
 mod cleanup_errors {
     use mnt;
     use nix;
