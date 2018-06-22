@@ -16,6 +16,7 @@ use super::result::{DmError, DmResult, ErrorEnum};
 use super::shared::{device_create, device_exists, device_match, parse_device, DmDevice,
                     TargetLine, TargetParams, TargetTable};
 use super::types::{DataBlocks, DevId, DmName, DmUuid, MetaBlocks, Sectors, TargetTypeBuf};
+use super::util::feature_args_to_string;
 
 #[cfg(test)]
 use super::device::devnode_to_devno;
@@ -129,27 +130,13 @@ impl FromStr for ThinPoolTargetParams {
 
 impl TargetParams for ThinPoolTargetParams {
     fn param_str(&self) -> String {
-        let feature_args = if self.feature_args.is_empty() {
-            "0".to_owned()
-        } else {
-            format!(
-                "{} {}",
-                self.feature_args.len(),
-                self.feature_args
-                    .iter()
-                    .cloned()
-                    .collect::<Vec<_>>()
-                    .join(" ")
-            )
-        };
-
         format!(
             "{} {} {} {} {}",
             self.metadata_dev,
             self.data_dev,
             *self.data_block_size,
             *self.low_water_mark,
-            feature_args
+            feature_args_to_string(&self.feature_args)
         )
     }
 

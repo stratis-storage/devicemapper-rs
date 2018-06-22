@@ -15,6 +15,7 @@ use super::result::{DmError, DmResult, ErrorEnum};
 use super::shared::{device_create, device_exists, device_match, parse_device, DmDevice,
                     TargetLine, TargetParams, TargetTable};
 use super::types::{DevId, DmName, DmUuid, Sectors, TargetTypeBuf};
+use super::util::feature_args_to_string;
 
 const FLAKEY_TARGET_NAME: &str = "flakey";
 const LINEAR_TARGET_NAME: &str = "linear";
@@ -253,23 +254,13 @@ impl FromStr for FlakeyTargetParams {
 
 impl TargetParams for FlakeyTargetParams {
     fn param_str(&self) -> String {
-        let feature_args = if self.feature_args.is_empty() {
-            "0".to_owned()
-        } else {
-            format!(
-                "{} {}",
-                self.feature_args.len(),
-                self.feature_args
-                    .iter()
-                    .cloned()
-                    .collect::<Vec<_>>()
-                    .join(" ")
-            )
-        };
-
         format!(
             "{} {} {} {} {}",
-            self.device, *self.start_offset, self.up_interval, self.down_interval, feature_args
+            self.device,
+            *self.start_offset,
+            self.up_interval,
+            self.down_interval,
+            feature_args_to_string(&self.feature_args)
         )
     }
 
@@ -530,7 +521,41 @@ mod tests {
     use super::super::loopbacked::{blkdev_size, test_with_spec};
     use super::super::test_lib::test_name;
 
+    use super::super::types::DmNameBuf;
+
     use super::*;
+
+    /// Used to setup the common needed variables to run most of the unit test cases.
+    fn common_test_setup(
+        paths: &[&Path],
+        number_target_lines: u64,
+    ) -> (
+        DM,
+        DmNameBuf,
+        Device,
+        Vec<TargetLine<LinearDevTargetParams>>,
+        LinearDev,
+    ) {
+        assert!(paths.len() >= 1);
+        let dm = DM::new().unwrap();
+        let name = test_name("name").expect("valid format");
+        let dev = Device::from(devnode_to_devno(&paths[0]).unwrap().unwrap());
+        let table = (0..number_target_lines)
+            .map(|n| {
+                TargetLine::new(
+                    Sectors(n),
+                    Sectors(1),
+                    LinearDevTargetParams::Linear(LinearTargetParams::new(dev, Sectors(n))),
+                )
+            })
+            .collect::<Vec<_>>();
+
+        let table_rc = table.clone();
+
+        let ld = LinearDev::setup(&dm, &name, None, table).unwrap();
+
+        (dm, name, dev, table_rc, ld)
+    }
 
     /// Verify that a new linear dev with 0 segments fails.
     fn test_empty(_paths: &[&Path]) -> () {
@@ -546,21 +571,7 @@ mod tests {
 
     /// Verify that setting an empty table on an existing DM device fails.
     fn test_empty_table_set(paths: &[&Path]) -> () {
-        assert!(paths.len() >= 1);
-
-        let dm = DM::new().unwrap();
-        let name = test_name("name").expect("valid format");
-        let dev = Device::from(devnode_to_devno(&paths[0]).unwrap().unwrap());
-        let params = LinearTargetParams::new(dev, Sectors(0));
-        let table = vec![
-            TargetLine::new(
-                Sectors(0),
-                Sectors(1),
-                LinearDevTargetParams::Linear(params),
-            ),
-        ];
-        let mut ld = LinearDev::setup(&dm, &name, None, table).unwrap();
-
+        let (dm, _name, _dev, _table, mut ld) = common_test_setup(paths, 1);
         assert!(ld.set_table(&dm, vec![]).is_err());
         ld.resume(&dm).unwrap();
         ld.teardown(&dm).unwrap();
@@ -568,20 +579,7 @@ mod tests {
 
     /// Verify that id rename succeeds.
     fn test_rename_id(paths: &[&Path]) -> () {
-        assert!(paths.len() >= 1);
-
-        let dm = DM::new().unwrap();
-        let name = test_name("name").expect("valid format");
-        let dev = Device::from(devnode_to_devno(&paths[0]).unwrap().unwrap());
-        let params = LinearTargetParams::new(dev, Sectors(0));
-        let table = vec![
-            TargetLine::new(
-                Sectors(0),
-                Sectors(1),
-                LinearDevTargetParams::Linear(params),
-            ),
-        ];
-        let mut ld = LinearDev::setup(&dm, &name, None, table).unwrap();
+        let (dm, name, _dev, _table, mut ld) = common_test_setup(paths, 1);
 
         ld.set_name(&dm, &name).unwrap();
         assert_eq!(ld.name(), &*name);
@@ -591,20 +589,7 @@ mod tests {
 
     /// Verify that after a rename, the device has the new name.
     fn test_rename(paths: &[&Path]) -> () {
-        assert!(paths.len() >= 1);
-
-        let dm = DM::new().unwrap();
-        let name = test_name("name").expect("valid format");
-        let dev = Device::from(devnode_to_devno(&paths[0]).unwrap().unwrap());
-        let params = LinearTargetParams::new(dev, Sectors(0));
-        let table = vec![
-            TargetLine::new(
-                Sectors(0),
-                Sectors(1),
-                LinearDevTargetParams::Linear(params),
-            ),
-        ];
-        let mut ld = LinearDev::setup(&dm, &name, None, table).unwrap();
+        let (dm, _name, _dev, _table, mut ld) = common_test_setup(paths, 1);
 
         let new_name = test_name("new_name").expect("valid format");
         ld.set_name(&dm, &new_name).unwrap();
@@ -618,27 +603,10 @@ mod tests {
     /// ranges of the segments. Verify that the table contains entries for both
     /// segments.
     fn test_duplicate_segments(paths: &[&Path]) -> () {
-        assert!(paths.len() >= 1);
+        let (dm, _name, dev, table, ld) = common_test_setup(paths, 2);
 
-        let dm = DM::new().unwrap();
-        let name = test_name("name").expect("valid format");
-        let dev = Device::from(devnode_to_devno(&paths[0]).unwrap().unwrap());
-        let params = LinearTargetParams::new(dev, Sectors(0));
-        let table = vec![
-            TargetLine::new(
-                Sectors(0),
-                Sectors(1),
-                LinearDevTargetParams::Linear(params.clone()),
-            ),
-            TargetLine::new(
-                Sectors(1),
-                Sectors(1),
-                LinearDevTargetParams::Linear(params),
-            ),
-        ];
         let range: Sectors = table.iter().map(|s| s.length).sum();
         let count = table.len();
-        let ld = LinearDev::setup(&dm, &name, None, table).unwrap();
 
         let table = LinearDev::read_kernel_table(&dm, &DevId::Name(ld.name()))
             .unwrap()
@@ -664,21 +632,7 @@ mod tests {
     /// Use five segments, each distinct. If parsing works correctly,
     /// default table should match extracted table.
     fn test_several_segments(paths: &[&Path]) -> () {
-        assert!(paths.len() >= 1);
-
-        let dm = DM::new().unwrap();
-        let name = test_name("name").expect("valid format");
-        let dev = Device::from(devnode_to_devno(&paths[0]).unwrap().unwrap());
-        let table = (0..5)
-            .map(|n| {
-                TargetLine::new(
-                    Sectors(n),
-                    Sectors(1),
-                    LinearDevTargetParams::Linear(LinearTargetParams::new(dev, Sectors(n))),
-                )
-            })
-            .collect::<Vec<_>>();
-        let ld = LinearDev::setup(&dm, &name, None, table.clone()).unwrap();
+        let (dm, _name, _dev, table, ld) = common_test_setup(paths, 5);
 
         let loaded_table = LinearDev::read_kernel_table(&dm, &DevId::Name(ld.name())).unwrap();
         assert!(
@@ -691,20 +645,7 @@ mod tests {
     /// Verify that constructing a second dev with the same name succeeds
     /// only if it has the same list of segments.
     fn test_same_name(paths: &[&Path]) -> () {
-        assert!(paths.len() >= 1);
-
-        let dm = DM::new().unwrap();
-        let name = test_name("name").expect("valid format");
-        let dev = Device::from(devnode_to_devno(&paths[0]).unwrap().unwrap());
-        let params = LinearTargetParams::new(dev, Sectors(0));
-        let table = vec![
-            TargetLine::new(
-                Sectors(0),
-                Sectors(1),
-                LinearDevTargetParams::Linear(params),
-            ),
-        ];
-        let ld = LinearDev::setup(&dm, &name, None, table.clone()).unwrap();
+        let (dm, name, dev, table, ld) = common_test_setup(paths, 1);
         let params2 = LinearTargetParams::new(dev, Sectors(1));
         let table2 = vec![
             TargetLine::new(
@@ -720,21 +661,8 @@ mod tests {
 
     /// Verify constructing a second linear dev with the same segment succeeds.
     fn test_same_segment(paths: &[&Path]) -> () {
-        assert!(paths.len() >= 1);
-
-        let dm = DM::new().unwrap();
-        let name = test_name("name").expect("valid format");
+        let (dm, _name, _dev, table, ld) = common_test_setup(paths, 1);
         let ersatz = test_name("ersatz").expect("valid format");
-        let dev = Device::from(devnode_to_devno(&paths[0]).unwrap().unwrap());
-        let params = LinearTargetParams::new(dev, Sectors(0));
-        let table = vec![
-            TargetLine::new(
-                Sectors(0),
-                Sectors(1),
-                LinearDevTargetParams::Linear(params),
-            ),
-        ];
-        let ld = LinearDev::setup(&dm, &name, None, table.clone()).unwrap();
         let ld2 = LinearDev::setup(&dm, &ersatz, None, table);
         assert!(ld2.is_ok());
 
@@ -744,20 +672,7 @@ mod tests {
 
     /// Verify that suspending and immediately resuming doesn't fail.
     fn test_suspend(paths: &[&Path]) -> () {
-        assert!(paths.len() >= 1);
-
-        let dm = DM::new().unwrap();
-        let name = test_name("name").expect("valid format");
-        let dev = Device::from(devnode_to_devno(&paths[0]).unwrap().unwrap());
-        let params = LinearTargetParams::new(dev, Sectors(0));
-        let table = vec![
-            TargetLine::new(
-                Sectors(0),
-                Sectors(1),
-                LinearDevTargetParams::Linear(params),
-            ),
-        ];
-        let mut ld = LinearDev::setup(&dm, &name, None, table).unwrap();
+        let (dm, _name, _dev, _table, mut ld) = common_test_setup(paths, 1);
 
         ld.suspend(&dm, false).unwrap();
         ld.suspend(&dm, false).unwrap();
