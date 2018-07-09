@@ -5,6 +5,7 @@
 use std::borrow::Cow;
 use std::fmt;
 
+use device::Device;
 use util::slice_to_null;
 
 pub type __s8 = ::libc::c_char;
@@ -133,7 +134,7 @@ impl fmt::Debug for Struct_dm_ioctl {
             .field("open_count", &self.open_count)
             .field("flags", &self.flags)
             .field("event_nr", &self.event_nr)
-            .field("dev", &self.dev)
+            .field("dev", &Device::from_kdev_t(self.dev as u32))
             .field(
                 "name",
                 &slice_to_null(&self.name)
