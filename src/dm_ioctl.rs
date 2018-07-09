@@ -84,19 +84,19 @@ pub struct Struct_dm_ioctl {
     pub event_nr: __u32,
     pub padding: __u32,
     pub dev: __u64,
-    pub name: [::libc::c_char; 128usize],
-    pub uuid: [::libc::c_char; 129usize],
-    pub data: [::libc::c_char; 7usize],
+    pub name: [u8; 128usize],
+    pub uuid: [u8; 129usize],
+    pub data: [u8; 7usize],
 }
 impl ::std::clone::Clone for Struct_dm_ioctl {
     fn clone(&self) -> Self {
-        let mut name: [::libc::c_char; 128usize] = [0; 128usize];
+        let mut name: [u8; 128usize] = [0; 128usize];
         name.copy_from_slice(&self.name);
 
-        let mut uuid: [::libc::c_char; 129usize] = [0; 129usize];
+        let mut uuid: [u8; 129usize] = [0; 129usize];
         uuid.copy_from_slice(&self.uuid);
 
-        let mut data: [::libc::c_char; 7usize] = [0; 7usize];
+        let mut data: [u8; 7usize] = [0; 7usize];
         data.copy_from_slice(&self.data);
 
         Struct_dm_ioctl {
