@@ -87,7 +87,7 @@ impl Device {
 
     /// Convert to a kdev_t. Return None if values are not expressible as a
     /// kdev_t.
-    pub fn to_kdev_t(&self) -> Option<u32> {
+    pub fn to_kdev_t(self) -> Option<u32> {
         if self.major > 0xfff || self.minor > 0xf_ffff {
             return None;
         }

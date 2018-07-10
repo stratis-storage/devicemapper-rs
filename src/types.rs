@@ -264,13 +264,13 @@ macro_attr! {
 
 impl Sectors {
     /// The number of bytes in these sectors.
-    pub fn bytes(&self) -> Bytes {
+    pub fn bytes(self) -> Bytes {
         Bytes(self.0 * SECTOR_SIZE as u64)
     }
 
     /// The number of whole metablocks contained in these sectors.
-    pub fn metablocks(&self) -> MetaBlocks {
-        MetaBlocks(*self / META_BLOCK_SIZE)
+    pub fn metablocks(self) -> MetaBlocks {
+        MetaBlocks(self / META_BLOCK_SIZE)
     }
 
     checked_add!(Sectors);
