@@ -133,7 +133,6 @@ impl fmt::Debug for Struct_dm_ioctl {
             .field("open_count", &self.open_count)
             .field("flags", &self.flags)
             .field("event_nr", &self.event_nr)
-            .field("padding", &self.padding)
             .field("dev", &self.dev)
             .field(
                 "name",
@@ -144,12 +143,6 @@ impl fmt::Debug for Struct_dm_ioctl {
             .field(
                 "uuid",
                 &slice_to_null(&self.uuid)
-                    .map(|s| String::from_utf8_lossy(s))
-                    .unwrap_or_else(|| Cow::Borrowed("")),
-            )
-            .field(
-                "data",
-                &slice_to_null(&self.data)
                     .map(|s| String::from_utf8_lossy(s))
                     .unwrap_or_else(|| Cow::Borrowed("")),
             )
