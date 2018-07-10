@@ -139,13 +139,13 @@ impl fmt::Debug for Struct_dm_ioctl {
                 "name",
                 &slice_to_null(&self.name)
                     .map(|s| String::from_utf8_lossy(s))
-                    .unwrap_or_else(|| Cow::Borrowed("")),
+                    .unwrap_or_else(|| Cow::Borrowed("kernel bug: unterminated dm_ioctl.name")),
             )
             .field(
                 "uuid",
                 &slice_to_null(&self.uuid)
                     .map(|s| String::from_utf8_lossy(s))
-                    .unwrap_or_else(|| Cow::Borrowed("")),
+                    .unwrap_or_else(|| Cow::Borrowed("kernel bug: unterminated dm_ioctl.uuid")),
             )
             .finish()
     }
