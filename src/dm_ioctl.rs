@@ -37,7 +37,8 @@ pub struct Struct_dm_ioctl {
     pub uuid: [u8; 129usize],
     pub data: [u8; 7usize],
 }
-impl ::std::clone::Clone for Struct_dm_ioctl {
+
+impl Clone for Struct_dm_ioctl {
     fn clone(&self) -> Self {
         let mut name: [u8; 128usize] = [0; 128usize];
         name.copy_from_slice(&self.name);
@@ -64,11 +65,13 @@ impl ::std::clone::Clone for Struct_dm_ioctl {
         }
     }
 }
-impl ::std::default::Default for Struct_dm_ioctl {
+
+impl Default for Struct_dm_ioctl {
     fn default() -> Self {
         unsafe { ::std::mem::zeroed() }
     }
 }
+
 impl fmt::Debug for Struct_dm_ioctl {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         f.debug_struct("Struct_dm_ioctl")
@@ -105,11 +108,13 @@ pub struct Struct_dm_target_spec {
     pub next: __u32,
     pub target_type: [u8; 16usize],
 }
-impl ::std::default::Default for Struct_dm_target_spec {
+
+impl Default for Struct_dm_target_spec {
     fn default() -> Self {
         unsafe { ::std::mem::zeroed() }
     }
 }
+
 #[repr(C, packed)]
 #[derive(Copy, Clone)]
 pub struct Struct_dm_target_deps {
@@ -117,11 +122,13 @@ pub struct Struct_dm_target_deps {
     pub padding: __u32,
     pub dev: [__u64; 0usize],
 }
-impl ::std::default::Default for Struct_dm_target_deps {
+
+impl Default for Struct_dm_target_deps {
     fn default() -> Self {
         unsafe { ::std::mem::zeroed() }
     }
 }
+
 #[repr(C, packed)]
 #[derive(Copy, Clone)]
 pub struct Struct_dm_name_list {
@@ -129,11 +136,13 @@ pub struct Struct_dm_name_list {
     pub next: __u32,
     pub name: [u8; 0usize],
 }
-impl ::std::default::Default for Struct_dm_name_list {
+
+impl Default for Struct_dm_name_list {
     fn default() -> Self {
         unsafe { ::std::mem::zeroed() }
     }
 }
+
 #[repr(C, packed)]
 #[derive(Copy, Clone)]
 pub struct Struct_dm_target_versions {
@@ -141,22 +150,26 @@ pub struct Struct_dm_target_versions {
     pub version: [__u32; 3usize],
     pub name: [u8; 0usize],
 }
-impl ::std::default::Default for Struct_dm_target_versions {
+
+impl Default for Struct_dm_target_versions {
     fn default() -> Self {
         unsafe { ::std::mem::zeroed() }
     }
 }
+
 #[repr(C, packed)]
 #[derive(Copy, Clone)]
 pub struct Struct_dm_target_msg {
     pub sector: __u64,
     pub message: [u8; 0usize],
 }
-impl ::std::default::Default for Struct_dm_target_msg {
+
+impl Default for Struct_dm_target_msg {
     fn default() -> Self {
         unsafe { ::std::mem::zeroed() }
     }
 }
+
 pub const DM_VERSION_CMD: ::libc::c_uint = 0;
 pub const DM_REMOVE_ALL_CMD: ::libc::c_uint = 1;
 pub const DM_LIST_DEVICES_CMD: ::libc::c_uint = 2;
