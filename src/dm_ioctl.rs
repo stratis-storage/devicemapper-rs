@@ -182,7 +182,7 @@ impl ::std::default::Default for Struct_dm_target_deps {
 pub struct Struct_dm_name_list {
     pub dev: __u64,
     pub next: __u32,
-    pub name: [::libc::c_char; 0usize],
+    pub name: [u8; 0usize],
 }
 impl ::std::default::Default for Struct_dm_name_list {
     fn default() -> Self {
@@ -194,7 +194,7 @@ impl ::std::default::Default for Struct_dm_name_list {
 pub struct Struct_dm_target_versions {
     pub next: __u32,
     pub version: [__u32; 3usize],
-    pub name: [::libc::c_char; 0usize],
+    pub name: [u8; 0usize],
 }
 impl ::std::default::Default for Struct_dm_target_versions {
     fn default() -> Self {
@@ -205,7 +205,7 @@ impl ::std::default::Default for Struct_dm_target_versions {
 #[derive(Copy, Clone)]
 pub struct Struct_dm_target_msg {
     pub sector: __u64,
-    pub message: [::libc::c_char; 0usize],
+    pub message: [u8; 0usize],
 }
 impl ::std::default::Default for Struct_dm_target_msg {
     fn default() -> Self {
