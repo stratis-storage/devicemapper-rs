@@ -17,66 +17,6 @@ pub type __s32 = ::libc::c_int;
 pub type __u32 = ::libc::c_uint;
 pub type __s64 = ::libc::c_longlong;
 pub type __u64 = ::libc::c_ulonglong;
-#[repr(C, packed)]
-#[derive(Copy, Clone)]
-pub struct Struct_Unnamed1 {
-    pub fds_bits: [::libc::c_ulong; 16usize],
-}
-impl ::std::default::Default for Struct_Unnamed1 {
-    fn default() -> Self {
-        unsafe { ::std::mem::zeroed() }
-    }
-}
-pub type __kernel_fd_set = Struct_Unnamed1;
-pub type __kernel_sighandler_t = ::std::option::Option<extern "C" fn(arg1: ::libc::c_int) -> ()>;
-pub type __kernel_key_t = ::libc::c_int;
-pub type __kernel_mqd_t = ::libc::c_int;
-pub type __kernel_old_uid_t = ::libc::c_ushort;
-pub type __kernel_old_gid_t = ::libc::c_ushort;
-pub type __kernel_old_dev_t = ::libc::c_ulong;
-pub type __kernel_long_t = ::libc::c_long;
-pub type __kernel_ulong_t = ::libc::c_ulong;
-pub type __kernel_ino_t = __kernel_ulong_t;
-pub type __kernel_mode_t = ::libc::c_uint;
-pub type __kernel_pid_t = ::libc::c_int;
-pub type __kernel_ipc_pid_t = ::libc::c_int;
-pub type __kernel_uid_t = ::libc::c_uint;
-pub type __kernel_gid_t = ::libc::c_uint;
-pub type __kernel_suseconds_t = __kernel_long_t;
-pub type __kernel_daddr_t = ::libc::c_int;
-pub type __kernel_uid32_t = ::libc::c_uint;
-pub type __kernel_gid32_t = ::libc::c_uint;
-pub type __kernel_size_t = __kernel_ulong_t;
-pub type __kernel_ssize_t = __kernel_long_t;
-pub type __kernel_ptrdiff_t = __kernel_long_t;
-#[repr(C, packed)]
-#[derive(Copy, Clone)]
-pub struct Struct_Unnamed2 {
-    pub val: [::libc::c_int; 2usize],
-}
-impl ::std::default::Default for Struct_Unnamed2 {
-    fn default() -> Self {
-        unsafe { ::std::mem::zeroed() }
-    }
-}
-pub type __kernel_fsid_t = Struct_Unnamed2;
-pub type __kernel_off_t = __kernel_long_t;
-pub type __kernel_loff_t = ::libc::c_longlong;
-pub type __kernel_time_t = __kernel_long_t;
-pub type __kernel_clock_t = __kernel_long_t;
-pub type __kernel_timer_t = ::libc::c_int;
-pub type __kernel_clockid_t = ::libc::c_int;
-pub type __kernel_caddr_t = *mut ::libc::c_char;
-pub type __kernel_uid16_t = ::libc::c_ushort;
-pub type __kernel_gid16_t = ::libc::c_ushort;
-pub type __le16 = __u16;
-pub type __be16 = __u16;
-pub type __le32 = __u32;
-pub type __be32 = __u32;
-pub type __le64 = __u64;
-pub type __be64 = __u64;
-pub type __sum16 = __u16;
-pub type __wsum = __u32;
 
 #[repr(C)]
 pub struct Struct_dm_ioctl {
