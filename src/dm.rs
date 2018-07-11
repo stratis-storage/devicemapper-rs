@@ -445,8 +445,7 @@ impl DM {
             targ.length = *t.1;
             targ.status = 0;
 
-            let dst: &mut [u8] =
-                unsafe { &mut *(&mut targ.target_type[..] as *mut [i8] as *mut [u8]) };
+            let dst: &mut [u8] = unsafe { &mut *(&mut targ.target_type[..] as *mut [u8]) };
             let bytes = t.2.as_bytes();
             assert!(
                 bytes.len() <= dst.len(),
@@ -564,8 +563,7 @@ impl DM {
                 };
 
                 let target_type = unsafe {
-                    let cast: &[u8; 16] =
-                        &*(&targ.target_type as *const [i8; 16] as *const [u8; 16]);
+                    let cast: &[u8; 16] = &*(&targ.target_type as *const [u8; 16]);
                     let slc = slice_to_null(cast).expect("assume all parsing succeeds");
                     String::from_utf8_lossy(slc).into_owned()
                 };

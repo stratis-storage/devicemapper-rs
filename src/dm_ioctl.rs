@@ -158,7 +158,7 @@ pub struct Struct_dm_target_spec {
     pub length: __u64,
     pub status: __s32,
     pub next: __u32,
-    pub target_type: [::libc::c_char; 16usize],
+    pub target_type: [u8; 16usize],
 }
 impl ::std::default::Default for Struct_dm_target_spec {
     fn default() -> Self {
