@@ -78,14 +78,14 @@ impl DM {
 
     fn hdr_set_name(hdr: &mut dmi::Struct_dm_ioctl, name: &DmName) -> () {
         let name_dest: &mut [u8; DM_NAME_LEN] =
-            unsafe { &mut *(&mut hdr.name as *mut [i8; DM_NAME_LEN] as *mut [u8; DM_NAME_LEN]) };
+            unsafe { &mut *(&mut hdr.name as *mut [u8; DM_NAME_LEN]) };
         let bytes = name.as_bytes();
         name_dest[..bytes.len()].clone_from_slice(bytes);
     }
 
     fn hdr_set_uuid(hdr: &mut dmi::Struct_dm_ioctl, uuid: &DmUuid) -> () {
         let uuid_dest: &mut [u8; DM_UUID_LEN] =
-            unsafe { &mut *(&mut hdr.uuid as *mut [i8; DM_UUID_LEN] as *mut [u8; DM_UUID_LEN]) };
+            unsafe { &mut *(&mut hdr.uuid as *mut [u8; DM_UUID_LEN]) };
         let bytes = uuid.as_bytes();
         uuid_dest[..bytes.len()].clone_from_slice(bytes);
     }
