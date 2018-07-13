@@ -51,6 +51,18 @@ macro_rules! self_div {
     };
 }
 
+// implement Debug in a more compact style, e.g. "Sectors(0)"
+macro_rules! debug {
+    ($T:ident) => {
+        impl fmt::Debug for $T {
+            fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+                write!(f, stringify!($T))?;
+                write!(f, "({})", **self)
+            }
+        }
+    };
+}
+
 // macros for implementing serialize and deserialize on all types
 macro_rules! serde {
     ($T:ident) => {
@@ -136,7 +148,7 @@ macro_rules! checked_add {
 }
 
 macro_attr! {
-    #[derive(Clone, Copy, Debug, Default, Eq, Ord, PartialEq, PartialOrd)]
+    #[derive(Clone, Copy, Default, Eq, Ord, PartialEq, PartialOrd)]
     /// A type for Data Blocks as used by the thin pool.
     pub struct DataBlocks(pub u64);
 }
@@ -150,6 +162,7 @@ NewtypeSubAssign! { () pub struct DataBlocks(u64); }
 
 self_div!(DataBlocks);
 serde!(DataBlocks);
+debug!(DataBlocks);
 
 unsigned_div!(u64, DataBlocks);
 unsigned_div!(u32, DataBlocks);
@@ -170,7 +183,7 @@ impl fmt::Display for DataBlocks {
 }
 
 macro_attr! {
-    #[derive(Clone, Copy, Debug, Default, Eq, Ord, PartialEq, PartialOrd)]
+    #[derive(Clone, Copy, Default, Eq, Ord, PartialEq, PartialOrd)]
     /// A type for Meta Data blocks as used by the thin pool.
     /// MetaBlocks have a kernel defined constant size of META_BLOCK_SIZE
     pub struct MetaBlocks(pub u64);
@@ -192,6 +205,7 @@ NewtypeSubAssign! { () pub struct MetaBlocks(u64); }
 
 self_div!(MetaBlocks);
 serde!(MetaBlocks);
+debug!(MetaBlocks);
 
 unsigned_div!(u64, MetaBlocks);
 unsigned_div!(u32, MetaBlocks);
@@ -212,7 +226,7 @@ impl fmt::Display for MetaBlocks {
 }
 
 macro_attr! {
-    #[derive(Clone, Copy, Debug, Default, Eq, Ord, PartialEq, PartialOrd)]
+    #[derive(Clone, Copy, Default, Eq, Ord, PartialEq, PartialOrd)]
     /// Structure to represent bytes
     pub struct Bytes(pub u64);
 }
@@ -235,6 +249,7 @@ NewtypeSubAssign! { () pub struct Bytes(u64); }
 
 self_div!(Bytes);
 serde!(Bytes);
+debug!(Bytes);
 sum!(Bytes);
 
 unsigned_div!(u64, Bytes);
@@ -256,7 +271,7 @@ impl fmt::Display for Bytes {
 }
 
 macro_attr! {
-    #[derive(Clone, Copy, Debug, Default, Eq, Ord, PartialEq, PartialOrd)]
+    #[derive(Clone, Copy, Default, Eq, Ord, PartialEq, PartialOrd)]
     /// A separate type to store counts and offsets expressed in
     /// 512-byte sectors.
     pub struct Sectors(pub u64);
@@ -285,6 +300,7 @@ NewtypeSubAssign! { () pub struct Sectors(u64); }
 
 self_div!(Sectors);
 serde!(Sectors);
+debug!(Sectors);
 sum!(Sectors);
 
 unsigned_div!(u64, Sectors);
