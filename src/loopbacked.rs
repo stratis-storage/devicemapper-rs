@@ -17,7 +17,7 @@ use super::test_lib::clean_up;
 use super::types::{Bytes, Sectors};
 
 /// send IOCTL via blkgetsize64
-ioctl!(read blkgetsize64 with 0x12, 114; u64);
+ioctl_read!(blkgetsize64, 0x12, 114, u64);
 
 /// get the size of a given block device file
 pub fn blkdev_size(file: &File) -> Bytes {
