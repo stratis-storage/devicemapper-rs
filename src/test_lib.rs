@@ -8,7 +8,7 @@ use std::process::Command;
 use std::sync::{Once, ONCE_INIT};
 
 use mnt::get_submounts;
-use nix::mount::{MntFlags, umount2};
+use nix::mount::{umount2, MntFlags};
 use uuid::Uuid;
 
 use super::dm::DM;

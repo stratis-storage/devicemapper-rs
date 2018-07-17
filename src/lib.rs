@@ -135,20 +135,27 @@ mod loopbacked;
 #[cfg(test)]
 mod test_lib;
 
-pub use cachedev::{CacheDev, CacheDevPerformance, CacheDevStatus, CacheDevUsage,
-                   CacheDevWorkingStatus, MAX_CACHE_BLOCK_SIZE, MIN_CACHE_BLOCK_SIZE};
+pub use cachedev::{
+    CacheDev, CacheDevPerformance, CacheDevStatus, CacheDevUsage, CacheDevWorkingStatus,
+    MAX_CACHE_BLOCK_SIZE, MIN_CACHE_BLOCK_SIZE,
+};
 pub use consts::{IEC, SECTOR_SIZE};
 pub use device::{devnode_to_devno, Device};
 pub use dm::DM;
 pub use dm_flags::{DmCookie, DmFlags};
 pub use dm_options::DmOptions;
-pub use lineardev::{FlakeyTargetParams, LinearDev, LinearDevTargetParams, LinearDevTargetTable,
-                    LinearTargetParams};
+pub use lineardev::{
+    FlakeyTargetParams, LinearDev, LinearDevTargetParams, LinearDevTargetTable, LinearTargetParams,
+};
 pub use result::{DmError, DmResult, ErrorEnum};
 pub use shared::{device_exists, DmDevice, TargetLine};
 pub use thindev::{ThinDev, ThinDevWorkingStatus, ThinStatus};
 pub use thindevid::ThinDevId;
-pub use thinpooldev::{ThinPoolDev, ThinPoolNoSpacePolicy, ThinPoolStatus, ThinPoolStatusSummary,
-                      ThinPoolUsage, ThinPoolWorkingStatus};
-pub use types::{Bytes, DataBlocks, DevId, DmName, DmNameBuf, DmUuid, DmUuidBuf, MetaBlocks,
-                Sectors, TargetType, TargetTypeBuf};
+pub use thinpooldev::{
+    ThinPoolDev, ThinPoolNoSpacePolicy, ThinPoolStatus, ThinPoolStatusSummary, ThinPoolUsage,
+    ThinPoolWorkingStatus,
+};
+pub use types::{
+    Bytes, DataBlocks, DevId, DmName, DmNameBuf, DmUuid, DmUuidBuf, MetaBlocks, Sectors,
+    TargetType, TargetTypeBuf,
+};

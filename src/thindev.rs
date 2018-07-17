@@ -12,8 +12,10 @@ use super::dm::DM;
 use super::dm_flags::{DmCookie, DmFlags};
 use super::dm_options::DmOptions;
 use super::result::{DmError, DmResult, ErrorEnum};
-use super::shared::{device_create, device_exists, device_match, message, parse_device, DmDevice,
-                    TargetLine, TargetParams, TargetTable};
+use super::shared::{
+    device_create, device_exists, device_match, message, parse_device, DmDevice, TargetLine,
+    TargetParams, TargetTable,
+};
 use super::thindevid::ThinDevId;
 use super::thinpooldev::ThinPoolDev;
 use super::types::{DevId, DmName, DmUuid, Sectors, TargetTypeBuf};
@@ -387,8 +389,7 @@ impl ThinDev {
         };
 
         Ok(ThinStatus::Working(Box::new(ThinDevWorkingStatus::new(
-            count,
-            highest,
+            count, highest,
         ))))
     }
 
@@ -422,15 +423,16 @@ mod tests {
     use std::path::Path;
 
     use libudev;
-    use nix::mount::{mount, MntFlags, MsFlags, umount2};
+    use nix::mount::{mount, umount2, MntFlags, MsFlags};
     use tempfile;
     use uuid::Uuid;
 
     use super::super::consts::IEC;
     use super::super::loopbacked::{blkdev_size, test_with_spec};
     use super::super::shared::DmDevice;
-    use super::super::test_lib::{test_name, test_string, test_uuid, udev_settle, xfs_create_fs,
-                                 xfs_set_uuid};
+    use super::super::test_lib::{
+        test_name, test_string, test_uuid, udev_settle, xfs_create_fs, xfs_set_uuid,
+    };
     use super::super::thinpooldev::{minimal_thinpool, ThinPoolStatus};
     use super::super::types::DataBlocks;
 
