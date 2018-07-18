@@ -13,8 +13,10 @@ use super::dm::DM;
 use super::dm_options::DmOptions;
 use super::lineardev::{LinearDev, LinearDevTargetParams};
 use super::result::{DmError, DmResult, ErrorEnum};
-use super::shared::{device_create, device_exists, device_match, parse_device, DmDevice,
-                    TargetLine, TargetParams, TargetTable};
+use super::shared::{
+    device_create, device_exists, device_match, parse_device, DmDevice, TargetLine, TargetParams,
+    TargetTable,
+};
 use super::types::{DataBlocks, DevId, DmName, DmUuid, MetaBlocks, Sectors, TargetTypeBuf};
 
 #[cfg(test)]
@@ -642,13 +644,11 @@ pub fn minimal_thinpool(dm: &DM, path: &Path) -> ThinPoolDev {
     let dev_size = blkdev_size(&OpenOptions::new().read(true).open(path).unwrap()).sectors();
     let dev = Device::from(devnode_to_devno(path).unwrap().unwrap());
     let meta_params = LinearTargetParams::new(dev, Sectors(0));
-    let meta_table = vec![
-        TargetLine::new(
-            Sectors(0),
-            MIN_RECOMMENDED_METADATA_SIZE,
-            LinearDevTargetParams::Linear(meta_params),
-        ),
-    ];
+    let meta_table = vec![TargetLine::new(
+        Sectors(0),
+        MIN_RECOMMENDED_METADATA_SIZE,
+        LinearDevTargetParams::Linear(meta_params),
+    )];
     let meta = LinearDev::setup(
         dm,
         &test_name("meta").expect("valid format"),
@@ -657,13 +657,11 @@ pub fn minimal_thinpool(dm: &DM, path: &Path) -> ThinPoolDev {
     ).unwrap();
 
     let data_params = LinearTargetParams::new(dev, MIN_RECOMMENDED_METADATA_SIZE);
-    let data_table = vec![
-        TargetLine::new(
-            Sectors(0),
-            dev_size - MIN_RECOMMENDED_METADATA_SIZE,
-            LinearDevTargetParams::Linear(data_params),
-        ),
-    ];
+    let data_table = vec![TargetLine::new(
+        Sectors(0),
+        dev_size - MIN_RECOMMENDED_METADATA_SIZE,
+        LinearDevTargetParams::Linear(data_params),
+    )];
     let data = LinearDev::setup(
         dm,
         &test_name("data").expect("valid format"),
@@ -740,24 +738,20 @@ mod tests {
 
         let meta_name = test_name("meta").expect("valid format");
         let meta_params = LinearTargetParams::new(dev, Sectors(0));
-        let meta_table = vec![
-            TargetLine::new(
-                Sectors(0),
-                MIN_RECOMMENDED_METADATA_SIZE,
-                LinearDevTargetParams::Linear(meta_params),
-            ),
-        ];
+        let meta_table = vec![TargetLine::new(
+            Sectors(0),
+            MIN_RECOMMENDED_METADATA_SIZE,
+            LinearDevTargetParams::Linear(meta_params),
+        )];
         let meta = LinearDev::setup(&dm, &meta_name, None, meta_table).unwrap();
 
         let data_name = test_name("data").expect("valid format");
         let data_params = LinearTargetParams::new(dev, MIN_RECOMMENDED_METADATA_SIZE);
-        let data_table = vec![
-            TargetLine::new(
-                Sectors(0),
-                512u64 * MIN_DATA_BLOCK_SIZE,
-                LinearDevTargetParams::Linear(data_params),
-            ),
-        ];
+        let data_table = vec![TargetLine::new(
+            Sectors(0),
+            512u64 * MIN_DATA_BLOCK_SIZE,
+            LinearDevTargetParams::Linear(data_params),
+        )];
         let data = LinearDev::setup(&dm, &data_name, None, data_table).unwrap();
 
         assert!(match ThinPoolDev::new(
