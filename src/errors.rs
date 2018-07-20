@@ -2,10 +2,6 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-// The error we are trying to eliminate is:
-// lint unused_doc_comment had been renamed to unused_doc_comments.
-// GitHub URL: https://github.com/rust-lang-nursery/error-chain/issues/245.
-#![allow(renamed_and_removed_lints)]
 use super::deviceinfo::DeviceInfo;
 
 error_chain! {
