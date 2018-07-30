@@ -461,6 +461,19 @@ impl ThinPoolDev {
         )
     }
 
+    /// Set the low water mark.
+    /// This action puts the device in a state where it is ready to be resumed.
+    pub fn set_low_water_mark(&mut self, dm: &DM, low_water_mark: DataBlocks) -> DmResult<()> {
+        let new_table = self.table.clone();
+        self.table.table.params.low_water_mark = low_water_mark;
+
+        self.suspend(dm, false)?;
+        self.table_load(dm, &new_table)?;
+
+        self.table = new_table;
+        Ok(())
+    }
+
     /// Get the current status of the thinpool.
     /// Returns an error if there was an error getting the status value.
     /// Panics if there is an error parsing the status value.
