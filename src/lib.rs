@@ -81,11 +81,11 @@ extern crate nix;
 extern crate serde;
 
 #[cfg(test)]
+extern crate libmount;
+#[cfg(test)]
 extern crate libudev;
 #[cfg(test)]
 extern crate loopdev;
-#[cfg(test)]
-extern crate mnt;
 #[cfg(test)]
 extern crate tempfile;
 #[cfg(test)]

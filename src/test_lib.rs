@@ -2,12 +2,14 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
+use std::fs::File;
+use std::io::Read;
 use std::panic::catch_unwind;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::sync::{Once, ONCE_INIT};
 
-use mnt::get_submounts;
+use libmount;
 use nix::mount::{umount2, MntFlags};
 use uuid::Uuid;
 
@@ -94,12 +96,14 @@ pub fn test_uuid(name: &str) -> DmResult<DmUuidBuf> {
 }
 
 mod cleanup_errors {
-    use mnt;
+    use libmount;
     use nix;
+    use std;
 
     error_chain!{
         foreign_links {
-            Mnt(mnt::ParseError);
+            Ioe(std::io::Error);
+            Mnt(libmount::mountinfo::ParseError);
             Nix(nix::Error);
         }
     }
@@ -163,12 +167,17 @@ fn dm_test_devices_remove() -> Result<()> {
 /// Return immediately on the first unmount failure.
 fn dm_test_fs_unmount() -> Result<()> {
     || -> Result<()> {
-        let mounts = get_submounts(&PathBuf::from("/"))?;
-        for m in mounts
-            .iter()
-            .filter(|m| m.file.to_str().map_or(false, |s| s.contains(DM_TEST_ID)))
+        let mut mount_data = String::new();
+        File::open("/proc/self/mountinfo")?.read_to_string(&mut mount_data)?;
+        let parser = libmount::mountinfo::Parser::new(mount_data.as_bytes());
+
+        for mount_point in parser
+            .into_iter()
+            .filter_map(|x| x.ok())
+            .filter_map(|m| m.mount_point.into_owned().into_string().ok())
+            .filter(|mp| mp.contains(DM_TEST_ID))
         {
-            umount2(&m.file, MntFlags::MNT_DETACH)?;
+            umount2(&PathBuf::from(mount_point), MntFlags::MNT_DETACH)?;
         }
         Ok(())
     }().map_err(|e| {
