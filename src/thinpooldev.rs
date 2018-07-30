@@ -461,6 +461,35 @@ impl ThinPoolDev {
         )
     }
 
+    /// Set the low water mark to be something different than what was given
+    /// to ::new() or ::setup().
+    pub fn set_low_water_mark(&mut self, dm: &DM, low_water_mark: DataBlocks) -> DmResult<()> {
+        // Make a new table and params, with the changed low_water_mark
+        let new_table = ThinPoolDevTargetTable::new(
+            self.table.table.start,
+            self.table.table.length,
+            ThinPoolTargetParams::new(
+                self.table.table.params.metadata_dev,
+                self.table.table.params.data_dev,
+                self.table.table.params.data_block_size,
+                low_water_mark,
+                self.table
+                    .table
+                    .params
+                    .feature_args
+                    .iter()
+                    .map(|s| s.clone())
+                    .collect(),
+            ),
+        );
+        self.suspend(dm, false)?;
+        self.table_load(dm, &new_table)?;
+        self.resume(dm)?;
+
+        self.table = new_table;
+        Ok(())
+    }
+
     /// Get the current status of the thinpool.
     /// Returns an error if there was an error getting the status value.
     /// Panics if there is an error parsing the status value.
