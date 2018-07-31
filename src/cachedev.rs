@@ -579,6 +579,29 @@ impl CacheDev {
         Ok(())
     }
 
+    /// Set the table for the existing meta sub-device.
+    /// This action puts the device in a state where it is ready to be resumed.
+    /// Warning: It is the client's responsibility to make sure the designated
+    /// table is compatible with the device's existing table.
+    /// If not, this function will still succeed, but some kind of
+    /// data corruption will be the inevitable result.
+    pub fn set_meta_table(
+        &mut self,
+        dm: &DM,
+        table: Vec<TargetLine<LinearDevTargetParams>>,
+    ) -> DmResult<()> {
+        self.suspend(dm, false)?;
+        self.meta_dev.set_table(dm, table)?;
+        self.meta_dev.resume(dm)?;
+
+        // Reload the table, even though it is unchanged. Otherwise, we
+        // suffer from whacky smq bug documented in the following PR:
+        // https://github.com/stratis-storage/devicemapper-rs/pull/279.
+        self.table_load(dm, self.table())?;
+
+        Ok(())
+    }
+
     /// Generate a table to be passed to DM. The format of the table
     /// entries is:
     /// <start sec (0)> <length> "cache" <cache-specific string>
@@ -923,6 +946,57 @@ mod tests {
     #[test]
     fn loop_test_minimal_cache_dev() {
         test_with_spec(2, test_minimal_cache_dev);
+    }
+
+    /// Basic test of meta size change.
+    /// This executes the code paths, but is not enough to ensure correctness.
+    /// * Construct a minimal cache
+    /// * Expand the meta device by one block
+    fn test_meta_size_change(paths: &[&Path]) {
+        assert!(paths.len() >= 3);
+
+        let dm = DM::new().unwrap();
+        let mut cache = minimal_cachedev(&dm, paths);
+
+        let mut table = cache.meta_dev.table().table.clone();
+        let dev3 = Device::from(devnode_to_devno(paths[2]).unwrap().unwrap());
+
+        let extra_length = MIN_CACHE_BLOCK_SIZE;
+        let cache_params = LinearTargetParams::new(dev3, Sectors(0));
+        let current_length = cache.meta_dev.size();
+
+        match cache.status(&dm).unwrap() {
+            CacheDevStatus::Working(ref status) => {
+                let usage = &status.usage;
+                assert_eq!(*usage.total_meta * usage.meta_block_size, current_length);
+            }
+            CacheDevStatus::Fail => panic!("cache should not have failed"),
+        }
+
+        table.push(TargetLine::new(
+            current_length,
+            extra_length,
+            LinearDevTargetParams::Linear(cache_params),
+        ));
+        assert!(cache.set_meta_table(&dm, table.clone()).is_ok());
+        cache.resume(&dm).unwrap();
+
+        match cache.status(&dm).unwrap() {
+            CacheDevStatus::Working(ref status) => {
+                let usage = &status.usage;
+                let assigned_length = current_length + extra_length;
+                assert!(*usage.total_meta * usage.meta_block_size <= assigned_length);
+                assert_eq!(assigned_length, cache.meta_dev.size());
+            }
+            CacheDevStatus::Fail => panic!("cache should not have failed"),
+        }
+
+        cache.teardown(&dm).unwrap();
+    }
+
+    #[test]
+    fn loop_test_meta_size_change() {
+        test_with_spec(3, test_meta_size_change);
     }
 
     /// Basic test of cache size change
