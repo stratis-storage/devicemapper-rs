@@ -26,13 +26,22 @@ use std::path::Path;
 
 const THINPOOL_TARGET_NAME: &str = "thin-pool";
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq)]
 pub struct ThinPoolTargetParams {
     pub metadata_dev: Device,
     pub data_dev: Device,
     pub data_block_size: Sectors,
     pub low_water_mark: DataBlocks,
     pub feature_args: HashSet<String>,
+}
+
+impl PartialEq for ThinPoolTargetParams {
+    fn eq(&self, other: &ThinPoolTargetParams) -> bool {
+        self.metadata_dev == other.metadata_dev
+            && self.data_dev == other.data_dev
+            && self.data_block_size == other.data_block_size
+            && self.feature_args == other.feature_args
+    }
 }
 
 impl ThinPoolTargetParams {
