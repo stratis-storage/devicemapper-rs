@@ -228,11 +228,20 @@ impl DmDevice<ThinPoolDevTargetTable> for ThinPoolDev {
 
     // This method is incomplete. It is expected that it will be refined so
     // that it will return true in more cases, i.e., to be less stringent.
+    // In particular, two devices are equivalent even if their low water
+    // marks are different.
     fn equivalent_tables(
         left: &ThinPoolDevTargetTable,
         right: &ThinPoolDevTargetTable,
     ) -> DmResult<bool> {
-        Ok(left == right)
+        let left = &left.table;
+        let right = &right.table;
+        Ok(left.start == right.start
+            && left.length == right.length
+            && left.params.metadata_dev == right.params.metadata_dev
+            && left.params.data_dev == right.params.data_dev
+            && left.params.data_block_size == right.params.data_block_size
+            && left.params.feature_args == right.params.feature_args)
     }
 
     fn name(&self) -> &DmName {
