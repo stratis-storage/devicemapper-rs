@@ -26,22 +26,13 @@ use std::path::Path;
 
 const THINPOOL_TARGET_NAME: &str = "thin-pool";
 
-#[derive(Clone, Debug, Eq)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ThinPoolTargetParams {
     pub metadata_dev: Device,
     pub data_dev: Device,
     pub data_block_size: Sectors,
     pub low_water_mark: DataBlocks,
     pub feature_args: HashSet<String>,
-}
-
-impl PartialEq for ThinPoolTargetParams {
-    fn eq(&self, other: &ThinPoolTargetParams) -> bool {
-        self.metadata_dev == other.metadata_dev
-            && self.data_dev == other.data_dev
-            && self.data_block_size == other.data_block_size
-            && self.feature_args == other.feature_args
-    }
 }
 
 impl ThinPoolTargetParams {
@@ -237,11 +228,20 @@ impl DmDevice<ThinPoolDevTargetTable> for ThinPoolDev {
 
     // This method is incomplete. It is expected that it will be refined so
     // that it will return true in more cases, i.e., to be less stringent.
+    // In particular, two devices are equivalent even if their low water
+    // marks are different.
     fn equivalent_tables(
         left: &ThinPoolDevTargetTable,
         right: &ThinPoolDevTargetTable,
     ) -> DmResult<bool> {
-        Ok(left == right)
+        let left = &left.table;
+        let right = &right.table;
+        Ok(left.start == right.start
+            && left.length == right.length
+            && left.params.metadata_dev == right.params.metadata_dev
+            && left.params.data_dev == right.params.data_dev
+            && left.params.data_block_size == right.params.data_block_size
+            && left.params.feature_args == right.params.feature_args)
     }
 
     fn name(&self) -> &DmName {
@@ -470,30 +470,14 @@ impl ThinPoolDev {
         )
     }
 
-    /// Set the low water mark to be something different than what was given
-    /// to ::new() or ::setup().
+    /// Set the low water mark.
+    /// This action puts the device in a state where it is ready to be resumed.
     pub fn set_low_water_mark(&mut self, dm: &DM, low_water_mark: DataBlocks) -> DmResult<()> {
-        // Make a new table and params, with the changed low_water_mark
-        let new_table = ThinPoolDevTargetTable::new(
-            self.table.table.start,
-            self.table.table.length,
-            ThinPoolTargetParams::new(
-                self.table.table.params.metadata_dev,
-                self.table.table.params.data_dev,
-                self.table.table.params.data_block_size,
-                low_water_mark,
-                self.table
-                    .table
-                    .params
-                    .feature_args
-                    .iter()
-                    .map(|s| s.clone())
-                    .collect(),
-            ),
-        );
+        let new_table = self.table.clone();
+        self.table.table.params.low_water_mark = low_water_mark;
+
         self.suspend(dm, false)?;
         self.table_load(dm, &new_table)?;
-        self.resume(dm)?;
 
         self.table = new_table;
         Ok(())
