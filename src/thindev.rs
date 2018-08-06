@@ -869,6 +869,36 @@ mod tests {
         tp.teardown(&dm).unwrap();
     }
 
+    /// Verify that destroy() actually deallocates the space from the
+    /// thinpool, by attempting to reinstantiate it using the same thin id and
+    /// verifying that it fails.
+    fn test_thindev_destroy(paths: &[&Path]) -> () {
+        assert!(paths.len() >= 1);
+
+        let dm = DM::new().unwrap();
+        let tp = minimal_thinpool(&dm, paths[0]);
+
+        let thin_id = ThinDevId::new_u64(0).expect("is below limit");
+        let thin_name = test_name("name").expect("is valid DM name");
+
+        let td = ThinDev::new(&dm, &thin_name, None, tp.size(), &tp, thin_id).unwrap();
+        td.teardown(&dm).unwrap();
+
+        // This should work
+        let td = ThinDev::setup(&dm, &thin_name, None, tp.size(), &tp, thin_id).unwrap();
+        td.destroy(&dm, &tp).unwrap();
+
+        // This should fail
+        assert!(
+            match ThinDev::setup(&dm, &thin_name, None, tp.size(), &tp, thin_id) {
+                Err(DmError::Core(Error(ErrorKind::IoctlError(_), _))) => true,
+                _ => false,
+            }
+        );
+
+        tp.teardown(&dm).unwrap();
+    }
+
     #[test]
     fn loop_test_basic() {
         test_with_spec(1, test_basic);
@@ -902,5 +932,10 @@ mod tests {
     #[test]
     fn loop_test_filesystem() {
         test_with_spec(1, test_filesystem);
+    }
+
+    #[test]
+    pub fn loop_test_thindev_destroy() {
+        test_with_spec(1, test_thindev_destroy);
     }
 }
