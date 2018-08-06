@@ -882,7 +882,13 @@ mod tests {
         let thin_name = test_name("name").expect("is valid DM name");
 
         let td = ThinDev::new(&dm, &thin_name, None, tp.size(), &tp, thin_id).unwrap();
+        td.teardown(&dm).unwrap();
+
+        // This should work
+        let td = ThinDev::setup(&dm, &thin_name, None, tp.size(), &tp, thin_id).unwrap();
         td.destroy(&dm, &tp).unwrap();
+
+        // This should fail
         assert!(
             match ThinDev::setup(&dm, &thin_name, None, tp.size(), &tp, thin_id) {
                 Err(DmError::Core(Error(ErrorKind::IoctlError(_), _))) => true,
