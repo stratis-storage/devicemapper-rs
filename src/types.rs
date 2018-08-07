@@ -138,6 +138,17 @@ macro_rules! unsigned_rem {
     };
 }
 
+macro_rules! rem {
+    ($T:ident) => {
+        impl Rem<$T> for $T {
+            type Output = $T;
+            fn rem(self, rhs: $T) -> $T {
+                $T(self.0 % rhs.0 as u64)
+            }
+        }
+    };
+}
+
 macro_rules! checked_add {
     ($T: ident) => {
         /// Add two items of type $T, return None if overflow.
@@ -320,6 +331,7 @@ unsigned_rem!(u32, Sectors);
 unsigned_rem!(u16, Sectors);
 unsigned_rem!(u8, Sectors);
 unsigned_rem!(usize, Sectors);
+rem!(Sectors);
 
 impl fmt::Display for Sectors {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
@@ -477,5 +489,12 @@ mod tests {
             Err(DmError::Core(Error(ErrorKind::InvalidArgument(_), _))) => true,
             _ => false,
         })
+    }
+
+    #[test]
+    /// Test the return types of various % operations
+    pub fn test_sectors_remainder() {
+        assert_eq!(Sectors(13) % Sectors(11), Sectors(2));
+        assert_eq!(Sectors(13) % 11usize, Sectors(2));
     }
 }
