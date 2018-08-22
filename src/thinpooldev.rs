@@ -321,6 +321,10 @@ pub struct ThinPoolWorkingStatus {
     pub summary: ThinPoolStatusSummary,
     /// needs_check flag has been set in metadata superblock
     pub needs_check: bool,
+    /// The lowater value for the metadata device in metablocks. This value
+    /// is set by the kernel. It is available in version <version> and later of
+    /// the kernel.
+    pub meta_low_water: Option<u64>,
 }
 
 impl ThinPoolWorkingStatus {
@@ -332,6 +336,7 @@ impl ThinPoolWorkingStatus {
         no_space_policy: ThinPoolNoSpacePolicy,
         summary: ThinPoolStatusSummary,
         needs_check: bool,
+        meta_low_water: Option<u64>,
     ) -> ThinPoolWorkingStatus {
         ThinPoolWorkingStatus {
             transaction_id,
@@ -340,6 +345,7 @@ impl ThinPoolWorkingStatus {
             no_space_policy,
             summary,
             needs_check,
+            meta_low_water,
         }
     }
 }
@@ -576,6 +582,11 @@ impl ThinPoolDev {
             )),
         };
 
+        let meta_low_water = status_vals.get(8).map(|v| {
+            v.parse::<u64>()
+                .expect("meta low water value must be valid")
+        });
+
         Ok(ThinPoolStatus::Working(Box::new(
             ThinPoolWorkingStatus::new(
                 transaction_id,
@@ -584,6 +595,7 @@ impl ThinPoolDev {
                 no_space_policy,
                 summary,
                 needs_check,
+                meta_low_water,
             ),
         )))
     }
