@@ -321,8 +321,9 @@ pub struct ThinPoolWorkingStatus {
     pub summary: ThinPoolStatusSummary,
     /// needs_check flag has been set in metadata superblock
     pub needs_check: bool,
-    /// The meta lowater value, set by the kernel. Only available on newer
-    /// kernels.
+    /// The lowater value for the metadata device in metablocks. This value
+    /// is set by the kernel. It is available in version <version> and later of
+    /// the kernel.
     pub meta_low_water: Option<u64>,
 }
 
