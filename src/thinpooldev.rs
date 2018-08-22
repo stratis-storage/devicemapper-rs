@@ -582,7 +582,10 @@ impl ThinPoolDev {
             )),
         };
 
-        let meta_low_water = status_vals.get(8).and_then(|v| v.parse().ok());
+        let meta_low_water = status_vals.get(8).map(|v| {
+            v.parse::<u64>()
+                .expect("meta low water value must be valid")
+        });
 
         Ok(ThinPoolStatus::Working(Box::new(
             ThinPoolWorkingStatus::new(
