@@ -437,7 +437,7 @@ impl DmDevice<LinearDevTargetTable> for LinearDev {
         table!(self)
     }
 
-    fn teardown(self, dm: &DM) -> DmResult<()> {
+    fn teardown(&mut self, dm: &DM) -> DmResult<()> {
         dm.device_remove(&DevId::Name(self.name()), &DmOptions::new())?;
         Ok(())
     }
@@ -634,7 +634,7 @@ mod tests {
         ];
         let range: Sectors = table.iter().map(|s| s.length).sum();
         let count = table.len();
-        let ld = LinearDev::setup(&dm, &name, None, table).unwrap();
+        let mut ld = LinearDev::setup(&dm, &name, None, table).unwrap();
 
         let table = LinearDev::read_kernel_table(&dm, &DevId::Name(ld.name()))
             .unwrap()
@@ -674,7 +674,7 @@ mod tests {
                 )
             })
             .collect::<Vec<_>>();
-        let ld = LinearDev::setup(&dm, &name, None, table.clone()).unwrap();
+        let mut ld = LinearDev::setup(&dm, &name, None, table.clone()).unwrap();
 
         let loaded_table = LinearDev::read_kernel_table(&dm, &DevId::Name(ld.name())).unwrap();
         assert!(
@@ -698,7 +698,7 @@ mod tests {
             Sectors(1),
             LinearDevTargetParams::Linear(params),
         )];
-        let ld = LinearDev::setup(&dm, &name, None, table.clone()).unwrap();
+        let mut ld = LinearDev::setup(&dm, &name, None, table.clone()).unwrap();
         let params2 = LinearTargetParams::new(dev, Sectors(1));
         let table2 = vec![TargetLine::new(
             Sectors(0),
@@ -724,7 +724,7 @@ mod tests {
             Sectors(1),
             LinearDevTargetParams::Linear(params),
         )];
-        let ld = LinearDev::setup(&dm, &name, None, table.clone()).unwrap();
+        let mut ld = LinearDev::setup(&dm, &name, None, table.clone()).unwrap();
         let ld2 = LinearDev::setup(&dm, &ersatz, None, table);
         assert!(ld2.is_ok());
 

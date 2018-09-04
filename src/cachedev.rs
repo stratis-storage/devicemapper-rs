@@ -452,7 +452,7 @@ impl DmDevice<CacheDevTargetTable> for CacheDev {
         table!(self)
     }
 
-    fn teardown(self, dm: &DM) -> DmResult<()> {
+    fn teardown(&mut self, dm: &DM) -> DmResult<()> {
         dm.device_remove(&DevId::Name(self.name()), &DmOptions::new())?;
         self.cache_dev.teardown(dm)?;
         self.origin_dev.teardown(dm)?;
@@ -878,7 +878,7 @@ mod tests {
     fn test_minimal_cache_dev(paths: &[&Path]) -> () {
         assert!(paths.len() >= 2);
         let dm = DM::new().unwrap();
-        let cache = minimal_cachedev(&dm, paths);
+        let mut cache = minimal_cachedev(&dm, paths);
 
         match cache.status(&dm).unwrap() {
             CacheDevStatus::Working(ref status) => {
