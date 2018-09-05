@@ -256,7 +256,7 @@ impl DmDevice<ThinPoolDevTargetTable> for ThinPoolDev {
         table!(self)
     }
 
-    fn teardown(self, dm: &DM) -> DmResult<()> {
+    fn teardown(&mut self, dm: &DM) -> DmResult<()> {
         dm.device_remove(&DevId::Name(self.name()), &DmOptions::new())?;
         self.data_dev.teardown(dm)?;
         self.meta_dev.teardown(dm)?;
@@ -729,7 +729,7 @@ mod tests {
         assert!(paths.len() >= 1);
 
         let dm = DM::new().unwrap();
-        let tp = minimal_thinpool(&dm, paths[0]);
+        let mut tp = minimal_thinpool(&dm, paths[0]);
         match tp.status(&dm).unwrap() {
             ThinPoolStatus::Working(ref status)
                 if status.summary == ThinPoolStatusSummary::Good =>

@@ -109,7 +109,7 @@ pub trait DmDevice<T: TargetTable> {
     }
 
     /// Erase the kernel's memory of this device.
-    fn teardown(self, dm: &DM) -> DmResult<()>;
+    fn teardown(&mut self, dm: &DM) -> DmResult<()>;
 
     /// The device's UUID, if available.
     /// Note that the UUID is not any standard UUID format.
