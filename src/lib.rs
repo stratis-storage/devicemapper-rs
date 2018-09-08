@@ -115,7 +115,7 @@ mod dm_flags;
 /// Options for dm function calls
 mod dm_options;
 /// error chain errors for core dm
-mod errors;
+pub mod errors;
 /// functions to create continuous linear space given device segments
 mod lineardev;
 /// return results container

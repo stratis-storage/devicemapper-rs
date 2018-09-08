@@ -511,7 +511,7 @@ mod tests {
             &tp,
             ThinDevId::new_u64(0).expect("is below limit")
         ) {
-            Err(DmError::Core(Error(ErrorKind::IoctlError(_), _))) => true,
+            Err(DmError::Core(Error(ErrorKind::IoctlError(_, _), _))) => true,
             _ => false,
         });
 
@@ -558,7 +558,7 @@ mod tests {
 
         // New thindev w/ same id fails.
         assert!(match ThinDev::new(&dm, &id, None, td_size, &tp, thin_id) {
-            Err(DmError::Core(Error(ErrorKind::IoctlError(_), _))) => true,
+            Err(DmError::Core(Error(ErrorKind::IoctlError(_, _), _))) => true,
             _ => false,
         });
 
@@ -893,7 +893,7 @@ mod tests {
         // This should fail
         assert!(
             match ThinDev::setup(&dm, &thin_name, None, tp.size(), &tp, thin_id) {
-                Err(DmError::Core(Error(ErrorKind::IoctlError(_), _))) => true,
+                Err(DmError::Core(Error(ErrorKind::IoctlError(_, _), _))) => true,
                 _ => false,
             }
         );
