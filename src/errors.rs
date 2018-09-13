@@ -14,7 +14,7 @@ error_chain! {
         /// An error returned on failure to create a devicemapper context.
         ContextInitError(e: std::io::Error) {
             description("DM context not initialized")
-            display("DM context not initialized due to IO error: {:}", e)
+            display("DM context not initialized due to IO error: {}", e)
         }
 
         /// This is a generic error that can be returned when a method
@@ -31,7 +31,7 @@ error_chain! {
         /// numerous wrapper methods.
         IoctlError(t: Box<DeviceInfo>, n: nix::Error) {
             description("low-level ioctl error")
-            display("low-level ioctl error due to nix error: {:}", n)
+            display("low-level ioctl error due to nix error: {}", n)
         }
 
         /// An error returned on failure to get metadata for a device
