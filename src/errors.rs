@@ -37,7 +37,7 @@ error_chain! {
         /// An error returned on failure to get metadata for a device
         MetadataIoError(path: PathBuf, e: std::io::Error) {
             description("failed to get metadata for a device")
-            display("failed to stat metadata for device at {} due to IO error: {:}", path.to_string_lossy(), e)
+            display("failed to stat metadata for device at {} due to IO error: {}", path.to_string_lossy(), e)
         }
     }
 }
