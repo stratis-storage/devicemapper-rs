@@ -2,14 +2,18 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
+use std;
+
+use nix;
+
 use super::deviceinfo::DeviceInfo;
 
 error_chain! {
     errors {
         /// An error returned on failure to create a devicemapper context.
-        ContextInitError {
+        ContextInitError(e: std::io::Error) {
             description("DM context not initialized")
-            display("DM context not initialized")
+            display("DM context not initialized due to IO error: {:}", e)
         }
 
         /// This is a generic error that can be returned when a method
@@ -24,9 +28,15 @@ error_chain! {
         /// An error returned exclusively by DM methods.
         /// This error is initiated in DM::do_ioctl and returned by
         /// numerous wrapper methods.
-        IoctlError(t: Box<DeviceInfo>) {
+        IoctlError(t: Box<DeviceInfo>, n: nix::Error) {
             description("low-level ioctl error")
-            display("low-level ioctl error")
+            display("low-level ioctl error due to nix error: {:}", n)
+        }
+
+        /// An error returned on failure to get metadata for a device
+        MetadataIoError(e: std::io::Error) {
+            description("failed to get metadata for a device")
+            display("failed to stat metadata for a device due to IO error: {:}", e)
         }
     }
 }
