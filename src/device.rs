@@ -113,7 +113,9 @@ pub fn devnode_to_devno(path: &Path) -> DmResult<Option<u64>> {
             if err.kind() == io::ErrorKind::NotFound {
                 return Ok(None);
             }
-            Err(DmError::Core(ErrorKind::MetadataIoError(err).into()))
+            Err(DmError::Core(
+                ErrorKind::MetadataIoError(path.to_owned(), err).into(),
+            ))
         }
     }
 }

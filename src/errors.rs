@@ -3,6 +3,7 @@
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 use std;
+use std::path::PathBuf;
 
 use nix;
 
@@ -34,9 +35,9 @@ error_chain! {
         }
 
         /// An error returned on failure to get metadata for a device
-        MetadataIoError(e: std::io::Error) {
+        MetadataIoError(path: PathBuf, e: std::io::Error) {
             description("failed to get metadata for a device")
-            display("failed to stat metadata for a device due to IO error: {:}", e)
+            display("failed to stat metadata for device at {} due to IO error: {:}", path.to_string_lossy(), e)
         }
     }
 }
