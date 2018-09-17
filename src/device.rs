@@ -10,7 +10,7 @@ use std::{fmt, io};
 use libc::{dev_t, major, makedev, minor};
 use nix::sys::stat::SFlag;
 
-use super::errors::{Error, ErrorKind};
+use super::errors::ErrorKind;
 use super::result::{DmError, DmResult};
 
 /// A struct containing the device's major and minor numbers
@@ -113,8 +113,9 @@ pub fn devnode_to_devno(path: &Path) -> DmResult<Option<u64>> {
             if err.kind() == io::ErrorKind::NotFound {
                 return Ok(None);
             }
-            let err_msg = format!("failed to get metadata for device at {:?}", path);
-            Err(Error::with_chain(err, ErrorKind::Msg(err_msg)))?
+            Err(DmError::Core(
+                ErrorKind::MetadataIoError(path.to_owned(), err).into(),
+            ))
         }
     }
 }
