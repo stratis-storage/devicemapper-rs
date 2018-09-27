@@ -57,9 +57,9 @@ impl DmOptions {
         hdr.data_start = size_of::<dmi::Struct_dm_ioctl>() as u32;
 
         if let Some(ref id) = id {
-            match *id {
-                &DevId::Name(name) => DM::hdr_set_name(&mut hdr, name),
-                &DevId::Uuid(uuid) => DM::hdr_set_uuid(&mut hdr, uuid),
+            match *(*id) {
+                DevId::Name(name) => DM::hdr_set_name(&mut hdr, name),
+                DevId::Uuid(uuid) => DM::hdr_set_uuid(&mut hdr, uuid),
             };
         };
 
