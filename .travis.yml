@@ -21,7 +21,9 @@ matrix:
         - rust: stable
           sudo: required
           env: TASK=sudo_test
-        - rust: nightly
+        - rust: stable
+          before_script:
+              - rustup component add clippy-preview
           env: TASK=clippy
 
 branches:
