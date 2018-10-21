@@ -26,5 +26,5 @@ libudev = "0.2.0"
 libmount = "0.1.11"
 
 [dev-dependencies.uuid]
-version = "0.6"
+version = "0.7"
 features = ["v4"]
