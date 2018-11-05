@@ -131,7 +131,12 @@ impl DM {
         // zero out the rest
         let cap = v.capacity();
         v.resize(cap, 0);
-
+        let mut hdr = unsafe {
+            #[allow(cast_ptr_alignment)]
+            (v.as_mut_ptr() as *mut dmi::Struct_dm_ioctl)
+                .as_mut()
+                .expect("pointer to own structure v can not be NULL")
+        };
         let op =
             request_code_readwrite!(DM_IOCTL, ioctl, size_of::<dmi::Struct_dm_ioctl>()) as c_ulong;
         loop {
@@ -143,29 +148,24 @@ impl DM {
                     ErrorKind::IoctlError(Box::new(info), err).into(),
                 ));
             }
-
-            let hdr = unsafe {
+            // If DM was able to write the requested data into the provided buffer, break the loop
+            if (hdr.flags & DmFlags::DM_BUFFER_FULL.bits()) == 0 {
+                break;
+            }
+            // If DM_BUFFER_FULL is set, DM requires more space for the response.  Double the size
+            // of the buffer and re-try the ioctl.
+            let len = v.len();
+            v.resize(len * 2, 0);
+            // v.resize() may move the buffer if the requested increase doesn't fit in continuous
+            // memory.  Update hdr to the possibly new address.
+            hdr = unsafe {
                 #[allow(cast_ptr_alignment)]
                 (v.as_mut_ptr() as *mut dmi::Struct_dm_ioctl)
                     .as_mut()
                     .expect("pointer to own structure v can not be NULL")
             };
-
-            if (hdr.flags & DmFlags::DM_BUFFER_FULL.bits()) == 0 {
-                break;
-            }
-
-            let len = v.len();
-            v.resize(len * 2, 0);
             hdr.data_size = v.len() as u32;
         }
-
-        let hdr = unsafe {
-            #[allow(cast_ptr_alignment)]
-            (v.as_mut_ptr() as *mut dmi::Struct_dm_ioctl)
-                .as_mut()
-                .expect("pointer to own structure v can not be NULL")
-        };
 
         // hdr possibly modified so copy back
         hdr_slc.clone_from_slice(&v[..hdr.data_start as usize]);
