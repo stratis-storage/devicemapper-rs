@@ -5,7 +5,7 @@
 use std::fs::File;
 use std::mem::size_of;
 use std::os::unix::io::AsRawFd;
-use std::{cmp, slice};
+use std::{cmp, slice, u32};
 
 use nix::libc::c_ulong;
 use nix::libc::ioctl as nix_ioctl;
@@ -152,10 +152,18 @@ impl DM {
             if (hdr.flags & DmFlags::DM_BUFFER_FULL.bits()) == 0 {
                 break;
             }
-            // If DM_BUFFER_FULL is set, DM requires more space for the response.  Double the size
-            // of the buffer and re-try the ioctl.
+
+            // If DM_BUFFER_FULL is set, DM requires more space for the
+            // response.  Double the size of the buffer and re-try the ioctl.
+            // If the size of the buffer is already as large as can be possibly
+            // expressed in hdr.data_size field, return an error. Never allow
+            // the size to exceed u32::MAX.
             let len = v.len();
-            v.resize(len * 2, 0);
+            if len == u32::MAX as usize {
+                return Err(DmError::Core(ErrorKind::IoctlResultTooLargeError.into()));
+            }
+            v.resize((len as u32).saturating_mul(2) as usize, 0);
+
             // v.resize() may move the buffer if the requested increase doesn't fit in continuous
             // memory.  Update hdr to the possibly new address.
             hdr = unsafe {
