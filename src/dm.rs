@@ -2,6 +2,7 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
+use std::cell::Cell;
 use std::fs::File;
 use std::mem::size_of;
 use std::os::unix::io::AsRawFd;
@@ -38,6 +39,7 @@ const MIN_BUF_SIZE: usize = 16 * 1024;
 /// Context needed for communicating with devicemapper.
 pub struct DM {
     file: File,
+    ioctl_buff_size: Cell<usize>, // Allow mutable field inside immutable struct
 }
 
 impl DmOptions {
@@ -73,6 +75,7 @@ impl DM {
         Ok(DM {
             file: File::open(DM_CTL_PATH)
                 .map_err(|e| DmError::Core(ErrorKind::ContextInitError(e).into()))?,
+            ioctl_buff_size: Cell::new(MIN_BUF_SIZE),
         })
     }
 
@@ -112,7 +115,7 @@ impl DM {
         // Start with a large buffer to make BUFFER_FULL rare. Libdm
         // does this too.
         hdr.data_size = cmp::max(
-            MIN_BUF_SIZE,
+            self.ioctl_buff_size.get(),
             size_of::<dmi::Struct_dm_ioctl>() + in_data.map_or(0, |x| x.len()),
         ) as u32;
         let mut v: Vec<u8> = Vec::with_capacity(hdr.data_size as usize);
@@ -163,6 +166,7 @@ impl DM {
                 return Err(DmError::Core(ErrorKind::IoctlResultTooLargeError.into()));
             }
             v.resize((len as u32).saturating_mul(2) as usize, 0);
+            self.ioctl_buff_size.set(v.len());
 
             // v.resize() may move the buffer if the requested increase doesn't fit in continuous
             // memory.  Update hdr to the possibly new address.
