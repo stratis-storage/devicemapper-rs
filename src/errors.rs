@@ -34,6 +34,13 @@ error_chain! {
             display("low-level ioctl error due to nix error: {}", n)
         }
 
+        /// An error returned when the response exceeds the maximum possible
+        /// size of the ioctl buffer.
+        IoctlResultTooLargeError {
+            description("ioctl result too large for maximum buffer size: 4294967295 bytes")
+            display("ioctl result too large for maximum buffer size: 4294967295 bytes")
+        }
+
         /// An error returned on failure to get metadata for a device
         MetadataIoError(path: PathBuf, e: std::io::Error) {
             description("failed to get metadata for a device")
