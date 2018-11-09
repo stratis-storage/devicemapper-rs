@@ -199,3 +199,19 @@ pub fn parse_device(val: &str) -> DmResult<Device> {
     };
     Ok(device)
 }
+
+/// Parse a value or return an error.
+pub fn parse_value<T>(val: &str, desc: &str) -> DmResult<T>
+where
+    T: FromStr,
+{
+    val.parse::<T>().map_err(|_| {
+        DmError::Dm(
+            ErrorEnum::Invalid,
+            format!(
+                "Failed to parse value for \"{}\" from input \"{}\"",
+                desc, val
+            ),
+        )
+    })
+}

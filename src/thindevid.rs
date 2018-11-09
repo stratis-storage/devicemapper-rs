@@ -8,6 +8,7 @@ use std::str::FromStr;
 use serde;
 
 use super::result::{DmError, DmResult, ErrorEnum};
+use super::shared::parse_value;
 
 const THIN_DEV_ID_LIMIT: u64 = 0x1_000_000; // 2 ^ 24
 
@@ -50,14 +51,7 @@ impl FromStr for ThinDevId {
     type Err = DmError;
 
     fn from_str(s: &str) -> Result<ThinDevId, DmError> {
-        s.parse::<u64>()
-            .map_err(|_| {
-                DmError::Dm(
-                    ErrorEnum::Invalid,
-                    format!("failed to parse value for thindev id \"{}\"", s),
-                )
-            })
-            .map(ThinDevId::new_u64)?
+        Ok(ThinDevId::new_u64(parse_value(s, "thindev id")?)?)
     }
 }
 
