@@ -14,8 +14,8 @@ use super::dm_options::DmOptions;
 use super::lineardev::{LinearDev, LinearDevTargetParams};
 use super::result::{DmError, DmResult, ErrorEnum};
 use super::shared::{
-    device_create, device_exists, device_match, parse_device, DmDevice, TargetLine, TargetParams,
-    TargetTable,
+    device_create, device_exists, device_match, parse_device, parse_value, DmDevice, TargetLine,
+    TargetParams, TargetTable,
 };
 use super::types::{DataBlocks, DevId, DmName, DmUuid, MetaBlocks, Sectors, TargetTypeBuf};
 
@@ -87,25 +87,8 @@ impl FromStr for CacheTargetParams {
         let cache_dev = parse_device(vals[2])?;
         let origin_dev = parse_device(vals[3])?;
 
-        let block_size = vals[4].parse::<u64>().map(Sectors).map_err(|_| {
-            DmError::Dm(
-                ErrorEnum::Invalid,
-                format!(
-                    "failed to parse value for data block size from \"{}\"",
-                    vals[4]
-                ),
-            )
-        })?;
-
-        let num_feature_args = vals[5].parse::<usize>().map_err(|_| {
-            DmError::Dm(
-                ErrorEnum::Invalid,
-                format!(
-                    "failed to parse value for number of feature args from \"{}\"",
-                    vals[5]
-                ),
-            )
-        })?;
+        let block_size = Sectors(parse_value(vals[4], "data block size")?);
+        let num_feature_args: usize = parse_value(vals[5], "number of feature args")?;
 
         let end_feature_args_index = 6 + num_feature_args;
         let feature_args: Vec<String> = vals[6..end_feature_args_index]
@@ -115,17 +98,8 @@ impl FromStr for CacheTargetParams {
 
         let policy = vals[end_feature_args_index].to_owned();
 
-        let num_policy_args = vals[end_feature_args_index + 1]
-            .parse::<usize>()
-            .map_err(|_| {
-                DmError::Dm(
-                    ErrorEnum::Invalid,
-                    format!(
-                        "failed to parse value for number of policy args from \"{}\"",
-                        vals[end_feature_args_index + 1]
-                    ),
-                )
-            })?;
+        let num_policy_args: usize =
+            parse_value(vals[end_feature_args_index + 1], "number of policy args")?;
 
         let start_policy_args_index = end_feature_args_index + 2;
         let end_policy_args_index = start_policy_args_index + num_policy_args;
@@ -680,66 +654,26 @@ impl CacheDev {
             let cache_block_size = status_vals[2];
             let cache_usage = status_vals[3].split('/').collect::<Vec<_>>();
             CacheDevUsage::new(
-                Sectors(
-                    meta_block_size
-                        .parse::<u64>()
-                        .expect("meta_block_size value must be valid"),
-                ),
-                MetaBlocks(
-                    meta_usage[0]
-                        .parse::<u64>()
-                        .expect("used_meta value must be valid"),
-                ),
-                MetaBlocks(
-                    meta_usage[1]
-                        .parse::<u64>()
-                        .expect("total_meta value must be valid"),
-                ),
-                Sectors(
-                    cache_block_size
-                        .parse::<u64>()
-                        .expect("cache_block_size value must be valid"),
-                ),
-                DataBlocks(
-                    cache_usage[0]
-                        .parse::<u64>()
-                        .expect("used_cache value must be valid"),
-                ),
-                DataBlocks(
-                    cache_usage[1]
-                        .parse::<u64>()
-                        .expect("total_cache value must be valid"),
-                ),
+                Sectors(parse_value(meta_block_size, "meta block size")?),
+                MetaBlocks(parse_value(meta_usage[0], "used meta")?),
+                MetaBlocks(parse_value(meta_usage[1], "total meta")?),
+                Sectors(parse_value(cache_block_size, "cache block size")?),
+                DataBlocks(parse_value(cache_usage[0], "used cache")?),
+                DataBlocks(parse_value(cache_usage[1], "total cache")?),
             )
         };
 
         let performance = CacheDevPerformance::new(
-            status_vals[4]
-                .parse::<u64>()
-                .expect("read hits value must be valid format"),
-            status_vals[5]
-                .parse::<u64>()
-                .expect("read misses value must be valid format"),
-            status_vals[6]
-                .parse::<u64>()
-                .expect("write hits value must be valid format"),
-            status_vals[7]
-                .parse::<u64>()
-                .expect("write misses value must be valid format"),
-            status_vals[8]
-                .parse::<u64>()
-                .expect("demotions value must be valid format"),
-            status_vals[9]
-                .parse::<u64>()
-                .expect("promotions value must be valid format"),
-            status_vals[10]
-                .parse::<u64>()
-                .expect("dirty value must be valid format"),
+            parse_value(status_vals[4], "read hits")?,
+            parse_value(status_vals[5], "read misses")?,
+            parse_value(status_vals[6], "write hits")?,
+            parse_value(status_vals[7], "write misses")?,
+            parse_value(status_vals[8], "demotions")?,
+            parse_value(status_vals[9], "promotions")?,
+            parse_value(status_vals[10], "dirty")?,
         );
 
-        let num_feature_args = status_vals[11]
-            .parse::<usize>()
-            .expect("number value must be valid format");
+        let num_feature_args: usize = parse_value(status_vals[11], "number of feature args")?;
         let core_args_start_index = 12usize + num_feature_args;
         let feature_args: Vec<String> = status_vals[12..core_args_start_index]
             .iter()

@@ -14,8 +14,8 @@ use super::dm_options::DmOptions;
 use super::lineardev::{LinearDev, LinearDevTargetParams};
 use super::result::{DmError, DmResult, ErrorEnum};
 use super::shared::{
-    device_create, device_exists, device_match, parse_device, DmDevice, TargetLine, TargetParams,
-    TargetTable,
+    device_create, device_exists, device_match, parse_device, parse_value, DmDevice, TargetLine,
+    TargetParams, TargetTable,
 };
 use super::types::{DataBlocks, DevId, DmName, DmUuid, MetaBlocks, Sectors, TargetTypeBuf};
 
@@ -85,35 +85,10 @@ impl FromStr for ThinPoolTargetParams {
         let metadata_dev = parse_device(vals[1])?;
         let data_dev = parse_device(vals[2])?;
 
-        let data_block_size = vals[3].parse::<u64>().map(Sectors).map_err(|_| {
-            DmError::Dm(
-                ErrorEnum::Invalid,
-                format!(
-                    "failed to parse value for data block size from \"{}\"",
-                    vals[3]
-                ),
-            )
-        })?;
+        let data_block_size = Sectors(parse_value(vals[3], "data block size")?);
+        let low_water_mark = DataBlocks(parse_value(vals[4], "low water mark")?);
 
-        let low_water_mark = vals[4].parse::<u64>().map(DataBlocks).map_err(|_| {
-            DmError::Dm(
-                ErrorEnum::Invalid,
-                format!(
-                    "failed to parse value for low water mark from \"{}\"",
-                    vals[4]
-                ),
-            )
-        })?;
-        let num_feature_args = vals[5].parse::<usize>().map_err(|_| {
-            DmError::Dm(
-                ErrorEnum::Invalid,
-                format!(
-                    "failed to parse value for number of feature args from \"{}\"",
-                    vals[5]
-                ),
-            )
-        })?;
-
+        let num_feature_args: usize = parse_value(vals[5], "number of feature args")?;
         let feature_args: Vec<String> = vals[6..6 + num_feature_args]
             .iter()
             .map(|x| x.to_string())
@@ -515,32 +490,16 @@ impl ThinPoolDev {
             "Kernel must return at least 8 values from thin pool status"
         );
 
-        let transaction_id = status_vals[0].parse::<u64>().expect("see justification");
+        let transaction_id = parse_value(status_vals[0], "transaction id")?;
 
         let usage = {
             let meta_vals = status_vals[1].split('/').collect::<Vec<_>>();
             let data_vals = status_vals[2].split('/').collect::<Vec<_>>();
             ThinPoolUsage {
-                used_meta: MetaBlocks(
-                    meta_vals[0]
-                        .parse::<u64>()
-                        .expect("used_meta value must be valid"),
-                ),
-                total_meta: MetaBlocks(
-                    meta_vals[1]
-                        .parse::<u64>()
-                        .expect("total_meta value must be valid"),
-                ),
-                used_data: DataBlocks(
-                    data_vals[0]
-                        .parse::<u64>()
-                        .expect("used_data value must be valid"),
-                ),
-                total_data: DataBlocks(
-                    data_vals[1]
-                        .parse::<u64>()
-                        .expect("total_data value must be valid"),
-                ),
+                used_meta: MetaBlocks(parse_value(meta_vals[0], "used meta")?),
+                total_meta: MetaBlocks(parse_value(meta_vals[1], "total meta")?),
+                used_data: DataBlocks(parse_value(data_vals[0], "used data")?),
+                total_data: DataBlocks(parse_value(data_vals[1], "total data")?),
             }
         };
 
@@ -581,10 +540,9 @@ impl ThinPoolDev {
             )),
         };
 
-        let meta_low_water = status_vals.get(8).map(|v| {
-            v.parse::<u64>()
-                .expect("meta low water value must be valid")
-        });
+        let meta_low_water = status_vals
+            .get(8)
+            .and_then(|v| parse_value(v, "meta low water").ok());
 
         Ok(ThinPoolStatus::Working(Box::new(
             ThinPoolWorkingStatus::new(
