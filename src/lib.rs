@@ -105,6 +105,8 @@ mod core;
 mod shared_macros;
 /// cachedev
 mod cachedev;
+/// integrity
+mod integrity;
 /// functions to create continuous linear space given device segments
 mod lineardev;
 /// return results container
@@ -135,6 +137,7 @@ pub use crate::core::{
     devnode_to_devno, DevId, Device, DmCookie, DmFlags, DmName, DmNameBuf, DmOptions, DmUuid,
     DmUuidBuf, DM,
 };
+pub use crate::integrity::IntegrityDev;
 pub use crate::lineardev::{
     FlakeyTargetParams, LinearDev, LinearDevTargetParams, LinearDevTargetTable, LinearTargetParams,
 };

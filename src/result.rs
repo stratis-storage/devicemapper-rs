@@ -4,6 +4,7 @@
 
 use std::error::Error;
 use std::fmt;
+use std::io;
 
 use crate::core::errors;
 
@@ -30,6 +31,8 @@ impl fmt::Display for ErrorEnum {
 pub enum DmError {
     /// DM errors
     Dm(ErrorEnum, String),
+    /// IO errors
+    Io(io::Error),
     /// Errors in the core devicemapper functionality
     Core(errors::Error),
 }
@@ -43,11 +46,18 @@ impl From<errors::Error> for DmError {
     }
 }
 
+impl From<io::Error> for DmError {
+    fn from(err: io::Error) -> DmError {
+        DmError::Io(err)
+    }
+}
+
 impl fmt::Display for DmError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match *self {
-            DmError::Core(ref err) => write!(f, "DM Core error: {}", err),
             DmError::Dm(ref err, ref msg) => write!(f, "DM error: {}: {}", err, msg),
+            DmError::Io(ref err) => write!(f, "Io error: {}", err),
+            DmError::Core(ref err) => write!(f, "DM Core error: {}", err),
         }
     }
 }
@@ -55,8 +65,9 @@ impl fmt::Display for DmError {
 impl Error for DmError {
     fn description(&self) -> &str {
         match *self {
-            DmError::Core(ref err) => err.description(),
             DmError::Dm(_, ref msg) => msg,
+            DmError::Io(ref err) => err.description(),
+            DmError::Core(ref err) => err.description(),
         }
     }
 }
