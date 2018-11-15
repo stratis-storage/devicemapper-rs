@@ -507,37 +507,57 @@ impl ThinPoolDev {
             "rw" => ThinPoolStatusSummary::Good,
             "ro" => ThinPoolStatusSummary::ReadOnly,
             "out_of_data_space" => ThinPoolStatusSummary::OutOfSpace,
-            val => panic!(format!(
-                "Kernel returned unexpected 5th value \"{}\" in thin pool status",
-                val
-            )),
+            val => {
+                return Err(DmError::Dm(
+                    ErrorEnum::Invalid,
+                    format!(
+                        "Kernel returned unexpected 5th value \"{}\" in thin pool status",
+                        val
+                    ),
+                ))
+            }
         };
 
         let discard_passdown = match status_vals[5] {
             "discard_passdown" => true,
             "no_discard_passdown" => false,
-            val => panic!(format!(
-                "Kernel returned unexpected 6th value \"{}\" in thin pool status",
-                val
-            )),
+            val => {
+                return Err(DmError::Dm(
+                    ErrorEnum::Invalid,
+                    format!(
+                        "Kernel returned unexpected 6th value \"{}\" in thin pool status",
+                        val
+                    ),
+                ))
+            }
         };
 
         let no_space_policy = match status_vals[6] {
             "error_if_no_space" => ThinPoolNoSpacePolicy::Error,
             "queue_if_no_space" => ThinPoolNoSpacePolicy::Queue,
-            val => panic!(format!(
-                "Kernel returned unexpected 7th value \"{}\" in thin pool status",
-                val
-            )),
+            val => {
+                return Err(DmError::Dm(
+                    ErrorEnum::Invalid,
+                    format!(
+                        "Kernel returned unexpected 7th value \"{}\" in thin pool status",
+                        val
+                    ),
+                ))
+            }
         };
 
         let needs_check = match status_vals[7] {
             "-" => false,
             "needs_check" => true,
-            val => panic!(format!(
-                "Kernel returned unexpected 8th value \"{}\" in thin pool status",
-                val
-            )),
+            val => {
+                return Err(DmError::Dm(
+                    ErrorEnum::Invalid,
+                    format!(
+                        "Kernel returned unexpected 8th value \"{}\" in thin pool status",
+                        val
+                    ),
+                ))
+            }
         };
 
         let meta_low_water = status_vals

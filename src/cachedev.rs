@@ -690,21 +690,31 @@ impl CacheDev {
         let cache_metadata_mode = match status_vals[rest_start_index] {
             "rw" => CacheDevMetadataMode::Good,
             "ro" => CacheDevMetadataMode::ReadOnly,
-            val => panic!(format!(
-                "Kernel returned unexpected {}th value \"{}\" in thin pool status",
-                rest_start_index + 1,
-                val
-            )),
+            val => {
+                return Err(DmError::Dm(
+                    ErrorEnum::Invalid,
+                    format!(
+                        "Kernel returned unexpected {}th value \"{}\" in thin pool status",
+                        rest_start_index + 1,
+                        val,
+                    ),
+                ))
+            }
         };
 
         let needs_check = match status_vals[rest_start_index + 1] {
             "-" => false,
             "needs_check" => true,
-            val => panic!(format!(
-                "Kernel returned unexpected {}th value \"{}\" in thin pool status",
-                rest_start_index + 2,
-                val
-            )),
+            val => {
+                return Err(DmError::Dm(
+                    ErrorEnum::Invalid,
+                    format!(
+                        "Kernel returned unexpected {}th value \"{}\" in thin pool status",
+                        rest_start_index + 1,
+                        val,
+                    ),
+                ))
+            }
         };
 
         Ok(CacheDevStatus::Working(Box::new(
