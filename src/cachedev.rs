@@ -83,9 +83,9 @@ impl FromStr for CacheTargetParams {
             return Err(DmError::Dm(ErrorEnum::Invalid, err_msg));
         }
 
-        let metadata_dev = parse_device(vals[1])?;
-        let cache_dev = parse_device(vals[2])?;
-        let origin_dev = parse_device(vals[3])?;
+        let metadata_dev = parse_device(vals[1], "metadata dev")?;
+        let cache_dev = parse_device(vals[2], "cache dev")?;
+        let origin_dev = parse_device(vals[3], "origin dev")?;
 
         let block_size = Sectors(parse_value(vals[4], "data block size")?);
         let num_feature_args: usize = parse_value(vals[5], "number of feature args")?;

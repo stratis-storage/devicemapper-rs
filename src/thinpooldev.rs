@@ -82,8 +82,8 @@ impl FromStr for ThinPoolTargetParams {
             return Err(DmError::Dm(ErrorEnum::Invalid, err_msg));
         }
 
-        let metadata_dev = parse_device(vals[1])?;
-        let data_dev = parse_device(vals[2])?;
+        let metadata_dev = parse_device(vals[1], "metadata dev")?;
+        let data_dev = parse_device(vals[2], "data dev")?;
 
         let data_block_size = Sectors(parse_value(vals[3], "data block size")?);
         let low_water_mark = DataBlocks(parse_value(vals[4], "low water mark")?);
