@@ -72,12 +72,15 @@ impl FromStr for ThinTargetParams {
         }
 
         Ok(ThinTargetParams::new(
-            parse_device(vals[1])?,
+            parse_device(vals[1], "thinpool device for thin target")?,
             vals[2].parse::<ThinDevId>()?,
             if len == 3 {
                 None
             } else {
-                Some(parse_device(vals[3])?)
+                Some(parse_device(
+                    vals[3],
+                    "external origin device for thin snapshot",
+                )?)
             },
         ))
     }
