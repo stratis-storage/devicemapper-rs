@@ -608,21 +608,20 @@ impl CacheDev {
 
     /// Parse pairs of arguments from a slice
     /// Use the same policy as status() method in asserting
-    fn parse_pairs(start_index: usize, vals: &[&str]) -> (usize, Vec<(String, String)>) {
-        let num_pairs = vals[start_index]
-            .parse::<usize>()
-            .expect("number value must be valid format");
+    fn parse_pairs(start_index: usize, vals: &[&str]) -> DmResult<(usize, Vec<(String, String)>)> {
+        let num_pairs: usize = parse_value(vals[start_index], "number of pairs")?;
         if num_pairs % 2 != 0 {
-            panic!(format!("Number of args \"{}\" is not even", num_pairs));
+            let err_msg = format!("Number of args \"{}\" is not even", num_pairs);
+            return Err(DmError::Dm(ErrorEnum::Invalid, err_msg));
         }
         let next_start_index = start_index + num_pairs + 1;
-        (
+        Ok((
             next_start_index,
             vals[start_index + 1..next_start_index]
                 .chunks(2)
                 .map(|p| (p[0].to_string(), p[1].to_string()))
                 .collect(),
-        )
+        ))
     }
 
     /// Get the current status of the cache device.
@@ -681,11 +680,11 @@ impl CacheDev {
             .collect();
 
         let (policy_start_index, core_args) =
-            CacheDev::parse_pairs(core_args_start_index, &status_vals);
+            CacheDev::parse_pairs(core_args_start_index, &status_vals)?;
 
         let policy = status_vals[policy_start_index].to_string();
         let (rest_start_index, policy_args) =
-            CacheDev::parse_pairs(policy_start_index + 1, &status_vals);
+            CacheDev::parse_pairs(policy_start_index + 1, &status_vals)?;
 
         let cache_metadata_mode = match status_vals[rest_start_index] {
             "rw" => CacheDevMetadataMode::Good,
