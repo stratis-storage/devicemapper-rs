@@ -190,10 +190,7 @@ pub fn parse_device(val: &str, desc: &str) -> DmResult<Device> {
             .ok_or_else(|| {
                 DmError::Dm(
                     ErrorEnum::Invalid,
-                    format!(
-                        "Failed to parse device for \"{}\" from input \"{}\"",
-                        desc, val
-                    ),
+                    format!("Failed to parse \"{}\" from input \"{}\"", desc, val),
                 )
             })?
             .into()

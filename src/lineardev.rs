@@ -68,7 +68,7 @@ impl FromStr for LinearTargetParams {
             return Err(DmError::Dm(ErrorEnum::Invalid, err_msg));
         }
 
-        let device = parse_device(vals[1], "linear dev")?;
+        let device = parse_device(vals[1], "block device for linear target")?;
         let start = vals[2].parse::<u64>().map(Sectors).map_err(|_| {
             DmError::Dm(
                 ErrorEnum::Invalid,
@@ -198,7 +198,7 @@ impl FromStr for FlakeyTargetParams {
             return Err(DmError::Dm(ErrorEnum::Invalid, err_msg));
         }
 
-        let device = parse_device(vals[1], "flakey device")?;
+        let device = parse_device(vals[1], "block device for flakey target")?;
 
         let start_offset = vals[2].parse::<u64>().map(Sectors).map_err(|_| {
             DmError::Dm(

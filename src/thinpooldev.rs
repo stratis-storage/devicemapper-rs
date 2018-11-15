@@ -82,8 +82,8 @@ impl FromStr for ThinPoolTargetParams {
             return Err(DmError::Dm(ErrorEnum::Invalid, err_msg));
         }
 
-        let metadata_dev = parse_device(vals[1], "metadata dev")?;
-        let data_dev = parse_device(vals[2], "data dev")?;
+        let metadata_dev = parse_device(vals[1], "metadata device for thinpool target")?;
+        let data_dev = parse_device(vals[2], "data device for thinpool target")?;
 
         let data_block_size = vals[3].parse::<u64>().map(Sectors).map_err(|_| {
             DmError::Dm(
