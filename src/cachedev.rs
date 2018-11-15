@@ -607,7 +607,6 @@ impl CacheDev {
     }
 
     /// Parse pairs of arguments from a slice
-    /// Use the same policy as status() method in asserting
     fn parse_pairs(start_index: usize, vals: &[&str]) -> DmResult<(usize, Vec<(String, String)>)> {
         let num_pairs: usize = parse_value(vals[start_index], "number of pairs")?;
         if num_pairs % 2 != 0 {
