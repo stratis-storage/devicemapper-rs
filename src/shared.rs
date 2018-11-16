@@ -184,13 +184,13 @@ pub fn device_exists(dm: &DM, name: &DmName) -> DmResult<bool> {
 }
 
 /// Parse a device from either of a path or a maj:min pair
-pub fn parse_device(val: &str) -> DmResult<Device> {
+pub fn parse_device(val: &str, desc: &str) -> DmResult<Device> {
     let device = if val.starts_with('/') {
         devnode_to_devno(Path::new(val))?
             .ok_or_else(|| {
                 DmError::Dm(
                     ErrorEnum::Invalid,
-                    format!("failed to parse device number from \"{}\"", val),
+                    format!("Failed to parse \"{}\" from input \"{}\"", desc, val),
                 )
             })?
             .into()
@@ -198,4 +198,20 @@ pub fn parse_device(val: &str) -> DmResult<Device> {
         val.parse::<Device>()?
     };
     Ok(device)
+}
+
+/// Parse a value or return an error.
+pub fn parse_value<T>(val: &str, desc: &str) -> DmResult<T>
+where
+    T: FromStr,
+{
+    val.parse::<T>().map_err(|_| {
+        DmError::Dm(
+            ErrorEnum::Invalid,
+            format!(
+                "Failed to parse value for \"{}\" from input \"{}\"",
+                desc, val
+            ),
+        )
+    })
 }

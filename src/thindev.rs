@@ -13,8 +13,8 @@ use super::dm_flags::{DmCookie, DmFlags};
 use super::dm_options::DmOptions;
 use super::result::{DmError, DmResult, ErrorEnum};
 use super::shared::{
-    device_create, device_exists, device_match, message, parse_device, DmDevice, TargetLine,
-    TargetParams, TargetTable,
+    device_create, device_exists, device_match, message, parse_device, parse_value, DmDevice,
+    TargetLine, TargetParams, TargetTable,
 };
 use super::thindevid::ThinDevId;
 use super::thinpooldev::ThinPoolDev;
@@ -72,12 +72,15 @@ impl FromStr for ThinTargetParams {
         }
 
         Ok(ThinTargetParams::new(
-            parse_device(vals[1])?,
+            parse_device(vals[1], "thinpool device for thin target")?,
             vals[2].parse::<ThinDevId>()?,
             if len == 3 {
                 None
             } else {
-                Some(parse_device(vals[3])?)
+                Some(parse_device(
+                    vals[3],
+                    "external origin device for thin snapshot",
+                )?)
             },
         ))
     }
@@ -375,17 +378,12 @@ impl ThinDev {
             "Kernel must return at least 2 values from thin pool status"
         );
 
-        let count = status_vals[0]
-            .parse::<u64>()
-            .map(Sectors)
-            .expect("Kernel always returns a parseable u64 for sector count");
+        let count = Sectors(parse_value(status_vals[0], "sector count")?);
 
         let highest = if count == Sectors(0) {
             None
         } else {
-            Some(Sectors(status_vals[1].parse::<u64>().expect(
-                "Kernel always returns a parseable u64 when count > 0",
-            )))
+            Some(Sectors(parse_value(status_vals[1], "highest used sector")?))
         };
 
         Ok(ThinStatus::Working(Box::new(ThinDevWorkingStatus::new(
