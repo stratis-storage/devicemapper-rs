@@ -13,8 +13,8 @@ use super::dm::DM;
 use super::dm_options::DmOptions;
 use super::result::{DmError, DmResult, ErrorEnum};
 use super::shared::{
-    device_create, device_exists, device_match, parse_device, DmDevice, TargetLine, TargetParams,
-    TargetTable,
+    device_create, device_exists, device_match, parse_device, parse_value, DmDevice, TargetLine,
+    TargetParams, TargetTable,
 };
 use super::types::{DevId, DmName, DmUuid, Sectors, TargetTypeBuf};
 
@@ -68,17 +68,8 @@ impl FromStr for LinearTargetParams {
             return Err(DmError::Dm(ErrorEnum::Invalid, err_msg));
         }
 
-        let device = parse_device(vals[1])?;
-
-        let start = vals[2].parse::<u64>().map(Sectors).map_err(|_| {
-            DmError::Dm(
-                ErrorEnum::Invalid,
-                format!(
-                    "failed to parse value for physical start offset \"{}\"",
-                    vals[2]
-                ),
-            )
-        })?;
+        let device = parse_device(vals[1], "block device for linear target")?;
+        let start = Sectors(parse_value(vals[2], "physical start offset")?);
 
         Ok(LinearTargetParams::new(device, start))
     }
@@ -199,44 +190,13 @@ impl FromStr for FlakeyTargetParams {
             return Err(DmError::Dm(ErrorEnum::Invalid, err_msg));
         }
 
-        let device = parse_device(vals[1])?;
+        let device = parse_device(vals[1], "block device for flakey target")?;
+        let start_offset = Sectors(parse_value(vals[2], "physical start offset")?);
 
-        let start_offset = vals[2].parse::<u64>().map(Sectors).map_err(|_| {
-            DmError::Dm(
-                ErrorEnum::Invalid,
-                format!(
-                    "failed to parse value for start_offset from \"{}\"",
-                    vals[2]
-                ),
-            )
-        })?;
+        let up_interval = parse_value(vals[3], "up interval")?;
+        let down_interval = parse_value(vals[4], "down interval")?;
 
-        let up_interval = vals[3].parse::<u32>().map_err(|_| {
-            DmError::Dm(
-                ErrorEnum::Invalid,
-                format!("failed to parse value for up_interval from \"{}\"", vals[3]),
-            )
-        })?;
-
-        let down_interval = vals[4].parse::<u32>().map_err(|_| {
-            DmError::Dm(
-                ErrorEnum::Invalid,
-                format!(
-                    "failed to parse value for down_interval from \"{}\"",
-                    vals[4]
-                ),
-            )
-        })?;
-
-        let num_feature_args = vals[5].parse::<usize>().map_err(|_| {
-            DmError::Dm(
-                ErrorEnum::Invalid,
-                format!(
-                    "failed to parse value for number of feature args from \"{}\"",
-                    vals[5]
-                ),
-            )
-        })?;
+        let num_feature_args: usize = parse_value(vals[5], "number of feature args")?;
 
         let feature_args: Vec<String> = vals[6..6 + num_feature_args]
             .iter()
