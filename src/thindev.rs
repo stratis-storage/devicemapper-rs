@@ -748,7 +748,7 @@ mod tests {
         assert!(data_usage_1 > DataBlocks(0));
 
         let tmp_dir = tempfile::Builder::new()
-            .prefix(&test_string("stratis_testing"))
+            .prefix(&test_string("devicemapper_testing"))
             .tempdir()
             .unwrap();
         mount(
@@ -760,7 +760,7 @@ mod tests {
         ).unwrap();
 
         for i in 0..100 {
-            let file_path = tmp_dir.path().join(format!("stratis_test{}.txt", i));
+            let file_path = tmp_dir.path().join(format!("devicemapper_test{}.txt", i));
             writeln!(
                 &OpenOptions::new()
                     .create(true)
