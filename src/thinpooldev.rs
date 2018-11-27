@@ -453,8 +453,8 @@ impl ThinPoolDev {
     /// Set the low water mark.
     /// This action puts the device in a state where it is ready to be resumed.
     pub fn set_low_water_mark(&mut self, dm: &DM, low_water_mark: DataBlocks) -> DmResult<()> {
-        let new_table = self.table.clone();
-        self.table.table.params.low_water_mark = low_water_mark;
+        let mut new_table = self.table.clone();
+        new_table.table.params.low_water_mark = low_water_mark;
 
         self.suspend(dm, false)?;
         self.table_load(dm, &new_table)?;
