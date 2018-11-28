@@ -38,22 +38,22 @@ impl FromStr for Device {
         let vals = s.split(':').collect::<Vec<_>>();
         if vals.len() != 2 {
             let err_msg = format!("value \"{}\" split into wrong number of fields", s);
-            return Err(DmError::Core(ErrorKind::InvalidArgument(err_msg).into()));
+            return Err(DmError::Core(
+                ErrorKind::InvalidArgument { t: err_msg }.into(),
+            ));
         }
         let major = vals[0].parse::<u32>().map_err(|_| {
             DmError::Core(
-                ErrorKind::InvalidArgument(format!(
-                    "could not parse \"{}\" to obtain major number",
-                    vals[0]
-                )).into(),
+                ErrorKind::InvalidArgument {
+                    t: format!("could not parse \"{}\" to obtain major number", vals[0]),
+                }.into(),
             )
         })?;
         let minor = vals[1].parse::<u32>().map_err(|_| {
             DmError::Core(
-                ErrorKind::InvalidArgument(format!(
-                    "could not parse \"{}\" to obtain minor number",
-                    vals[0]
-                )).into(),
+                ErrorKind::InvalidArgument {
+                    t: format!("could not parse \"{}\" to obtain minor number", vals[0]),
+                }.into(),
             )
         })?;
         Ok(Device { major, minor })
@@ -114,7 +114,10 @@ pub fn devnode_to_devno(path: &Path) -> DmResult<Option<u64>> {
                 return Ok(None);
             }
             Err(DmError::Core(
-                ErrorKind::MetadataIoError(path.to_owned(), err).into(),
+                ErrorKind::MetadataIoError {
+                    path: path.to_owned(),
+                    e: err,
+                }.into(),
             ))
         }
     }

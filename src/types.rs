@@ -343,12 +343,16 @@ impl fmt::Display for Sectors {
 fn str_check(value: &str, max_allowed_chars: usize) -> DmResult<()> {
     if !value.is_ascii() {
         let err_msg = format!("value {} has some non-ascii characters", value);
-        return Err(DmError::Core(ErrorKind::InvalidArgument(err_msg).into()));
+        return Err(DmError::Core(
+            ErrorKind::InvalidArgument { t: err_msg }.into(),
+        ));
     }
     let num_chars = value.len();
     if num_chars == 0 {
         return Err(DmError::Core(
-            ErrorKind::InvalidArgument("value has zero characters".into()).into(),
+            ErrorKind::InvalidArgument {
+                t: "value has zero characters".into(),
+            }.into(),
         ));
     }
     if num_chars > max_allowed_chars {
@@ -356,7 +360,9 @@ fn str_check(value: &str, max_allowed_chars: usize) -> DmResult<()> {
             "value {} has {} chars which is greater than maximum allowed {}",
             value, num_chars, max_allowed_chars
         );
-        return Err(DmError::Core(ErrorKind::InvalidArgument(err_msg).into()));
+        return Err(DmError::Core(
+            ErrorKind::InvalidArgument { t: err_msg }.into(),
+        ));
     }
     Ok(())
 }
@@ -471,8 +477,6 @@ str_id!(TargetType, TargetTypeBuf, DM_TARGET_TYPE_LEN, str_check);
 
 #[cfg(test)]
 mod tests {
-    use super::super::errors::Error;
-
     use super::*;
 
     #[test]
@@ -486,7 +490,10 @@ mod tests {
     /// Verify that creating an empty DmName is an error.
     pub fn test_empty_name() {
         assert!(match DmName::new("") {
-            Err(DmError::Core(Error(ErrorKind::InvalidArgument(_), _))) => true,
+            Err(DmError::Core(err)) => match err.kind() {
+                ErrorKind::InvalidArgument { t: _ } => true,
+                _ => false,
+            },
             _ => false,
         })
     }

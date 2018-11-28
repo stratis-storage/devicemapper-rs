@@ -695,7 +695,7 @@ pub fn minimal_thinpool(dm: &DM, path: &Path) -> ThinPoolDev {
 mod tests {
     use std::path::Path;
 
-    use super::super::errors::{Error, ErrorKind};
+    use super::super::errors::ErrorKind;
     use super::super::loopbacked::test_with_spec;
 
     use super::*;
@@ -774,7 +774,10 @@ mod tests {
             MIN_DATA_BLOCK_SIZE / 2u64,
             DataBlocks(1)
         ) {
-            Err(DmError::Core(Error(ErrorKind::IoctlError(_, _), _))) => true,
+            Err(DmError::Core(err)) => match err.kind() {
+                ErrorKind::IoctlError { t: _, n: _ } => true,
+                _ => false,
+            },
             _ => false,
         });
         dm.device_remove(&DevId::Name(&meta_name), &DmOptions::new())

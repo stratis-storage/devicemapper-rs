@@ -53,6 +53,9 @@ impl fmt::Display for DmError {
 }
 
 impl Error for DmError {
+    // TODO: This method has been soft-deprecated as of 1.30.
+    // Remove it as soon as the lowest required version of rustc makes that
+    // acceptable.
     fn description(&self) -> &str {
         match *self {
             DmError::Core(ref err) => err.description(),

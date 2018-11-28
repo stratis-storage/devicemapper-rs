@@ -73,13 +73,14 @@ extern crate newtype_derive;
 
 #[macro_use]
 extern crate bitflags;
-#[macro_use]
-extern crate error_chain;
 extern crate libc;
 #[macro_use]
 extern crate nix;
 extern crate serde;
 
+#[cfg(test)]
+#[macro_use]
+extern crate error_chain;
 #[cfg(test)]
 extern crate libmount;
 #[cfg(test)]
@@ -90,6 +91,10 @@ extern crate loopdev;
 extern crate tempfile;
 #[cfg(test)]
 extern crate uuid;
+
+extern crate failure;
+#[macro_use]
+extern crate failure_derive;
 
 /// shared constants
 mod consts;
