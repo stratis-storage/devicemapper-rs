@@ -87,6 +87,9 @@ extern crate libudev;
 #[cfg(test)]
 extern crate loopdev;
 #[cfg(test)]
+#[macro_use]
+extern crate matches;
+#[cfg(test)]
 extern crate tempfile;
 #[cfg(test)]
 extern crate uuid;
