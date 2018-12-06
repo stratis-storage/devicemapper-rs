@@ -6,7 +6,7 @@ use std;
 use std::fmt;
 use std::path::PathBuf;
 
-use failure::Context;
+use failure::{Backtrace, Context, Fail};
 use nix;
 
 use super::deviceinfo::DeviceInfo;
@@ -60,6 +60,18 @@ pub struct Error {
     inner: Context<ErrorKind>,
 }
 
+impl Fail for Error {
+    // TODO: This method will be deprecated in 1.33.0.
+    // Replace it with source at that time.
+    fn cause(&self) -> Option<&Fail> {
+        self.inner.cause()
+    }
+
+    fn backtrace(&self) -> Option<&Backtrace> {
+        self.inner.backtrace()
+    }
+}
+
 impl fmt::Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         fmt::Display::fmt(&self.inner, f)
@@ -86,11 +98,11 @@ impl From<Context<ErrorKind>> for Error {
     }
 }
 
-impl std::error::Error for Error {
+impl Error {
     // TODO: This method has been soft-deprecated as of 1.30.
     // Remove it as soon as lowest required version of rustc makes that
     // acceptable.
-    fn description(&self) -> &str {
+    pub fn description(&self) -> &str {
         match *self.kind() {
             ErrorKind::ContextInitError { .. } => "DM context not initialized due to IO error",
             ErrorKind::InvalidArgument { .. } => "invalid argument",
@@ -101,10 +113,24 @@ impl std::error::Error for Error {
             ErrorKind::MetadataIoError { .. } => "failed to get metadata for a device",
         }
     }
+}
 
-    // TODO: This method will be deprecated in 1.33.0.
-    // Replace it with source at that time.
-    fn cause(&self) -> Option<&std::error::Error> {
-        None
+#[cfg(test)]
+mod tests {
+
+    use failure::Fail;
+
+    use super::{Error, ErrorKind};
+
+    // A function that returns an error
+    fn a_func() -> Result<(), Error> {
+        Err(ErrorKind::IoctlResultTooLargeError.into())
+    }
+
+    #[test]
+    /// Verify that backtrace is available
+    fn test_backtrace() {
+        let error = a_func().unwrap_err();
+        assert!(error.backtrace().is_some());
     }
 }
