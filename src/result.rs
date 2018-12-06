@@ -10,6 +10,7 @@ use super::errors;
 /// A very simple breakdown of outer layer errors.
 #[derive(Debug)]
 pub enum ErrorEnum {
+    #[cfg(test)]
     /// generic error code
     Error,
     /// invalid value passed as argument
