@@ -14,8 +14,6 @@ pub enum ErrorEnum {
     Error,
     /// invalid value passed as argument
     Invalid,
-    /// something not found
-    NotFound,
 }
 
 impl fmt::Display for ErrorEnum {
