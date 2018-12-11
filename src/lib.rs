@@ -93,6 +93,9 @@ extern crate tempfile;
 extern crate uuid;
 
 extern crate failure;
+// macro_use is required for rustc 1.25 - 1.28, but its use results in an
+// unused macro error in 1.31.
+#[allow(unused_macros)]
 #[macro_use]
 extern crate failure_derive;
 
