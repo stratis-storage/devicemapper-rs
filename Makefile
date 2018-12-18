@@ -22,7 +22,7 @@ sudo_test:
 	sudo env "PATH=${PATH}" RUSTFLAGS='-D warnings' RUST_BACKTRACE=1 RUST_TEST_THREADS=1 cargo test
 
 clippy:
-	RUSTFLAGS='-D warnings' cargo clippy
+	cargo clippy --all-targets --all-features -- -D warnings
 
 uml-graphs: ${HOME}/.cargo/bin/cargo-script
 	PATH=${HOME}/.cargo/bin:${PATH} cargo script scripts/uml_graphs.rs
