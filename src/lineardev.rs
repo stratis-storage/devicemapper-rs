@@ -495,7 +495,7 @@ mod tests {
     use super::*;
 
     /// Verify that a new linear dev with 0 segments fails.
-    fn test_empty(_paths: &[&Path]) -> () {
+    fn test_empty(_paths: &[&Path]) {
         assert!(LinearDev::setup(
             &DM::new().unwrap(),
             &test_name("new").expect("valid format"),
@@ -506,7 +506,7 @@ mod tests {
     }
 
     /// Verify that setting an empty table on an existing DM device fails.
-    fn test_empty_table_set(paths: &[&Path]) -> () {
+    fn test_empty_table_set(paths: &[&Path]) {
         assert!(paths.len() >= 1);
 
         let dm = DM::new().unwrap();
@@ -526,7 +526,7 @@ mod tests {
     }
 
     /// Verify that id rename succeeds.
-    fn test_rename_id(paths: &[&Path]) -> () {
+    fn test_rename_id(paths: &[&Path]) {
         assert!(paths.len() >= 1);
 
         let dm = DM::new().unwrap();
@@ -547,7 +547,7 @@ mod tests {
     }
 
     /// Verify that after a rename, the device has the new name.
-    fn test_rename(paths: &[&Path]) -> () {
+    fn test_rename(paths: &[&Path]) {
         assert!(paths.len() >= 1);
 
         let dm = DM::new().unwrap();
@@ -572,7 +572,7 @@ mod tests {
     /// Verify that the size of the devnode is the size of the sum of the
     /// ranges of the segments. Verify that the table contains entries for both
     /// segments.
-    fn test_duplicate_segments(paths: &[&Path]) -> () {
+    fn test_duplicate_segments(paths: &[&Path]) {
         assert!(paths.len() >= 1);
 
         let dm = DM::new().unwrap();
@@ -618,7 +618,7 @@ mod tests {
 
     /// Use five segments, each distinct. If parsing works correctly,
     /// default table should match extracted table.
-    fn test_several_segments(paths: &[&Path]) -> () {
+    fn test_several_segments(paths: &[&Path]) {
         assert!(paths.len() >= 1);
 
         let dm = DM::new().unwrap();
@@ -645,7 +645,7 @@ mod tests {
 
     /// Verify that constructing a second dev with the same name succeeds
     /// only if it has the same list of segments.
-    fn test_same_name(paths: &[&Path]) -> () {
+    fn test_same_name(paths: &[&Path]) {
         assert!(paths.len() >= 1);
 
         let dm = DM::new().unwrap();
@@ -670,7 +670,7 @@ mod tests {
     }
 
     /// Verify constructing a second linear dev with the same segment succeeds.
-    fn test_same_segment(paths: &[&Path]) -> () {
+    fn test_same_segment(paths: &[&Path]) {
         assert!(paths.len() >= 1);
 
         let dm = DM::new().unwrap();
@@ -692,7 +692,7 @@ mod tests {
     }
 
     /// Verify that suspending and immediately resuming doesn't fail.
-    fn test_suspend(paths: &[&Path]) -> () {
+    fn test_suspend(paths: &[&Path]) {
         assert!(paths.len() >= 1);
 
         let dm = DM::new().unwrap();

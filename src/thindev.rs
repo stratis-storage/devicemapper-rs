@@ -470,7 +470,7 @@ mod tests {
     }
 
     /// Verify that specifying a size of 0 Sectors will cause a failure.
-    fn test_zero_size(paths: &[&Path]) -> () {
+    fn test_zero_size(paths: &[&Path]) {
         assert!(paths.len() >= 1);
 
         let dm = DM::new().unwrap();
@@ -494,7 +494,7 @@ mod tests {
     /// causes an error. The underlying reason is that the thin pool hasn't
     /// been informed about the thin device by messaging the value of the
     /// thin id.
-    fn test_setup_without_new(paths: &[&Path]) -> () {
+    fn test_setup_without_new(paths: &[&Path]) {
         assert!(paths.len() >= 1);
 
         let dm = DM::new().unwrap();
@@ -524,7 +524,7 @@ mod tests {
     /// Verify that setup() succeeds on an existing device, whether or not
     /// it has been torn down. Verify that it is possible to suspend and resume
     /// the device.
-    fn test_basic(paths: &[&Path]) -> () {
+    fn test_basic(paths: &[&Path]) {
         assert!(paths.len() >= 1);
 
         let dm = DM::new().unwrap();
@@ -586,7 +586,7 @@ mod tests {
 
     /// Test thin device create, load, and snapshot and make sure that all is well with udev
     /// db and symlink generation.
-    fn test_udev_userspace(paths: &[&Path]) -> () {
+    fn test_udev_userspace(paths: &[&Path]) {
         // Make sure we are meeting all our expectations in user space with regards to udev
         // handling.
         fn validate(path_uuid: &Uuid, devnode: &PathBuf) {
@@ -673,7 +673,7 @@ mod tests {
     /// Verify success when taking a snapshot of a ThinDev.  Check that
     /// the size of the snapshot is the same as the source.
     /// Verify that empty thindev has no data usage.
-    fn test_snapshot(paths: &[&Path]) -> () {
+    fn test_snapshot(paths: &[&Path]) {
         assert!(paths.len() >= 1);
         let td_size = MIN_THIN_DEV_SIZE;
         let dm = DM::new().unwrap();
@@ -723,7 +723,7 @@ mod tests {
     /// Verify no failures when creating a thindev from a pool, mounting a
     /// filesystem on the thin device, and writing to that filesystem.
     /// Verify reasonable usage behavior.
-    fn test_filesystem(paths: &[&Path]) -> () {
+    fn test_filesystem(paths: &[&Path]) {
         assert!(paths.len() > 0);
 
         let dm = DM::new().unwrap();
@@ -793,7 +793,7 @@ mod tests {
     /// on ThindevA. Verify that setting the UUID of a snapshot causes the
     /// snapshot to consume approximately the same amount of space as its
     /// source.
-    fn test_snapshot_usage(paths: &[&Path]) -> () {
+    fn test_snapshot_usage(paths: &[&Path]) {
         assert!(paths.len() > 0);
 
         let dm = DM::new().unwrap();
@@ -876,7 +876,7 @@ mod tests {
     /// Verify that destroy() actually deallocates the space from the
     /// thinpool, by attempting to reinstantiate it using the same thin id and
     /// verifying that it fails.
-    fn test_thindev_destroy(paths: &[&Path]) -> () {
+    fn test_thindev_destroy(paths: &[&Path]) {
         assert!(paths.len() >= 1);
 
         let dm = DM::new().unwrap();

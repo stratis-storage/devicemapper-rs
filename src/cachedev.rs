@@ -819,7 +819,7 @@ mod tests {
 
     // Test creating a minimal cache dev.
     // Verify that status method executes and gives reasonable values.
-    fn test_minimal_cache_dev(paths: &[&Path]) -> () {
+    fn test_minimal_cache_dev(paths: &[&Path]) {
         assert!(paths.len() >= 2);
         let dm = DM::new().unwrap();
         let mut cache = minimal_cachedev(&dm, paths);
