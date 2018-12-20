@@ -475,16 +475,15 @@ mod tests {
         let dm = DM::new().unwrap();
         let mut tp = minimal_thinpool(&dm, paths[0]);
 
-        assert!(
-            ThinDev::new(
-                &dm,
-                &test_name("name").expect("is valid DM name"),
-                None,
-                Sectors(0),
-                &tp,
-                ThinDevId::new_u64(0).expect("is below limit")
-            ).is_err()
-        );
+        assert!(ThinDev::new(
+            &dm,
+            &test_name("name").expect("is valid DM name"),
+            None,
+            Sectors(0),
+            &tp,
+            ThinDevId::new_u64(0).expect("is below limit")
+        )
+        .is_err());
 
         udev_settle().unwrap();
         tp.teardown(&dm).unwrap();
@@ -621,7 +620,8 @@ mod tests {
                 Some("xfs"),
                 MsFlags::empty(),
                 None as Option<&str>,
-            ).unwrap();
+            )
+            .unwrap();
             umount2(tmp_dir.path(), MntFlags::MNT_DETACH).unwrap();
 
             // Set the fs UUID to something new
@@ -757,7 +757,8 @@ mod tests {
             Some("xfs"),
             MsFlags::empty(),
             None as Option<&str>,
-        ).unwrap();
+        )
+        .unwrap();
 
         for i in 0..100 {
             let file_path = tmp_dir.path().join(format!("devicemapper_test{}.txt", i));
@@ -768,7 +769,8 @@ mod tests {
                     .open(file_path)
                     .unwrap(),
                 "data"
-            ).unwrap();
+            )
+            .unwrap();
         }
         umount2(tmp_dir.path(), MntFlags::MNT_DETACH).unwrap();
 
@@ -820,7 +822,8 @@ mod tests {
         let ss_id = ThinDevId::new_u64(1).expect("is below limit");
         let ss_name = test_name("snap_name").expect("is valid DM name");
         let ss_uuid = test_uuid("snap_uuid").expect("is valid DM uuid");
-        let mut ss = td.snapshot(&dm, &ss_name, Some(&ss_uuid), &tp, ss_id)
+        let mut ss = td
+            .snapshot(&dm, &ss_name, Some(&ss_uuid), &tp, ss_id)
             .unwrap();
         udev_settle().unwrap();
 

@@ -45,7 +45,8 @@ impl FromStr for Device {
                 ErrorKind::InvalidArgument(format!(
                     "could not parse \"{}\" to obtain major number",
                     vals[0]
-                )).into(),
+                ))
+                .into(),
             )
         })?;
         let minor = vals[1].parse::<u32>().map_err(|_| {
@@ -53,7 +54,8 @@ impl FromStr for Device {
                 ErrorKind::InvalidArgument(format!(
                     "could not parse \"{}\" to obtain minor number",
                     vals[0]
-                )).into(),
+                ))
+                .into(),
             )
         })?;
         Ok(Device { major, minor })

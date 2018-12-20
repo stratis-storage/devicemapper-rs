@@ -659,9 +659,9 @@ impl DM {
                         .expect("pointer to own structure result can not be NULL")
                 };
 
-                let name_slc = slice_to_null(
-                    &result[size_of::<dmi::Struct_dm_target_versions>()..],
-                ).expect("kernel data is well-formatted");
+                let name_slc =
+                    slice_to_null(&result[size_of::<dmi::Struct_dm_target_versions>()..])
+                        .expect("kernel data is well-formatted");
                 let name = String::from_utf8_lossy(name_slc).into_owned();
                 targets.push((name, tver.version[0], tver.version[1], tver.version[2]));
 
@@ -782,7 +782,8 @@ mod tests {
         let dm = DM::new().unwrap();
         let name = test_name("example-dev").expect("is valid DM name");
         let uuid = test_uuid("example-363333333333333").expect("is valid DM uuid");
-        let result = dm.device_create(&name, Some(&uuid), &DmOptions::new())
+        let result = dm
+            .device_create(&name, Some(&uuid), &DmOptions::new())
             .unwrap();
         assert_eq!(result.name(), &*name);
         assert_eq!(result.uuid().unwrap(), &*uuid);
@@ -928,7 +929,8 @@ mod tests {
         let name = test_name("example-dev").expect("is valid DM name");
         dm.device_create(&name, None, &DmOptions::new()).unwrap();
 
-        let deps = dm.table_deps(&DevId::Name(&name), &DmOptions::new())
+        let deps = dm
+            .table_deps(&DevId::Name(&name), &DmOptions::new())
             .unwrap();
         assert!(deps.is_empty());
         dm.device_remove(&DevId::Name(&name), &DmOptions::new())
@@ -972,7 +974,8 @@ mod tests {
         dm.device_create(&name, Some(&uuid), &DmOptions::new())
             .unwrap();
 
-        let status = dm.table_status(&DevId::Name(&name), &DmOptions::new())
+        let status = dm
+            .table_status(&DevId::Name(&name), &DmOptions::new())
             .unwrap();
         assert!(status.1.is_empty());
         assert_eq!(status.0.uuid(), Some(&*uuid));

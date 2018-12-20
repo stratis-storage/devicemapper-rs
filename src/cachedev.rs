@@ -804,7 +804,8 @@ pub fn minimal_cachedev(dm: &DM, paths: &[&Path]) -> CacheDev {
         cache,
         origin,
         MIN_CACHE_BLOCK_SIZE,
-    ).unwrap()
+    )
+    .unwrap()
 }
 
 #[cfg(test)]
