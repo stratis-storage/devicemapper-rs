@@ -19,7 +19,7 @@ matrix:
         - rust: stable
           env: TASK=build
           install:
-            - rustup default 1.25.0
+            - rustup default 1.31.0
         - rust: stable
           sudo: required
           env: TASK=sudo_test
