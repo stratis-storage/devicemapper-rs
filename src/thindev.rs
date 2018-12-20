@@ -442,6 +442,7 @@ mod tests {
     const MIN_THIN_DEV_SIZE: Sectors = Sectors(1);
 
     // Return a hashmap of key-value pairs for udev entry.
+    #[allow(clippy::let_and_return)] // Necessary to avoid a borrowing error
     fn get_udev_db_entry(dev_node_search: &PathBuf) -> Option<HashMap<String, String>> {
         // Takes a libudev device entry and returns the properties as a HashMap.
         fn device_as_map(device: &libudev::Device) -> HashMap<String, String> {
