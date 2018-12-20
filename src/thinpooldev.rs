@@ -665,7 +665,8 @@ pub fn minimal_thinpool(dm: &DM, path: &Path) -> ThinPoolDev {
         &test_name("meta").expect("valid format"),
         None,
         meta_table,
-    ).unwrap();
+    )
+    .unwrap();
 
     let data_params = LinearTargetParams::new(dev, MIN_RECOMMENDED_METADATA_SIZE);
     let data_table = vec![TargetLine::new(
@@ -678,7 +679,8 @@ pub fn minimal_thinpool(dm: &DM, path: &Path) -> ThinPoolDev {
         &test_name("data").expect("valid format"),
         None,
         data_table,
-    ).unwrap();
+    )
+    .unwrap();
 
     ThinPoolDev::new(
         dm,
@@ -688,7 +690,8 @@ pub fn minimal_thinpool(dm: &DM, path: &Path) -> ThinPoolDev {
         data,
         MIN_DATA_BLOCK_SIZE,
         DataBlocks(1),
-    ).unwrap()
+    )
+    .unwrap()
 }
 
 #[cfg(test)]

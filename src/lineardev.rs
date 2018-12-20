@@ -496,14 +496,13 @@ mod tests {
 
     /// Verify that a new linear dev with 0 segments fails.
     fn test_empty(_paths: &[&Path]) -> () {
-        assert!(
-            LinearDev::setup(
-                &DM::new().unwrap(),
-                &test_name("new").expect("valid format"),
-                None,
-                vec![],
-            ).is_err()
-        );
+        assert!(LinearDev::setup(
+            &DM::new().unwrap(),
+            &test_name("new").expect("valid format"),
+            None,
+            vec![],
+        )
+        .is_err());
     }
 
     /// Verify that setting an empty table on an existing DM device fails.

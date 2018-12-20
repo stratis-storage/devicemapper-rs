@@ -100,7 +100,7 @@ mod cleanup_errors {
     use nix;
     use std;
 
-    error_chain!{
+    error_chain! {
         foreign_links {
             Ioe(std::io::Error);
             Mnt(libmount::mountinfo::ParseError);
@@ -160,7 +160,8 @@ fn dm_test_devices_remove() -> Result<()> {
                 Ok(())
             }
         })
-    }().map_err(|e| e.chain_err(|| "Failed to ensure removal of all test-generated DM devices"))
+    }()
+    .map_err(|e| e.chain_err(|| "Failed to ensure removal of all test-generated DM devices"))
 }
 
 /// Unmount any filesystems that contain DM_TEST_ID in the mount point.
@@ -180,9 +181,8 @@ fn dm_test_fs_unmount() -> Result<()> {
             umount2(&PathBuf::from(mount_point), MntFlags::MNT_DETACH)?;
         }
         Ok(())
-    }().map_err(|e| {
-        e.chain_err(|| "Failed to ensure all test-generated filesystems were unmounted")
-    })
+    }()
+    .map_err(|e| e.chain_err(|| "Failed to ensure all test-generated filesystems were unmounted"))
 }
 
 /// Unmount any filesystems or devicemapper devices which contain DM_TEST_ID
