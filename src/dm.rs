@@ -69,6 +69,7 @@ impl DmOptions {
 
 impl DM {
     /// Create a new context for communicating with DM.
+    #[allow(clippy::new_ret_no_self)]
     pub fn new() -> DmResult<DM> {
         Ok(DM {
             file: File::open(DM_CTL_PATH)

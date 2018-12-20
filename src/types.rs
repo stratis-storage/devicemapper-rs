@@ -381,6 +381,7 @@ macro_rules! str_id {
 
         impl $B {
             /// Create a new borrowed identifier from a `&str`.
+            #[allow(clippy::new_ret_no_self)]
             pub fn new(value: &str) -> DmResult<&$B> {
                 $check(value, $MAX - 1)?;
                 Ok(unsafe { &*(value as *const str as *const $B) })
@@ -409,6 +410,7 @@ macro_rules! str_id {
 
         impl $O {
             /// Construct a new owned identifier.
+            #[allow(clippy::new_ret_no_self)]
             pub fn new(value: String) -> DmResult<$O> {
                 $check(&value, $MAX - 1)?;
                 Ok($O { inner: value })

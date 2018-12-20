@@ -343,6 +343,7 @@ impl ThinPoolDev {
     /// Returns an error if the device is already known to the kernel.
     /// Returns an error if data_block_size is not within required range.
     /// Precondition: the metadata device does not contain any pool metadata.
+    #[allow(clippy::new_ret_no_self)]
     pub fn new(
         dm: &DM,
         name: &DmName,
