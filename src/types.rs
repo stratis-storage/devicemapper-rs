@@ -10,7 +10,7 @@
 // I don't think that casting from usize to u64 could be lossy, unless the
 // code is running on a machine with 128 bit pointers, so this is not a
 // pressing worry.
-#![allow(cast_lossless)]
+#![allow(clippy::cast_lossless)]
 
 use consts::SECTOR_SIZE;
 

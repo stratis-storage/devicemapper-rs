@@ -328,7 +328,7 @@ pub struct CacheDevWorkingStatus {
 
 impl CacheDevWorkingStatus {
     /// Make a new CacheDevWorkingStatus struct
-    #[allow(too_many_arguments)]
+    #[allow(clippy::too_many_arguments)]
     pub fn new(
         usage: CacheDevUsage,
         performance: CacheDevPerformance,
@@ -750,7 +750,7 @@ use super::test_lib::test_name;
 /// The minimum size recommended in the docs for a cache block.
 pub const MIN_CACHE_BLOCK_SIZE: Sectors = Sectors(64); // 32 KiB
 /// The maximum size recommended in the docs for a cache block.
-#[allow(decimal_literal_representation)]
+#[allow(clippy::decimal_literal_representation)]
 pub const MAX_CACHE_BLOCK_SIZE: Sectors = Sectors(2_097_152); // 1 GiB
 
 #[cfg(test)]

@@ -10,7 +10,7 @@ bitflags! {
     pub struct DmFlags: dmi::__u32 {
         /// In: Device should be read-only.
         /// Out: Device is read-only.
-        #[allow(identity_op)]
+        #[allow(clippy::identity_op)]
         const DM_READONLY             = (1 << 0);
         /// In: Device should be suspended.
         /// Out: Device is suspended.
@@ -55,7 +55,7 @@ bitflags! {
     /// for complete information about the meaning of the flags.
     #[derive(Default)]
     pub struct DmCookie: dmi::__u16 {
-        #[allow(identity_op)]
+        #[allow(clippy::identity_op)]
         /// Disables basic device-mapper udev rules that create symlinks in /dev/<DM_DIR>
         /// directory.
         const DM_UDEV_DISABLE_DM_RULES_FLAG = (1 << 0);

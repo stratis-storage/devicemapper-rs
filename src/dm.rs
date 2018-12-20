@@ -132,7 +132,7 @@ impl DM {
         let cap = v.capacity();
         v.resize(cap, 0);
         let mut hdr = unsafe {
-            #[allow(cast_ptr_alignment)]
+            #[allow(clippy::cast_ptr_alignment)]
             (v.as_mut_ptr() as *mut dmi::Struct_dm_ioctl)
                 .as_mut()
                 .expect("pointer to own structure v can not be NULL")
@@ -167,7 +167,7 @@ impl DM {
             // v.resize() may move the buffer if the requested increase doesn't fit in continuous
             // memory.  Update hdr to the possibly new address.
             hdr = unsafe {
-                #[allow(cast_ptr_alignment)]
+                #[allow(clippy::cast_ptr_alignment)]
                 (v.as_mut_ptr() as *mut dmi::Struct_dm_ioctl)
                     .as_mut()
                     .expect("pointer to own structure v can not be NULL")
@@ -244,7 +244,7 @@ impl DM {
                             let aligned_offset = align_to(offset, size_of::<u64>());
                             let new_slc = &result[aligned_offset..];
 
-                            #[allow(cast_ptr_alignment)]
+                            #[allow(clippy::cast_ptr_alignment)]
                             let nr = unsafe { *(new_slc.as_ptr() as *const u32) };
 
                             Some(nr)
@@ -395,7 +395,7 @@ impl DM {
     ///
     /// This interface is not very friendly to monitoring multiple devices.
     /// Events are also exported via uevents, that method may be preferable.
-    #[allow(type_complexity)]
+    #[allow(clippy::type_complexity)]
     pub fn device_wait(
         &self,
         id: &DevId,
@@ -526,7 +526,7 @@ impl DM {
             };
 
             let dev_slc = unsafe {
-                #[allow(cast_ptr_alignment)]
+                #[allow(clippy::cast_ptr_alignment)]
                 slice::from_raw_parts(
                     result[size_of::<dmi::Struct_dm_target_deps>()..].as_ptr() as *const u64,
                     target_deps.count as usize,
@@ -564,7 +564,7 @@ impl DM {
             for _ in 0..count {
                 let result = &buf[next_off..];
                 let targ = unsafe {
-                    #[allow(cast_ptr_alignment)]
+                    #[allow(clippy::cast_ptr_alignment)]
                     (result.as_ptr() as *const dmi::Struct_dm_target_spec)
                         .as_ref()
                         .expect("assume all parsing succeeds")
@@ -623,7 +623,7 @@ impl DM {
     ///                           &DmOptions::new().set_flags(DmFlags::DM_STATUS_TABLE)).unwrap();
     /// println!("{} {:?}", res.0.name(), res.1);
     /// ```
-    #[allow(type_complexity)]
+    #[allow(clippy::type_complexity)]
     pub fn table_status(
         &self,
         id: &DevId,
