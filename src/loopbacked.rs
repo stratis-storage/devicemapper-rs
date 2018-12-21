@@ -116,7 +116,7 @@ fn get_devices(count: u8, dir: &TempDir) -> Vec<LoopTestDev> {
 /// Set up count loopbacked devices.
 /// Then, run the designated test.
 /// Then, take down the loop devices.
-pub fn test_with_spec<F>(count: u8, test: F) -> ()
+pub fn test_with_spec<F>(count: u8, test: F)
 where
     F: Fn(&[&Path]) -> () + panic::RefUnwindSafe,
 {

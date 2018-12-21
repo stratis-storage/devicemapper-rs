@@ -130,13 +130,13 @@ mod tests {
     #[test]
     /// Verify conversion is correct both ways
     pub fn test_dev_t_conversion() {
-        let test_devt_1: dev_t = 0xabcdef1234567890;
+        let test_devt_1: dev_t = 0xabcd_ef12_3456_7890;
 
         let dev1 = Device::from(test_devt_1);
         // Default glibc dev_t encoding is MMMM Mmmm mmmM MMmm. I guess if
         // we're on a platform where non-default is used, we'll fail.
-        assert_eq!(dev1.major, 0xabcde678);
-        assert_eq!(dev1.minor, 0xf1234590);
+        assert_eq!(dev1.major, 0xabcd_e678);
+        assert_eq!(dev1.minor, 0xf123_4590);
 
         let test_devt_2: dev_t = dev_t::from(dev1);
         assert_eq!(test_devt_1, test_devt_2);
@@ -145,18 +145,18 @@ mod tests {
     #[test]
     /// Verify conversion is correct both ways
     pub fn test_kdev_t_conversion() {
-        let test_devt_1: u32 = 0x12345678;
+        let test_devt_1: u32 = 0x1234_5678;
 
         let dev1 = Device::from_kdev_t(test_devt_1);
         // Default kernel kdev_t "huge" encoding is mmmM MMmm.
         assert_eq!(dev1.major, 0x456);
-        assert_eq!(dev1.minor, 0x12378);
+        assert_eq!(dev1.minor, 0x1_2378);
 
         let test_devt_2: u32 = dev1.to_kdev_t().unwrap();
         assert_eq!(test_devt_1, test_devt_2);
 
         // a Device inexpressible as a kdev_t
-        let dev2 = Device::from(0xabcdef1234567890);
+        let dev2 = Device::from(0xabcd_ef12_3456_7890);
         assert_eq!(dev2.to_kdev_t(), None);
     }
 }

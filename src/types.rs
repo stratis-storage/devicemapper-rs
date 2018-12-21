@@ -10,7 +10,7 @@
 // I don't think that casting from usize to u64 could be lossy, unless the
 // code is running on a machine with 128 bit pointers, so this is not a
 // pressing worry.
-#![allow(cast_lossless)]
+#![allow(clippy::cast_lossless)]
 
 use consts::SECTOR_SIZE;
 
@@ -381,6 +381,7 @@ macro_rules! str_id {
 
         impl $B {
             /// Create a new borrowed identifier from a `&str`.
+            #[allow(clippy::new_ret_no_self)]
             pub fn new(value: &str) -> DmResult<&$B> {
                 $check(value, $MAX - 1)?;
                 Ok(unsafe { &*(value as *const str as *const $B) })
@@ -409,6 +410,7 @@ macro_rules! str_id {
 
         impl $O {
             /// Construct a new owned identifier.
+            #[allow(clippy::new_ret_no_self)]
             pub fn new(value: String) -> DmResult<$O> {
                 $check(&value, $MAX - 1)?;
                 Ok($O { inner: value })

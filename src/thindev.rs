@@ -225,6 +225,7 @@ impl ThinDev {
     /// If the specified thin_id is already in use by the thin pool an error
     /// is returned. If the device is already among the list of devices that
     /// dm is aware of, return an error.
+    #[allow(clippy::new_ret_no_self)]
     pub fn new(
         dm: &DM,
         name: &DmName,
@@ -441,6 +442,7 @@ mod tests {
     const MIN_THIN_DEV_SIZE: Sectors = Sectors(1);
 
     // Return a hashmap of key-value pairs for udev entry.
+    #[allow(clippy::let_and_return)] // Necessary to avoid a borrowing error
     fn get_udev_db_entry(dev_node_search: &PathBuf) -> Option<HashMap<String, String>> {
         // Takes a libudev device entry and returns the properties as a HashMap.
         fn device_as_map(device: &libudev::Device) -> HashMap<String, String> {
@@ -464,13 +466,13 @@ mod tests {
             .scan_devices()
             .unwrap()
             .find(|x| x.devnode().map_or(false, |d| dev_node_search == d))
-            .map_or(None, |dev| Some(device_as_map(&dev)));
+            .and_then(|dev| Some(device_as_map(&dev)));
         result
     }
 
     /// Verify that specifying a size of 0 Sectors will cause a failure.
-    fn test_zero_size(paths: &[&Path]) -> () {
-        assert!(paths.len() >= 1);
+    fn test_zero_size(paths: &[&Path]) {
+        assert!(!paths.is_empty());
 
         let dm = DM::new().unwrap();
         let mut tp = minimal_thinpool(&dm, paths[0]);
@@ -493,8 +495,8 @@ mod tests {
     /// causes an error. The underlying reason is that the thin pool hasn't
     /// been informed about the thin device by messaging the value of the
     /// thin id.
-    fn test_setup_without_new(paths: &[&Path]) -> () {
-        assert!(paths.len() >= 1);
+    fn test_setup_without_new(paths: &[&Path]) {
+        assert!(!paths.is_empty());
 
         let dm = DM::new().unwrap();
         let mut tp = minimal_thinpool(&dm, paths[0]);
@@ -523,8 +525,8 @@ mod tests {
     /// Verify that setup() succeeds on an existing device, whether or not
     /// it has been torn down. Verify that it is possible to suspend and resume
     /// the device.
-    fn test_basic(paths: &[&Path]) -> () {
-        assert!(paths.len() >= 1);
+    fn test_basic(paths: &[&Path]) {
+        assert!(!paths.is_empty());
 
         let dm = DM::new().unwrap();
         let mut tp = minimal_thinpool(&dm, paths[0]);
@@ -585,7 +587,7 @@ mod tests {
 
     /// Test thin device create, load, and snapshot and make sure that all is well with udev
     /// db and symlink generation.
-    fn test_udev_userspace(paths: &[&Path]) -> () {
+    fn test_udev_userspace(paths: &[&Path]) {
         // Make sure we are meeting all our expectations in user space with regards to udev
         // handling.
         fn validate(path_uuid: &Uuid, devnode: &PathBuf) {
@@ -672,8 +674,8 @@ mod tests {
     /// Verify success when taking a snapshot of a ThinDev.  Check that
     /// the size of the snapshot is the same as the source.
     /// Verify that empty thindev has no data usage.
-    fn test_snapshot(paths: &[&Path]) -> () {
-        assert!(paths.len() >= 1);
+    fn test_snapshot(paths: &[&Path]) {
+        assert!(!paths.is_empty());
         let td_size = MIN_THIN_DEV_SIZE;
         let dm = DM::new().unwrap();
         let mut tp = minimal_thinpool(&dm, paths[0]);
@@ -722,8 +724,8 @@ mod tests {
     /// Verify no failures when creating a thindev from a pool, mounting a
     /// filesystem on the thin device, and writing to that filesystem.
     /// Verify reasonable usage behavior.
-    fn test_filesystem(paths: &[&Path]) -> () {
-        assert!(paths.len() > 0);
+    fn test_filesystem(paths: &[&Path]) {
+        assert!(!paths.is_empty());
 
         let dm = DM::new().unwrap();
         let mut tp = minimal_thinpool(&dm, paths[0]);
@@ -792,8 +794,8 @@ mod tests {
     /// on ThindevA. Verify that setting the UUID of a snapshot causes the
     /// snapshot to consume approximately the same amount of space as its
     /// source.
-    fn test_snapshot_usage(paths: &[&Path]) -> () {
-        assert!(paths.len() > 0);
+    fn test_snapshot_usage(paths: &[&Path]) {
+        assert!(!paths.is_empty());
 
         let dm = DM::new().unwrap();
         let mut tp = minimal_thinpool(&dm, paths[0]);
@@ -875,8 +877,8 @@ mod tests {
     /// Verify that destroy() actually deallocates the space from the
     /// thinpool, by attempting to reinstantiate it using the same thin id and
     /// verifying that it fails.
-    fn test_thindev_destroy(paths: &[&Path]) -> () {
-        assert!(paths.len() >= 1);
+    fn test_thindev_destroy(paths: &[&Path]) {
+        assert!(!paths.is_empty());
 
         let dm = DM::new().unwrap();
         let mut tp = minimal_thinpool(&dm, paths[0]);

@@ -62,8 +62,7 @@
 //! 6. Optionally loop and re-invoke `poll()` on the fd to wait for more
 //! events.
 
-#![cfg_attr(not(features = "clippy"), allow(unknown_lints))]
-#![allow(doc_markdown)]
+#![allow(clippy::doc_markdown)]
 #![warn(missing_docs)]
 
 #[macro_use]
