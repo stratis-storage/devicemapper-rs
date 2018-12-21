@@ -472,7 +472,7 @@ mod tests {
 
     /// Verify that specifying a size of 0 Sectors will cause a failure.
     fn test_zero_size(paths: &[&Path]) {
-        assert!(paths.len() >= 1);
+        assert!(!paths.is_empty());
 
         let dm = DM::new().unwrap();
         let mut tp = minimal_thinpool(&dm, paths[0]);
@@ -496,7 +496,7 @@ mod tests {
     /// been informed about the thin device by messaging the value of the
     /// thin id.
     fn test_setup_without_new(paths: &[&Path]) {
-        assert!(paths.len() >= 1);
+        assert!(!paths.is_empty());
 
         let dm = DM::new().unwrap();
         let mut tp = minimal_thinpool(&dm, paths[0]);
@@ -526,7 +526,7 @@ mod tests {
     /// it has been torn down. Verify that it is possible to suspend and resume
     /// the device.
     fn test_basic(paths: &[&Path]) {
-        assert!(paths.len() >= 1);
+        assert!(!paths.is_empty());
 
         let dm = DM::new().unwrap();
         let mut tp = minimal_thinpool(&dm, paths[0]);
@@ -675,7 +675,7 @@ mod tests {
     /// the size of the snapshot is the same as the source.
     /// Verify that empty thindev has no data usage.
     fn test_snapshot(paths: &[&Path]) {
-        assert!(paths.len() >= 1);
+        assert!(!paths.is_empty());
         let td_size = MIN_THIN_DEV_SIZE;
         let dm = DM::new().unwrap();
         let mut tp = minimal_thinpool(&dm, paths[0]);
@@ -725,7 +725,7 @@ mod tests {
     /// filesystem on the thin device, and writing to that filesystem.
     /// Verify reasonable usage behavior.
     fn test_filesystem(paths: &[&Path]) {
-        assert!(paths.len() > 0);
+        assert!(!paths.is_empty());
 
         let dm = DM::new().unwrap();
         let mut tp = minimal_thinpool(&dm, paths[0]);
@@ -795,7 +795,7 @@ mod tests {
     /// snapshot to consume approximately the same amount of space as its
     /// source.
     fn test_snapshot_usage(paths: &[&Path]) {
-        assert!(paths.len() > 0);
+        assert!(!paths.is_empty());
 
         let dm = DM::new().unwrap();
         let mut tp = minimal_thinpool(&dm, paths[0]);
@@ -878,7 +878,7 @@ mod tests {
     /// thinpool, by attempting to reinstantiate it using the same thin id and
     /// verifying that it fails.
     fn test_thindev_destroy(paths: &[&Path]) {
-        assert!(paths.len() >= 1);
+        assert!(!paths.is_empty());
 
         let dm = DM::new().unwrap();
         let mut tp = minimal_thinpool(&dm, paths[0]);

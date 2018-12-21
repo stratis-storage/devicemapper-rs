@@ -708,7 +708,7 @@ mod tests {
     /// for data block size and metadata device. Check that the status of the
     /// device is as expected.
     fn test_minimum_values(paths: &[&Path]) {
-        assert!(paths.len() >= 1);
+        assert!(!paths.is_empty());
 
         let dm = DM::new().unwrap();
         let mut tp = minimal_thinpool(&dm, paths[0]);
@@ -746,7 +746,7 @@ mod tests {
 
     /// Verify that data block size less than minimum results in a failure.
     fn test_low_data_block_size(paths: &[&Path]) {
-        assert!(paths.len() >= 1);
+        assert!(!paths.is_empty());
         let dev = Device::from(devnode_to_devno(paths[0]).unwrap().unwrap());
 
         let dm = DM::new().unwrap();
@@ -871,7 +871,7 @@ mod tests {
 
     /// Just test that suspending and resuming a thinpool has no errors.
     fn test_suspend(paths: &[&Path]) {
-        assert!(paths.len() >= 1);
+        assert!(!paths.is_empty());
 
         let dm = DM::new().unwrap();
         let mut tp = minimal_thinpool(&dm, paths[0]);
