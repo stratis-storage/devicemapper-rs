@@ -444,8 +444,9 @@ impl ThinPoolDev {
                 data_block_size,
                 low_water_mark,
                 vec![
-                    "skip_block_zeroing".to_owned(),
                     "error_if_no_space".to_owned(),
+                    "no_discard_passdown".to_owned(),
+                    "skip_block_zeroing".to_owned(),
                 ],
             ),
         )
@@ -716,6 +717,8 @@ mod tests {
             ThinPoolStatus::Working(ref status)
                 if status.summary == ThinPoolStatusSummary::Good =>
             {
+                assert_eq!(status.discard_passdown, false);
+
                 let usage = &status.usage;
                 // Even an empty thinpool requires some metadata.
                 assert!(usage.used_meta > MetaBlocks(0));
