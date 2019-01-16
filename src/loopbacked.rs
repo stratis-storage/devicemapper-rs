@@ -12,9 +12,9 @@ use loopdev::{LoopControl, LoopDevice};
 use nix;
 use tempfile::{self, TempDir};
 
-use super::consts::{IEC, SECTOR_SIZE};
-use super::test_lib::clean_up;
-use super::types::{Bytes, Sectors};
+use crate::consts::{IEC, SECTOR_SIZE};
+use crate::test_lib::clean_up;
+use crate::types::{Bytes, Sectors};
 
 /// send IOCTL via blkgetsize64
 ioctl_read!(blkgetsize64, 0x12, 114, u64);

@@ -12,8 +12,6 @@
 // pressing worry.
 #![allow(clippy::cast_lossless)]
 
-use consts::SECTOR_SIZE;
-
 use std::borrow::Borrow;
 use std::fmt;
 use std::iter::Sum;
@@ -21,9 +19,10 @@ use std::ops::{Add, Deref, Div, Mul, Rem};
 
 use serde;
 
-use super::deviceinfo::{DM_NAME_LEN, DM_UUID_LEN};
-use super::errors::ErrorKind;
-use super::result::{DmError, DmResult};
+use crate::consts::SECTOR_SIZE;
+use crate::deviceinfo::{DM_NAME_LEN, DM_UUID_LEN};
+use crate::errors::ErrorKind;
+use crate::result::{DmError, DmResult};
 
 /// a kernel defined block size constant for any DM meta device
 /// a DM meta device may store cache device or thinpool device metadata
@@ -473,7 +472,7 @@ str_id!(TargetType, TargetTypeBuf, DM_TARGET_TYPE_LEN, str_check);
 
 #[cfg(test)]
 mod tests {
-    use super::super::errors::Error;
+    use crate::errors::Error;
 
     use super::*;
 

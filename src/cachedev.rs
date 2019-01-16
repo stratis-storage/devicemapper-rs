@@ -7,17 +7,17 @@ use std::fmt;
 use std::path::PathBuf;
 use std::str::FromStr;
 
-use super::device::Device;
-use super::deviceinfo::DeviceInfo;
-use super::dm::DM;
-use super::dm_options::DmOptions;
-use super::lineardev::{LinearDev, LinearDevTargetParams};
-use super::result::{DmError, DmResult, ErrorEnum};
-use super::shared::{
+use crate::device::Device;
+use crate::deviceinfo::DeviceInfo;
+use crate::dm::DM;
+use crate::dm_options::DmOptions;
+use crate::lineardev::{LinearDev, LinearDevTargetParams};
+use crate::result::{DmError, DmResult, ErrorEnum};
+use crate::shared::{
     device_create, device_exists, device_match, parse_device, parse_value, DmDevice, TargetLine,
     TargetParams, TargetTable,
 };
-use super::types::{DataBlocks, DevId, DmName, DmUuid, MetaBlocks, Sectors, TargetTypeBuf};
+use crate::types::{DataBlocks, DevId, DmName, DmUuid, MetaBlocks, Sectors, TargetTypeBuf};
 
 const CACHE_TARGET_NAME: &str = "cache";
 
@@ -737,15 +737,15 @@ use std::fs::OpenOptions;
 use std::path::Path;
 
 #[cfg(test)]
-use super::consts::IEC;
+use crate::consts::IEC;
 #[cfg(test)]
-use super::device::devnode_to_devno;
+use crate::device::devnode_to_devno;
 #[cfg(test)]
-use super::lineardev::LinearTargetParams;
+use crate::lineardev::LinearTargetParams;
 #[cfg(test)]
-use super::loopbacked::blkdev_size;
+use crate::loopbacked::blkdev_size;
 #[cfg(test)]
-use super::test_lib::test_name;
+use crate::test_lib::test_name;
 
 // Specified in kernel docs
 /// The minimum size recommended in the docs for a cache block.
@@ -813,7 +813,7 @@ pub fn minimal_cachedev(dm: &DM, paths: &[&Path]) -> CacheDev {
 mod tests {
     use std::path::Path;
 
-    use super::super::loopbacked::test_with_spec;
+    use crate::loopbacked::test_with_spec;
 
     use super::*;
 
