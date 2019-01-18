@@ -331,7 +331,7 @@ impl TargetTable for LinearDevTargetTable {
     ) -> DmResult<LinearDevTargetTable> {
         Ok(LinearDevTargetTable {
             table: table
-                .into_iter()
+                .iter()
                 .map(|x| -> DmResult<TargetLine<LinearDevTargetParams>> {
                     Ok(TargetLine::new(
                         x.0,
