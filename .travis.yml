@@ -9,6 +9,9 @@ addons:
 language: rust
 
 matrix:
+    allow_failures:
+        # Allow beta tasks to fail
+        - rust: beta
     include:
         - rust: stable
           env: TASK=travis_fmt
@@ -25,6 +28,10 @@ matrix:
           before_script:
               - rustup component add clippy
           env: TASK=clippy
+        # Run tests on rust beta, in order to be good Rustaceans
+        - rust: beta
+          sudo: required
+          env: TASK=sudo_test
 
 branches:
     only: master
