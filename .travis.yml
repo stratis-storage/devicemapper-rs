@@ -24,7 +24,8 @@ matrix:
         - rust: stable
           sudo: required
           env: TASK=sudo_test
-        - rust: stable
+        # Run clippy using the compiler version recommended for development
+        - rust: 1.31.0
           before_script:
               - rustup component add clippy
           env: TASK=clippy
