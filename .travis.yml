@@ -14,13 +14,16 @@ matrix:
         # Allow beta tasks to fail
         - rust: beta
     include:
+        # Run rustfmt on the compiler currently recommended for development
         - rust: stable
           env: TASK=travis_fmt
+        # Build on current stable compiler
         - rust: stable
           env: TASK=build
         # Build on lowest supported compiler version
         - rust: 1.31.0
           env: TASK=build
+        # Run tests on current stable compiler
         - rust: stable
           sudo: required
           env: TASK=sudo_test
