@@ -15,7 +15,7 @@ matrix:
         - rust: beta
     include:
         # Run rustfmt on the compiler currently recommended for development
-        - rust: stable
+        - rust: 1.31.0
           env: TASK=travis_fmt
         # Build on current stable compiler
         - rust: stable

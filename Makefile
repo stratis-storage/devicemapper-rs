@@ -8,7 +8,6 @@ fmt:
 	cargo fmt
 
 travis_fmt:
-	rustup default 1.31.0
 	rustup component add rustfmt
 	cargo fmt -- --check
 
