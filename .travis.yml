@@ -9,6 +9,7 @@ addons:
 language: rust
 
 matrix:
+    fast_finish: true
     allow_failures:
         # Allow beta tasks to fail
         - rust: beta
