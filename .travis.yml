@@ -18,10 +18,9 @@ matrix:
           env: TASK=travis_fmt
         - rust: stable
           env: TASK=build
-        - rust: stable
+        # Build on lowest supported compiler version
+        - rust: 1.31.0
           env: TASK=build
-          install:
-            - rustup default 1.31.0
         - rust: stable
           sudo: required
           env: TASK=sudo_test
