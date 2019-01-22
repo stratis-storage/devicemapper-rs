@@ -8,7 +8,6 @@ fmt:
 	cargo fmt
 
 travis_fmt:
-	rustup component add rustfmt
 	cargo fmt -- --check
 
 build:

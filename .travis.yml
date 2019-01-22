@@ -16,6 +16,8 @@ matrix:
     include:
         # Run rustfmt on the compiler currently recommended for development
         - rust: 1.31.0
+          before_script:
+              - rustup component add rustfmt
           env: TASK=travis_fmt
         # Build on current stable compiler
         - rust: stable
