@@ -7,17 +7,16 @@ use std::fmt;
 use std::path::PathBuf;
 use std::str::FromStr;
 
-use crate::device::Device;
-use crate::deviceinfo::DeviceInfo;
-use crate::dm::DM;
-use crate::dm_options::DmOptions;
-use crate::lineardev::{LinearDev, LinearDevTargetParams};
-use crate::result::{DmError, DmResult, ErrorEnum};
-use crate::shared::{
-    device_create, device_exists, device_match, parse_device, parse_value, DmDevice, TargetLine,
-    TargetParams, TargetTable,
+use crate::{
+    device_exists, DataBlocks, DevId, Device, DmDevice, DmError, DmName, DmOptions, DmResult,
+    DmUuid, ErrorEnum, LinearDev, LinearDevTargetParams, MetaBlocks, Sectors, TargetLine,
+    TargetTypeBuf, DM,
 };
-use crate::types::{DataBlocks, DevId, DmName, DmUuid, MetaBlocks, Sectors, TargetTypeBuf};
+
+use crate::deviceinfo::DeviceInfo;
+use crate::shared::{
+    device_create, device_match, parse_device, parse_value, TargetParams, TargetTable,
+};
 
 const CACHE_TARGET_NAME: &str = "cache";
 
