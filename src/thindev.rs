@@ -13,8 +13,8 @@ use crate::dm_flags::{DmCookie, DmFlags};
 use crate::dm_options::DmOptions;
 use crate::result::{DmError, DmResult, ErrorEnum};
 use crate::shared::{
-    device_create, device_exists, device_match, message, parse_device, parse_value, DmDevice,
-    TargetLine, TargetParams, TargetTable,
+    device_create, device_exists, device_match, get_status_line_fields, message, parse_device,
+    parse_value, DmDevice, TargetLine, TargetParams, TargetTable,
 };
 use crate::thindevid::ThinDevId;
 use crate::thinpooldev::ThinPoolDev;
@@ -227,11 +227,7 @@ impl FromStr for ThinStatus {
             return Ok(ThinStatus::Fail);
         }
 
-        let status_vals = status_line.split(' ').collect::<Vec<_>>();
-        assert!(
-            status_vals.len() >= 2,
-            "Kernel must return at least 2 values from thin pool status"
-        );
+        let status_vals = get_status_line_fields(status_line, 2)?;
 
         let count = Sectors(parse_value(status_vals[0], "sector count")?);
 

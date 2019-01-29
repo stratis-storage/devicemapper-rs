@@ -216,3 +216,23 @@ where
         )
     })
 }
+
+/// Get fields for a single status line.
+/// Return an error if an insufficient number of fields are obtained.
+pub fn get_status_line_fields<'a>(
+    status_line: &'a str,
+    number_required: usize,
+) -> DmResult<Vec<&'a str>> {
+    let status_vals = status_line.split(' ').collect::<Vec<_>>();
+    let length = status_vals.len();
+    if length < number_required {
+        return Err(DmError::Dm(
+            ErrorEnum::Invalid,
+            format!(
+                "Insufficient number of fields for status; requires at least {}, found {}",
+                number_required, length
+            ),
+        ));
+    }
+    Ok(status_vals)
+}
