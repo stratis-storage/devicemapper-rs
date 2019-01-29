@@ -580,7 +580,7 @@ impl DM {
                 let params = {
                     let slc = slice_to_null(&result[size_of::<dmi::Struct_dm_target_spec>()..])
                         .expect("assume all parsing succeeds");
-                    String::from_utf8_lossy(slc).trim_right().to_owned()
+                    String::from_utf8_lossy(slc).trim_end().to_owned()
                 };
 
                 targets.push((
