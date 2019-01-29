@@ -13,10 +13,10 @@ use libmount;
 use nix::mount::{umount2, MntFlags};
 use uuid::Uuid;
 
-use super::dm::DM;
-use super::dm_options::DmOptions;
-use super::result::{DmError, DmResult, ErrorEnum};
-use super::types::{DevId, DmNameBuf, DmUuidBuf};
+use crate::dm::DM;
+use crate::dm_options::DmOptions;
+use crate::result::{DmError, DmResult, ErrorEnum};
+use crate::types::{DevId, DmNameBuf, DmUuidBuf};
 
 static INIT: Once = ONCE_INIT;
 static mut DM_CONTEXT: Option<DM> = None;

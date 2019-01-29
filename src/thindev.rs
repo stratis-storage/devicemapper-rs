@@ -6,19 +6,19 @@ use std::fmt;
 use std::path::PathBuf;
 use std::str::FromStr;
 
-use super::device::Device;
-use super::deviceinfo::DeviceInfo;
-use super::dm::DM;
-use super::dm_flags::{DmCookie, DmFlags};
-use super::dm_options::DmOptions;
-use super::result::{DmError, DmResult, ErrorEnum};
-use super::shared::{
+use crate::device::Device;
+use crate::deviceinfo::DeviceInfo;
+use crate::dm::DM;
+use crate::dm_flags::{DmCookie, DmFlags};
+use crate::dm_options::DmOptions;
+use crate::result::{DmError, DmResult, ErrorEnum};
+use crate::shared::{
     device_create, device_exists, device_match, message, parse_device, parse_value, DmDevice,
     TargetLine, TargetParams, TargetTable,
 };
-use super::thindevid::ThinDevId;
-use super::thinpooldev::ThinPoolDev;
-use super::types::{DevId, DmName, DmUuid, Sectors, TargetTypeBuf};
+use crate::thindevid::ThinDevId;
+use crate::thinpooldev::ThinPoolDev;
+use crate::types::{DevId, DmName, DmUuid, Sectors, TargetTypeBuf};
 
 const THIN_TARGET_NAME: &str = "thin";
 
@@ -426,16 +426,16 @@ mod tests {
     use tempfile;
     use uuid::Uuid;
 
-    use super::super::consts::IEC;
-    use super::super::loopbacked::{blkdev_size, test_with_spec};
-    use super::super::shared::DmDevice;
-    use super::super::test_lib::{
+    use crate::consts::IEC;
+    use crate::loopbacked::{blkdev_size, test_with_spec};
+    use crate::shared::DmDevice;
+    use crate::test_lib::{
         test_name, test_string, test_uuid, udev_settle, xfs_create_fs, xfs_set_uuid,
     };
-    use super::super::thinpooldev::{minimal_thinpool, ThinPoolStatus};
-    use super::super::types::DataBlocks;
+    use crate::thinpooldev::{minimal_thinpool, ThinPoolStatus};
+    use crate::types::DataBlocks;
 
-    use super::super::errors::{Error, ErrorKind};
+    use crate::errors::{Error, ErrorKind};
 
     use super::*;
 

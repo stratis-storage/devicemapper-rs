@@ -134,27 +134,27 @@ mod loopbacked;
 #[cfg(test)]
 mod test_lib;
 
-pub use cachedev::{
+pub use crate::cachedev::{
     CacheDev, CacheDevPerformance, CacheDevStatus, CacheDevUsage, CacheDevWorkingStatus,
     MAX_CACHE_BLOCK_SIZE, MIN_CACHE_BLOCK_SIZE,
 };
-pub use consts::{IEC, SECTOR_SIZE};
-pub use device::{devnode_to_devno, Device};
-pub use dm::DM;
-pub use dm_flags::{DmCookie, DmFlags};
-pub use dm_options::DmOptions;
-pub use lineardev::{
+pub use crate::consts::{IEC, SECTOR_SIZE};
+pub use crate::device::{devnode_to_devno, Device};
+pub use crate::dm::DM;
+pub use crate::dm_flags::{DmCookie, DmFlags};
+pub use crate::dm_options::DmOptions;
+pub use crate::lineardev::{
     FlakeyTargetParams, LinearDev, LinearDevTargetParams, LinearDevTargetTable, LinearTargetParams,
 };
-pub use result::{DmError, DmResult, ErrorEnum};
-pub use shared::{device_exists, DmDevice, TargetLine};
-pub use thindev::{ThinDev, ThinDevWorkingStatus, ThinStatus};
-pub use thindevid::ThinDevId;
-pub use thinpooldev::{
+pub use crate::result::{DmError, DmResult, ErrorEnum};
+pub use crate::shared::{device_exists, DmDevice, TargetLine};
+pub use crate::thindev::{ThinDev, ThinDevWorkingStatus, ThinStatus};
+pub use crate::thindevid::ThinDevId;
+pub use crate::thinpooldev::{
     ThinPoolDev, ThinPoolNoSpacePolicy, ThinPoolStatus, ThinPoolStatusSummary, ThinPoolUsage,
     ThinPoolWorkingStatus,
 };
-pub use types::{
+pub use crate::types::{
     Bytes, DataBlocks, DevId, DmName, DmNameBuf, DmUuid, DmUuidBuf, MetaBlocks, Sectors,
     TargetType, TargetTypeBuf,
 };

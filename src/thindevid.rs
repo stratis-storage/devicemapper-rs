@@ -7,8 +7,8 @@ use std::str::FromStr;
 
 use serde;
 
-use super::result::{DmError, DmResult, ErrorEnum};
-use super::shared::parse_value;
+use crate::result::{DmError, DmResult, ErrorEnum};
+use crate::shared::parse_value;
 
 const THIN_DEV_ID_LIMIT: u64 = 0x1_000_000; // 2 ^ 24
 

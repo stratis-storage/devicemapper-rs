@@ -1,3 +1,5 @@
+DENY = "-D warnings -D future-incompatible -D unused"
+
 ${HOME}/.cargo/bin/cargo-tree:
 	cargo install cargo-tree
 
@@ -11,13 +13,13 @@ travis_fmt:
 	cargo fmt -- --check
 
 build:
-	RUSTFLAGS='-D warnings' cargo build
+	RUSTFLAGS=${DENY} cargo build
 
 test:
-	RUSTFLAGS='-D warnings' RUST_BACKTRACE=1 cargo test -- --skip sudo_ --skip loop_
+	RUSTFLAGS=${DENY} RUST_BACKTRACE=1 cargo test -- --skip sudo_ --skip loop_
 
 sudo_test:
-	sudo env "PATH=${PATH}" RUSTFLAGS='-D warnings' RUST_BACKTRACE=1 RUST_TEST_THREADS=1 cargo test
+	sudo env "PATH=${PATH}" RUSTFLAGS=${DENY} RUST_BACKTRACE=1 RUST_TEST_THREADS=1 cargo test
 
 clippy:
 	cargo clippy --all-targets --all-features -- -D warnings
