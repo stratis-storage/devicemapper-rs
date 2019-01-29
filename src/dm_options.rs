@@ -1,7 +1,7 @@
 // This Source Code Form is subject to the terms of the Mozilla Public
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
-use super::dm_flags::{DmCookie, DmFlags};
+use crate::dm_flags::{DmCookie, DmFlags};
 
 /// Encapsulates options for device mapper calls
 #[derive(Debug, Default, Clone)]

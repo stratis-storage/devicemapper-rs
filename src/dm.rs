@@ -10,16 +10,16 @@ use std::{cmp, slice, u32};
 use nix::libc::c_ulong;
 use nix::libc::ioctl as nix_ioctl;
 
-use super::device::Device;
-use super::deviceinfo::{DeviceInfo, DM_NAME_LEN, DM_UUID_LEN};
-use super::dm_flags::DmFlags;
-use super::dm_ioctl as dmi;
-use super::dm_options::DmOptions;
-use super::errors::ErrorKind;
-use super::result::{DmError, DmResult};
+use crate::device::Device;
+use crate::deviceinfo::{DeviceInfo, DM_NAME_LEN, DM_UUID_LEN};
+use crate::dm_flags::DmFlags;
+use crate::dm_ioctl as dmi;
+use crate::dm_options::DmOptions;
+use crate::errors::ErrorKind;
+use crate::result::{DmError, DmResult};
 
-use super::types::{DevId, DmName, DmNameBuf, DmUuid, Sectors, TargetTypeBuf};
-use super::util::{align_to, slice_to_null};
+use crate::types::{DevId, DmName, DmNameBuf, DmUuid, Sectors, TargetTypeBuf};
+use crate::util::{align_to, slice_to_null};
 
 /// Indicator to send IOCTL to DM
 const DM_IOCTL: u8 = 0xfd;
@@ -723,9 +723,9 @@ impl DM {
 #[cfg(test)]
 mod tests {
 
-    use super::super::errors::Error;
-    use super::super::result::DmError;
-    use super::super::test_lib::{test_name, test_uuid};
+    use crate::errors::Error;
+    use crate::result::DmError;
+    use crate::test_lib::{test_name, test_uuid};
 
     use super::*;
 
