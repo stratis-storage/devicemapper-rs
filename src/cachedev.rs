@@ -14,8 +14,8 @@ use crate::dm_options::DmOptions;
 use crate::lineardev::{LinearDev, LinearDevTargetParams};
 use crate::result::{DmError, DmResult, ErrorEnum};
 use crate::shared::{
-    device_create, device_exists, device_match, parse_device, parse_value, DmDevice, TargetLine,
-    TargetParams, TargetTable,
+    device_create, device_exists, device_match, get_status_line_fields, parse_device, parse_value,
+    DmDevice, TargetLine, TargetParams, TargetTable,
 };
 use crate::types::{DataBlocks, DevId, DmName, DmUuid, MetaBlocks, Sectors, TargetTypeBuf};
 
@@ -371,11 +371,7 @@ impl FromStr for CacheDevStatus {
             return Ok(CacheDevStatus::Fail);
         }
 
-        let status_vals = status_line.split(' ').collect::<Vec<_>>();
-        assert!(
-            status_vals.len() >= 17,
-            "Kernel must return at least 17 values from cache dev status"
-        );
+        let status_vals = get_status_line_fields(status_line, 17)?;
 
         let usage = {
             let meta_block_size = status_vals[0];
