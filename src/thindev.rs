@@ -219,6 +219,34 @@ pub enum ThinStatus {
     Fail,
 }
 
+impl FromStr for ThinStatus {
+    type Err = DmError;
+
+    fn from_str(status_line: &str) -> DmResult<ThinStatus> {
+        if status_line.starts_with("Fail") {
+            return Ok(ThinStatus::Fail);
+        }
+
+        let status_vals = status_line.split(' ').collect::<Vec<_>>();
+        assert!(
+            status_vals.len() >= 2,
+            "Kernel must return at least 2 values from thin pool status"
+        );
+
+        let count = Sectors(parse_value(status_vals[0], "sector count")?);
+
+        let highest = if count == Sectors(0) {
+            None
+        } else {
+            Some(Sectors(parse_value(status_vals[1], "highest used sector")?))
+        };
+
+        Ok(ThinStatus::Working(Box::new(ThinDevWorkingStatus::new(
+            count, highest,
+        ))))
+    }
+}
+
 /// support use of DM for thin provisioned devices over pools
 impl ThinDev {
     /// Create a ThinDev using thin_pool as the backing store.
@@ -368,28 +396,7 @@ impl ThinDev {
             "Kernel must return 1 line table for thin status"
         );
 
-        let status_line = &table.first().expect("assertion above holds").3;
-        if status_line.starts_with("Fail") {
-            return Ok(ThinStatus::Fail);
-        }
-
-        let status_vals = status_line.split(' ').collect::<Vec<_>>();
-        assert!(
-            status_vals.len() >= 2,
-            "Kernel must return at least 2 values from thin pool status"
-        );
-
-        let count = Sectors(parse_value(status_vals[0], "sector count")?);
-
-        let highest = if count == Sectors(0) {
-            None
-        } else {
-            Some(Sectors(parse_value(status_vals[1], "highest used sector")?))
-        };
-
-        Ok(ThinStatus::Working(Box::new(ThinDevWorkingStatus::new(
-            count, highest,
-        ))))
+        table.first().expect("assertion above holds").3.parse()
     }
 
     /// Set the table for the thin device's target

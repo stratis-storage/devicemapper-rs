@@ -333,6 +333,108 @@ pub enum ThinPoolStatus {
     Fail,
 }
 
+impl FromStr for ThinPoolStatus {
+    type Err = DmError;
+
+    fn from_str(status_line: &str) -> DmResult<ThinPoolStatus> {
+        if status_line.starts_with("Fail") {
+            return Ok(ThinPoolStatus::Fail);
+        }
+
+        let status_vals = status_line.split(' ').collect::<Vec<_>>();
+        assert!(
+            status_vals.len() >= 8,
+            "Kernel must return at least 8 values from thin pool status"
+        );
+
+        let transaction_id = parse_value(status_vals[0], "transaction id")?;
+
+        let usage = {
+            let meta_vals = status_vals[1].split('/').collect::<Vec<_>>();
+            let data_vals = status_vals[2].split('/').collect::<Vec<_>>();
+            ThinPoolUsage {
+                used_meta: MetaBlocks(parse_value(meta_vals[0], "used meta")?),
+                total_meta: MetaBlocks(parse_value(meta_vals[1], "total meta")?),
+                used_data: DataBlocks(parse_value(data_vals[0], "used data")?),
+                total_data: DataBlocks(parse_value(data_vals[1], "total data")?),
+            }
+        };
+
+        let summary = match status_vals[4] {
+            "rw" => ThinPoolStatusSummary::Good,
+            "ro" => ThinPoolStatusSummary::ReadOnly,
+            "out_of_data_space" => ThinPoolStatusSummary::OutOfSpace,
+            val => {
+                return Err(DmError::Dm(
+                    ErrorEnum::Invalid,
+                    format!(
+                        "Kernel returned unexpected 5th value \"{}\" in thin pool status",
+                        val
+                    ),
+                ))
+            }
+        };
+
+        let discard_passdown = match status_vals[5] {
+            "discard_passdown" => true,
+            "no_discard_passdown" => false,
+            val => {
+                return Err(DmError::Dm(
+                    ErrorEnum::Invalid,
+                    format!(
+                        "Kernel returned unexpected 6th value \"{}\" in thin pool status",
+                        val
+                    ),
+                ))
+            }
+        };
+
+        let no_space_policy = match status_vals[6] {
+            "error_if_no_space" => ThinPoolNoSpacePolicy::Error,
+            "queue_if_no_space" => ThinPoolNoSpacePolicy::Queue,
+            val => {
+                return Err(DmError::Dm(
+                    ErrorEnum::Invalid,
+                    format!(
+                        "Kernel returned unexpected 7th value \"{}\" in thin pool status",
+                        val
+                    ),
+                ))
+            }
+        };
+
+        let needs_check = match status_vals[7] {
+            "-" => false,
+            "needs_check" => true,
+            val => {
+                return Err(DmError::Dm(
+                    ErrorEnum::Invalid,
+                    format!(
+                        "Kernel returned unexpected 8th value \"{}\" in thin pool status",
+                        val
+                    ),
+                ))
+            }
+        };
+
+        let meta_low_water = status_vals
+            .get(8)
+            .and_then(|v| parse_value(v, "meta low water").ok());
+
+        Ok(ThinPoolStatus::Working(Box::new(
+            ThinPoolWorkingStatus::new(
+                transaction_id,
+                usage,
+                discard_passdown,
+                no_space_policy,
+                summary,
+                needs_check,
+                meta_low_water,
+            ),
+        )))
+    }
+}
+
 /// Use DM to create a "thin-pool".  A "thin-pool" is shared space for
 /// other thin provisioned devices to use.
 ///
@@ -478,102 +580,7 @@ impl ThinPoolDev {
             "Kernel must return 1 line from thin pool status"
         );
 
-        let status_line = &status.first().expect("assertion above holds").3;
-        if status_line.starts_with("Fail") {
-            return Ok(ThinPoolStatus::Fail);
-        }
-
-        let status_vals = status_line.split(' ').collect::<Vec<_>>();
-        assert!(
-            status_vals.len() >= 8,
-            "Kernel must return at least 8 values from thin pool status"
-        );
-
-        let transaction_id = parse_value(status_vals[0], "transaction id")?;
-
-        let usage = {
-            let meta_vals = status_vals[1].split('/').collect::<Vec<_>>();
-            let data_vals = status_vals[2].split('/').collect::<Vec<_>>();
-            ThinPoolUsage {
-                used_meta: MetaBlocks(parse_value(meta_vals[0], "used meta")?),
-                total_meta: MetaBlocks(parse_value(meta_vals[1], "total meta")?),
-                used_data: DataBlocks(parse_value(data_vals[0], "used data")?),
-                total_data: DataBlocks(parse_value(data_vals[1], "total data")?),
-            }
-        };
-
-        let summary = match status_vals[4] {
-            "rw" => ThinPoolStatusSummary::Good,
-            "ro" => ThinPoolStatusSummary::ReadOnly,
-            "out_of_data_space" => ThinPoolStatusSummary::OutOfSpace,
-            val => {
-                return Err(DmError::Dm(
-                    ErrorEnum::Invalid,
-                    format!(
-                        "Kernel returned unexpected 5th value \"{}\" in thin pool status",
-                        val
-                    ),
-                ))
-            }
-        };
-
-        let discard_passdown = match status_vals[5] {
-            "discard_passdown" => true,
-            "no_discard_passdown" => false,
-            val => {
-                return Err(DmError::Dm(
-                    ErrorEnum::Invalid,
-                    format!(
-                        "Kernel returned unexpected 6th value \"{}\" in thin pool status",
-                        val
-                    ),
-                ))
-            }
-        };
-
-        let no_space_policy = match status_vals[6] {
-            "error_if_no_space" => ThinPoolNoSpacePolicy::Error,
-            "queue_if_no_space" => ThinPoolNoSpacePolicy::Queue,
-            val => {
-                return Err(DmError::Dm(
-                    ErrorEnum::Invalid,
-                    format!(
-                        "Kernel returned unexpected 7th value \"{}\" in thin pool status",
-                        val
-                    ),
-                ))
-            }
-        };
-
-        let needs_check = match status_vals[7] {
-            "-" => false,
-            "needs_check" => true,
-            val => {
-                return Err(DmError::Dm(
-                    ErrorEnum::Invalid,
-                    format!(
-                        "Kernel returned unexpected 8th value \"{}\" in thin pool status",
-                        val
-                    ),
-                ))
-            }
-        };
-
-        let meta_low_water = status_vals
-            .get(8)
-            .and_then(|v| parse_value(v, "meta low water").ok());
-
-        Ok(ThinPoolStatus::Working(Box::new(
-            ThinPoolWorkingStatus::new(
-                transaction_id,
-                usage,
-                discard_passdown,
-                no_space_policy,
-                summary,
-                needs_check,
-                meta_low_water,
-            ),
-        )))
+        status.first().expect("assertion above holds").3.parse()
     }
 
     /// Set the table for the existing metadata device.
