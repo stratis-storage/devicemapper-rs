@@ -279,15 +279,14 @@ pub enum ThinPoolNoSpacePolicy {
 }
 
 /// Status of a working thin pool, i.e, one that does not have status Fail
-/// Note that this struct is incomplete. It does not contain every value
-/// that can be parsed from a data line, as some of those values are of
-/// unknown format.
 #[derive(Debug, Clone)]
 pub struct ThinPoolWorkingStatus {
     /// The transaction id.
     pub transaction_id: u64,
     /// A struct recording block usage for meta and data devices.
     pub usage: ThinPoolUsage,
+    /// A single block value indicating the held metadata root
+    pub held_metadata_root: Option<MetaBlocks>,
     /// discard_passdown/no_discard_passdown
     pub discard_passdown: bool,
     /// no space policy
@@ -303,9 +302,11 @@ pub struct ThinPoolWorkingStatus {
 
 impl ThinPoolWorkingStatus {
     /// Make a new ThinPoolWorkingStatus struct
+    #[allow(clippy::too_many_arguments)]
     pub fn new(
         transaction_id: u64,
         usage: ThinPoolUsage,
+        held_metadata_root: Option<MetaBlocks>,
         discard_passdown: bool,
         no_space_policy: ThinPoolNoSpacePolicy,
         summary: ThinPoolStatusSummary,
@@ -315,6 +316,7 @@ impl ThinPoolWorkingStatus {
         ThinPoolWorkingStatus {
             transaction_id,
             usage,
+            held_metadata_root,
             discard_passdown,
             no_space_policy,
             summary,
@@ -354,6 +356,11 @@ impl FromStr for ThinPoolStatus {
                 used_data: DataBlocks(parse_value(data_vals[0], "used data")?),
                 total_data: DataBlocks(parse_value(data_vals[1], "total data")?),
             }
+        };
+
+        let held_metadata_root = match status_vals[3] {
+            "-" => None,
+            val => Some(MetaBlocks(parse_value(val, "held metadata root")?)),
         };
 
         let summary = match status_vals[4] {
@@ -421,6 +428,7 @@ impl FromStr for ThinPoolStatus {
             ThinPoolWorkingStatus::new(
                 transaction_id,
                 usage,
+                held_metadata_root,
                 discard_passdown,
                 no_space_policy,
                 summary,
@@ -716,6 +724,7 @@ mod tests {
                 if status.summary == ThinPoolStatusSummary::Good =>
             {
                 assert_eq!(status.discard_passdown, false);
+                assert_eq!(status.held_metadata_root, None);
 
                 let usage = &status.usage;
                 // Even an empty thinpool requires some metadata.
