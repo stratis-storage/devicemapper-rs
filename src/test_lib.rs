@@ -95,6 +95,10 @@ pub fn test_uuid(name: &str) -> DmResult<DmUuidBuf> {
     DmUuidBuf::new(test_string(name))
 }
 
+// For an explanation see:
+// https://github.com/rust-lang-nursery/error-chain/issues/254.
+// FIXME: Drop dependence on error-chain entirely.
+#[allow(deprecated)]
 mod cleanup_errors {
     use libmount;
     use nix;
