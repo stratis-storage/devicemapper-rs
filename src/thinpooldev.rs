@@ -468,9 +468,6 @@ impl ThinPoolDev {
     /// Get the current status of the thinpool.
     /// Returns an error if there was an error getting the status value.
     /// Panics if there is an error parsing the status value.
-    /// Note: Kernel docs show the ordering of the discard_passdown and the
-    /// summary field opposite to the code below. But this code couldn't
-    /// pass tests unless it were correct and the kernel docs wrong.
     // Justification: see comment above DM::parse_table_status.
     pub fn status(&self, dm: &DM) -> DmResult<ThinPoolStatus> {
         let (_, status) = dm.table_status(&DevId::Name(self.name()), &DmOptions::new())?;
