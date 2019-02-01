@@ -14,8 +14,9 @@ use crate::dm_options::DmOptions;
 use crate::lineardev::{LinearDev, LinearDevTargetParams};
 use crate::result::{DmError, DmResult, ErrorEnum};
 use crate::shared::{
-    device_create, device_exists, device_match, get_status_line_fields, parse_device, parse_value,
-    DmDevice, TargetLine, TargetParams, TargetTable,
+    device_create, device_exists, device_match, get_status_line_fields,
+    make_unexpected_value_error, parse_device, parse_value, DmDevice, TargetLine, TargetParams,
+    TargetTable,
 };
 use crate::types::{DataBlocks, DevId, DmName, DmUuid, MetaBlocks, Sectors, TargetTypeBuf};
 
@@ -368,13 +369,7 @@ impl FromStr for ThinPoolStatus {
             "ro" => ThinPoolStatusSummary::ReadOnly,
             "out_of_data_space" => ThinPoolStatusSummary::OutOfSpace,
             val => {
-                return Err(DmError::Dm(
-                    ErrorEnum::Invalid,
-                    format!(
-                        "Kernel returned unexpected 5th value \"{}\" in thin pool status",
-                        val
-                    ),
-                ))
+                return Err(make_unexpected_value_error(5, val, "summary"));
             }
         };
 
@@ -382,13 +377,7 @@ impl FromStr for ThinPoolStatus {
             "discard_passdown" => true,
             "no_discard_passdown" => false,
             val => {
-                return Err(DmError::Dm(
-                    ErrorEnum::Invalid,
-                    format!(
-                        "Kernel returned unexpected 6th value \"{}\" in thin pool status",
-                        val
-                    ),
-                ))
+                return Err(make_unexpected_value_error(6, val, "discard passdown"));
             }
         };
 
@@ -396,13 +385,7 @@ impl FromStr for ThinPoolStatus {
             "error_if_no_space" => ThinPoolNoSpacePolicy::Error,
             "queue_if_no_space" => ThinPoolNoSpacePolicy::Queue,
             val => {
-                return Err(DmError::Dm(
-                    ErrorEnum::Invalid,
-                    format!(
-                        "Kernel returned unexpected 7th value \"{}\" in thin pool status",
-                        val
-                    ),
-                ))
+                return Err(make_unexpected_value_error(7, val, "no space policy"));
             }
         };
 
@@ -410,13 +393,7 @@ impl FromStr for ThinPoolStatus {
             "-" => false,
             "needs_check" => true,
             val => {
-                return Err(DmError::Dm(
-                    ErrorEnum::Invalid,
-                    format!(
-                        "Kernel returned unexpected 8th value \"{}\" in thin pool status",
-                        val
-                    ),
-                ))
+                return Err(make_unexpected_value_error(8, val, "needs checK"));
             }
         };
 

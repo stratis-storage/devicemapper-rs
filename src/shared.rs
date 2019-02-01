@@ -236,3 +236,16 @@ pub fn get_status_line_fields<'a>(
     }
     Ok(status_vals)
 }
+
+/// Construct an error when parsing yields an unexpected value.
+/// Indicate the location of the unexpected value, 1-indexed, its actual
+/// value, and the name of the expected thing.
+pub fn make_unexpected_value_error(value_index: usize, value: &str, item_name: &str) -> DmError {
+    DmError::Dm(
+        ErrorEnum::Invalid,
+        format!(
+            "Kernel returned unexpected {}th value \"{}\" for item representing {} in status result",
+            value_index, value, item_name
+        ),
+    )
+}

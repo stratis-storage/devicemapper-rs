@@ -14,8 +14,9 @@ use crate::dm_options::DmOptions;
 use crate::lineardev::{LinearDev, LinearDevTargetParams};
 use crate::result::{DmError, DmResult, ErrorEnum};
 use crate::shared::{
-    device_create, device_exists, device_match, get_status_line_fields, parse_device, parse_value,
-    DmDevice, TargetLine, TargetParams, TargetTable,
+    device_create, device_exists, device_match, get_status_line_fields,
+    make_unexpected_value_error, parse_device, parse_value, DmDevice, TargetLine, TargetParams,
+    TargetTable,
 };
 use crate::types::{DataBlocks, DevId, DmName, DmUuid, MetaBlocks, Sectors, TargetTypeBuf};
 
@@ -416,14 +417,11 @@ impl FromStr for CacheDevStatus {
             "rw" => CacheDevMetadataMode::Good,
             "ro" => CacheDevMetadataMode::ReadOnly,
             val => {
-                return Err(DmError::Dm(
-                    ErrorEnum::Invalid,
-                    format!(
-                        "Kernel returned unexpected {}th value \"{}\" in thin pool status",
-                        rest_start_index + 1,
-                        val,
-                    ),
-                ))
+                return Err(make_unexpected_value_error(
+                    rest_start_index + 1,
+                    val,
+                    "cache metadata mode",
+                ));
             }
         };
 
@@ -431,13 +429,10 @@ impl FromStr for CacheDevStatus {
             "-" => false,
             "needs_check" => true,
             val => {
-                return Err(DmError::Dm(
-                    ErrorEnum::Invalid,
-                    format!(
-                        "Kernel returned unexpected {}th value \"{}\" in thin pool status",
-                        rest_start_index + 1,
-                        val,
-                    ),
+                return Err(make_unexpected_value_error(
+                    rest_start_index + 1,
+                    val,
+                    "needs check",
                 ))
             }
         };
