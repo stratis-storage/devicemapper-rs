@@ -42,4 +42,4 @@ matrix:
 branches:
     only: master
 
-script: make -f Makefile $TASK 
+script: make -f Makefile $TASK
