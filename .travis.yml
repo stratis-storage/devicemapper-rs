@@ -22,9 +22,10 @@ matrix:
         # Build on current stable compiler
         - rust: stable
           env: TASK=build
-        # Build on lowest supported compiler version
+        # Verify that source and tests build on rustc 1.31.0
+        # rustc 1.31.0 is the lowest supported compiler version.
         - rust: 1.31.0
-          env: TASK=build
+          env: TASK=test
         # Run tests on current stable compiler
         - rust: stable
           sudo: required
