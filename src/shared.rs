@@ -229,8 +229,8 @@ pub fn get_status_line_fields<'a>(
         return Err(DmError::Dm(
             ErrorEnum::Invalid,
             format!(
-                "Insufficient number of fields for status; requires at least {}, found {}",
-                number_required, length
+                "Insufficient number of fields for status; requires at least {}, found only {} in status line \"{}\"",
+                number_required, length, status_line
             ),
         ));
     }
