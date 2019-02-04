@@ -216,3 +216,36 @@ where
         )
     })
 }
+
+/// Get fields for a single status line.
+/// Return an error if an insufficient number of fields are obtained.
+pub fn get_status_line_fields<'a>(
+    status_line: &'a str,
+    number_required: usize,
+) -> DmResult<Vec<&'a str>> {
+    let status_vals = status_line.split(' ').collect::<Vec<_>>();
+    let length = status_vals.len();
+    if length < number_required {
+        return Err(DmError::Dm(
+            ErrorEnum::Invalid,
+            format!(
+                "Insufficient number of fields for status; requires at least {}, found only {} in status line \"{}\"",
+                number_required, length, status_line
+            ),
+        ));
+    }
+    Ok(status_vals)
+}
+
+/// Construct an error when parsing yields an unexpected value.
+/// Indicate the location of the unexpected value, 1-indexed, its actual
+/// value, and the name of the expected thing.
+pub fn make_unexpected_value_error(value_index: usize, value: &str, item_name: &str) -> DmError {
+    DmError::Dm(
+        ErrorEnum::Invalid,
+        format!(
+            "Kernel returned unexpected {}th value \"{}\" for item representing {} in status result",
+            value_index, value, item_name
+        ),
+    )
+}

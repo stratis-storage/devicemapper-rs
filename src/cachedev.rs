@@ -14,8 +14,9 @@ use crate::dm_options::DmOptions;
 use crate::lineardev::{LinearDev, LinearDevTargetParams};
 use crate::result::{DmError, DmResult, ErrorEnum};
 use crate::shared::{
-    device_create, device_exists, device_match, parse_device, parse_value, DmDevice, TargetLine,
-    TargetParams, TargetTable,
+    device_create, device_exists, device_match, get_status_line_fields,
+    make_unexpected_value_error, parse_device, parse_value, DmDevice, TargetLine, TargetParams,
+    TargetTable,
 };
 use crate::types::{DataBlocks, DevId, DmName, DmUuid, MetaBlocks, Sectors, TargetTypeBuf};
 
@@ -361,6 +362,96 @@ pub enum CacheDevStatus {
     Fail,
 }
 
+impl FromStr for CacheDevStatus {
+    type Err = DmError;
+
+    // Note: This method is not entirely complete. In particular, *_args values
+    // may require more or better checking or processing.
+    fn from_str(status_line: &str) -> DmResult<CacheDevStatus> {
+        if status_line.starts_with("Fail") {
+            return Ok(CacheDevStatus::Fail);
+        }
+
+        let status_vals = get_status_line_fields(status_line, 17)?;
+
+        let usage = {
+            let meta_block_size = status_vals[0];
+            let meta_usage = status_vals[1].split('/').collect::<Vec<_>>();
+            let cache_block_size = status_vals[2];
+            let cache_usage = status_vals[3].split('/').collect::<Vec<_>>();
+            CacheDevUsage::new(
+                Sectors(parse_value(meta_block_size, "meta block size")?),
+                MetaBlocks(parse_value(meta_usage[0], "used meta")?),
+                MetaBlocks(parse_value(meta_usage[1], "total meta")?),
+                Sectors(parse_value(cache_block_size, "cache block size")?),
+                DataBlocks(parse_value(cache_usage[0], "used cache")?),
+                DataBlocks(parse_value(cache_usage[1], "total cache")?),
+            )
+        };
+
+        let performance = CacheDevPerformance::new(
+            parse_value(status_vals[4], "read hits")?,
+            parse_value(status_vals[5], "read misses")?,
+            parse_value(status_vals[6], "write hits")?,
+            parse_value(status_vals[7], "write misses")?,
+            parse_value(status_vals[8], "demotions")?,
+            parse_value(status_vals[9], "promotions")?,
+            parse_value(status_vals[10], "dirty")?,
+        );
+
+        let num_feature_args: usize = parse_value(status_vals[11], "number of feature args")?;
+        let core_args_start_index = 12usize + num_feature_args;
+        let feature_args: Vec<String> = status_vals[12..core_args_start_index]
+            .iter()
+            .map(|x| x.to_string())
+            .collect();
+
+        let (policy_start_index, core_args) =
+            CacheDev::parse_pairs(core_args_start_index, &status_vals)?;
+
+        let policy = status_vals[policy_start_index].to_string();
+        let (rest_start_index, policy_args) =
+            CacheDev::parse_pairs(policy_start_index + 1, &status_vals)?;
+
+        let cache_metadata_mode = match status_vals[rest_start_index] {
+            "rw" => CacheDevMetadataMode::Good,
+            "ro" => CacheDevMetadataMode::ReadOnly,
+            val => {
+                return Err(make_unexpected_value_error(
+                    rest_start_index + 1,
+                    val,
+                    "cache metadata mode",
+                ));
+            }
+        };
+
+        let needs_check = match status_vals[rest_start_index + 1] {
+            "-" => false,
+            "needs_check" => true,
+            val => {
+                return Err(make_unexpected_value_error(
+                    rest_start_index + 1,
+                    val,
+                    "needs check",
+                ))
+            }
+        };
+
+        Ok(CacheDevStatus::Working(Box::new(
+            CacheDevWorkingStatus::new(
+                usage,
+                performance,
+                feature_args,
+                core_args,
+                policy,
+                policy_args,
+                cache_metadata_mode,
+                needs_check,
+            ),
+        )))
+    }
+}
+
 /// DM Cache device
 #[derive(Debug)]
 pub struct CacheDev {
@@ -625,8 +716,6 @@ impl CacheDev {
     }
 
     /// Get the current status of the cache device.
-    // Note: This method is not entirely complete. In particular, *_args values
-    // may require more or better checking or processing.
     pub fn status(&self, dm: &DM) -> DmResult<CacheDevStatus> {
         let (_, status) = dm.table_status(&DevId::Name(self.name()), &DmOptions::new())?;
 
@@ -636,98 +725,7 @@ impl CacheDev {
             "Kernel must return 1 line from cache dev status"
         );
 
-        let status_line = &status.first().expect("assertion above holds").3;
-        if status_line.starts_with("Fail") {
-            return Ok(CacheDevStatus::Fail);
-        }
-
-        let status_vals = status_line.split(' ').collect::<Vec<_>>();
-        assert!(
-            status_vals.len() >= 17,
-            "Kernel must return at least 17 values from cache dev status"
-        );
-
-        let usage = {
-            let meta_block_size = status_vals[0];
-            let meta_usage = status_vals[1].split('/').collect::<Vec<_>>();
-            let cache_block_size = status_vals[2];
-            let cache_usage = status_vals[3].split('/').collect::<Vec<_>>();
-            CacheDevUsage::new(
-                Sectors(parse_value(meta_block_size, "meta block size")?),
-                MetaBlocks(parse_value(meta_usage[0], "used meta")?),
-                MetaBlocks(parse_value(meta_usage[1], "total meta")?),
-                Sectors(parse_value(cache_block_size, "cache block size")?),
-                DataBlocks(parse_value(cache_usage[0], "used cache")?),
-                DataBlocks(parse_value(cache_usage[1], "total cache")?),
-            )
-        };
-
-        let performance = CacheDevPerformance::new(
-            parse_value(status_vals[4], "read hits")?,
-            parse_value(status_vals[5], "read misses")?,
-            parse_value(status_vals[6], "write hits")?,
-            parse_value(status_vals[7], "write misses")?,
-            parse_value(status_vals[8], "demotions")?,
-            parse_value(status_vals[9], "promotions")?,
-            parse_value(status_vals[10], "dirty")?,
-        );
-
-        let num_feature_args: usize = parse_value(status_vals[11], "number of feature args")?;
-        let core_args_start_index = 12usize + num_feature_args;
-        let feature_args: Vec<String> = status_vals[12..core_args_start_index]
-            .iter()
-            .map(|x| x.to_string())
-            .collect();
-
-        let (policy_start_index, core_args) =
-            CacheDev::parse_pairs(core_args_start_index, &status_vals)?;
-
-        let policy = status_vals[policy_start_index].to_string();
-        let (rest_start_index, policy_args) =
-            CacheDev::parse_pairs(policy_start_index + 1, &status_vals)?;
-
-        let cache_metadata_mode = match status_vals[rest_start_index] {
-            "rw" => CacheDevMetadataMode::Good,
-            "ro" => CacheDevMetadataMode::ReadOnly,
-            val => {
-                return Err(DmError::Dm(
-                    ErrorEnum::Invalid,
-                    format!(
-                        "Kernel returned unexpected {}th value \"{}\" in thin pool status",
-                        rest_start_index + 1,
-                        val,
-                    ),
-                ))
-            }
-        };
-
-        let needs_check = match status_vals[rest_start_index + 1] {
-            "-" => false,
-            "needs_check" => true,
-            val => {
-                return Err(DmError::Dm(
-                    ErrorEnum::Invalid,
-                    format!(
-                        "Kernel returned unexpected {}th value \"{}\" in thin pool status",
-                        rest_start_index + 1,
-                        val,
-                    ),
-                ))
-            }
-        };
-
-        Ok(CacheDevStatus::Working(Box::new(
-            CacheDevWorkingStatus::new(
-                usage,
-                performance,
-                feature_args,
-                core_args,
-                policy,
-                policy_args,
-                cache_metadata_mode,
-                needs_check,
-            ),
-        )))
+        status.first().expect("assertion above holds").3.parse()
     }
 }
 
