@@ -177,11 +177,9 @@ pub fn device_match<T: TargetTable, D: DmDevice<T>>(
 
 /// Check if a device of the given name exists.
 pub fn device_exists(dm: &DM, name: &DmName) -> DmResult<bool> {
-    // TODO: Why do we have to call .as_ref() here instead of relying on deref
-    // coercion?
     Ok(dm
         .list_devices()
-        .map(|l| l.iter().any(|&(ref n, _, _)| n.as_ref() == name))?)
+        .map(|l| l.iter().any(|&(ref n, _, _)| &**n == name))?)
 }
 
 /// Parse a device from either of a path or a maj:min pair
