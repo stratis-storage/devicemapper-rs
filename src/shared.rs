@@ -9,13 +9,11 @@ use std::fmt;
 use std::path::{Path, PathBuf};
 use std::str::FromStr;
 
-use crate::device::{devnode_to_devno, Device};
-use crate::deviceinfo::DeviceInfo;
-use crate::dm::DM;
-use crate::dm_flags::DmFlags;
-use crate::dm_options::DmOptions;
+use crate::core::{
+    devnode_to_devno, DevId, Device, DeviceInfo, DmFlags, DmName, DmOptions, DmUuid, Sectors,
+    TargetTypeBuf, DM,
+};
 use crate::result::{DmError, DmResult, ErrorEnum};
-use crate::types::{DevId, DmName, DmUuid, Sectors, TargetTypeBuf};
 
 /// The trait for properties of the params string of TargetType
 pub trait TargetParams: Clone + fmt::Debug + fmt::Display + Eq + FromStr + PartialEq {

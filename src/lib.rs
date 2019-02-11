@@ -98,29 +98,13 @@ mod range_macros;
 mod id_macros;
 /// shared constants
 mod consts;
-/// rust definitions of ioctl structs and consts
-mod dm_ioctl;
-/// basic types (Bytes, Sectors, DataBlocks)
-mod types;
-/// public utilities
-mod util;
+/// core functionality
+mod core;
 /// Macros shared by device mapper devices.
 #[macro_use]
 mod shared_macros;
 /// cachedev
 mod cachedev;
-/// contains device major/minor and associated functions
-mod device;
-/// wrapper for C interface for DM
-mod deviceinfo;
-/// core lower level API
-mod dm;
-/// DM flags
-mod dm_flags;
-/// Options for dm function calls
-mod dm_options;
-/// error chain errors for core dm
-mod errors;
 /// functions to create continuous linear space given device segments
 mod lineardev;
 /// return results container
@@ -145,10 +129,10 @@ pub use crate::cachedev::{
     MAX_CACHE_BLOCK_SIZE, MIN_CACHE_BLOCK_SIZE,
 };
 pub use crate::consts::{IEC, SECTOR_SIZE};
-pub use crate::device::{devnode_to_devno, Device};
-pub use crate::dm::DM;
-pub use crate::dm_flags::{DmCookie, DmFlags};
-pub use crate::dm_options::DmOptions;
+pub use crate::core::{
+    devnode_to_devno, Bytes, DataBlocks, DevId, Device, DmCookie, DmFlags, DmName, DmNameBuf,
+    DmOptions, DmUuid, DmUuidBuf, MetaBlocks, Sectors, TargetType, TargetTypeBuf, DM,
+};
 pub use crate::lineardev::{
     FlakeyTargetParams, LinearDev, LinearDevTargetParams, LinearDevTargetTable, LinearTargetParams,
 };
@@ -159,8 +143,4 @@ pub use crate::thindevid::ThinDevId;
 pub use crate::thinpooldev::{
     ThinPoolDev, ThinPoolNoSpacePolicy, ThinPoolStatus, ThinPoolStatusSummary, ThinPoolUsage,
     ThinPoolWorkingStatus,
-};
-pub use crate::types::{
-    Bytes, DataBlocks, DevId, DmName, DmNameBuf, DmUuid, DmUuidBuf, MetaBlocks, Sectors,
-    TargetType, TargetTypeBuf,
 };

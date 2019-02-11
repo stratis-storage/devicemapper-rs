@@ -120,8 +120,9 @@ mod tests {
     use std::iter;
     use std::ops::Deref;
 
-    use crate::errors::{Error, ErrorKind};
     use crate::result::{DmError, DmResult};
+
+    use crate::core::errors::{Error, ErrorKind};
 
     const TYPE_LEN: usize = 12;
     str_id!(Id, IdBuf, TYPE_LEN);

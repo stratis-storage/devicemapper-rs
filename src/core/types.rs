@@ -10,9 +10,10 @@ use std::ops::{Add, Deref, Div, Mul, Rem};
 use serde;
 
 use crate::consts::SECTOR_SIZE;
-use crate::deviceinfo::{DM_NAME_LEN, DM_UUID_LEN};
-use crate::errors::ErrorKind;
 use crate::result::{DmError, DmResult};
+
+use crate::core::deviceinfo::{DM_NAME_LEN, DM_UUID_LEN};
+use crate::core::errors::ErrorKind;
 
 /// a kernel defined block size constant for any DM meta device
 /// a DM meta device may store cache device or thinpool device metadata

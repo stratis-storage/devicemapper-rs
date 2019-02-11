@@ -5,7 +5,7 @@
 use std::error::Error;
 use std::fmt;
 
-use crate::errors;
+use crate::core::errors;
 
 /// A very simple breakdown of outer layer errors.
 #[derive(Debug)]

@@ -7,10 +7,10 @@ use std::fmt;
 use std::path::PathBuf;
 use std::str::FromStr;
 
-use crate::device::Device;
-use crate::deviceinfo::DeviceInfo;
-use crate::dm::DM;
-use crate::dm_options::DmOptions;
+use crate::core::{
+    DataBlocks, DevId, Device, DeviceInfo, DmName, DmOptions, DmUuid, MetaBlocks, Sectors,
+    TargetTypeBuf, DM,
+};
 use crate::lineardev::{LinearDev, LinearDevTargetParams};
 use crate::result::{DmError, DmResult, ErrorEnum};
 use crate::shared::{
@@ -18,7 +18,6 @@ use crate::shared::{
     make_unexpected_value_error, parse_device, parse_value, DmDevice, TargetLine, TargetParams,
     TargetTable,
 };
-use crate::types::{DataBlocks, DevId, DmName, DmUuid, MetaBlocks, Sectors, TargetTypeBuf};
 
 const CACHE_TARGET_NAME: &str = "cache";
 
@@ -737,7 +736,7 @@ use std::path::Path;
 #[cfg(test)]
 use crate::consts::IEC;
 #[cfg(test)]
-use crate::device::devnode_to_devno;
+use crate::core::devnode_to_devno;
 #[cfg(test)]
 use crate::lineardev::LinearTargetParams;
 #[cfg(test)]

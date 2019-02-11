@@ -7,16 +7,14 @@ use std::fmt;
 use std::path::PathBuf;
 use std::str::FromStr;
 
-use crate::device::Device;
-use crate::deviceinfo::DeviceInfo;
-use crate::dm::DM;
-use crate::dm_options::DmOptions;
+use crate::core::{
+    DevId, Device, DeviceInfo, DmName, DmOptions, DmUuid, Sectors, TargetTypeBuf, DM,
+};
 use crate::result::{DmError, DmResult, ErrorEnum};
 use crate::shared::{
     device_create, device_exists, device_match, parse_device, parse_value, DmDevice, TargetLine,
     TargetParams, TargetTable,
 };
-use crate::types::{DevId, DmName, DmUuid, Sectors, TargetTypeBuf};
 
 const FLAKEY_TARGET_NAME: &str = "flakey";
 const LINEAR_TARGET_NAME: &str = "linear";
@@ -488,7 +486,7 @@ mod tests {
     use std::fs::OpenOptions;
     use std::path::Path;
 
-    use crate::device::{devnode_to_devno, Device};
+    use crate::core::{devnode_to_devno, Device};
     use crate::loopbacked::{blkdev_size, test_with_spec};
     use crate::test_lib::test_name;
 

@@ -6,11 +6,10 @@ use std::fmt;
 use std::path::PathBuf;
 use std::str::FromStr;
 
-use crate::device::Device;
-use crate::deviceinfo::DeviceInfo;
-use crate::dm::DM;
-use crate::dm_flags::{DmCookie, DmFlags};
-use crate::dm_options::DmOptions;
+use crate::core::{
+    DevId, Device, DeviceInfo, DmCookie, DmFlags, DmName, DmOptions, DmUuid, Sectors,
+    TargetTypeBuf, DM,
+};
 use crate::result::{DmError, DmResult, ErrorEnum};
 use crate::shared::{
     device_create, device_exists, device_match, get_status_line_fields, message, parse_device,
@@ -18,7 +17,6 @@ use crate::shared::{
 };
 use crate::thindevid::ThinDevId;
 use crate::thinpooldev::ThinPoolDev;
-use crate::types::{DevId, DmName, DmUuid, Sectors, TargetTypeBuf};
 
 const THIN_TARGET_NAME: &str = "thin";
 
@@ -430,15 +428,15 @@ mod tests {
     use uuid::Uuid;
 
     use crate::consts::IEC;
+    use crate::core::DataBlocks;
     use crate::loopbacked::{blkdev_size, test_with_spec};
     use crate::shared::DmDevice;
     use crate::test_lib::{
         test_name, test_string, test_uuid, udev_settle, xfs_create_fs, xfs_set_uuid,
     };
     use crate::thinpooldev::{minimal_thinpool, ThinPoolStatus};
-    use crate::types::DataBlocks;
 
-    use crate::errors::{Error, ErrorKind};
+    use crate::core::errors::{Error, ErrorKind};
 
     use super::*;
 
