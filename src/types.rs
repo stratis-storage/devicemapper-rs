@@ -48,6 +48,7 @@ NewtypeSubAssign! { () pub struct DataBlocks(u64); }
 self_div!(DataBlocks);
 serde!(DataBlocks);
 debug!(DataBlocks);
+sum!(DataBlocks);
 
 unsigned_div!(u64, DataBlocks);
 unsigned_div!(u32, DataBlocks);
@@ -100,6 +101,7 @@ NewtypeSubAssign! { () pub struct MetaBlocks(u64); }
 self_div!(MetaBlocks);
 serde!(MetaBlocks);
 debug!(MetaBlocks);
+sum!(MetaBlocks);
 
 unsigned_div!(u64, MetaBlocks);
 unsigned_div!(u32, MetaBlocks);
