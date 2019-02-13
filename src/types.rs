@@ -34,6 +34,10 @@ macro_attr! {
     pub struct DataBlocks(pub u64);
 }
 
+impl DataBlocks {
+    checked_add!(DataBlocks);
+}
+
 NewtypeAdd! { () pub struct DataBlocks(u64); }
 NewtypeAddAssign! { () pub struct DataBlocks(u64); }
 NewtypeDeref! { () pub struct DataBlocks(u64); }
@@ -75,6 +79,8 @@ impl MetaBlocks {
     pub fn sectors(self) -> Sectors {
         self.0 * META_BLOCK_SIZE
     }
+
+    checked_add!(MetaBlocks);
 }
 
 NewtypeAdd! { () pub struct MetaBlocks(u64); }
