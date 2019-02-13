@@ -30,10 +30,6 @@ const MAX_META_DEV_SIZE: MetaBlocks = MetaBlocks(255 * ((1 << 14) - 64));
 
 range!(DataBlocks);
 
-impl DataBlocks {
-    checked_add!(DataBlocks);
-}
-
 impl fmt::Display for DataBlocks {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{} data blocks", self.0)
@@ -47,8 +43,6 @@ impl MetaBlocks {
     pub fn sectors(self) -> Sectors {
         self.0 * META_BLOCK_SIZE
     }
-
-    checked_add!(MetaBlocks);
 }
 
 impl fmt::Display for MetaBlocks {
@@ -64,8 +58,6 @@ impl Bytes {
     pub fn sectors(self) -> Sectors {
         Sectors(self.0 / SECTOR_SIZE as u64)
     }
-
-    checked_add!(Bytes);
 }
 
 impl fmt::Display for Bytes {
@@ -86,8 +78,6 @@ impl Sectors {
     pub fn metablocks(self) -> MetaBlocks {
         MetaBlocks(self / META_BLOCK_SIZE)
     }
-
-    checked_add!(Sectors);
 }
 
 impl fmt::Display for Sectors {

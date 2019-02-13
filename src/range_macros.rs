@@ -11,6 +11,8 @@ macro_rules! range {
             pub struct $T(pub u64);
         }
 
+        checked_add!($T);
+
         NewtypeAdd! { () pub struct $T(u64); }
         NewtypeAddAssign! { () pub struct $T(u64); }
         NewtypeDeref! { () pub struct $T(u64); }
@@ -195,9 +197,11 @@ macro_rules! rem {
 
 macro_rules! checked_add {
     ($T: ident) => {
-        /// Add two items of type $T, return None if overflow.
-        pub fn checked_add(&self, other: $T) -> Option<$T> {
-            self.0.checked_add(other.0).map($T)
+        impl $T {
+            /// Add two items of type $T, return None if overflow.
+            pub fn checked_add(&self, other: $T) -> Option<$T> {
+                self.0.checked_add(other.0).map($T)
+            }
         }
-    }
+    };
 }
