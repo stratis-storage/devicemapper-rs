@@ -28,46 +28,7 @@ const META_BLOCK_SIZE: Sectors = Sectors(8);
 #[allow(dead_code)]
 const MAX_META_DEV_SIZE: MetaBlocks = MetaBlocks(255 * ((1 << 14) - 64));
 
-macro_attr! {
-    #[derive(Clone, Copy, Default, Eq, Ord, PartialEq, PartialOrd)]
-    /// A type for Data Blocks as used by the thin pool.
-    pub struct DataBlocks(pub u64);
-}
-
-impl DataBlocks {
-    checked_add!(DataBlocks);
-}
-
-NewtypeAdd! { () pub struct DataBlocks(u64); }
-NewtypeAddAssign! { () pub struct DataBlocks(u64); }
-NewtypeDeref! { () pub struct DataBlocks(u64); }
-NewtypeFrom! { () pub struct DataBlocks(u64); }
-NewtypeSub! { () pub struct DataBlocks(u64); }
-NewtypeSubAssign! { () pub struct DataBlocks(u64); }
-
-self_div!(DataBlocks);
-serde!(DataBlocks);
-debug!(DataBlocks);
-sum!(DataBlocks);
-
-unsigned_div!(u64, DataBlocks);
-unsigned_div!(u32, DataBlocks);
-unsigned_div!(u16, DataBlocks);
-unsigned_div!(u8, DataBlocks);
-usize_div!(DataBlocks);
-
-unsigned_mul!(u64, DataBlocks);
-unsigned_mul!(u32, DataBlocks);
-unsigned_mul!(u16, DataBlocks);
-unsigned_mul!(u8, DataBlocks);
-usize_mul!(DataBlocks);
-
-unsigned_rem!(u64, DataBlocks);
-unsigned_rem!(u32, DataBlocks);
-unsigned_rem!(u16, DataBlocks);
-unsigned_rem!(u8, DataBlocks);
-usize_rem!(DataBlocks);
-rem!(DataBlocks);
+range!(DataBlocks);
 
 impl fmt::Display for DataBlocks {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
@@ -75,52 +36,14 @@ impl fmt::Display for DataBlocks {
     }
 }
 
-macro_attr! {
-    #[derive(Clone, Copy, Default, Eq, Ord, PartialEq, PartialOrd)]
-    /// A type for Meta Data blocks as used by the thin pool.
-    /// MetaBlocks have a kernel defined constant size of META_BLOCK_SIZE
-    pub struct MetaBlocks(pub u64);
-}
+range!(MetaBlocks);
 
 impl MetaBlocks {
     /// Return the number of Sectors in the MetaBlocks.
     pub fn sectors(self) -> Sectors {
         self.0 * META_BLOCK_SIZE
     }
-
-    checked_add!(MetaBlocks);
 }
-
-NewtypeAdd! { () pub struct MetaBlocks(u64); }
-NewtypeAddAssign! { () pub struct MetaBlocks(u64); }
-NewtypeDeref! { () pub struct MetaBlocks(u64); }
-NewtypeFrom! { () pub struct MetaBlocks(u64); }
-NewtypeSub! { () pub struct MetaBlocks(u64); }
-NewtypeSubAssign! { () pub struct MetaBlocks(u64); }
-
-self_div!(MetaBlocks);
-serde!(MetaBlocks);
-debug!(MetaBlocks);
-sum!(MetaBlocks);
-
-unsigned_div!(u64, MetaBlocks);
-unsigned_div!(u32, MetaBlocks);
-unsigned_div!(u16, MetaBlocks);
-unsigned_div!(u8, MetaBlocks);
-usize_div!(MetaBlocks);
-
-unsigned_mul!(u64, MetaBlocks);
-unsigned_mul!(u32, MetaBlocks);
-unsigned_mul!(u16, MetaBlocks);
-unsigned_mul!(u8, MetaBlocks);
-usize_mul!(MetaBlocks);
-
-unsigned_rem!(u64, MetaBlocks);
-unsigned_rem!(u32, MetaBlocks);
-unsigned_rem!(u16, MetaBlocks);
-unsigned_rem!(u8, MetaBlocks);
-usize_rem!(MetaBlocks);
-rem!(MetaBlocks);
 
 impl fmt::Display for MetaBlocks {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
@@ -128,51 +51,14 @@ impl fmt::Display for MetaBlocks {
     }
 }
 
-macro_attr! {
-    #[derive(Clone, Copy, Default, Eq, Ord, PartialEq, PartialOrd)]
-    /// Structure to represent bytes
-    pub struct Bytes(pub u64);
-}
+range!(Bytes);
 
 impl Bytes {
     /// Return the number of Sectors fully contained in these bytes.
     pub fn sectors(self) -> Sectors {
         Sectors(self.0 / SECTOR_SIZE as u64)
     }
-
-    checked_add!(Bytes);
 }
-
-NewtypeAdd! { () pub struct Bytes(u64); }
-NewtypeAddAssign! { () pub struct Bytes(u64); }
-NewtypeDeref! { () pub struct Bytes(u64); }
-NewtypeFrom! { () pub struct Bytes(u64); }
-NewtypeSub! { () pub struct Bytes(u64); }
-NewtypeSubAssign! { () pub struct Bytes(u64); }
-
-self_div!(Bytes);
-serde!(Bytes);
-debug!(Bytes);
-sum!(Bytes);
-
-unsigned_div!(u64, Bytes);
-unsigned_div!(u32, Bytes);
-unsigned_div!(u16, Bytes);
-unsigned_div!(u8, Bytes);
-usize_div!(Bytes);
-
-unsigned_mul!(u64, Bytes);
-unsigned_mul!(u32, Bytes);
-unsigned_mul!(u16, Bytes);
-unsigned_mul!(u8, Bytes);
-usize_mul!(Bytes);
-
-unsigned_rem!(u64, Bytes);
-unsigned_rem!(u32, Bytes);
-unsigned_rem!(u16, Bytes);
-unsigned_rem!(u8, Bytes);
-usize_rem!(Bytes);
-rem!(Bytes);
 
 impl fmt::Display for Bytes {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
@@ -180,12 +66,7 @@ impl fmt::Display for Bytes {
     }
 }
 
-macro_attr! {
-    #[derive(Clone, Copy, Default, Eq, Ord, PartialEq, PartialOrd)]
-    /// A separate type to store counts and offsets expressed in
-    /// 512-byte sectors.
-    pub struct Sectors(pub u64);
-}
+range!(Sectors);
 
 impl Sectors {
     /// The number of bytes in these sectors.
@@ -197,40 +78,7 @@ impl Sectors {
     pub fn metablocks(self) -> MetaBlocks {
         MetaBlocks(self / META_BLOCK_SIZE)
     }
-
-    checked_add!(Sectors);
 }
-
-NewtypeAdd! { () pub struct Sectors(u64); }
-NewtypeAddAssign! { () pub struct Sectors(u64); }
-NewtypeDeref! { () pub struct Sectors(u64); }
-NewtypeFrom! { () pub struct Sectors(u64); }
-NewtypeSub! { () pub struct Sectors(u64); }
-NewtypeSubAssign! { () pub struct Sectors(u64); }
-
-self_div!(Sectors);
-serde!(Sectors);
-debug!(Sectors);
-sum!(Sectors);
-
-unsigned_div!(u64, Sectors);
-unsigned_div!(u32, Sectors);
-unsigned_div!(u16, Sectors);
-unsigned_div!(u8, Sectors);
-usize_div!(Sectors);
-
-unsigned_mul!(u64, Sectors);
-unsigned_mul!(u32, Sectors);
-unsigned_mul!(u16, Sectors);
-unsigned_mul!(u8, Sectors);
-usize_mul!(Sectors);
-
-unsigned_rem!(u64, Sectors);
-unsigned_rem!(u32, Sectors);
-unsigned_rem!(u16, Sectors);
-unsigned_rem!(u8, Sectors);
-usize_rem!(Sectors);
-rem!(Sectors);
 
 impl fmt::Display for Sectors {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
