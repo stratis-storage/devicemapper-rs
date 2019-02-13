@@ -21,5 +21,5 @@ pub use self::dm_flags::{DmCookie, DmFlags};
 pub use self::dm_options::DmOptions;
 pub use self::types::{
     Bytes, DataBlocks, DevId, DmName, DmNameBuf, DmUuid, DmUuidBuf, MetaBlocks, Sectors,
-    TargetType, TargetTypeBuf,
+    TargetType, TargetTypeBuf, SECTOR_SIZE,
 };

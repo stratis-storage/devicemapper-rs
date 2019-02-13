@@ -128,10 +128,10 @@ pub use crate::cachedev::{
     CacheDev, CacheDevPerformance, CacheDevStatus, CacheDevUsage, CacheDevWorkingStatus,
     MAX_CACHE_BLOCK_SIZE, MIN_CACHE_BLOCK_SIZE,
 };
-pub use crate::consts::{IEC, SECTOR_SIZE};
+pub use crate::consts::IEC;
 pub use crate::core::{
     devnode_to_devno, Bytes, DataBlocks, DevId, Device, DmCookie, DmFlags, DmName, DmNameBuf,
-    DmOptions, DmUuid, DmUuidBuf, MetaBlocks, Sectors, TargetType, TargetTypeBuf, DM,
+    DmOptions, DmUuid, DmUuidBuf, MetaBlocks, Sectors, TargetType, TargetTypeBuf, DM, SECTOR_SIZE,
 };
 pub use crate::lineardev::{
     FlakeyTargetParams, LinearDev, LinearDevTargetParams, LinearDevTargetTable, LinearTargetParams,
