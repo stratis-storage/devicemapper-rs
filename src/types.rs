@@ -34,6 +34,10 @@ macro_attr! {
     pub struct DataBlocks(pub u64);
 }
 
+impl DataBlocks {
+    checked_add!(DataBlocks);
+}
+
 NewtypeAdd! { () pub struct DataBlocks(u64); }
 NewtypeAddAssign! { () pub struct DataBlocks(u64); }
 NewtypeDeref! { () pub struct DataBlocks(u64); }
@@ -44,6 +48,7 @@ NewtypeSubAssign! { () pub struct DataBlocks(u64); }
 self_div!(DataBlocks);
 serde!(DataBlocks);
 debug!(DataBlocks);
+sum!(DataBlocks);
 
 unsigned_div!(u64, DataBlocks);
 unsigned_div!(u32, DataBlocks);
@@ -56,6 +61,13 @@ unsigned_mul!(u32, DataBlocks);
 unsigned_mul!(u16, DataBlocks);
 unsigned_mul!(u8, DataBlocks);
 usize_mul!(DataBlocks);
+
+unsigned_rem!(u64, DataBlocks);
+unsigned_rem!(u32, DataBlocks);
+unsigned_rem!(u16, DataBlocks);
+unsigned_rem!(u8, DataBlocks);
+usize_rem!(DataBlocks);
+rem!(DataBlocks);
 
 impl fmt::Display for DataBlocks {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
@@ -75,6 +87,8 @@ impl MetaBlocks {
     pub fn sectors(self) -> Sectors {
         self.0 * META_BLOCK_SIZE
     }
+
+    checked_add!(MetaBlocks);
 }
 
 NewtypeAdd! { () pub struct MetaBlocks(u64); }
@@ -87,6 +101,7 @@ NewtypeSubAssign! { () pub struct MetaBlocks(u64); }
 self_div!(MetaBlocks);
 serde!(MetaBlocks);
 debug!(MetaBlocks);
+sum!(MetaBlocks);
 
 unsigned_div!(u64, MetaBlocks);
 unsigned_div!(u32, MetaBlocks);
@@ -99,6 +114,13 @@ unsigned_mul!(u32, MetaBlocks);
 unsigned_mul!(u16, MetaBlocks);
 unsigned_mul!(u8, MetaBlocks);
 usize_mul!(MetaBlocks);
+
+unsigned_rem!(u64, MetaBlocks);
+unsigned_rem!(u32, MetaBlocks);
+unsigned_rem!(u16, MetaBlocks);
+unsigned_rem!(u8, MetaBlocks);
+usize_rem!(MetaBlocks);
+rem!(MetaBlocks);
 
 impl fmt::Display for MetaBlocks {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
@@ -144,6 +166,13 @@ unsigned_mul!(u32, Bytes);
 unsigned_mul!(u16, Bytes);
 unsigned_mul!(u8, Bytes);
 usize_mul!(Bytes);
+
+unsigned_rem!(u64, Bytes);
+unsigned_rem!(u32, Bytes);
+unsigned_rem!(u16, Bytes);
+unsigned_rem!(u8, Bytes);
+usize_rem!(Bytes);
+rem!(Bytes);
 
 impl fmt::Display for Bytes {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
