@@ -2,16 +2,6 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-// Allow the clippy error cast_lossless in this module.
-// Otherwise, clippy will suggest that "as u64" be converted to "64::from".
-// Unfortunately, the locations it suggests are all in macros, and u64
-// does not implement From<usize>. It is preferable to use the macros
-// uniformly for both usize and the other u* types.
-// I don't think that casting from usize to u64 could be lossy, unless the
-// code is running on a machine with 128 bit pointers, so this is not a
-// pressing worry.
-#![allow(clippy::cast_lossless)]
-
 use std::borrow::Borrow;
 use std::fmt;
 use std::iter::Sum;
@@ -59,13 +49,13 @@ unsigned_div!(u64, DataBlocks);
 unsigned_div!(u32, DataBlocks);
 unsigned_div!(u16, DataBlocks);
 unsigned_div!(u8, DataBlocks);
-unsigned_div!(usize, DataBlocks);
+usize_div!(DataBlocks);
 
 unsigned_mul!(u64, DataBlocks);
 unsigned_mul!(u32, DataBlocks);
 unsigned_mul!(u16, DataBlocks);
 unsigned_mul!(u8, DataBlocks);
-unsigned_mul!(usize, DataBlocks);
+usize_mul!(DataBlocks);
 
 impl fmt::Display for DataBlocks {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
@@ -102,13 +92,13 @@ unsigned_div!(u64, MetaBlocks);
 unsigned_div!(u32, MetaBlocks);
 unsigned_div!(u16, MetaBlocks);
 unsigned_div!(u8, MetaBlocks);
-unsigned_div!(usize, MetaBlocks);
+usize_div!(MetaBlocks);
 
 unsigned_mul!(u64, MetaBlocks);
 unsigned_mul!(u32, MetaBlocks);
 unsigned_mul!(u16, MetaBlocks);
 unsigned_mul!(u8, MetaBlocks);
-unsigned_mul!(usize, MetaBlocks);
+usize_mul!(MetaBlocks);
 
 impl fmt::Display for MetaBlocks {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
@@ -147,13 +137,13 @@ unsigned_div!(u64, Bytes);
 unsigned_div!(u32, Bytes);
 unsigned_div!(u16, Bytes);
 unsigned_div!(u8, Bytes);
-unsigned_div!(usize, Bytes);
+usize_div!(Bytes);
 
 unsigned_mul!(u64, Bytes);
 unsigned_mul!(u32, Bytes);
 unsigned_mul!(u16, Bytes);
 unsigned_mul!(u8, Bytes);
-unsigned_mul!(usize, Bytes);
+usize_mul!(Bytes);
 
 impl fmt::Display for Bytes {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
@@ -198,19 +188,19 @@ unsigned_div!(u64, Sectors);
 unsigned_div!(u32, Sectors);
 unsigned_div!(u16, Sectors);
 unsigned_div!(u8, Sectors);
-unsigned_div!(usize, Sectors);
+usize_div!(Sectors);
 
 unsigned_mul!(u64, Sectors);
 unsigned_mul!(u32, Sectors);
 unsigned_mul!(u16, Sectors);
 unsigned_mul!(u8, Sectors);
-unsigned_mul!(usize, Sectors);
+usize_mul!(Sectors);
 
 unsigned_rem!(u64, Sectors);
 unsigned_rem!(u32, Sectors);
 unsigned_rem!(u16, Sectors);
 unsigned_rem!(u8, Sectors);
-unsigned_rem!(usize, Sectors);
+usize_rem!(Sectors);
 rem!(Sectors);
 
 impl fmt::Display for Sectors {

@@ -61,6 +61,18 @@ macro_rules! unsigned_div {
         impl Div<$t> for $T {
             type Output = $T;
             fn div(self, rhs: $t) -> $T {
+                $T(self.0 / u64::from(rhs))
+            }
+        }
+    };
+}
+
+macro_rules! usize_div {
+    ($T:ident) => {
+        impl Div<usize> for $T {
+            type Output = $T;
+            fn div(self, rhs: usize) -> $T {
+                #[allow(clippy::cast_lossless)]
                 $T(self.0 / rhs as u64)
             }
         }
@@ -72,13 +84,33 @@ macro_rules! unsigned_mul {
         impl Mul<$t> for $T {
             type Output = $T;
             fn mul(self, rhs: $t) -> $T {
-                $T(self.0 * rhs as u64)
+                $T(self.0 * u64::from(rhs))
             }
         }
 
         impl Mul<$T> for $t {
             type Output = $T;
             fn mul(self, rhs: $T) -> $T {
+                $T(u64::from(self) * rhs.0)
+            }
+        }
+    };
+}
+
+macro_rules! usize_mul {
+    ($T:ident) => {
+        impl Mul<usize> for $T {
+            type Output = $T;
+            fn mul(self, rhs: usize) -> $T {
+                #[allow(clippy::cast_lossless)]
+                $T(self.0 * rhs as u64)
+            }
+        }
+
+        impl Mul<$T> for usize {
+            type Output = $T;
+            fn mul(self, rhs: $T) -> $T {
+                #[allow(clippy::cast_lossless)]
                 $T(self as u64 * rhs.0)
             }
         }
@@ -90,6 +122,18 @@ macro_rules! unsigned_rem {
         impl Rem<$t> for $T {
             type Output = $T;
             fn rem(self, rhs: $t) -> $T {
+                $T(self.0 % u64::from(rhs))
+            }
+        }
+    };
+}
+
+macro_rules! usize_rem {
+    ($T:ident) => {
+        impl Rem<usize> for $T {
+            type Output = $T;
+            fn rem(self, rhs: usize) -> $T {
+                #[allow(clippy::cast_lossless)]
                 $T(self.0 % rhs as u64)
             }
         }
@@ -101,7 +145,7 @@ macro_rules! rem {
         impl Rem<$T> for $T {
             type Output = $T;
             fn rem(self, rhs: $T) -> $T {
-                $T(self.0 % rhs.0 as u64)
+                $T(self.0 % u64::from(rhs.0))
             }
         }
     };
