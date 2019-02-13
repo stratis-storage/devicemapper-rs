@@ -90,6 +90,9 @@ extern crate tempfile;
 #[cfg(test)]
 extern crate uuid;
 
+/// Range macros
+#[macro_use]
+mod range_macros;
 /// shared constants
 mod consts;
 /// rust definitions of ioctl structs and consts
