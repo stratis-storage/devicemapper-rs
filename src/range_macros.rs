@@ -20,7 +20,7 @@ macro_rules! range {
         NewtypeSub! { () pub struct $T(u64); }
         NewtypeSubAssign! { () pub struct $T(u64); }
 
-        debug!($T);
+        debug_macro!($T);
         serde!($T);
         sum!($T);
 
@@ -41,7 +41,7 @@ macro_rules! self_div {
     };
 }
 
-macro_rules! debug {
+macro_rules! debug_macro {
     ($T:ident) => {
         impl fmt::Debug for $T {
             fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
