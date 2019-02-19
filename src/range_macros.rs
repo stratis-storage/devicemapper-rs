@@ -21,28 +21,12 @@ macro_rules! range {
         NewtypeSubAssign! { () pub struct $T(u64); }
 
         debug!($T);
-        rem!($T);
-        self_div!($T);
         serde!($T);
         sum!($T);
 
-        unsigned_div!(u64, $T);
-        unsigned_div!(u32, $T);
-        unsigned_div!(u16, $T);
-        unsigned_div!(u8, $T);
-        usize_div!($T);
-
-        unsigned_mul!(u64, $T);
-        unsigned_mul!(u32, $T);
-        unsigned_mul!(u16, $T);
-        unsigned_mul!(u8, $T);
-        usize_mul!($T);
-
-        unsigned_rem!(u64, $T);
-        unsigned_rem!(u32, $T);
-        unsigned_rem!(u16, $T);
-        unsigned_rem!(u8, $T);
-        usize_rem!($T);
+        mul!($T);
+        div!($T);
+        rem!($T);
     };
 }
 
@@ -100,6 +84,18 @@ macro_rules! sum {
     };
 }
 
+// Define a complete set of division operations.
+macro_rules! div {
+    ($T: ident) => {
+        unsigned_div!(u64, $T);
+        unsigned_div!(u32, $T);
+        unsigned_div!(u16, $T);
+        unsigned_div!(u8, $T);
+        usize_div!($T);
+        self_div!($T);
+    };
+}
+
 macro_rules! unsigned_div {
     ($t:ty, $T:ident) => {
         impl Div<$t> for $T {
@@ -120,6 +116,17 @@ macro_rules! usize_div {
                 $T(self.0 / rhs as u64)
             }
         }
+    };
+}
+
+// Define a complete set of multiplication operations.
+macro_rules! mul {
+    ($T: ident) => {
+        unsigned_mul!(u64, $T);
+        unsigned_mul!(u32, $T);
+        unsigned_mul!(u16, $T);
+        unsigned_mul!(u8, $T);
+        usize_mul!($T);
     };
 }
 
@@ -161,6 +168,18 @@ macro_rules! usize_mul {
     };
 }
 
+// Define a complete set of remainder operations.
+macro_rules! rem {
+    ($T: ident) => {
+        unsigned_rem!(u64, $T);
+        unsigned_rem!(u32, $T);
+        unsigned_rem!(u16, $T);
+        unsigned_rem!(u8, $T);
+        usize_rem!($T);
+        self_rem!($T);
+    };
+}
+
 macro_rules! unsigned_rem {
     ($t:ty, $T:ident) => {
         impl Rem<$t> for $T {
@@ -184,7 +203,7 @@ macro_rules! usize_rem {
     };
 }
 
-macro_rules! rem {
+macro_rules! self_rem {
     ($T:ident) => {
         impl Rem<$T> for $T {
             type Output = $T;
