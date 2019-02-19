@@ -224,3 +224,123 @@ macro_rules! checked_add {
         }
     };
 }
+
+mod tests {
+
+    use std::fmt;
+    use std::iter::Sum;
+    use std::ops::{Add, Div, Mul, Rem};
+    use std::u64;
+
+    range!(Units);
+
+    #[test]
+    /// Test implicit derivations for Units
+    fn test_implicit_derivations() {
+        // Test Clone. Note cloning within an assertion disables the clippy
+        // allow, so no assertion here.
+        #[allow(clippy::clone_on_copy)]
+        let _ = Units(1).clone();
+
+        // Test Default
+        assert_eq!(Units::default(), Units(0));
+
+        // Test Ord, PartialOrd
+        assert!(Units::default() < Units(1));
+        assert!(!(Units(1) < Units::default()));
+
+        // Test Copy
+        let z = Units(3);
+        let mut d = z;
+        d += Units(1);
+        assert_eq!(z, Units(3));
+        assert_eq!(d, Units(4));
+    }
+
+    #[test]
+    /// Test non-arithmetic derivations that are derived explicitly
+    fn test_explicit_derivations() {
+        // Test From
+        assert_eq!(Units::from(3) + Units(3), Units(6));
+
+        // Test Deref
+        assert_eq!(*Units(3) + 3, 6);
+
+        // Test Debug
+        assert_eq!(format!("{:?}", Units(3)), "Units(3)");
+    }
+
+    #[test]
+    /// Test operations that work on an iterator of values, like sum and
+    /// product.
+    fn test_summary_operations() {
+        // Test Sum
+        assert_eq!(
+            vec![Units(2), Units(3)].iter().cloned().sum::<Units>(),
+            Units(5)
+        );
+    }
+
+    #[test]
+    /// Test addition.
+    fn test_addition() {
+        assert_eq!(Units(1) + Units(3), Units(4));
+
+        let mut z = Units(1);
+        z += Units(3);
+        assert_eq!(z, Units(4));
+
+        assert_eq!(Units(u64::MAX).checked_add(Units(1)), None);
+    }
+
+    #[test]
+    /// Test subtraction
+    fn test_subtraction() {
+        assert_eq!(Units(3) - Units(1), Units(2));
+
+        let mut z = Units(3);
+        z -= Units(1);
+        assert_eq!(z, Units(2));
+    }
+
+    #[test]
+    /// Test multiplication
+    fn test_multiplication() {
+        assert_eq!(Units(3) * 2u8, Units(6));
+        assert_eq!(2u8 * Units(3), Units(6));
+
+        assert_eq!(Units(3) * 2u16, Units(6));
+        assert_eq!(2u16 * Units(3), Units(6));
+
+        assert_eq!(Units(3) * 2u32, Units(6));
+        assert_eq!(2u32 * Units(3), Units(6));
+
+        assert_eq!(Units(3) * 2u64, Units(6));
+        assert_eq!(2u64 * Units(3), Units(6));
+
+        assert_eq!(Units(3) * 2usize, Units(6));
+        assert_eq!(2usize * Units(3), Units(6));
+    }
+
+    #[test]
+    /// Test division and remainder together
+    fn test_division_and_remainder() {
+        assert_eq!(Units(3) / Units(2), 1);
+        assert_eq!(Units(3) % Units(2), Units(1));
+
+        assert_eq!(Units(5) / 2u8, Units(2));
+        assert_eq!(Units(3) % 2u8, Units(1));
+
+        assert_eq!(Units(5) / 2u16, Units(2));
+        assert_eq!(Units(3) % 2u16, Units(1));
+
+        assert_eq!(Units(5) / 2u32, Units(2));
+        assert_eq!(Units(3) % 2u32, Units(1));
+
+        assert_eq!(Units(5) / 2u64, Units(2));
+        assert_eq!(Units(3) % 2u64, Units(1));
+
+        assert_eq!(Units(5) / 2usize, Units(2));
+        assert_eq!(Units(3) % 2usize, Units(1));
+    }
+}
