@@ -225,25 +225,11 @@ mod tests {
     use super::*;
 
     #[test]
-    /// Verify that Sectors can be multiplied by a usize.
-    /// The real test is that this tests compiles at all.
-    fn test_usize() {
-        assert_eq!(Sectors(0) * 32usize, Sectors(0));
-    }
-
-    #[test]
     /// Verify that creating an empty DmName is an error.
     pub fn test_empty_name() {
         assert!(match DmName::new("") {
             Err(DmError::Core(Error(ErrorKind::InvalidArgument(_), _))) => true,
             _ => false,
         })
-    }
-
-    #[test]
-    /// Test the return types of various % operations
-    pub fn test_sectors_remainder() {
-        assert_eq!(Sectors(13) % Sectors(11), Sectors(2));
-        assert_eq!(Sectors(13) % 11usize, Sectors(2));
     }
 }
