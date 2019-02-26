@@ -28,15 +28,9 @@ const META_BLOCK_SIZE: Sectors = Sectors(8);
 #[allow(dead_code)]
 const MAX_META_DEV_SIZE: MetaBlocks = MetaBlocks(255 * ((1 << 14) - 64));
 
-range!(DataBlocks);
+range!(DataBlocks, "data blocks");
 
-impl fmt::Display for DataBlocks {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{} data blocks", self.0)
-    }
-}
-
-range!(MetaBlocks);
+range!(MetaBlocks, "meta blocks");
 
 impl MetaBlocks {
     /// Return the number of Sectors in the MetaBlocks.
@@ -45,13 +39,7 @@ impl MetaBlocks {
     }
 }
 
-impl fmt::Display for MetaBlocks {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{} meta blocks", self.0)
-    }
-}
-
-range!(Bytes);
+range!(Bytes, "bytes");
 
 impl Bytes {
     /// Return the number of Sectors fully contained in these bytes.
@@ -60,13 +48,7 @@ impl Bytes {
     }
 }
 
-impl fmt::Display for Bytes {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{} bytes", self.0)
-    }
-}
-
-range!(Sectors);
+range!(Sectors, "sectors");
 
 impl Sectors {
     /// The number of bytes in these sectors.
@@ -77,12 +59,6 @@ impl Sectors {
     /// The number of whole metablocks contained in these sectors.
     pub fn metablocks(self) -> MetaBlocks {
         MetaBlocks(self / META_BLOCK_SIZE)
-    }
-}
-
-impl fmt::Display for Sectors {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{} sectors", self.0)
     }
 }
 
