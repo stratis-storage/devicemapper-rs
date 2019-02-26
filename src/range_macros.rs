@@ -4,7 +4,7 @@
 
 // An omnibus macro that includes all simple macros.
 macro_rules! range {
-    ($T: ident) => {
+    ($T: ident, $display_name: expr) => {
         macro_attr! {
             #[derive(Clone, Copy, Default, Eq, Ord, PartialEq, PartialOrd)]
             /// A type for $T
@@ -21,6 +21,7 @@ macro_rules! range {
         NewtypeSubAssign! { () pub struct $T(u64); }
 
         debug_macro!($T);
+        display!($T, $display_name);
         serde!($T);
         sum!($T);
 
@@ -47,6 +48,16 @@ macro_rules! debug_macro {
             fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
                 write!(f, stringify!($T))?;
                 write!(f, "({})", **self)
+            }
+        }
+    };
+}
+
+macro_rules! display {
+    ($T:ident, $display_name:expr) => {
+        impl fmt::Display for $T {
+            fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+                write!(f, "{} {}", self.0, $display_name)
             }
         }
     };
@@ -232,7 +243,7 @@ mod tests {
     use std::ops::{Add, Div, Mul, Rem};
     use std::u64;
 
-    range!(Units);
+    range!(Units, "units");
 
     #[test]
     /// Test implicit derivations for Units
@@ -268,6 +279,9 @@ mod tests {
 
         // Test Debug
         assert_eq!(format!("{:?}", Units(3)), "Units(3)");
+
+        // Test Display
+        assert_eq!(format!("{:}", Units(3)), "3 units");
     }
 
     #[test]
