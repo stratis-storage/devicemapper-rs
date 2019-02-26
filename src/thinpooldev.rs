@@ -9,7 +9,7 @@ use crate::{
     lineardev::{LinearDev, LinearDevTargetParams},
     result::{DmError, DmResult, ErrorEnum},
     shared::{
-        device_create, device_exists, device_match, get_status_line_fields,
+        device_create, device_exists, device_match, get_status, get_status_line_fields,
         make_unexpected_value_error, parse_device, parse_value, DmDevice, TargetLine, TargetParams,
         TargetTable, TargetTypeBuf,
     },
@@ -553,14 +553,7 @@ impl ThinPoolDev {
     /// Returns an error if there was an error getting the status value.
     pub fn status(&self, dm: &DM) -> DmResult<ThinPoolStatus> {
         let (_, status) = dm.table_status(&DevId::Name(self.name()), &DmOptions::new())?;
-
-        assert_eq!(
-            status.len(),
-            1,
-            "Kernel must return 1 line from thin pool status"
-        );
-
-        status.first().expect("assertion above holds").3.parse()
+        get_status(&status)?.parse()
     }
 
     /// Set the table for the existing metadata device.

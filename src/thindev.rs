@@ -8,8 +8,8 @@ use crate::{
     core::{DevId, Device, DeviceInfo, DmCookie, DmFlags, DmName, DmOptions, DmUuid, DM},
     result::{DmError, DmResult, ErrorEnum},
     shared::{
-        device_create, device_exists, device_match, get_status_line_fields, message, parse_device,
-        parse_value, DmDevice, TargetLine, TargetParams, TargetTable, TargetTypeBuf,
+        device_create, device_exists, device_match, get_status, get_status_line_fields, message,
+        parse_device, parse_value, DmDevice, TargetLine, TargetParams, TargetTable, TargetTypeBuf,
     },
     thindevid::ThinDevId,
     thinpooldev::ThinPoolDev,
@@ -385,14 +385,7 @@ impl ThinDev {
     /// Get the current status of the thin device.
     pub fn status(&self, dm: &DM) -> DmResult<ThinStatus> {
         let (_, table) = dm.table_status(&DevId::Name(self.name()), &DmOptions::new())?;
-
-        assert_eq!(
-            table.len(),
-            1,
-            "Kernel must return 1 line table for thin status"
-        );
-
-        table.first().expect("assertion above holds").3.parse()
+        get_status(&table)?.parse()
     }
 
     /// Set the table for the thin device's target

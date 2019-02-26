@@ -246,6 +246,27 @@ pub fn get_status_line_fields<'a>(
     Ok(status_vals)
 }
 
+/// Get unique status element from a status result.
+/// Return an error if an incorrect number of lines is obtained.
+pub fn get_status(status_lines: &[(u64, u64, String, String)]) -> DmResult<String> {
+    let length = status_lines.len();
+    if length != 1 {
+        return Err(DmError::Dm(
+            ErrorEnum::Invalid,
+            format!(
+                "Incorrect number of lines for status; expected 1, found {} in status result \"{}\"",
+                length,
+                status_lines.iter().map(|(s, l, t, v)| format!("{} {} {} {}", s, l, t, v)).collect::<Vec<String>>().join(", ")
+            ),
+        ));
+    }
+    Ok(status_lines
+        .first()
+        .expect("if length != 1, already returned")
+        .3
+        .to_owned())
+}
+
 /// Construct an error when parsing yields an unexpected value.
 /// Indicate the location of the unexpected value, 1-indexed, its actual
 /// value, and the name of the expected thing.
