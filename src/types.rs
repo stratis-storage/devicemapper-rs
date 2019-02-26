@@ -94,19 +94,3 @@ impl<'a> fmt::Display for DevId<'a> {
 const DM_TARGET_TYPE_LEN: usize = 16;
 
 str_id!(TargetType, TargetTypeBuf, DM_TARGET_TYPE_LEN);
-
-#[cfg(test)]
-mod tests {
-    use crate::errors::Error;
-
-    use super::*;
-
-    #[test]
-    /// Verify that creating an empty DmName is an error.
-    pub fn test_empty_name() {
-        assert!(match DmName::new("") {
-            Err(DmError::Core(Error(ErrorKind::InvalidArgument(_), _))) => true,
-            _ => false,
-        })
-    }
-}

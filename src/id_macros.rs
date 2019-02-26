@@ -112,3 +112,68 @@ macro_rules! str_id {
         }
     };
 }
+
+#[cfg(test)]
+mod tests {
+    use std::borrow::Borrow;
+    use std::fmt;
+    use std::iter;
+    use std::ops::Deref;
+
+    use crate::errors::{Error, ErrorKind};
+    use crate::result::{DmError, DmResult};
+
+    const TYPE_LEN: usize = 12;
+    str_id!(Id, IdBuf, TYPE_LEN);
+
+    #[test]
+    /// Test for errors on an empty name.
+    fn test_empty_name() {
+        assert!(match Id::new("") {
+            Err(DmError::Core(Error(ErrorKind::InvalidArgument(_), _))) => true,
+            _ => false,
+        });
+        assert!(match IdBuf::new("".into()) {
+            Err(DmError::Core(Error(ErrorKind::InvalidArgument(_), _))) => true,
+            _ => false,
+        })
+    }
+
+    #[test]
+    /// Test for errors on an overlong name.
+    fn test_too_long_name() {
+        let name = iter::repeat('a').take(TYPE_LEN + 1).collect::<String>();
+        assert!(match Id::new(&name) {
+            Err(DmError::Core(Error(ErrorKind::InvalidArgument(_), _))) => true,
+            _ => false,
+        });
+        assert!(match IdBuf::new(name) {
+            Err(DmError::Core(Error(ErrorKind::InvalidArgument(_), _))) => true,
+            _ => false,
+        })
+    }
+
+    #[test]
+    /// Test the concrete methods and traits of the interface.
+    fn test_interface() {
+        let id = Id::new("id").expect("is valid id");
+        let id_buf = IdBuf::new("id".into()).expect("is valid id");
+
+        // Test as_bytes.
+        assert_eq!(id.as_bytes(), &[105u8, 100u8]);
+        assert_eq!(id_buf.as_bytes(), &[105u8, 100u8]);
+
+        // Test ToOwned implementation.
+        // $B.to_owned() == $O
+        assert_eq!(id.to_owned(), id_buf);
+
+        // Test Display implementation
+        // X.to_string() = (*X).to_string()
+        assert_eq!(id.to_string(), (*id).to_string());
+        assert_eq!(id_buf.to_string(), (*id_buf).to_string());
+
+        // Test Deref
+        assert_eq!(id_buf.deref(), id);
+        assert_eq!(*id_buf, *id);
+    }
+}
