@@ -5,12 +5,35 @@
 // A module to contain functionality used for generating DM ids which
 // are restricted in length and format by devicemapper.
 
+// Evaluates to an error string if the value does not match the requirements.
+macro_rules! str_check {
+    ($value:expr, $max_allowed_chars:expr) => {{
+        let value = $value;
+        let max_allowed_chars = $max_allowed_chars;
+        if !value.is_ascii() {
+            Some(format!("value {} has some non-ascii characters", value))
+        } else {
+            let num_chars = value.len();
+            if num_chars == 0 {
+                Some("value has zero characters".into())
+            } else if num_chars > max_allowed_chars {
+                Some(format!(
+                    "value {} has {} chars which is greater than maximum allowed {}",
+                    value, num_chars, max_allowed_chars
+                ))
+            } else {
+                None
+            }
+        }
+    }};
+}
+
 /// Define borrowed and owned versions of string types that guarantee
 /// conformance to DM restrictions, such as maximum length.
 // This implementation follows the example of Path/PathBuf as closely as
 // possible.
 macro_rules! str_id {
-    ($B:ident, $O:ident, $MAX:ident, $check:ident) => {
+    ($B:ident, $O:ident, $MAX:ident) => {
         /// The borrowed version of the DM identifier.
         #[derive(Debug, PartialEq, Eq, Hash)]
         pub struct $B {
@@ -27,7 +50,11 @@ macro_rules! str_id {
             /// Create a new borrowed identifier from a `&str`.
             #[allow(clippy::new_ret_no_self)]
             pub fn new(value: &str) -> DmResult<&$B> {
-                $check(value, $MAX - 1)?;
+                if let Some(err_msg) = str_check!(value, $MAX - 1) {
+                    return Err(DmError::Core(
+                        ErrorKind::InvalidArgument(err_msg.into()).into(),
+                    ));
+                }
                 Ok(unsafe { &*(value as *const str as *const $B) })
             }
 
@@ -56,7 +83,11 @@ macro_rules! str_id {
             /// Construct a new owned identifier.
             #[allow(clippy::new_ret_no_self)]
             pub fn new(value: String) -> DmResult<$O> {
-                $check(&value, $MAX - 1)?;
+                if let Some(err_msg) = str_check!(&value, $MAX - 1) {
+                    return Err(DmError::Core(
+                        ErrorKind::InvalidArgument(err_msg.into()).into(),
+                    ));
+                }
                 Ok($O { inner: value })
             }
         }
