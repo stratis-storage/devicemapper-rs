@@ -552,8 +552,7 @@ impl ThinPoolDev {
     /// Get the current status of the thinpool.
     /// Returns an error if there was an error getting the status value.
     pub fn status(&self, dm: &DM) -> DmResult<ThinPoolStatus> {
-        let (_, status) = dm.table_status(&DevId::Name(self.name()), &DmOptions::new())?;
-        get_status(&status)?.parse()
+        status!(self, dm)
     }
 
     /// Set the table for the existing metadata device.

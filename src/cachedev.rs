@@ -722,8 +722,7 @@ impl CacheDev {
 
     /// Get the current status of the cache device.
     pub fn status(&self, dm: &DM) -> DmResult<CacheDevStatus> {
-        let (_, status) = dm.table_status(&DevId::Name(self.name()), &DmOptions::new())?;
-        get_status(&status)?.parse()
+        status!(self, dm)
     }
 }
 

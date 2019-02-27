@@ -47,3 +47,13 @@ macro_rules! table {
         &$s.table
     };
 }
+
+macro_rules! status {
+    ($s:ident, $dm:ident) => {
+        get_status(
+            &$dm.table_status(&DevId::Name($s.name()), &DmOptions::new())?
+                .1,
+        )?
+        .parse()
+    };
+}

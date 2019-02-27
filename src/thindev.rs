@@ -384,8 +384,7 @@ impl ThinDev {
 
     /// Get the current status of the thin device.
     pub fn status(&self, dm: &DM) -> DmResult<ThinStatus> {
-        let (_, table) = dm.table_status(&DevId::Name(self.name()), &DmOptions::new())?;
-        get_status(&table)?.parse()
+        status!(self, dm)
     }
 
     /// Set the table for the thin device's target
