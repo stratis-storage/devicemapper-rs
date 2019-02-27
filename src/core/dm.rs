@@ -570,7 +570,7 @@ impl DM {
                 let target_type = unsafe {
                     let cast: &[u8; 16] = &*(&targ.target_type as *const [u8; 16]);
                     let slc = slice_to_null(cast).expect("assume all parsing succeeds");
-                    String::from_utf8_lossy(slc).into_owned()
+                    String::from_utf8_lossy(slc).trim_end().to_owned()
                 };
 
                 let params = {
