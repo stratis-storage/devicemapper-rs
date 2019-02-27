@@ -14,9 +14,9 @@ use crate::{
     lineardev::{LinearDev, LinearDevTargetParams},
     result::{DmError, DmResult, ErrorEnum},
     shared::{
-        device_create, device_exists, device_match, get_status, get_status_line_fields,
-        make_unexpected_value_error, parse_device, parse_value, DmDevice, TargetLine, TargetParams,
-        TargetTable, TargetTypeBuf,
+        device_create, device_exists, device_match, get_status, get_status_line,
+        get_status_line_fields, make_unexpected_value_error, parse_device, parse_value, DmDevice,
+        TargetLine, TargetParams, TargetTable, TargetTypeBuf,
     },
     units::{DataBlocks, MetaBlocks, Sectors},
 };
@@ -369,6 +369,8 @@ impl FromStr for CacheDevStatus {
     // Note: This method is not entirely complete. In particular, *_args values
     // may require more or better checking or processing.
     fn from_str(status_line: &str) -> DmResult<CacheDevStatus> {
+        let status_line = get_status_line(status_line, &CACHE_TARGET_NAME)?;
+
         if status_line.starts_with("Error") {
             return Ok(CacheDevStatus::Error);
         }

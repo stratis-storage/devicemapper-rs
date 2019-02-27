@@ -9,9 +9,9 @@ use crate::{
     lineardev::{LinearDev, LinearDevTargetParams},
     result::{DmError, DmResult, ErrorEnum},
     shared::{
-        device_create, device_exists, device_match, get_status, get_status_line_fields,
-        make_unexpected_value_error, parse_device, parse_value, DmDevice, TargetLine, TargetParams,
-        TargetTable, TargetTypeBuf,
+        device_create, device_exists, device_match, get_status, get_status_line,
+        get_status_line_fields, make_unexpected_value_error, parse_device, parse_value, DmDevice,
+        TargetLine, TargetParams, TargetTable, TargetTypeBuf,
     },
     units::{DataBlocks, MetaBlocks, Sectors},
 };
@@ -337,6 +337,8 @@ impl FromStr for ThinPoolStatus {
     type Err = DmError;
 
     fn from_str(status_line: &str) -> DmResult<ThinPoolStatus> {
+        let status_line = get_status_line(status_line, &THINPOOL_TARGET_NAME)?;
+
         if status_line.starts_with("Error") {
             return Ok(ThinPoolStatus::Error);
         }
