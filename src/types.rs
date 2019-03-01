@@ -62,113 +62,14 @@ impl Sectors {
     }
 }
 
-/// Returns an error if value is unsuitable.
-fn str_check(value: &str, max_allowed_chars: usize) -> DmResult<()> {
-    if !value.is_ascii() {
-        let err_msg = format!("value {} has some non-ascii characters", value);
-        return Err(DmError::Core(ErrorKind::InvalidArgument(err_msg).into()));
-    }
-    let num_chars = value.len();
-    if num_chars == 0 {
-        return Err(DmError::Core(
-            ErrorKind::InvalidArgument("value has zero characters".into()).into(),
-        ));
-    }
-    if num_chars > max_allowed_chars {
-        let err_msg = format!(
-            "value {} has {} chars which is greater than maximum allowed {}",
-            value, num_chars, max_allowed_chars
-        );
-        return Err(DmError::Core(ErrorKind::InvalidArgument(err_msg).into()));
-    }
-    Ok(())
-}
-
-/// Define borrowed and owned versions of string types that guarantee
-/// conformance to DM restrictions, such as maximum length.
-// This implementation follows the example of Path/PathBuf as closely as
-// possible.
-macro_rules! str_id {
-    ($B:ident, $O:ident, $MAX:ident, $check:ident) => {
-        /// The borrowed version of the DM identifier.
-        #[derive(Debug, PartialEq, Eq, Hash)]
-        pub struct $B {
-            inner: str,
-        }
-
-        /// The owned version of the DM identifier.
-        #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-        pub struct $O {
-            inner: String,
-        }
-
-        impl $B {
-            /// Create a new borrowed identifier from a `&str`.
-            #[allow(clippy::new_ret_no_self)]
-            pub fn new(value: &str) -> DmResult<&$B> {
-                $check(value, $MAX - 1)?;
-                Ok(unsafe { &*(value as *const str as *const $B) })
-            }
-
-            /// Get the inner value as bytes
-            pub fn as_bytes(&self) -> &[u8] {
-                self.inner.as_bytes()
-            }
-        }
-
-        impl ToOwned for $B {
-            type Owned = $O;
-            fn to_owned(&self) -> $O {
-                $O {
-                    inner: self.inner.to_owned(),
-                }
-            }
-        }
-
-        impl fmt::Display for $B {
-            fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-                write!(f, "{}", &self.inner)
-            }
-        }
-
-        impl $O {
-            /// Construct a new owned identifier.
-            #[allow(clippy::new_ret_no_self)]
-            pub fn new(value: String) -> DmResult<$O> {
-                $check(&value, $MAX - 1)?;
-                Ok($O { inner: value })
-            }
-        }
-
-        impl AsRef<$B> for $O {
-            fn as_ref(&self) -> &$B {
-                self
-            }
-        }
-
-        impl Borrow<$B> for $O {
-            fn borrow(&self) -> &$B {
-                self.deref()
-            }
-        }
-
-        impl Deref for $O {
-            type Target = $B;
-            fn deref(&self) -> &$B {
-                $B::new(&self.inner).expect("inner satisfies all correctness criteria for $B::new")
-            }
-        }
-    };
-}
-
 /// A devicemapper name. Really just a string, but also the argument type of
 /// DevId::Name. Used in function arguments to indicate that the function
 /// takes only a name, not a devicemapper uuid.
-str_id!(DmName, DmNameBuf, DM_NAME_LEN, str_check);
+str_id!(DmName, DmNameBuf, DM_NAME_LEN);
 
 /// A devicemapper uuid. A devicemapper uuid has a devicemapper-specific
 /// format.
-str_id!(DmUuid, DmUuidBuf, DM_UUID_LEN, str_check);
+str_id!(DmUuid, DmUuidBuf, DM_UUID_LEN);
 
 /// Used as a parameter for functions that take either a Device name
 /// or a Device UUID.
@@ -192,20 +93,4 @@ impl<'a> fmt::Display for DevId<'a> {
 /// Number of bytes in Struct_dm_target_spec::target_type field.
 const DM_TARGET_TYPE_LEN: usize = 16;
 
-str_id!(TargetType, TargetTypeBuf, DM_TARGET_TYPE_LEN, str_check);
-
-#[cfg(test)]
-mod tests {
-    use crate::errors::Error;
-
-    use super::*;
-
-    #[test]
-    /// Verify that creating an empty DmName is an error.
-    pub fn test_empty_name() {
-        assert!(match DmName::new("") {
-            Err(DmError::Core(Error(ErrorKind::InvalidArgument(_), _))) => true,
-            _ => false,
-        })
-    }
-}
+str_id!(TargetType, TargetTypeBuf, DM_TARGET_TYPE_LEN);
