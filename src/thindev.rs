@@ -219,6 +219,10 @@ impl FromStr for ThinStatus {
     type Err = DmError;
 
     fn from_str(status_line: &str) -> DmResult<ThinStatus> {
+        if status_line.starts_with("Error") {
+            return Ok(ThinStatus::Error);
+        }
+
         if status_line.starts_with("Fail") {
             return Ok(ThinStatus::Fail);
         }

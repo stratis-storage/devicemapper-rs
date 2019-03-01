@@ -365,6 +365,10 @@ impl FromStr for CacheDevStatus {
     // Note: This method is not entirely complete. In particular, *_args values
     // may require more or better checking or processing.
     fn from_str(status_line: &str) -> DmResult<CacheDevStatus> {
+        if status_line.starts_with("Error") {
+            return Ok(CacheDevStatus::Error);
+        }
+
         if status_line.starts_with("Fail") {
             return Ok(CacheDevStatus::Fail);
         }

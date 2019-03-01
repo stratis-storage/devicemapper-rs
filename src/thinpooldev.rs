@@ -337,6 +337,10 @@ impl FromStr for ThinPoolStatus {
     type Err = DmError;
 
     fn from_str(status_line: &str) -> DmResult<ThinPoolStatus> {
+        if status_line.starts_with("Error") {
+            return Ok(ThinPoolStatus::Error);
+        }
+
         if status_line.starts_with("Fail") {
             return Ok(ThinPoolStatus::Fail);
         }
