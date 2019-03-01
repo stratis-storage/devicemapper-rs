@@ -33,7 +33,7 @@ macro_rules! str_check {
 // This implementation follows the example of Path/PathBuf as closely as
 // possible.
 macro_rules! str_id {
-    ($B:ident, $O:ident, $MAX:ident) => {
+    ($B:ident, $O:ident, $MAX:ident, $err_func:ident) => {
         /// The borrowed version of the DM identifier.
         #[derive(Debug, PartialEq, Eq, Hash)]
         pub struct $B {
@@ -51,9 +51,7 @@ macro_rules! str_id {
             #[allow(clippy::new_ret_no_self)]
             pub fn new(value: &str) -> DmResult<&$B> {
                 if let Some(err_msg) = str_check!(value, $MAX - 1) {
-                    return Err(DmError::Core(
-                        ErrorKind::InvalidArgument(err_msg.into()).into(),
-                    ));
+                    return Err($err_func(&err_msg));
                 }
                 Ok(unsafe { &*(value as *const str as *const $B) })
             }
@@ -84,9 +82,7 @@ macro_rules! str_id {
             #[allow(clippy::new_ret_no_self)]
             pub fn new(value: String) -> DmResult<$O> {
                 if let Some(err_msg) = str_check!(&value, $MAX - 1) {
-                    return Err(DmError::Core(
-                        ErrorKind::InvalidArgument(err_msg.into()).into(),
-                    ));
+                    return Err($err_func(&err_msg));
                 }
                 Ok($O { inner: value })
             }
@@ -120,11 +116,16 @@ mod tests {
     use std::iter;
     use std::ops::Deref;
 
-    use crate::errors::{Error, ErrorKind};
     use crate::result::{DmError, DmResult};
 
+    use crate::core::errors::{Error, ErrorKind};
+
+    fn err_func(err_msg: &str) -> DmError {
+        DmError::Core(ErrorKind::InvalidArgument(err_msg.into()).into())
+    }
+
     const TYPE_LEN: usize = 12;
-    str_id!(Id, IdBuf, TYPE_LEN);
+    str_id!(Id, IdBuf, TYPE_LEN, err_func);
 
     #[test]
     /// Test for errors on an empty name.

@@ -34,9 +34,9 @@ macro_rules! devnode {
 macro_rules! to_raw_table_unique {
     ($s:ident) => {
         vec![(
-            $s.table.start,
-            $s.table.length,
-            $s.table.params.target_type(),
+            *$s.table.start,
+            *$s.table.length,
+            $s.table.params.target_type().to_string(),
             $s.table.params.param_str(),
         )]
     };

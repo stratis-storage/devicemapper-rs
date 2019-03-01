@@ -6,19 +6,15 @@ use std::fmt;
 use std::path::PathBuf;
 use std::str::FromStr;
 
-use crate::device::Device;
-use crate::deviceinfo::DeviceInfo;
-use crate::dm::DM;
-use crate::dm_flags::{DmCookie, DmFlags};
-use crate::dm_options::DmOptions;
+use crate::core::{DevId, Device, DeviceInfo, DmCookie, DmFlags, DmName, DmOptions, DmUuid, DM};
 use crate::result::{DmError, DmResult, ErrorEnum};
 use crate::shared::{
     device_create, device_exists, device_match, get_status_line_fields, message, parse_device,
-    parse_value, DmDevice, TargetLine, TargetParams, TargetTable,
+    parse_value, DmDevice, TargetLine, TargetParams, TargetTable, TargetTypeBuf,
 };
 use crate::thindevid::ThinDevId;
 use crate::thinpooldev::ThinPoolDev;
-use crate::types::{DevId, DmName, DmUuid, Sectors, TargetTypeBuf};
+use crate::units::Sectors;
 
 const THIN_TARGET_NAME: &str = "thin";
 
@@ -120,9 +116,7 @@ impl fmt::Display for ThinDevTargetTable {
 }
 
 impl TargetTable for ThinDevTargetTable {
-    fn from_raw_table(
-        table: &[(Sectors, Sectors, TargetTypeBuf, String)],
-    ) -> DmResult<ThinDevTargetTable> {
+    fn from_raw_table(table: &[(u64, u64, String, String)]) -> DmResult<ThinDevTargetTable> {
         if table.len() != 1 {
             let err_msg = format!(
                 "ThinDev table should have exactly one line, has {} lines",
@@ -132,13 +126,13 @@ impl TargetTable for ThinDevTargetTable {
         }
         let line = table.first().expect("table.len() == 1");
         Ok(ThinDevTargetTable::new(
-            line.0,
-            line.1,
-            format!("{} {}", line.2.to_string(), line.3).parse::<ThinTargetParams>()?,
+            Sectors(line.0),
+            Sectors(line.1),
+            format!("{} {}", line.2, line.3).parse::<ThinTargetParams>()?,
         ))
     }
 
-    fn to_raw_table(&self) -> Vec<(Sectors, Sectors, TargetTypeBuf, String)> {
+    fn to_raw_table(&self) -> Vec<(u64, u64, String, String)> {
         to_raw_table_unique!(self)
     }
 }
@@ -436,9 +430,9 @@ mod tests {
         test_name, test_string, test_uuid, udev_settle, xfs_create_fs, xfs_set_uuid,
     };
     use crate::thinpooldev::{minimal_thinpool, ThinPoolStatus};
-    use crate::types::DataBlocks;
+    use crate::units::DataBlocks;
 
-    use crate::errors::{Error, ErrorKind};
+    use crate::core::errors::{Error, ErrorKind};
 
     use super::*;
 

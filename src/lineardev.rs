@@ -7,16 +7,13 @@ use std::fmt;
 use std::path::PathBuf;
 use std::str::FromStr;
 
-use crate::device::Device;
-use crate::deviceinfo::DeviceInfo;
-use crate::dm::DM;
-use crate::dm_options::DmOptions;
+use crate::core::{DevId, Device, DeviceInfo, DmName, DmOptions, DmUuid, DM};
 use crate::result::{DmError, DmResult, ErrorEnum};
 use crate::shared::{
     device_create, device_exists, device_match, parse_device, parse_value, DmDevice, TargetLine,
-    TargetParams, TargetTable,
+    TargetParams, TargetTable, TargetTypeBuf,
 };
-use crate::types::{DevId, DmName, DmUuid, Sectors, TargetTypeBuf};
+use crate::units::Sectors;
 
 const FLAKEY_TARGET_NAME: &str = "flakey";
 const LINEAR_TARGET_NAME: &str = "linear";
@@ -326,31 +323,29 @@ impl fmt::Display for LinearDevTargetTable {
 }
 
 impl TargetTable for LinearDevTargetTable {
-    fn from_raw_table(
-        table: &[(Sectors, Sectors, TargetTypeBuf, String)],
-    ) -> DmResult<LinearDevTargetTable> {
+    fn from_raw_table(table: &[(u64, u64, String, String)]) -> DmResult<LinearDevTargetTable> {
         Ok(LinearDevTargetTable {
             table: table
                 .iter()
                 .map(|x| -> DmResult<TargetLine<LinearDevTargetParams>> {
                     Ok(TargetLine::new(
-                        x.0,
-                        x.1,
-                        format!("{} {}", x.2.to_string(), x.3).parse::<LinearDevTargetParams>()?,
+                        Sectors(x.0),
+                        Sectors(x.1),
+                        format!("{} {}", x.2, x.3).parse::<LinearDevTargetParams>()?,
                     ))
                 })
                 .collect::<DmResult<Vec<_>>>()?,
         })
     }
 
-    fn to_raw_table(&self) -> Vec<(Sectors, Sectors, TargetTypeBuf, String)> {
+    fn to_raw_table(&self) -> Vec<(u64, u64, String, String)> {
         self.table
             .iter()
             .map(|x| {
                 (
-                    x.start,
-                    x.length,
-                    x.params.target_type(),
+                    *x.start,
+                    *x.length,
+                    x.params.target_type().to_string(),
                     x.params.param_str(),
                 )
             })
@@ -488,7 +483,7 @@ mod tests {
     use std::fs::OpenOptions;
     use std::path::Path;
 
-    use crate::device::{devnode_to_devno, Device};
+    use crate::core::{devnode_to_devno, Device};
     use crate::loopbacked::{blkdev_size, test_with_spec};
     use crate::test_lib::test_name;
 

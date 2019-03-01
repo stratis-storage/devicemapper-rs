@@ -7,21 +7,18 @@ use std::fmt;
 use std::path::PathBuf;
 use std::str::FromStr;
 
-use crate::device::Device;
-use crate::deviceinfo::DeviceInfo;
-use crate::dm::DM;
-use crate::dm_options::DmOptions;
+use crate::core::{DevId, Device, DeviceInfo, DmName, DmOptions, DmUuid, DM};
 use crate::lineardev::{LinearDev, LinearDevTargetParams};
 use crate::result::{DmError, DmResult, ErrorEnum};
 use crate::shared::{
     device_create, device_exists, device_match, get_status_line_fields,
     make_unexpected_value_error, parse_device, parse_value, DmDevice, TargetLine, TargetParams,
-    TargetTable,
+    TargetTable, TargetTypeBuf,
 };
-use crate::types::{DataBlocks, DevId, DmName, DmUuid, MetaBlocks, Sectors, TargetTypeBuf};
+use crate::units::{DataBlocks, MetaBlocks, Sectors};
 
 #[cfg(test)]
-use crate::device::devnode_to_devno;
+use crate::core::devnode_to_devno;
 #[cfg(test)]
 use std::path::Path;
 
@@ -161,9 +158,7 @@ impl fmt::Display for ThinPoolDevTargetTable {
 }
 
 impl TargetTable for ThinPoolDevTargetTable {
-    fn from_raw_table(
-        table: &[(Sectors, Sectors, TargetTypeBuf, String)],
-    ) -> DmResult<ThinPoolDevTargetTable> {
+    fn from_raw_table(table: &[(u64, u64, String, String)]) -> DmResult<ThinPoolDevTargetTable> {
         if table.len() != 1 {
             let err_msg = format!(
                 "ThinPoolDev table should have exactly one line, has {} lines",
@@ -173,13 +168,13 @@ impl TargetTable for ThinPoolDevTargetTable {
         }
         let line = table.first().expect("table.len() == 1");
         Ok(ThinPoolDevTargetTable::new(
-            line.0,
-            line.1,
-            format!("{} {}", line.2.to_string(), line.3).parse::<ThinPoolTargetParams>()?,
+            Sectors(line.0),
+            Sectors(line.1),
+            format!("{} {}", line.2, line.3).parse::<ThinPoolTargetParams>()?,
         ))
     }
 
-    fn to_raw_table(&self) -> Vec<(Sectors, Sectors, TargetTypeBuf, String)> {
+    fn to_raw_table(&self) -> Vec<(u64, u64, String, String)> {
         to_raw_table_unique!(self)
     }
 }
@@ -683,8 +678,9 @@ pub fn minimal_thinpool(dm: &DM, path: &Path) -> ThinPoolDev {
 mod tests {
     use std::path::Path;
 
-    use crate::errors::{Error, ErrorKind};
     use crate::loopbacked::test_with_spec;
+
+    use crate::core::errors::{Error, ErrorKind};
 
     use super::*;
 
