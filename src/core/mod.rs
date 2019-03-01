@@ -19,7 +19,4 @@ pub use self::deviceinfo::DeviceInfo;
 pub use self::dm::DM;
 pub use self::dm_flags::{DmCookie, DmFlags};
 pub use self::dm_options::DmOptions;
-pub use self::types::{
-    Bytes, DataBlocks, DevId, DmName, DmNameBuf, DmUuid, DmUuidBuf, MetaBlocks, Sectors,
-    TargetType, TargetTypeBuf, SECTOR_SIZE,
-};
+pub use self::types::{DevId, DmName, DmNameBuf, DmUuid, DmUuidBuf, TargetType, TargetTypeBuf};

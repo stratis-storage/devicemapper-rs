@@ -11,8 +11,7 @@ use nix::libc::c_ulong;
 use nix::libc::ioctl as nix_ioctl;
 
 use crate::core::{
-    DevId, Device, DeviceInfo, DmFlags, DmName, DmNameBuf, DmOptions, DmUuid, Sectors,
-    TargetTypeBuf,
+    DevId, Device, DeviceInfo, DmFlags, DmName, DmNameBuf, DmOptions, DmUuid, TargetTypeBuf,
 };
 use crate::result::{DmError, DmResult};
 
@@ -401,7 +400,7 @@ impl DM {
         &self,
         id: &DevId,
         options: &DmOptions,
-    ) -> DmResult<(DeviceInfo, Vec<(Sectors, Sectors, TargetTypeBuf, String)>)> {
+    ) -> DmResult<(DeviceInfo, Vec<(u64, u64, TargetTypeBuf, String)>)> {
         let mut hdr = options.to_ioctl_hdr(Some(id), DmFlags::DM_QUERY_INACTIVE_TABLE);
 
         let data_out = self.do_ioctl(dmi::DM_DEV_WAIT_CMD as u8, &mut hdr, None)?;
@@ -423,14 +422,14 @@ impl DM {
     /// # Example
     ///
     /// ```no_run
-    /// use devicemapper::{DM, DevId, DmName, Sectors, TargetTypeBuf};
+    /// use devicemapper::{DM, DevId, DmName, TargetTypeBuf};
     /// let dm = DM::new().unwrap();
     ///
     /// // Create a 16MiB device (32768 512-byte sectors) that maps to /dev/sdb1
     /// // starting 1MiB into sdb1
     /// let table = vec![(
-    ///     Sectors(0),
-    ///     Sectors(32768),
+    ///     0,
+    ///     32768,
     ///     TargetTypeBuf::new("linear".into()).expect("valid"),
     ///     "/dev/sdb1 2048".into()
     /// )];
@@ -442,7 +441,7 @@ impl DM {
     pub fn table_load(
         &self,
         id: &DevId,
-        targets: &[(Sectors, Sectors, TargetTypeBuf, String)],
+        targets: &[(u64, u64, TargetTypeBuf, String)],
     ) -> DmResult<DeviceInfo> {
         let mut targs = Vec::new();
 
@@ -450,8 +449,8 @@ impl DM {
         // before initializing the header.
         for t in targets {
             let mut targ: dmi::Struct_dm_target_spec = Default::default();
-            targ.sector_start = *t.0;
-            targ.length = *t.1;
+            targ.sector_start = t.0;
+            targ.length = t.1;
             targ.status = 0;
 
             let dst: &mut [u8] = unsafe { &mut *(&mut targ.target_type[..] as *mut [u8]) };
@@ -554,10 +553,7 @@ impl DM {
     // will either be backwards-compatible, or will increment
     // DM_VERSION_MAJOR.  Since calls made with a non-matching major version
     // will fail, this protects against callers parsing unknown formats.
-    fn parse_table_status(
-        count: u32,
-        buf: &[u8],
-    ) -> Vec<(Sectors, Sectors, TargetTypeBuf, String)> {
+    fn parse_table_status(count: u32, buf: &[u8]) -> Vec<(u64, u64, TargetTypeBuf, String)> {
         let mut targets = Vec::new();
         if !buf.is_empty() {
             let mut next_off = 0;
@@ -584,8 +580,8 @@ impl DM {
                 };
 
                 targets.push((
-                    Sectors(targ.sector_start),
-                    Sectors(targ.length),
+                    targ.sector_start,
+                    targ.length,
                     TargetTypeBuf::new(target_type).expect("< sizeof target_spec"),
                     params,
                 ));
@@ -629,7 +625,7 @@ impl DM {
         &self,
         id: &DevId,
         options: &DmOptions,
-    ) -> DmResult<(DeviceInfo, Vec<(Sectors, Sectors, TargetTypeBuf, String)>)> {
+    ) -> DmResult<(DeviceInfo, Vec<(u64, u64, TargetTypeBuf, String)>)> {
         let mut hdr = options.to_ioctl_hdr(
             Some(id),
             DmFlags::DM_NOFLUSH | DmFlags::DM_STATUS_TABLE | DmFlags::DM_QUERY_INACTIVE_TABLE,
@@ -683,13 +679,13 @@ impl DM {
     pub fn target_msg(
         &self,
         id: &DevId,
-        sector: Option<Sectors>,
+        sector: Option<u64>,
         msg: &str,
     ) -> DmResult<(DeviceInfo, Option<String>)> {
         let mut hdr = DmOptions::new().to_ioctl_hdr(Some(id), DmFlags::empty());
 
         let mut msg_struct: dmi::Struct_dm_target_msg = Default::default();
-        msg_struct.sector = *sector.unwrap_or_default();
+        msg_struct.sector = sector.unwrap_or_default();
         let mut data_in = unsafe {
             let ptr = &msg_struct as *const dmi::Struct_dm_target_msg as *mut u8;
             slice::from_raw_parts(ptr, size_of::<dmi::Struct_dm_target_msg>()).to_vec()

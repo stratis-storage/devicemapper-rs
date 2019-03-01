@@ -7,10 +7,7 @@ use std::fmt;
 use std::path::PathBuf;
 use std::str::FromStr;
 
-use crate::core::{
-    DataBlocks, DevId, Device, DeviceInfo, DmName, DmOptions, DmUuid, MetaBlocks, Sectors,
-    TargetTypeBuf, DM,
-};
+use crate::core::{DevId, Device, DeviceInfo, DmName, DmOptions, DmUuid, TargetTypeBuf, DM};
 use crate::lineardev::{LinearDev, LinearDevTargetParams};
 use crate::result::{DmError, DmResult, ErrorEnum};
 use crate::shared::{
@@ -18,6 +15,7 @@ use crate::shared::{
     make_unexpected_value_error, parse_device, parse_value, DmDevice, TargetLine, TargetParams,
     TargetTable,
 };
+use crate::units::{DataBlocks, MetaBlocks, Sectors};
 
 const CACHE_TARGET_NAME: &str = "cache";
 
@@ -190,7 +188,7 @@ impl fmt::Display for CacheDevTargetTable {
 
 impl TargetTable for CacheDevTargetTable {
     fn from_raw_table(
-        table: &[(Sectors, Sectors, TargetTypeBuf, String)],
+        table: &[(u64, u64, TargetTypeBuf, String)],
     ) -> DmResult<CacheDevTargetTable> {
         if table.len() != 1 {
             let err_msg = format!(
@@ -201,13 +199,13 @@ impl TargetTable for CacheDevTargetTable {
         }
         let line = table.first().expect("table.len() == 1");
         Ok(CacheDevTargetTable::new(
-            line.0,
-            line.1,
+            Sectors(line.0),
+            Sectors(line.1),
             format!("{} {}", line.2.to_string(), line.3).parse::<CacheTargetParams>()?,
         ))
     }
 
-    fn to_raw_table(&self) -> Vec<(Sectors, Sectors, TargetTypeBuf, String)> {
+    fn to_raw_table(&self) -> Vec<(u64, u64, TargetTypeBuf, String)> {
         to_raw_table_unique!(self)
     }
 }

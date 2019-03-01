@@ -117,6 +117,8 @@ mod thindev;
 mod thindevid;
 /// thinpooldev is shared space for  other thin provisioned devices to use
 mod thinpooldev;
+/// representation of units used by the outer layers
+mod units;
 
 #[cfg(test)]
 mod loopbacked;
@@ -130,8 +132,8 @@ pub use crate::cachedev::{
 };
 pub use crate::consts::IEC;
 pub use crate::core::{
-    devnode_to_devno, Bytes, DataBlocks, DevId, Device, DmCookie, DmFlags, DmName, DmNameBuf,
-    DmOptions, DmUuid, DmUuidBuf, MetaBlocks, Sectors, TargetType, TargetTypeBuf, DM, SECTOR_SIZE,
+    devnode_to_devno, DevId, Device, DmCookie, DmFlags, DmName, DmNameBuf, DmOptions, DmUuid,
+    DmUuidBuf, TargetType, TargetTypeBuf, DM,
 };
 pub use crate::lineardev::{
     FlakeyTargetParams, LinearDev, LinearDevTargetParams, LinearDevTargetTable, LinearTargetParams,
@@ -144,3 +146,4 @@ pub use crate::thinpooldev::{
     ThinPoolDev, ThinPoolNoSpacePolicy, ThinPoolStatus, ThinPoolStatusSummary, ThinPoolUsage,
     ThinPoolWorkingStatus,
 };
+pub use crate::units::{Bytes, DataBlocks, MetaBlocks, Sectors, SECTOR_SIZE};

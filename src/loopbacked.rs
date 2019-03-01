@@ -13,8 +13,8 @@ use nix;
 use tempfile::{self, TempDir};
 
 use crate::consts::IEC;
-use crate::core::{Bytes, Sectors, SECTOR_SIZE};
 use crate::test_lib::clean_up;
+use crate::units::{Bytes, Sectors, SECTOR_SIZE};
 
 /// send IOCTL via blkgetsize64
 ioctl_read!(blkgetsize64, 0x12, 114, u64);
