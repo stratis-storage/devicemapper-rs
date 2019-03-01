@@ -209,6 +209,8 @@ pub enum ThinStatus {
     /// Thin device is good. Includes number of mapped sectors, and
     /// highest mapped sector.
     Working(Box<ThinDevWorkingStatus>),
+    /// Devicemapper has reported that it could not obtain the status
+    Error,
     /// Thin device is failed.
     Fail,
 }
@@ -679,6 +681,7 @@ mod tests {
 
         let orig_data_usage = match tp.status(&dm).unwrap() {
             ThinPoolStatus::Working(ref status) => status.usage.used_data,
+            ThinPoolStatus::Error => panic!("devicemapper could not obtain thin pool status"),
             ThinPoolStatus::Fail => panic!("failed to get thinpool status"),
         };
 
@@ -692,6 +695,7 @@ mod tests {
 
         let data_usage_1 = match tp.status(&dm).unwrap() {
             ThinPoolStatus::Working(ref status) => status.usage.used_data,
+            ThinPoolStatus::Error => panic!("devicemapper could not obtain thin pool status"),
             ThinPoolStatus::Fail => panic!("failed to get thinpool status"),
         };
 
@@ -705,6 +709,7 @@ mod tests {
 
         let data_usage_2 = match tp.status(&dm).unwrap() {
             ThinPoolStatus::Working(ref status) => status.usage.used_data,
+            ThinPoolStatus::Error => panic!("devicemapper could not obtain thin pool status"),
             ThinPoolStatus::Fail => panic!("failed to get thinpool status"),
         };
 
@@ -734,6 +739,7 @@ mod tests {
 
         let orig_data_usage = match tp.status(&dm).unwrap() {
             ThinPoolStatus::Working(ref status) => status.usage.used_data,
+            ThinPoolStatus::Error => panic!("devicemapper could not obtain thin pool status"),
             ThinPoolStatus::Fail => panic!("failed to get thinpool status"),
         };
         assert_eq!(orig_data_usage, DataBlocks(0));
@@ -742,6 +748,7 @@ mod tests {
 
         let data_usage_1 = match tp.status(&dm).unwrap() {
             ThinPoolStatus::Working(ref status) => status.usage.used_data,
+            ThinPoolStatus::Error => panic!("devicemapper could not obtain thin pool status"),
             ThinPoolStatus::Fail => panic!("failed to get thinpool status"),
         };
         assert!(data_usage_1 > DataBlocks(0));
@@ -775,6 +782,7 @@ mod tests {
 
         let data_usage_2 = match tp.status(&dm).unwrap() {
             ThinPoolStatus::Working(ref status) => status.usage.used_data,
+            ThinPoolStatus::Error => panic!("devicemapper could not obtain thin pool status"),
             ThinPoolStatus::Fail => panic!("failed to get thinpool status"),
         };
         assert!(data_usage_2 > data_usage_1);
@@ -805,6 +813,7 @@ mod tests {
 
         let orig_data_usage = match tp.status(&dm).unwrap() {
             ThinPoolStatus::Working(ref status) => status.usage.used_data,
+            ThinPoolStatus::Error => panic!("devicemapper could not obtain thin pool status"),
             ThinPoolStatus::Fail => panic!("failed to get thinpool status"),
         };
         assert_eq!(orig_data_usage, DataBlocks(0));
@@ -813,6 +822,7 @@ mod tests {
 
         let data_usage_1 = match tp.status(&dm).unwrap() {
             ThinPoolStatus::Working(ref status) => status.usage.used_data,
+            ThinPoolStatus::Error => panic!("devicemapper could not obtain thin pool status"),
             ThinPoolStatus::Fail => panic!("failed to get thinpool status"),
         };
         assert!(data_usage_1 > DataBlocks(0));
@@ -828,6 +838,7 @@ mod tests {
 
         let data_usage_2 = match tp.status(&dm).unwrap() {
             ThinPoolStatus::Working(ref status) => status.usage.used_data,
+            ThinPoolStatus::Error => panic!("devicemapper could not obtain thin pool status"),
             ThinPoolStatus::Fail => panic!("failed to get thinpool status"),
         };
         assert_eq!(data_usage_2, data_usage_1);
@@ -839,6 +850,7 @@ mod tests {
         // the origin.
         let data_usage_3 = match tp.status(&dm).unwrap() {
             ThinPoolStatus::Working(ref status) => status.usage.used_data,
+            ThinPoolStatus::Error => panic!("devicemapper could not obtain thin pool status"),
             ThinPoolStatus::Fail => panic!("failed to get thinpool status"),
         };
         assert!(data_usage_3 - data_usage_2 > DataBlocks(0));
@@ -853,6 +865,7 @@ mod tests {
 
         let data_usage_4 = match tp.status(&dm).unwrap() {
             ThinPoolStatus::Working(ref status) => status.usage.used_data,
+            ThinPoolStatus::Error => panic!("devicemapper could not obtain thin pool status"),
             ThinPoolStatus::Fail => panic!("failed to get thinpool status"),
         };
         assert_eq!(data_usage_4, data_usage_3);
@@ -861,6 +874,7 @@ mod tests {
 
         let data_usage_5 = match tp.status(&dm).unwrap() {
             ThinPoolStatus::Working(ref status) => status.usage.used_data,
+            ThinPoolStatus::Error => panic!("devicemapper could not obtain thin pool status"),
             ThinPoolStatus::Fail => panic!("failed to get thinpool status"),
         };
         assert!(data_usage_5 - data_usage_4 > 32usize * data_usage_1);
