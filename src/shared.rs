@@ -18,12 +18,14 @@ use crate::core::{
 use crate::result::{DmError, DmResult, ErrorEnum};
 use crate::units::Sectors;
 
-use crate::core::errors::ErrorKind;
+fn err_func(err_msg: &str) -> DmError {
+    DmError::Dm(ErrorEnum::Invalid, err_msg.into())
+}
 
 /// Number of bytes in Struct_dm_target_spec::target_type field.
 const DM_TARGET_TYPE_LEN: usize = 16;
 
-str_id!(TargetType, TargetTypeBuf, DM_TARGET_TYPE_LEN);
+str_id!(TargetType, TargetTypeBuf, DM_TARGET_TYPE_LEN, err_func);
 
 /// The trait for properties of the params string of TargetType
 pub trait TargetParams: Clone + fmt::Debug + fmt::Display + Eq + FromStr + PartialEq {

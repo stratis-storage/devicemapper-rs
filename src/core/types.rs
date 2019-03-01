@@ -11,14 +11,19 @@ use crate::result::{DmError, DmResult};
 use crate::core::deviceinfo::{DM_NAME_LEN, DM_UUID_LEN};
 use crate::core::errors::ErrorKind;
 
+/// An error function to construct an error when creating a new string id.
+fn err_func(err_msg: &str) -> DmError {
+    DmError::Core(ErrorKind::InvalidArgument(err_msg.into()).into())
+}
+
 /// A devicemapper name. Really just a string, but also the argument type of
 /// DevId::Name. Used in function arguments to indicate that the function
 /// takes only a name, not a devicemapper uuid.
-str_id!(DmName, DmNameBuf, DM_NAME_LEN);
+str_id!(DmName, DmNameBuf, DM_NAME_LEN, err_func);
 
 /// A devicemapper uuid. A devicemapper uuid has a devicemapper-specific
 /// format.
-str_id!(DmUuid, DmUuidBuf, DM_UUID_LEN);
+str_id!(DmUuid, DmUuidBuf, DM_UUID_LEN, err_func);
 
 /// Used as a parameter for functions that take either a Device name
 /// or a Device UUID.
