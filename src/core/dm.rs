@@ -10,9 +10,7 @@ use std::{cmp, slice, u32};
 use nix::libc::c_ulong;
 use nix::libc::ioctl as nix_ioctl;
 
-use crate::core::{
-    DevId, Device, DeviceInfo, DmFlags, DmName, DmNameBuf, DmOptions, DmUuid, TargetTypeBuf,
-};
+use crate::core::{DevId, Device, DeviceInfo, DmFlags, DmName, DmNameBuf, DmOptions, DmUuid};
 use crate::result::{DmError, DmResult};
 
 use crate::core::deviceinfo::{DM_NAME_LEN, DM_UUID_LEN};
@@ -400,7 +398,7 @@ impl DM {
         &self,
         id: &DevId,
         options: &DmOptions,
-    ) -> DmResult<(DeviceInfo, Vec<(u64, u64, TargetTypeBuf, String)>)> {
+    ) -> DmResult<(DeviceInfo, Vec<(u64, u64, String, String)>)> {
         let mut hdr = options.to_ioctl_hdr(Some(id), DmFlags::DM_QUERY_INACTIVE_TABLE);
 
         let data_out = self.do_ioctl(dmi::DM_DEV_WAIT_CMD as u8, &mut hdr, None)?;
@@ -422,7 +420,7 @@ impl DM {
     /// # Example
     ///
     /// ```no_run
-    /// use devicemapper::{DM, DevId, DmName, TargetTypeBuf};
+    /// use devicemapper::{DM, DevId, DmName};
     /// let dm = DM::new().unwrap();
     ///
     /// // Create a 16MiB device (32768 512-byte sectors) that maps to /dev/sdb1
@@ -430,7 +428,7 @@ impl DM {
     /// let table = vec![(
     ///     0,
     ///     32768,
-    ///     TargetTypeBuf::new("linear".into()).expect("valid"),
+    ///     "linear".into(),
     ///     "/dev/sdb1 2048".into()
     /// )];
     ///
@@ -441,7 +439,7 @@ impl DM {
     pub fn table_load(
         &self,
         id: &DevId,
-        targets: &[(u64, u64, TargetTypeBuf, String)],
+        targets: &[(u64, u64, String, String)],
     ) -> DmResult<DeviceInfo> {
         let mut targs = Vec::new();
 
@@ -547,13 +545,15 @@ impl DM {
     /// Panics if there is an error parsing the table.
     /// Trims trailing white space off final entry on each line. This
     /// canonicalization makes checking identity of tables easier.
+    /// Postcondition: The length of the next to last entry in any tuple is
+    /// no more than 16 characters.
     // Justification: If the ioctl succeeded, the data is correct and
     // complete. An error in parsing can only result from a change in the
     // kernel. We rely on DM's interface versioning system. Kernel changes
     // will either be backwards-compatible, or will increment
     // DM_VERSION_MAJOR.  Since calls made with a non-matching major version
     // will fail, this protects against callers parsing unknown formats.
-    fn parse_table_status(count: u32, buf: &[u8]) -> Vec<(u64, u64, TargetTypeBuf, String)> {
+    fn parse_table_status(count: u32, buf: &[u8]) -> Vec<(u64, u64, String, String)> {
         let mut targets = Vec::new();
         if !buf.is_empty() {
             let mut next_off = 0;
@@ -579,12 +579,7 @@ impl DM {
                     String::from_utf8_lossy(slc).trim_end().to_owned()
                 };
 
-                targets.push((
-                    targ.sector_start,
-                    targ.length,
-                    TargetTypeBuf::new(target_type).expect("< sizeof target_spec"),
-                    params,
-                ));
+                targets.push((targ.sector_start, targ.length, target_type, params));
 
                 next_off = targ.next as usize;
             }
@@ -625,7 +620,7 @@ impl DM {
         &self,
         id: &DevId,
         options: &DmOptions,
-    ) -> DmResult<(DeviceInfo, Vec<(u64, u64, TargetTypeBuf, String)>)> {
+    ) -> DmResult<(DeviceInfo, Vec<(u64, u64, String, String)>)> {
         let mut hdr = options.to_ioctl_hdr(
             Some(id),
             DmFlags::DM_NOFLUSH | DmFlags::DM_STATUS_TABLE | DmFlags::DM_QUERY_INACTIVE_TABLE,

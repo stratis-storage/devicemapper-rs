@@ -7,13 +7,13 @@ use std::fmt;
 use std::path::PathBuf;
 use std::str::FromStr;
 
-use crate::core::{DevId, Device, DeviceInfo, DmName, DmOptions, DmUuid, TargetTypeBuf, DM};
+use crate::core::{DevId, Device, DeviceInfo, DmName, DmOptions, DmUuid, DM};
 use crate::lineardev::{LinearDev, LinearDevTargetParams};
 use crate::result::{DmError, DmResult, ErrorEnum};
 use crate::shared::{
     device_create, device_exists, device_match, get_status_line_fields,
     make_unexpected_value_error, parse_device, parse_value, DmDevice, TargetLine, TargetParams,
-    TargetTable,
+    TargetTable, TargetTypeBuf,
 };
 use crate::units::{DataBlocks, MetaBlocks, Sectors};
 
@@ -158,9 +158,7 @@ impl fmt::Display for ThinPoolDevTargetTable {
 }
 
 impl TargetTable for ThinPoolDevTargetTable {
-    fn from_raw_table(
-        table: &[(u64, u64, TargetTypeBuf, String)],
-    ) -> DmResult<ThinPoolDevTargetTable> {
+    fn from_raw_table(table: &[(u64, u64, String, String)]) -> DmResult<ThinPoolDevTargetTable> {
         if table.len() != 1 {
             let err_msg = format!(
                 "ThinPoolDev table should have exactly one line, has {} lines",
@@ -172,11 +170,11 @@ impl TargetTable for ThinPoolDevTargetTable {
         Ok(ThinPoolDevTargetTable::new(
             Sectors(line.0),
             Sectors(line.1),
-            format!("{} {}", line.2.to_string(), line.3).parse::<ThinPoolTargetParams>()?,
+            format!("{} {}", line.2, line.3).parse::<ThinPoolTargetParams>()?,
         ))
     }
 
-    fn to_raw_table(&self) -> Vec<(u64, u64, TargetTypeBuf, String)> {
+    fn to_raw_table(&self) -> Vec<(u64, u64, String, String)> {
         to_raw_table_unique!(self)
     }
 }

@@ -133,13 +133,13 @@ pub use crate::cachedev::{
 pub use crate::consts::IEC;
 pub use crate::core::{
     devnode_to_devno, DevId, Device, DmCookie, DmFlags, DmName, DmNameBuf, DmOptions, DmUuid,
-    DmUuidBuf, TargetType, TargetTypeBuf, DM,
+    DmUuidBuf, DM,
 };
 pub use crate::lineardev::{
     FlakeyTargetParams, LinearDev, LinearDevTargetParams, LinearDevTargetTable, LinearTargetParams,
 };
 pub use crate::result::{DmError, DmResult, ErrorEnum};
-pub use crate::shared::{device_exists, DmDevice, TargetLine};
+pub use crate::shared::{device_exists, DmDevice, TargetLine, TargetType, TargetTypeBuf};
 pub use crate::thindev::{ThinDev, ThinDevWorkingStatus, ThinStatus};
 pub use crate::thindevid::ThinDevId;
 pub use crate::thinpooldev::{

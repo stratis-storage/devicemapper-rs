@@ -6,15 +6,24 @@
 // devices.
 
 use std::fmt;
+
+use std::borrow::Borrow;
+use std::ops::Deref;
 use std::path::{Path, PathBuf};
 use std::str::FromStr;
 
 use crate::core::{
-    devnode_to_devno, DevId, Device, DeviceInfo, DmFlags, DmName, DmOptions, DmUuid, TargetTypeBuf,
-    DM,
+    devnode_to_devno, DevId, Device, DeviceInfo, DmFlags, DmName, DmOptions, DmUuid, DM,
 };
 use crate::result::{DmError, DmResult, ErrorEnum};
 use crate::units::Sectors;
+
+use crate::core::errors::ErrorKind;
+
+/// Number of bytes in Struct_dm_target_spec::target_type field.
+const DM_TARGET_TYPE_LEN: usize = 16;
+
+str_id!(TargetType, TargetTypeBuf, DM_TARGET_TYPE_LEN);
 
 /// The trait for properties of the params string of TargetType
 pub trait TargetParams: Clone + fmt::Debug + fmt::Display + Eq + FromStr + PartialEq {
@@ -49,10 +58,10 @@ impl<T: TargetParams> TargetLine<T> {
 
 pub trait TargetTable: Clone + fmt::Debug + fmt::Display + Eq + PartialEq + Sized {
     /// Constructs a table from a raw table returned by DM::table_status()
-    fn from_raw_table(table: &[(u64, u64, TargetTypeBuf, String)]) -> DmResult<Self>;
+    fn from_raw_table(table: &[(u64, u64, String, String)]) -> DmResult<Self>;
 
     /// Generates a table that can be loaded by DM::table_load()
-    fn to_raw_table(&self) -> Vec<(u64, u64, TargetTypeBuf, String)>;
+    fn to_raw_table(&self) -> Vec<(u64, u64, String, String)>;
 }
 
 /// A trait capturing some shared properties of DM devices.

@@ -7,11 +7,11 @@ use std::fmt;
 use std::path::PathBuf;
 use std::str::FromStr;
 
-use crate::core::{DevId, Device, DeviceInfo, DmName, DmOptions, DmUuid, TargetTypeBuf, DM};
+use crate::core::{DevId, Device, DeviceInfo, DmName, DmOptions, DmUuid, DM};
 use crate::result::{DmError, DmResult, ErrorEnum};
 use crate::shared::{
     device_create, device_exists, device_match, parse_device, parse_value, DmDevice, TargetLine,
-    TargetParams, TargetTable,
+    TargetParams, TargetTable, TargetTypeBuf,
 };
 use crate::units::Sectors;
 
@@ -323,9 +323,7 @@ impl fmt::Display for LinearDevTargetTable {
 }
 
 impl TargetTable for LinearDevTargetTable {
-    fn from_raw_table(
-        table: &[(u64, u64, TargetTypeBuf, String)],
-    ) -> DmResult<LinearDevTargetTable> {
+    fn from_raw_table(table: &[(u64, u64, String, String)]) -> DmResult<LinearDevTargetTable> {
         Ok(LinearDevTargetTable {
             table: table
                 .iter()
@@ -333,21 +331,21 @@ impl TargetTable for LinearDevTargetTable {
                     Ok(TargetLine::new(
                         Sectors(x.0),
                         Sectors(x.1),
-                        format!("{} {}", x.2.to_string(), x.3).parse::<LinearDevTargetParams>()?,
+                        format!("{} {}", x.2, x.3).parse::<LinearDevTargetParams>()?,
                     ))
                 })
                 .collect::<DmResult<Vec<_>>>()?,
         })
     }
 
-    fn to_raw_table(&self) -> Vec<(u64, u64, TargetTypeBuf, String)> {
+    fn to_raw_table(&self) -> Vec<(u64, u64, String, String)> {
         self.table
             .iter()
             .map(|x| {
                 (
                     *x.start,
                     *x.length,
-                    x.params.target_type(),
+                    x.params.target_type().to_string(),
                     x.params.param_str(),
                 )
             })

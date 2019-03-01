@@ -19,4 +19,4 @@ pub use self::deviceinfo::DeviceInfo;
 pub use self::dm::DM;
 pub use self::dm_flags::{DmCookie, DmFlags};
 pub use self::dm_options::DmOptions;
-pub use self::types::{DevId, DmName, DmNameBuf, DmUuid, DmUuidBuf, TargetType, TargetTypeBuf};
+pub use self::types::{DevId, DmName, DmNameBuf, DmUuid, DmUuidBuf};

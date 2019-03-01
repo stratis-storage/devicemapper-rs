@@ -38,8 +38,3 @@ impl<'a> fmt::Display for DevId<'a> {
         }
     }
 }
-
-/// Number of bytes in Struct_dm_target_spec::target_type field.
-const DM_TARGET_TYPE_LEN: usize = 16;
-
-str_id!(TargetType, TargetTypeBuf, DM_TARGET_TYPE_LEN);

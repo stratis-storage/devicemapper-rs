@@ -7,13 +7,13 @@ use std::fmt;
 use std::path::PathBuf;
 use std::str::FromStr;
 
-use crate::core::{DevId, Device, DeviceInfo, DmName, DmOptions, DmUuid, TargetTypeBuf, DM};
+use crate::core::{DevId, Device, DeviceInfo, DmName, DmOptions, DmUuid, DM};
 use crate::lineardev::{LinearDev, LinearDevTargetParams};
 use crate::result::{DmError, DmResult, ErrorEnum};
 use crate::shared::{
     device_create, device_exists, device_match, get_status_line_fields,
     make_unexpected_value_error, parse_device, parse_value, DmDevice, TargetLine, TargetParams,
-    TargetTable,
+    TargetTable, TargetTypeBuf,
 };
 use crate::units::{DataBlocks, MetaBlocks, Sectors};
 
@@ -187,9 +187,7 @@ impl fmt::Display for CacheDevTargetTable {
 }
 
 impl TargetTable for CacheDevTargetTable {
-    fn from_raw_table(
-        table: &[(u64, u64, TargetTypeBuf, String)],
-    ) -> DmResult<CacheDevTargetTable> {
+    fn from_raw_table(table: &[(u64, u64, String, String)]) -> DmResult<CacheDevTargetTable> {
         if table.len() != 1 {
             let err_msg = format!(
                 "CacheDev table should have exactly one line, has {} lines",
@@ -205,7 +203,7 @@ impl TargetTable for CacheDevTargetTable {
         ))
     }
 
-    fn to_raw_table(&self) -> Vec<(u64, u64, TargetTypeBuf, String)> {
+    fn to_raw_table(&self) -> Vec<(u64, u64, String, String)> {
         to_raw_table_unique!(self)
     }
 }
