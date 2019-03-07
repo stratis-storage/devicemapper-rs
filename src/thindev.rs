@@ -499,17 +499,14 @@ mod tests {
         let mut tp = minimal_thinpool(&dm, paths[0]);
 
         let td_size = MIN_THIN_DEV_SIZE;
-        assert!(match ThinDev::setup(
+        assert_matches!(ThinDev::setup(
             &dm,
             &test_name("name").expect("is valid DM name"),
             None,
             td_size,
             &tp,
             ThinDevId::new_u64(0).expect("is below limit")
-        ) {
-            Err(DmError::Core(Error(ErrorKind::IoctlError(_, _), _))) => true,
-            _ => false,
-        });
+        ),Err(DmError::Core(Error(ErrorKind::IoctlError(_, _), _))));
 
         tp.teardown(&dm).unwrap();
     }
@@ -542,10 +539,13 @@ mod tests {
         assert_eq!(table.params.pool, tp.device());
         assert_eq!(table.params.thin_id, thin_id);
 
-        assert!(match td.status(&dm).unwrap() {
+        // Note: assert_matches cannot do a negative assertion, thus the following workaround
+        let status: bool = match td.status(&dm).unwrap() {
             ThinStatus::Fail => false,
             _ => true,
-        });
+        };
+
+        assert_eq!(status,true);
 
         assert_eq!(
             blkdev_size(&OpenOptions::new().read(true).open(td.devnode()).unwrap()),
@@ -553,10 +553,8 @@ mod tests {
         );
 
         // New thindev w/ same id fails.
-        assert!(match ThinDev::new(&dm, &id, None, td_size, &tp, thin_id) {
-            Err(DmError::Core(Error(ErrorKind::IoctlError(_, _), _))) => true,
-            _ => false,
-        });
+        assert_matches!(ThinDev::new(&dm, &id, None, td_size, &tp, thin_id),
+            Err(DmError::Core(Error(ErrorKind::IoctlError(_, _), _))));
 
         // Verify that the device of that name does exist.
         assert!(device_exists(&dm, &id).unwrap());
@@ -891,11 +889,9 @@ mod tests {
         td.destroy(&dm, &tp).unwrap();
 
         // This should fail
-        assert!(
-            match ThinDev::setup(&dm, &thin_name, None, tp.size(), &tp, thin_id) {
-                Err(DmError::Core(Error(ErrorKind::IoctlError(_, _), _))) => true,
-                _ => false,
-            }
+        assert_matches!(
+            ThinDev::setup(&dm, &thin_name, None, tp.size(), &tp, thin_id),
+            Err(DmError::Core(Error(ErrorKind::IoctlError(_, _), _)))
         );
 
         tp.teardown(&dm).unwrap();
