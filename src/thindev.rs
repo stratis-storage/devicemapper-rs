@@ -499,14 +499,17 @@ mod tests {
         let mut tp = minimal_thinpool(&dm, paths[0]);
 
         let td_size = MIN_THIN_DEV_SIZE;
-        assert_matches!(ThinDev::setup(
-            &dm,
-            &test_name("name").expect("is valid DM name"),
-            None,
-            td_size,
-            &tp,
-            ThinDevId::new_u64(0).expect("is below limit")
-        ),Err(DmError::Core(Error(ErrorKind::IoctlError(_, _), _))));
+        assert_matches!(
+            ThinDev::setup(
+                &dm,
+                &test_name("name").expect("is valid DM name"),
+                None,
+                td_size,
+                &tp,
+                ThinDevId::new_u64(0).expect("is below limit")
+            ),
+            Err(DmError::Core(Error(ErrorKind::IoctlError(_, _), _)))
+        );
 
         tp.teardown(&dm).unwrap();
     }
@@ -545,7 +548,7 @@ mod tests {
             _ => true,
         };
 
-        assert_eq!(status,true);
+        assert_eq!(status, true);
 
         assert_eq!(
             blkdev_size(&OpenOptions::new().read(true).open(td.devnode()).unwrap()),
@@ -553,8 +556,10 @@ mod tests {
         );
 
         // New thindev w/ same id fails.
-        assert_matches!(ThinDev::new(&dm, &id, None, td_size, &tp, thin_id),
-            Err(DmError::Core(Error(ErrorKind::IoctlError(_, _), _))));
+        assert_matches!(
+            ThinDev::new(&dm, &id, None, td_size, &tp, thin_id),
+            Err(DmError::Core(Error(ErrorKind::IoctlError(_, _), _)))
+        );
 
         // Verify that the device of that name does exist.
         assert!(device_exists(&dm, &id).unwrap());
