@@ -795,7 +795,6 @@ mod tests {
 
         let new_uuid = test_uuid("example-9999999999").expect("is valid DM uuid");
 
-        // Note: this fix is unverified because the test has already failed by this point
         assert_matches!(
             dm.device_rename(&name, &DevId::Uuid(&new_uuid)),
             Err(DmError::Core(Error(ErrorKind::IoctlError(_, _), _)))
@@ -813,8 +812,6 @@ mod tests {
         let uuid = test_uuid("example-363333333333333").expect("is valid DM uuid");
         dm.device_create(&name, Some(&uuid), &DmOptions::new())
             .unwrap();
-
-        // Note: this fix is unverified because the test has already failed by this point
         assert_matches!(
             dm.device_rename(&name, &DevId::Uuid(&uuid)),
             Err(DmError::Core(Error(ErrorKind::IoctlError(_, _), _)))
@@ -874,7 +871,6 @@ mod tests {
         let new_name = test_name("example-dev-2").expect("is valid DM name");
         dm.device_rename(&name, &DevId::Name(&new_name)).unwrap();
 
-        // Note: this fix is unverified because the test has already failed by this point
         assert_matches!(
             dm.device_info(&DevId::Name(&name)),
             Err(DmError::Core(Error(ErrorKind::IoctlError(_, _), _)))
@@ -890,7 +886,6 @@ mod tests {
         dm.device_create(&third_name, None, &DmOptions::new())
             .unwrap();
 
-        // Note: this fix is unverified because the test has already failed by this point
         assert_matches!(
             dm.device_rename(&new_name, &DevId::Name(&third_name)),
             Err(DmError::Core(Error(ErrorKind::IoctlError(_, _), _)))
