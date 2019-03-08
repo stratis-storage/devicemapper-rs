@@ -428,7 +428,7 @@ impl FromStr for CacheDevStatus {
                     rest_start_index + 1,
                     val,
                     "needs check",
-                ))
+                ));
             }
         };
 

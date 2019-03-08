@@ -752,18 +752,18 @@ mod tests {
         )];
         let data = LinearDev::setup(&dm, &data_name, None, data_table).unwrap();
 
-        assert!(match ThinPoolDev::new(
-            &dm,
-            &test_name("pool").expect("valid format"),
-            None,
-            meta,
-            data,
-            MIN_DATA_BLOCK_SIZE / 2u64,
-            DataBlocks(1)
-        ) {
-            Err(DmError::Core(Error(ErrorKind::IoctlError(_, _), _))) => true,
-            _ => false,
-        });
+        assert_matches!(
+            ThinPoolDev::new(
+                &dm,
+                &test_name("pool").expect("valid format"),
+                None,
+                meta,
+                data,
+                MIN_DATA_BLOCK_SIZE / 2u64,
+                DataBlocks(1)
+            ),
+            Err(DmError::Core(Error(ErrorKind::IoctlError(_, _), _)))
+        );
         dm.device_remove(&DevId::Name(&meta_name), &DmOptions::new())
             .unwrap();
         dm.device_remove(&DevId::Name(&data_name), &DmOptions::new())

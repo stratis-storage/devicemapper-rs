@@ -126,6 +126,11 @@ mod loopbacked;
 #[cfg(test)]
 mod test_lib;
 
+/// More useful test output for match cases
+#[cfg(test)]
+#[macro_use]
+extern crate matches;
+
 pub use crate::cachedev::{
     CacheDev, CacheDevPerformance, CacheDevStatus, CacheDevUsage, CacheDevWorkingStatus,
     MAX_CACHE_BLOCK_SIZE, MIN_CACHE_BLOCK_SIZE,

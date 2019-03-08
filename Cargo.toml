@@ -24,6 +24,7 @@ loopdev = "0.2"
 tempfile = "3.0.1"
 libudev = "0.2.0"
 libmount = "0.1.11"
+matches = "0.1.8"
 
 [dev-dependencies.uuid]
 version = "0.7"
