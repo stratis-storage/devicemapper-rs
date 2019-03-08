@@ -849,7 +849,6 @@ mod tests {
         let name = test_name("example-dev").expect("is valid DM name");
         dm.device_create(&name, None, &DmOptions::new()).unwrap();
 
-        // Note: this fix is unverified because the test has already failed by this point
         assert_matches!(
             dm.device_rename(&name, &DevId::Name(&name)),
             Err(DmError::Core(Error(ErrorKind::IoctlError(_, _), _)))
