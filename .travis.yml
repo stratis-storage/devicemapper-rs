@@ -14,11 +14,18 @@ matrix:
         # Allow beta tasks to fail
         - rust: beta
     include:
+        # DEVELOPMENT TASKS
         # Run rustfmt on the compiler currently recommended for development
-        - rust: 1.31.0
+        - rust: 1.32.0
           before_script:
               - rustup component add rustfmt
           env: TASK=travis_fmt
+        # Run clippy using the compiler version recommended for development
+        - rust: 1.32.0
+          before_script:
+              - rustup component add clippy
+          env: TASK=clippy
+
         # Build on current stable compiler
         - rust: stable
           env: TASK=build
@@ -30,11 +37,6 @@ matrix:
         - rust: stable
           sudo: required
           env: TASK=sudo_test
-        # Run clippy using the compiler version recommended for development
-        - rust: 1.31.0
-          before_script:
-              - rustup component add clippy
-          env: TASK=clippy
         # Run tests on rust beta, in order to be good Rustaceans
         - rust: beta
           sudo: required
