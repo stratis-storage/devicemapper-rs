@@ -130,28 +130,28 @@ mod tests {
     #[test]
     /// Test for errors on an empty name.
     fn test_empty_name() {
-        assert!(match Id::new("") {
-            Err(DmError::Core(Error(ErrorKind::InvalidArgument(_), _))) => true,
-            _ => false,
-        });
-        assert!(match IdBuf::new("".into()) {
-            Err(DmError::Core(Error(ErrorKind::InvalidArgument(_), _))) => true,
-            _ => false,
-        })
+        assert_matches!(
+            Id::new(""),
+            Err(DmError::Core(Error(ErrorKind::InvalidArgument(_), _)))
+        );
+        assert_matches!(
+            IdBuf::new("".into()),
+            Err(DmError::Core(Error(ErrorKind::InvalidArgument(_), _)))
+        );
     }
 
     #[test]
     /// Test for errors on an overlong name.
     fn test_too_long_name() {
         let name = iter::repeat('a').take(TYPE_LEN + 1).collect::<String>();
-        assert!(match Id::new(&name) {
-            Err(DmError::Core(Error(ErrorKind::InvalidArgument(_), _))) => true,
-            _ => false,
-        });
-        assert!(match IdBuf::new(name) {
-            Err(DmError::Core(Error(ErrorKind::InvalidArgument(_), _))) => true,
-            _ => false,
-        })
+        assert_matches!(
+            Id::new(&name),
+            Err(DmError::Core(Error(ErrorKind::InvalidArgument(_), _)))
+        );
+        assert_matches!(
+            IdBuf::new(name),
+            Err(DmError::Core(Error(ErrorKind::InvalidArgument(_), _)))
+        );
     }
 
     #[test]
