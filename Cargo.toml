@@ -9,6 +9,7 @@ repository = "https://github.com/stratis-storage/devicemapper-rs"
 readme = "README.md"
 keywords = ["Linux", "device", "mapper", "libdm", "storage"]
 license = "MPL-2.0"
+edition = "2018"
 
 [dependencies]
 libc = "0.2.36"
