@@ -24,9 +24,6 @@ sudo_test:
 clippy:
 	cargo clippy --all-targets --all-features -- -D warnings
 
-uml-graphs: ${HOME}/.cargo/bin/cargo-script
-	PATH=${HOME}/.cargo/bin:${PATH} cargo script scripts/uml_graphs.rs
-
 .PHONY:
 	build
 	clippy
