@@ -13,11 +13,11 @@ macro_rules! range {
 
         checked_add!($T);
 
-        NewtypeAdd! { () pub struct $T(u64); }
+        //NewtypeAdd! { () pub struct $T(u64); }
         NewtypeAddAssign! { () pub struct $T(u64); }
         NewtypeDeref! { () pub struct $T(u64); }
         NewtypeFrom! { () pub struct $T(u64); }
-        NewtypeSub! { () pub struct $T(u64); }
+        //NewtypeSub! { () pub struct $T(u64); }
         NewtypeSubAssign! { () pub struct $T(u64); }
 
         debug_macro!($T);
@@ -37,6 +37,28 @@ macro_rules! self_div {
             type Output = u64;
             fn div(self, rhs: $T) -> u64 {
                 self.0 / *rhs
+            }
+        }
+    };
+}
+
+macro_rules! add {
+    ($T:ident) => {
+        impl Add<$T> for $T {
+            type Output = $T;
+            fn add(self, rhs: $T) -> $T {
+                self.0 + *rhs
+            }
+        }
+    };
+}
+
+macro_rules! sub {
+    ($T:ident) => {
+        impl Sub<$T> for $T {
+            type Output = $T;
+            fn sub(self, rhs: $T) -> $T {
+                self.0 - *rhs
             }
         }
     };
