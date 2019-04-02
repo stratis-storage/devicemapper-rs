@@ -10,8 +10,6 @@ macro_rules! range {
             /// A type for $T
             pub struct $T(pub u64);
         }
-
-        checked_add!($T);
         
         NewtypeAddAssign! { () pub struct $T(u64); }
         NewtypeDeref! { () pub struct $T(u64); }
@@ -28,6 +26,8 @@ macro_rules! range {
         mul!($T);
         div!($T);
         rem!($T);
+
+        checked_add!($T);
     };
 }
 
