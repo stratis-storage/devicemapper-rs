@@ -263,7 +263,7 @@ mod tests {
 
     use std::fmt;
     use std::iter::Sum;
-    use std::ops::{Add, Sub, Div, Mul, Rem};
+    use std::ops::{Add, Div, Mul, Rem, Sub};
     use std::u64;
 
     range!(Units, "units");
