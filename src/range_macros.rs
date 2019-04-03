@@ -236,6 +236,7 @@ macro_rules! checked_add {
     };
 }
 
+#[cfg(test)]
 mod tests {
 
     use std::fmt;
