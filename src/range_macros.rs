@@ -12,7 +12,6 @@ macro_rules! range {
         }
         checked_add!($T);
 
-        NewtypeAddAssign! { () pub struct $T(u64); }
         NewtypeDeref! { () pub struct $T(u64); }
         NewtypeFrom! { () pub struct $T(u64); }
         NewtypeSubAssign! { () pub struct $T(u64); }
@@ -23,6 +22,7 @@ macro_rules! range {
         sum!($T);
 
         add!($T);
+        add_assign!($T);
         sub!($T);
         mul!($T);
         div!($T);
@@ -58,6 +58,16 @@ macro_rules! sub {
             type Output = $T;
             fn sub(self, rhs: $T) -> $T {
                 $T(self.0 - *rhs)
+            }
+        }
+    };
+}
+
+macro_rules! add_assign {
+    ($T:ident) => {
+        impl AddAssign<$T> for $T {
+            fn add_assign(&mut self, rhs: $T) {
+                *self = $T(self.0 + *rhs)
             }
         }
     };
@@ -262,7 +272,7 @@ mod tests {
 
     use std::fmt;
     use std::iter::Sum;
-    use std::ops::{Add, Div, Mul, Rem, Sub};
+    use std::ops::{Add, AddAssign, Div, Mul, Rem, Sub};
     use std::u64;
 
     range!(Units, "units");
