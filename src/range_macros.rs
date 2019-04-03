@@ -14,7 +14,6 @@ macro_rules! range {
 
         NewtypeDeref! { () pub struct $T(u64); }
         NewtypeFrom! { () pub struct $T(u64); }
-        NewtypeSubAssign! { () pub struct $T(u64); }
 
         debug_macro!($T);
         display!($T, $display_name);
@@ -24,6 +23,7 @@ macro_rules! range {
         add!($T);
         add_assign!($T);
         sub!($T);
+        sub_assign!($T);
         mul!($T);
         div!($T);
         rem!($T);
@@ -68,6 +68,16 @@ macro_rules! add_assign {
         impl AddAssign<$T> for $T {
             fn add_assign(&mut self, rhs: $T) {
                 *self = $T(self.0 + *rhs)
+            }
+        }
+    };
+}
+
+macro_rules! sub_assign {
+    ($T:ident) => {
+        impl SubAssign<$T> for $T {
+            fn sub_assign(&mut self, rhs: $T) {
+                *self = $T(self.0 - *rhs)
             }
         }
     };
@@ -272,7 +282,7 @@ mod tests {
 
     use std::fmt;
     use std::iter::Sum;
-    use std::ops::{Add, AddAssign, Div, Mul, Rem, Sub};
+    use std::ops::{Add, AddAssign, Div, Mul, Rem, Sub, SubAssign};
     use std::u64;
 
     range!(Units, "units");
