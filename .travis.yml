@@ -13,6 +13,8 @@ matrix:
     allow_failures:
         # Allow beta tasks to fail
         - rust: beta
+        # Allow macro-expansion test to fail
+        - rust: nightly
     include:
         # Run rustfmt on the compiler currently recommended for development
         - rust: 1.31.0
@@ -39,6 +41,12 @@ matrix:
         - rust: beta
           sudo: required
           env: TASK=sudo_test
+        # Run "cargo expand" on rust nightly, in order to see expanded macros
+        # that happen to be of interest.
+        - rust: nightly
+          before_script:
+              - rustup component add rustfmt
+          env: TASK=expand
 
 branches:
     only: master
