@@ -4,7 +4,7 @@
 
 use std::fmt;
 use std::iter::Sum;
-use std::ops::{Add, AddAssign, Div, Mul, Rem, Sub, SubAssign};
+use std::ops::{Add, AddAssign, Deref, Div, Mul, Rem, Sub, SubAssign};
 
 use serde;
 

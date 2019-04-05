@@ -12,7 +12,6 @@ macro_rules! range {
         }
         checked_add!($T);
 
-        NewtypeDeref! { () pub struct $T(u64); }
         NewtypeFrom! { () pub struct $T(u64); }
 
         debug_macro!($T);
@@ -27,6 +26,7 @@ macro_rules! range {
         mul!($T);
         div!($T);
         rem!($T);
+        deref!($T);
     };
 }
 
@@ -78,6 +78,17 @@ macro_rules! sub_assign {
         impl SubAssign<$T> for $T {
             fn sub_assign(&mut self, rhs: $T) {
                 *self = $T(self.0 - *rhs)
+            }
+        }
+    };
+}
+
+macro_rules! deref {
+    ($T:ident) => {
+        impl Deref for $T {
+            type Target = u64;
+            fn deref(&self) -> &Self::Target {
+                &self.0
             }
         }
     };
@@ -282,7 +293,7 @@ mod tests {
 
     use std::fmt;
     use std::iter::Sum;
-    use std::ops::{Add, AddAssign, Div, Mul, Rem, Sub, SubAssign};
+    use std::ops::{Add, AddAssign, Deref, Div, Mul, Rem, Sub, SubAssign};
     use std::u64;
 
     range!(Units, "units");
