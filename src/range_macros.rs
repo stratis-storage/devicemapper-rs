@@ -99,9 +99,9 @@ macro_rules! deref {
 // TODO: not working
 macro_rules! from {
     ($T:ident) => {
-        impl From<$T> for u64 {
-            fn from(t: $T) -> Self {
-                t.0
+        impl From<u64> for $T {
+            fn from(t: u64) -> $T {
+                $T(t)
             }
         }
     };    
