@@ -9,10 +9,7 @@ macro_rules! range {
         #[derive(Clone, Copy, Default, Eq, Ord, PartialEq, PartialOrd)]
         /// A type for $T
         pub struct $T(pub u64);
-        
         checked_add!($T);
-
-        //NewtypeFrom! { () pub struct $T(u64); }
 
         debug_macro!($T);
         display!($T, $display_name);
@@ -103,7 +100,7 @@ macro_rules! from {
                 $T(t)
             }
         }
-    };    
+    };
 }
 
 macro_rules! debug_macro {
