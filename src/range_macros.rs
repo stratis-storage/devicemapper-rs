@@ -12,7 +12,7 @@ macro_rules! range {
         }
         checked_add!($T);
 
-        NewtypeFrom! { () pub struct $T(u64); }
+        //NewtypeFrom! { () pub struct $T(u64); }
 
         debug_macro!($T);
         display!($T, $display_name);
@@ -27,6 +27,8 @@ macro_rules! range {
         div!($T);
         rem!($T);
         deref!($T);
+
+        from!($T);
     };
 }
 
@@ -92,6 +94,16 @@ macro_rules! deref {
             }
         }
     };
+}
+
+macro_rules! from {
+    ($T:ident) => {
+        impl From<$T> for $T {
+            fn from(t: $T) -> $T {
+                t
+            }
+        }
+    };    
 }
 
 macro_rules! debug_macro {
