@@ -5,11 +5,11 @@
 // An omnibus macro that includes all simple macros.
 macro_rules! range {
     ($T: ident, $display_name: expr) => {
-        {
-            #[derive(Clone, Copy, Default, Eq, Ord, PartialEq, PartialOrd)]
-            /// A type for $T
-            pub struct $T(pub u64);
-        }
+        
+        #[derive(Clone, Copy, Default, Eq, Ord, PartialEq, PartialOrd)]
+        /// A type for $T
+        pub struct $T(pub u64);
+        
         checked_add!($T);
 
         //NewtypeFrom! { () pub struct $T(u64); }
