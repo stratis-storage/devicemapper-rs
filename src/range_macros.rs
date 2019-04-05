@@ -9,12 +9,10 @@ macro_rules! range {
         /// A type for $T
         pub struct $T(pub u64);
         checked_add!($T);
-
         debug_macro!($T);
         display!($T, $display_name);
         serde!($T);
         sum!($T);
-
         add!($T);
         add_assign!($T);
         sub!($T);
@@ -23,7 +21,6 @@ macro_rules! range {
         div!($T);
         rem!($T);
         deref!($T);
-
         from!($T);
     };
 }
