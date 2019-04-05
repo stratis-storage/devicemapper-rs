@@ -5,7 +5,7 @@
 // An omnibus macro that includes all simple macros.
 macro_rules! range {
     ($T: ident, $display_name: expr) => {
-        macro_attr! {
+        {
             #[derive(Clone, Copy, Default, Eq, Ord, PartialEq, PartialOrd)]
             /// A type for $T
             pub struct $T(pub u64);
@@ -96,7 +96,6 @@ macro_rules! deref {
     };
 }
 
-// TODO: not working
 macro_rules! from {
     ($T:ident) => {
         impl From<u64> for $T {
