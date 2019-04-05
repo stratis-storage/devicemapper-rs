@@ -8,6 +8,7 @@ macro_rules! range {
         #[derive(Clone, Copy, Default, Eq, Ord, PartialEq, PartialOrd)]
         /// A type for $T
         pub struct $T(pub u64);
+        
         checked_add!($T);
         debug_macro!($T);
         display!($T, $display_name);
