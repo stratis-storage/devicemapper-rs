@@ -14,8 +14,6 @@ license = "MPL-2.0"
 libc = "0.2.36"
 nix = "0.13"
 bitflags = "1"
-newtype_derive = "0.1"
-macro-attr = "0.2.0"
 serde = "1"
 error-chain = "0.12"
 
