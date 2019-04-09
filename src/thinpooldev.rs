@@ -327,6 +327,8 @@ impl ThinPoolWorkingStatus {
 pub enum ThinPoolStatus {
     /// The thinpool has not failed utterly.
     Working(Box<ThinPoolWorkingStatus>),
+    /// Devicemapper has reported that it could not obtain the status
+    Error,
     /// The thinpool is in a failed condition.
     Fail,
 }
@@ -335,6 +337,10 @@ impl FromStr for ThinPoolStatus {
     type Err = DmError;
 
     fn from_str(status_line: &str) -> DmResult<ThinPoolStatus> {
+        if status_line.starts_with("Error") {
+            return Ok(ThinPoolStatus::Error);
+        }
+
         if status_line.starts_with("Fail") {
             return Ok(ThinPoolStatus::Fail);
         }
@@ -804,6 +810,7 @@ mod tests {
                     2u8 * data_size
                 );
             }
+            ThinPoolStatus::Error => panic!("devicemapper could not obtain thin pool status"),
             ThinPoolStatus::Fail => panic!("thin pool should not have failed"),
         }
 
@@ -841,6 +848,7 @@ mod tests {
                 let usage = &status.usage;
                 assert_eq!(usage.total_meta.sectors(), 2u8 * meta_size);
             }
+            ThinPoolStatus::Error => panic!("devicemapper could not obtain thin pool status"),
             ThinPoolStatus::Fail => panic!("thin pool should not have failed"),
         }
 

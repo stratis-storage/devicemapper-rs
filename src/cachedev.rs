@@ -353,6 +353,8 @@ impl CacheDevWorkingStatus {
 pub enum CacheDevStatus {
     /// The cache has not failed utterly
     Working(Box<CacheDevWorkingStatus>),
+    /// Devicemapper has reported that it could not obtain the status
+    Error,
     /// The cache is in a failed condition
     Fail,
 }
@@ -363,6 +365,10 @@ impl FromStr for CacheDevStatus {
     // Note: This method is not entirely complete. In particular, *_args values
     // may require more or better checking or processing.
     fn from_str(status_line: &str) -> DmResult<CacheDevStatus> {
+        if status_line.starts_with("Error") {
+            return Ok(CacheDevStatus::Error);
+        }
+
         if status_line.starts_with("Fail") {
             return Ok(CacheDevStatus::Fail);
         }
@@ -907,6 +913,7 @@ mod tests {
                 let usage = &status.usage;
                 assert_eq!(*usage.total_meta * usage.meta_block_size, current_length);
             }
+            CacheDevStatus::Error => panic!("devicemapper could not obtain cache status"),
             CacheDevStatus::Fail => panic!("cache should not have failed"),
         }
 
@@ -925,6 +932,7 @@ mod tests {
                 assert!(*usage.total_meta * usage.meta_block_size <= assigned_length);
                 assert_eq!(assigned_length, cache.meta_dev.size());
             }
+            CacheDevStatus::Error => panic!("devicemapper could not obtain cache status"),
             CacheDevStatus::Fail => panic!("cache should not have failed"),
         }
 
@@ -959,6 +967,7 @@ mod tests {
                 let usage = &status.usage;
                 assert_eq!(*usage.total_cache * usage.cache_block_size, current_length);
             }
+            CacheDevStatus::Error => panic!("devicemapper could not obtain cache status"),
             CacheDevStatus::Fail => panic!("cache should not have failed"),
         }
 
@@ -978,6 +987,7 @@ mod tests {
                     current_length + extra_length
                 );
             }
+            CacheDevStatus::Error => panic!("devicemapper could not obtain cache status"),
             CacheDevStatus::Fail => panic!("cache should not have failed"),
         }
 
@@ -991,6 +1001,7 @@ mod tests {
                 let usage = &status.usage;
                 assert_eq!(*usage.total_cache * usage.cache_block_size, current_length);
             }
+            CacheDevStatus::Error => panic!("devicemapper could not obtain cache status"),
             CacheDevStatus::Fail => panic!("cache should not have failed"),
         }
 
