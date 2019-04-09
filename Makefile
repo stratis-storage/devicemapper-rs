@@ -1,7 +1,15 @@
 DENY = "-D warnings -D future-incompatible -D unused"
 
+${HOME}/.cargo/bin/cargo-expand:
+	cargo install cargo-expand
+
 ${HOME}/.cargo/bin/cargo-tree:
 	cargo install cargo-tree
+
+expand: ${HOME}/.cargo/bin/cargo-expand
+	PATH=${HOME}/.cargo/bin:${PATH} cargo expand core::errors
+	PATH=${HOME}/.cargo/bin:${PATH} cargo expand core::types
+	PATH=${HOME}/.cargo/bin:${PATH} cargo expand units
 
 tree: ${HOME}/.cargo/bin/cargo-tree
 	PATH=${HOME}/.cargo/bin:${PATH} cargo tree
