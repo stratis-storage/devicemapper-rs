@@ -54,7 +54,7 @@ impl FromStr for Device {
             DmError::Core(
                 ErrorKind::InvalidArgument(format!(
                     "could not parse \"{}\" to obtain minor number",
-                    vals[0]
+                    vals[1]
                 ))
                 .into(),
             )
