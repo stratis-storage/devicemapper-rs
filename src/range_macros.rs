@@ -5,29 +5,24 @@
 // An omnibus macro that includes all simple macros.
 macro_rules! range {
     ($T: ident, $display_name: expr) => {
-        macro_attr! {
-            #[derive(Clone, Copy, Default, Eq, Ord, PartialEq, PartialOrd)]
-            /// A type for $T
-            pub struct $T(pub u64);
-        }
+        #[derive(Clone, Copy, Default, Eq, Ord, PartialEq, PartialOrd)]
+        /// A type for $T
+        pub struct $T(pub u64);
 
         checked_add!($T);
-
-        NewtypeAdd! { () pub struct $T(u64); }
-        NewtypeAddAssign! { () pub struct $T(u64); }
-        NewtypeDeref! { () pub struct $T(u64); }
-        NewtypeFrom! { () pub struct $T(u64); }
-        NewtypeSub! { () pub struct $T(u64); }
-        NewtypeSubAssign! { () pub struct $T(u64); }
-
         debug_macro!($T);
         display!($T, $display_name);
         serde!($T);
         sum!($T);
-
+        add!($T);
+        add_assign!($T);
+        sub!($T);
+        sub_assign!($T);
         mul!($T);
         div!($T);
         rem!($T);
+        deref!($T);
+        from!($T);
     };
 }
 
@@ -37,6 +32,69 @@ macro_rules! self_div {
             type Output = u64;
             fn div(self, rhs: $T) -> u64 {
                 self.0 / *rhs
+            }
+        }
+    };
+}
+
+macro_rules! add {
+    ($T:ident) => {
+        impl Add<$T> for $T {
+            type Output = $T;
+            fn add(self, rhs: $T) -> $T {
+                $T(self.0 + *rhs)
+            }
+        }
+    };
+}
+
+macro_rules! sub {
+    ($T:ident) => {
+        impl Sub<$T> for $T {
+            type Output = $T;
+            fn sub(self, rhs: $T) -> $T {
+                $T(self.0 - *rhs)
+            }
+        }
+    };
+}
+
+macro_rules! add_assign {
+    ($T:ident) => {
+        impl AddAssign<$T> for $T {
+            fn add_assign(&mut self, rhs: $T) {
+                *self = $T(self.0 + *rhs)
+            }
+        }
+    };
+}
+
+macro_rules! sub_assign {
+    ($T:ident) => {
+        impl SubAssign<$T> for $T {
+            fn sub_assign(&mut self, rhs: $T) {
+                *self = $T(self.0 - *rhs)
+            }
+        }
+    };
+}
+
+macro_rules! deref {
+    ($T:ident) => {
+        impl Deref for $T {
+            type Target = u64;
+            fn deref(&self) -> &u64 {
+                &self.0
+            }
+        }
+    };
+}
+
+macro_rules! from {
+    ($T:ident) => {
+        impl From<u64> for $T {
+            fn from(t: u64) -> $T {
+                $T(t)
             }
         }
     };
@@ -241,7 +299,7 @@ mod tests {
 
     use std::fmt;
     use std::iter::Sum;
-    use std::ops::{Add, Div, Mul, Rem};
+    use std::ops::{Add, AddAssign, Deref, Div, Mul, Rem, Sub, SubAssign};
     use std::u64;
 
     range!(Units, "units");
