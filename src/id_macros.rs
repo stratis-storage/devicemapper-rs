@@ -121,7 +121,12 @@ mod tests {
     use crate::core::errors::{Error, ErrorKind};
 
     fn err_func(err_msg: &str) -> DmError {
-        DmError::Core(ErrorKind::InvalidArgument(err_msg.into()).into())
+        DmError::Core(
+            ErrorKind::InvalidArgument {
+                description: err_msg.into(),
+            }
+            .into(),
+        )
     }
 
     const TYPE_LEN: usize = 12;
@@ -132,11 +137,17 @@ mod tests {
     fn test_empty_name() {
         assert_matches!(
             Id::new(""),
-            Err(DmError::Core(Error(ErrorKind::InvalidArgument(_), _)))
+            Err(DmError::Core(Error {
+                specifics: ErrorKind::InvalidArgument { .. },
+                ..
+            }))
         );
         assert_matches!(
             IdBuf::new("".into()),
-            Err(DmError::Core(Error(ErrorKind::InvalidArgument(_), _)))
+            Err(DmError::Core(Error {
+                specifics: ErrorKind::InvalidArgument { .. },
+                ..
+            }))
         );
     }
 
@@ -146,11 +157,17 @@ mod tests {
         let name = iter::repeat('a').take(TYPE_LEN + 1).collect::<String>();
         assert_matches!(
             Id::new(&name),
-            Err(DmError::Core(Error(ErrorKind::InvalidArgument(_), _)))
+            Err(DmError::Core(Error {
+                specifics: ErrorKind::InvalidArgument { .. },
+                ..
+            }))
         );
         assert_matches!(
             IdBuf::new(name),
-            Err(DmError::Core(Error(ErrorKind::InvalidArgument(_), _)))
+            Err(DmError::Core(Error {
+                specifics: ErrorKind::InvalidArgument { .. },
+                ..
+            }))
         );
     }
 

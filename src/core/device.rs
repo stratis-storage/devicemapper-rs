@@ -12,7 +12,7 @@ use nix::sys::stat::SFlag;
 
 use crate::result::{DmError, DmResult};
 
-use crate::core::errors::ErrorKind;
+use crate::core::errors::{Error, ErrorKind};
 
 /// A struct containing the device's major and minor numbers
 ///
@@ -39,23 +39,26 @@ impl FromStr for Device {
         let vals = s.split(':').collect::<Vec<_>>();
         if vals.len() != 2 {
             let err_msg = format!("value \"{}\" split into wrong number of fields", s);
-            return Err(DmError::Core(ErrorKind::InvalidArgument(err_msg).into()));
+            return Err(DmError::Core(
+                ErrorKind::InvalidArgument {
+                    description: err_msg,
+                }
+                .into(),
+            ));
         }
         let major = vals[0].parse::<u32>().map_err(|_| {
             DmError::Core(
-                ErrorKind::InvalidArgument(format!(
-                    "could not parse \"{}\" to obtain major number",
-                    vals[0]
-                ))
+                ErrorKind::InvalidArgument {
+                    description: format!("could not parse \"{}\" to obtain major number", vals[0]),
+                }
                 .into(),
             )
         })?;
         let minor = vals[1].parse::<u32>().map_err(|_| {
             DmError::Core(
-                ErrorKind::InvalidArgument(format!(
-                    "could not parse \"{}\" to obtain minor number",
-                    vals[1]
-                ))
+                ErrorKind::InvalidArgument {
+                    description: format!("could not parse \"{}\" to obtain minor number", vals[1]),
+                }
                 .into(),
             )
         })?;
@@ -117,7 +120,10 @@ pub fn devnode_to_devno(path: &Path) -> DmResult<Option<u64>> {
                 return Ok(None);
             }
             Err(DmError::Core(
-                ErrorKind::MetadataIoError(path.to_owned(), err).into(),
+                Error::from(ErrorKind::MetadataIoError {
+                    device_path: path.to_owned(),
+                })
+                .set_constituent(Box::new(err)),
             ))
         }
     }

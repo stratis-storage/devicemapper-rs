@@ -766,7 +766,10 @@ mod tests {
                 MIN_DATA_BLOCK_SIZE / 2u64,
                 DataBlocks(1)
             ),
-            Err(DmError::Core(Error(ErrorKind::IoctlError(_, _), _)))
+            Err(DmError::Core(Error {
+                specifics: ErrorKind::IoctlError { .. },
+                ..
+            }))
         );
         dm.device_remove(&DevId::Name(&meta_name), &DmOptions::new())
             .unwrap();
