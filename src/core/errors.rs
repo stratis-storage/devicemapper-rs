@@ -13,6 +13,9 @@ pub enum ErrorKind {
     /// An error returned on failure to create a devicemapper context.
     ContextInitError,
 
+    /// Error when parsing a device number
+    DeviceNumberParseError { putative_number: String },
+
     /// This is a generic error that can be returned when a method
     /// receives an invalid argument. Ideally, the argument should be
     /// invalid in itself, i.e., it should not be made invalid by some
@@ -36,6 +39,11 @@ impl std::fmt::Display for ErrorKind {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         match self {
             ErrorKind::ContextInitError => write!(f, "DM context not initialized"),
+            ErrorKind::DeviceNumberParseError { putative_number } => write!(
+                f,
+                "failed to parse putative device number: {}",
+                putative_number
+            ),
             ErrorKind::InvalidArgument { description } => {
                 write!(f, "invalid argument: {}", description)
             }
