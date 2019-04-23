@@ -37,31 +37,36 @@ impl FromStr for Device {
 
     fn from_str(s: &str) -> Result<Device, DmError> {
         let vals = s.split(':').collect::<Vec<_>>();
-        if vals.len() != 2 {
-            return Err(DmError::Core(
-                ErrorKind::InvalidArgument {
+
+        || -> Result<Device, Error> {
+            if vals.len() != 2 {
+                return Err(ErrorKind::InvalidArgument {
                     description: format!("value \"{}\" split into wrong number of fields", s),
                 }
-                .into(),
-            ));
-        }
-        let major = vals[0].parse::<u32>().map_err(|_| {
-            DmError::Core(
-                ErrorKind::InvalidArgument {
+                .into());
+            }
+            let major = vals[0].parse::<u32>().map_err(|_| {
+                Error::from(ErrorKind::InvalidArgument {
                     description: format!("could not parse \"{}\" to obtain major number", vals[0]),
-                }
-                .into(),
-            )
-        })?;
-        let minor = vals[1].parse::<u32>().map_err(|_| {
-            DmError::Core(
-                ErrorKind::InvalidArgument {
+                })
+            })?;
+            let minor = vals[1].parse::<u32>().map_err(|_| {
+                Error::from(ErrorKind::InvalidArgument {
                     description: format!("could not parse \"{}\" to obtain minor number", vals[1]),
-                }
-                .into(),
+                })
+            })?;
+            Ok(Device { major, minor })
+        }()
+        .map_err(|err| {
+            DmError::Core(
+                err.set_extension(
+                    ErrorKind::DeviceNumberParseError {
+                        putative_number: s.to_owned(),
+                    }
+                    .into(),
+                ),
             )
-        })?;
-        Ok(Device { major, minor })
+        })
     }
 }
 
