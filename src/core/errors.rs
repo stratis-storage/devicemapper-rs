@@ -58,9 +58,9 @@ impl std::fmt::Display for ErrorKind {
 /// What relation the component error has to its parent
 enum Suberror {
     /// The error occurred before the parent error
-    Previous(Box<dyn std::error::Error>),
+    Previous(Box<(dyn std::error::Error + Send)>),
     /// The error is further explained or extended by the parent
-    Constituent(Box<dyn std::error::Error>),
+    Constituent(Box<(dyn std::error::Error + Send)>),
 }
 
 #[derive(Debug)]
@@ -110,13 +110,13 @@ impl Error {
     }
 
     /// Set constituent as the constituent of this error.
-    pub fn set_constituent(mut self, constituent: Box<dyn std::error::Error>) -> Error {
+    pub fn set_constituent(mut self, constituent: Box<dyn std::error::Error + Send>) -> Error {
         self.source_impl = Some(Suberror::Constituent(constituent));
         self
     }
 
     /// Set previous as the previous error.
-    pub fn set_previous(mut self, previous: Box<dyn std::error::Error>) -> Error {
+    pub fn set_previous(mut self, previous: Box<dyn std::error::Error + Send>) -> Error {
         self.source_impl = Some(Suberror::Previous(previous));
         self
     }
@@ -147,8 +147,8 @@ impl From<ErrorKind> for Error {
 impl std::error::Error for Error {
     fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
         self.source_impl.as_ref().map(|c| match c {
-            Suberror::Previous(c) => &**c,
-            Suberror::Constituent(c) => &**c,
+            Suberror::Previous(c) => &**c as &(dyn std::error::Error + 'static),
+            Suberror::Constituent(c) => &**c as &(dyn std::error::Error + 'static),
         })
     }
 
@@ -156,8 +156,8 @@ impl std::error::Error for Error {
     // identical to source()
     fn cause(&self) -> Option<&dyn std::error::Error> {
         self.source_impl.as_ref().map(|c| match c {
-            Suberror::Previous(c) => &**c,
-            Suberror::Constituent(c) => &**c,
+            Suberror::Previous(c) => &**c as &dyn std::error::Error,
+            Suberror::Constituent(c) => &**c as &dyn std::error::Error,
         })
     }
 }
