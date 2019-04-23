@@ -76,7 +76,7 @@ pub struct Error {
     backtrace: Backtrace,
 
     // Distinguish among different errors with an ErrorKind
-    specifics: ErrorKind,
+    pub specifics: ErrorKind,
 }
 
 impl Error {
