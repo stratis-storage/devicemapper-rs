@@ -38,10 +38,9 @@ impl FromStr for Device {
     fn from_str(s: &str) -> Result<Device, DmError> {
         let vals = s.split(':').collect::<Vec<_>>();
         if vals.len() != 2 {
-            let err_msg = format!("value \"{}\" split into wrong number of fields", s);
             return Err(DmError::Core(
                 ErrorKind::InvalidArgument {
-                    description: err_msg,
+                    description: format!("value \"{}\" split into wrong number of fields", s),
                 }
                 .into(),
             ));
