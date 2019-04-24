@@ -56,7 +56,7 @@ pub struct LoopTestDev {
 }
 
 impl LoopTestDev {
-    pub fn new(lc: &LoopControl, path: &Path) -> LoopTestDev {
+    fn new(lc: &LoopControl, path: &Path) -> LoopTestDev {
         OpenOptions::new()
             .read(true)
             .write(true)
@@ -77,7 +77,7 @@ impl LoopTestDev {
         self.ld.path().unwrap()
     }
 
-    pub fn detach(&self) {
+    fn detach(&self) {
         self.ld.detach().unwrap()
     }
 }
