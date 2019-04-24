@@ -2,7 +2,7 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-use std::fs::{File, OpenOptions};
+use std::fs::OpenOptions;
 use std::io::{Seek, SeekFrom, Write};
 use std::os::unix::io::AsRawFd;
 use std::path::{Path, PathBuf};
@@ -16,17 +16,6 @@ use crate::consts::IEC;
 use crate::units::{Bytes, Sectors, SECTOR_SIZE};
 
 use crate::testing::test_lib::clean_up;
-
-// send IOCTL via blkgetsize64
-ioctl_read!(blkgetsize64, 0x12, 114, u64);
-
-/// get the size of a given block device file
-pub fn blkdev_size(file: &File) -> Bytes {
-    let mut val: u64 = 0;
-
-    unsafe { blkgetsize64(file.as_raw_fd(), &mut val) }.unwrap();
-    Bytes(val)
-}
 
 /// Write buf at offset length times.
 fn write_sectors<P: AsRef<Path>>(

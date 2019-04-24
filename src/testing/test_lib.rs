@@ -4,6 +4,7 @@
 
 use std::fs::File;
 use std::io::Read;
+use std::os::unix::io::AsRawFd;
 use std::panic::catch_unwind;
 use std::path::{Path, PathBuf};
 use std::process::Command;
@@ -15,9 +16,21 @@ use uuid::Uuid;
 
 use crate::core::{DevId, DmNameBuf, DmOptions, DmUuidBuf, DM};
 use crate::result::{DmError, DmResult, ErrorEnum};
+use crate::units::Bytes;
 
 static INIT: Once = ONCE_INIT;
 static mut DM_CONTEXT: Option<DM> = None;
+
+// send IOCTL via blkgetsize64
+ioctl_read!(blkgetsize64, 0x12, 114, u64);
+
+/// get the size of a given block device file
+pub fn blkdev_size(file: &File) -> Bytes {
+    let mut val: u64 = 0;
+
+    unsafe { blkgetsize64(file.as_raw_fd(), &mut val) }.unwrap();
+    Bytes(val)
+}
 
 fn get_dm() -> &'static DM {
     unsafe {
