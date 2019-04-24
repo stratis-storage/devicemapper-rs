@@ -16,28 +16,36 @@ matrix:
         # Allow macro-expansion test to fail
         - rust: nightly
     include:
-        # Run rustfmt on the compiler currently recommended for development
-        - rust: 1.31.0
+
+        # MANDATORY CHECKS USING CURRENT DEVELOPMENT COMPILER
+        # rustfmt
+        - rust: 1.33.0
           before_script:
               - rustup component add rustfmt
           env: TASK=travis_fmt
-        # Build on current stable compiler
-        - rust: stable
-          env: TASK=build
-        # Verify that source and tests build on rustc 1.31.0
-        # rustc 1.31.0 is the lowest supported compiler version.
-        - rust: 1.31.0
-          env: TASK=test
-        # Run tests on current stable compiler
-        - rust: stable
-          sudo: required
-          env: TASK=sudo_test
-        # Run clippy using the compiler version recommended for development
-        - rust: 1.31.0
+        # clippy
+        - rust: 1.33.0
           before_script:
               - rustup component add clippy
           env: TASK=clippy
-        # Run tests on rust beta, in order to be good Rustaceans
+
+        # MANDATORY TESTING USING LOWEST SUPPORTED COMPILER
+        # tests
+        - rust: 1.33.0
+          env: TASK=test
+
+
+        # MANDATORY TESTING ON STABLE
+        # compile
+        - rust: stable
+          env: TASK=build
+        # test
+        - rust: stable
+          sudo: required
+          env: TASK=sudo_test
+
+        # ALLOWED FAILURES
+        # test on beta to be good Rustaceans
         - rust: beta
           sudo: required
           env: TASK=sudo_test
