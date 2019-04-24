@@ -715,7 +715,7 @@ impl DM {
 mod tests {
 
     use crate::result::DmError;
-    use crate::test_lib::{test_name, test_uuid};
+    use crate::testing::{test_name, test_uuid};
 
     use crate::core::errors::Error;
 

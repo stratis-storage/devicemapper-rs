@@ -484,8 +484,7 @@ mod tests {
     use std::path::Path;
 
     use crate::core::{devnode_to_devno, Device};
-    use crate::loopbacked::{blkdev_size, test_with_spec};
-    use crate::test_lib::test_name;
+    use crate::testing::{blkdev_size, test_name, test_with_spec};
 
     use super::*;
 

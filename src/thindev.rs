@@ -430,10 +430,10 @@ mod tests {
     use uuid::Uuid;
 
     use crate::consts::IEC;
-    use crate::loopbacked::{blkdev_size, test_with_spec};
     use crate::shared::DmDevice;
-    use crate::test_lib::{
-        test_name, test_string, test_uuid, udev_settle, xfs_create_fs, xfs_set_uuid,
+    use crate::testing::{
+        blkdev_size, test_name, test_string, test_uuid, test_with_spec, udev_settle, xfs_create_fs,
+        xfs_set_uuid,
     };
     use crate::thinpooldev::{minimal_thinpool, ThinPoolStatus};
     use crate::units::DataBlocks;

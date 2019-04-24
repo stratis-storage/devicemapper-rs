@@ -616,9 +616,7 @@ use crate::consts::IEC;
 #[cfg(test)]
 use crate::lineardev::LinearTargetParams;
 #[cfg(test)]
-use crate::loopbacked::blkdev_size;
-#[cfg(test)]
-use crate::test_lib::test_name;
+use crate::testing::{blkdev_size, test_name};
 #[cfg(test)]
 use std::fs::OpenOptions;
 
@@ -684,7 +682,7 @@ pub fn minimal_thinpool(dm: &DM, path: &Path) -> ThinPoolDev {
 mod tests {
     use std::path::Path;
 
-    use crate::loopbacked::test_with_spec;
+    use crate::testing::{test_name, test_with_spec};
 
     use crate::core::errors::{Error, ErrorKind};
 
