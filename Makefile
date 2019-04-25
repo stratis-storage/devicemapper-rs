@@ -1,4 +1,4 @@
-DENY = "-D warnings -D future-incompatible -D unused"
+DENY = "-D warnings -D future-incompatible -D unused -D ellipsis-inclusive-range-patterns"
 
 ${HOME}/.cargo/bin/cargo-expand:
 	cargo install cargo-expand
