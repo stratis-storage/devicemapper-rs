@@ -32,9 +32,13 @@ sudo_test:
 clippy:
 	cargo clippy --all-targets --all-features -- -D warnings
 
+docs:
+	cargo doc --no-deps
+
 .PHONY:
 	build
 	clippy
+	docs
 	fmt
 	sudo_test
 	test
