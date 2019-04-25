@@ -4,6 +4,7 @@
 
 use std::fs::File;
 use std::io::Read;
+use std::os::unix::io::AsRawFd;
 use std::panic::catch_unwind;
 use std::path::{Path, PathBuf};
 use std::process::Command;
@@ -15,11 +16,23 @@ use uuid::Uuid;
 
 use crate::core::{DevId, DmNameBuf, DmOptions, DmUuidBuf, DM};
 use crate::result::{DmError, DmResult, ErrorEnum};
+use crate::units::Bytes;
 
 static INIT: Once = ONCE_INIT;
 static mut DM_CONTEXT: Option<DM> = None;
 
-pub fn get_dm() -> &'static DM {
+// send IOCTL via blkgetsize64
+ioctl_read!(blkgetsize64, 0x12, 114, u64);
+
+/// get the size of a given block device file
+pub fn blkdev_size(file: &File) -> Bytes {
+    let mut val: u64 = 0;
+
+    unsafe { blkgetsize64(file.as_raw_fd(), &mut val) }.unwrap();
+    Bytes(val)
+}
+
+fn get_dm() -> &'static DM {
     unsafe {
         INIT.call_once(|| DM_CONTEXT = Some(DM::new().unwrap()));
         match DM_CONTEXT {
@@ -41,7 +54,7 @@ pub fn test_string(name: &str) -> String {
 }
 
 /// Execute command while collecting stdout & stderr.
-pub fn execute_cmd(cmd: &mut Command) -> DmResult<()> {
+fn execute_cmd(cmd: &mut Command) -> DmResult<()> {
     match cmd.output() {
         Err(err) => Err(DmError::Dm(
             ErrorEnum::Error,
@@ -188,7 +201,7 @@ fn dm_test_fs_unmount() -> Result<()> {
 
 /// Unmount any filesystems or devicemapper devices which contain DM_TEST_ID
 /// in the path or name. Immediately return on first error.
-pub fn clean_up() -> Result<()> {
+pub(super) fn clean_up() -> Result<()> {
     dm_test_fs_unmount()?;
     dm_test_devices_remove()?;
     Ok(())

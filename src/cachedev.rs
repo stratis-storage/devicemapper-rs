@@ -742,9 +742,7 @@ use crate::core::devnode_to_devno;
 #[cfg(test)]
 use crate::lineardev::LinearTargetParams;
 #[cfg(test)]
-use crate::loopbacked::blkdev_size;
-#[cfg(test)]
-use crate::test_lib::test_name;
+use crate::testing::{blkdev_size, test_name};
 
 // Specified in kernel docs
 /// The minimum size recommended in the docs for a cache block.
@@ -812,7 +810,7 @@ pub fn minimal_cachedev(dm: &DM, paths: &[&Path]) -> CacheDev {
 mod tests {
     use std::path::Path;
 
-    use crate::loopbacked::test_with_spec;
+    use crate::testing::test_with_spec;
 
     use super::*;
 

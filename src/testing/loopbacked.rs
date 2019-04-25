@@ -2,7 +2,7 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-use std::fs::{File, OpenOptions};
+use std::fs::OpenOptions;
 use std::io::{Seek, SeekFrom, Write};
 use std::os::unix::io::AsRawFd;
 use std::path::{Path, PathBuf};
@@ -13,19 +13,9 @@ use nix;
 use tempfile::{self, TempDir};
 
 use crate::consts::IEC;
-use crate::test_lib::clean_up;
 use crate::units::{Bytes, Sectors, SECTOR_SIZE};
 
-// send IOCTL via blkgetsize64
-ioctl_read!(blkgetsize64, 0x12, 114, u64);
-
-/// get the size of a given block device file
-pub fn blkdev_size(file: &File) -> Bytes {
-    let mut val: u64 = 0;
-
-    unsafe { blkgetsize64(file.as_raw_fd(), &mut val) }.unwrap();
-    Bytes(val)
-}
+use crate::testing::test_lib::clean_up;
 
 /// Write buf at offset length times.
 fn write_sectors<P: AsRef<Path>>(
@@ -55,7 +45,7 @@ pub struct LoopTestDev {
 }
 
 impl LoopTestDev {
-    pub fn new(lc: &LoopControl, path: &Path) -> LoopTestDev {
+    fn new(lc: &LoopControl, path: &Path) -> LoopTestDev {
         OpenOptions::new()
             .read(true)
             .write(true)
@@ -76,7 +66,7 @@ impl LoopTestDev {
         self.ld.path().unwrap()
     }
 
-    pub fn detach(&self) {
+    fn detach(&self) {
         self.ld.detach().unwrap()
     }
 }

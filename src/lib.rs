@@ -116,10 +116,7 @@ mod thinpooldev;
 mod units;
 
 #[cfg(test)]
-mod loopbacked;
-
-#[cfg(test)]
-mod test_lib;
+mod testing;
 
 /// More useful test output for match cases
 #[cfg(test)]
