@@ -43,6 +43,9 @@ matrix:
         - rust: stable
           sudo: required
           env: TASK=sudo_test
+        # Build docs
+        - rust: stable
+          env: TASK=docs
 
         # ALLOWED FAILURES
         # test on beta to be good Rustaceans
