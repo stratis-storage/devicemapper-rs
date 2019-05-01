@@ -68,9 +68,11 @@
 #[macro_use]
 extern crate bitflags;
 #[macro_use]
-extern crate error_chain;
-#[macro_use]
 extern crate nix;
+
+#[cfg(test)]
+#[macro_use]
+extern crate error_chain;
 
 /// Range macros
 #[macro_use]

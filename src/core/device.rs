@@ -12,7 +12,7 @@ use nix::sys::stat::SFlag;
 
 use crate::result::{DmError, DmResult};
 
-use crate::core::errors::ErrorKind;
+use crate::core::errors::{Error, ErrorKind};
 
 /// A struct containing the device's major and minor numbers
 ///
@@ -37,29 +37,36 @@ impl FromStr for Device {
 
     fn from_str(s: &str) -> Result<Device, DmError> {
         let vals = s.split(':').collect::<Vec<_>>();
-        if vals.len() != 2 {
-            let err_msg = format!("value \"{}\" split into wrong number of fields", s);
-            return Err(DmError::Core(ErrorKind::InvalidArgument(err_msg).into()));
-        }
-        let major = vals[0].parse::<u32>().map_err(|_| {
+
+        || -> Result<Device, Error> {
+            if vals.len() != 2 {
+                return Err(ErrorKind::InvalidArgument {
+                    description: format!("value \"{}\" split into wrong number of fields", s),
+                }
+                .into());
+            }
+            let major = vals[0].parse::<u32>().map_err(|_| {
+                Error::from(ErrorKind::InvalidArgument {
+                    description: format!("could not parse \"{}\" to obtain major number", vals[0]),
+                })
+            })?;
+            let minor = vals[1].parse::<u32>().map_err(|_| {
+                Error::from(ErrorKind::InvalidArgument {
+                    description: format!("could not parse \"{}\" to obtain minor number", vals[1]),
+                })
+            })?;
+            Ok(Device { major, minor })
+        }()
+        .map_err(|err| {
             DmError::Core(
-                ErrorKind::InvalidArgument(format!(
-                    "could not parse \"{}\" to obtain major number",
-                    vals[0]
-                ))
-                .into(),
+                err.set_extension(
+                    ErrorKind::DeviceNumberParseError {
+                        putative_number: s.to_owned(),
+                    }
+                    .into(),
+                ),
             )
-        })?;
-        let minor = vals[1].parse::<u32>().map_err(|_| {
-            DmError::Core(
-                ErrorKind::InvalidArgument(format!(
-                    "could not parse \"{}\" to obtain minor number",
-                    vals[1]
-                ))
-                .into(),
-            )
-        })?;
-        Ok(Device { major, minor })
+        })
     }
 }
 
@@ -117,7 +124,10 @@ pub fn devnode_to_devno(path: &Path) -> DmResult<Option<u64>> {
                 return Ok(None);
             }
             Err(DmError::Core(
-                ErrorKind::MetadataIoError(path.to_owned(), err).into(),
+                Error::from(ErrorKind::MetadataIoError {
+                    device_path: path.to_owned(),
+                })
+                .set_constituent(Box::new(err)),
             ))
         }
     }

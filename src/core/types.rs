@@ -13,7 +13,12 @@ use crate::core::errors::ErrorKind;
 
 /// An error function to construct an error when creating a new string id.
 fn err_func(err_msg: &str) -> DmError {
-    DmError::Core(ErrorKind::InvalidArgument(err_msg.into()).into())
+    DmError::Core(
+        ErrorKind::InvalidArgument {
+            description: err_msg.into(),
+        }
+        .into(),
+    )
 }
 
 // A devicemapper name. Really just a string, but also the argument type of
