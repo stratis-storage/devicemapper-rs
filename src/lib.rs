@@ -69,21 +69,8 @@
 extern crate bitflags;
 #[macro_use]
 extern crate error_chain;
-extern crate libc;
 #[macro_use]
 extern crate nix;
-extern crate serde;
-
-#[cfg(test)]
-extern crate libmount;
-#[cfg(test)]
-extern crate libudev;
-#[cfg(test)]
-extern crate loopdev;
-#[cfg(test)]
-extern crate tempfile;
-#[cfg(test)]
-extern crate uuid;
 
 /// Range macros
 #[macro_use]

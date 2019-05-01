@@ -12,7 +12,7 @@ macro_rules! range {
         checked_add!($T);
         debug_macro!($T);
         display!($T, $display_name);
-        serde!($T);
+        serde_macro!($T);
         sum!($T);
         add!($T);
         add_assign!($T);
@@ -121,7 +121,7 @@ macro_rules! display {
     };
 }
 
-macro_rules! serde {
+macro_rules! serde_macro {
     ($T:ident) => {
         impl serde::Serialize for $T {
             fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>

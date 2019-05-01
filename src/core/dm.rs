@@ -233,7 +233,7 @@ impl DM {
                 // drivers/md/dm-ioctl.c:list_devices
                 let event_nr = {
                     match hdr.version[1] {
-                        0...36 => None,
+                        0..=36 => None,
                         _ => {
                             // offsetof "name" in Struct_dm_name_list.
                             // TODO: Consider using pointer::offset_to when stable

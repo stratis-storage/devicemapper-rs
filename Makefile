@@ -1,4 +1,8 @@
-DENY = "-D warnings -D future-incompatible -D unused"
+RUST_2018_IDIOMS = -D bare-trait-objects  \
+		   -D ellipsis-inclusive-range-patterns \
+		   -D unused-extern-crates
+
+DENY = -D warnings -D future-incompatible -D unused ${RUST_2018_IDIOMS}
 
 ${HOME}/.cargo/bin/cargo-expand:
 	cargo install cargo-expand
@@ -21,13 +25,13 @@ travis_fmt:
 	cargo fmt -- --check
 
 build:
-	RUSTFLAGS=${DENY} cargo build
+	RUSTFLAGS="${DENY}" cargo build
 
 test:
-	RUSTFLAGS=${DENY} RUST_BACKTRACE=1 cargo test -- --skip sudo_ --skip loop_
+	RUSTFLAGS="${DENY}" RUST_BACKTRACE=1 cargo test -- --skip sudo_ --skip loop_
 
 sudo_test:
-	sudo env "PATH=${PATH}" RUSTFLAGS=${DENY} RUST_BACKTRACE=1 RUST_TEST_THREADS=1 cargo test
+	sudo env "PATH=${PATH}" RUSTFLAGS="${DENY}" RUST_BACKTRACE=1 RUST_TEST_THREADS=1 cargo test
 
 clippy:
 	cargo clippy --all-targets --all-features -- -D warnings
