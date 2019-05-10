@@ -11,9 +11,7 @@ ${HOME}/.cargo/bin/cargo-tree:
 	cargo install cargo-tree
 
 expand: ${HOME}/.cargo/bin/cargo-expand
-	PATH=${HOME}/.cargo/bin:${PATH} cargo expand core::errors
-	PATH=${HOME}/.cargo/bin:${PATH} cargo expand core::types
-	PATH=${HOME}/.cargo/bin:${PATH} cargo expand units
+	PATH=${HOME}/.cargo/bin:${PATH} cargo expand shared
 
 tree: ${HOME}/.cargo/bin/cargo-tree
 	PATH=${HOME}/.cargo/bin:${PATH} cargo tree
