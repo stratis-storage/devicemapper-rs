@@ -14,7 +14,6 @@ use tempfile::{self, TempDir};
 
 use crate::consts::IEC;
 use crate::units::{Bytes, Sectors, SECTOR_SIZE};
-
 use crate::testing::test_lib::clean_up;
 
 /// Write buf at offset length times.

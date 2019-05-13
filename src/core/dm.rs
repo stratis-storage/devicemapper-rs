@@ -12,7 +12,6 @@ use nix::libc::ioctl as nix_ioctl;
 
 use crate::core::{DevId, Device, DeviceInfo, DmFlags, DmName, DmNameBuf, DmOptions, DmUuid};
 use crate::result::{DmError, DmResult};
-
 use crate::core::deviceinfo::{DM_NAME_LEN, DM_UUID_LEN};
 use crate::core::dm_ioctl as dmi;
 use crate::core::errors::ErrorKind;
@@ -716,7 +715,6 @@ mod tests {
 
     use crate::result::DmError;
     use crate::testing::{test_name, test_uuid};
-
     use crate::core::errors::Error;
 
     use super::*;

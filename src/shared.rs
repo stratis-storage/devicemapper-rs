@@ -6,7 +6,6 @@
 // devices.
 
 use std::fmt;
-
 use std::borrow::Borrow;
 use std::ops::Deref;
 use std::path::{Path, PathBuf};

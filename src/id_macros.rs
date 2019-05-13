@@ -117,7 +117,6 @@ mod tests {
     use std::ops::Deref;
 
     use crate::result::{DmError, DmResult};
-
     use crate::core::errors::{Error, ErrorKind};
 
     fn err_func(err_msg: &str) -> DmError {

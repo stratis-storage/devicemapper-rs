@@ -7,7 +7,6 @@ use std::fmt;
 use std::ops::Deref;
 
 use crate::result::{DmError, DmResult};
-
 use crate::core::deviceinfo::{DM_NAME_LEN, DM_UUID_LEN};
 use crate::core::errors::ErrorKind;
 

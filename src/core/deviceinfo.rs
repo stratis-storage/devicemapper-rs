@@ -4,7 +4,6 @@
 use std::str::from_utf8;
 
 use crate::core::{Device, DmFlags, DmName, DmUuid};
-
 use crate::core::dm_ioctl as dmi;
 use crate::core::util::slice_to_null;
 

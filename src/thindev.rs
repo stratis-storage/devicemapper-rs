@@ -437,7 +437,6 @@ mod tests {
     };
     use crate::thinpooldev::{minimal_thinpool, ThinPoolStatus};
     use crate::units::DataBlocks;
-
     use crate::core::errors::{Error, ErrorKind};
 
     use super::*;

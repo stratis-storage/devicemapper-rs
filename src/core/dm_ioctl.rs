@@ -11,7 +11,6 @@ use std::borrow::Cow;
 use std::fmt;
 
 use crate::core::Device;
-
 use crate::core::util::slice_to_null;
 
 pub type __s8 = ::libc::c_char;
