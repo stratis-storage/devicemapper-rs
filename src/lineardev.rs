@@ -2,18 +2,17 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-use std::collections::HashSet;
-use std::fmt;
-use std::path::PathBuf;
-use std::str::FromStr;
+use std::{collections::HashSet, fmt, path::PathBuf, str::FromStr};
 
-use crate::core::{DevId, Device, DeviceInfo, DmName, DmOptions, DmUuid, DM};
-use crate::result::{DmError, DmResult, ErrorEnum};
-use crate::shared::{
-    device_create, device_exists, device_match, parse_device, parse_value, DmDevice, TargetLine,
-    TargetParams, TargetTable, TargetTypeBuf,
+use crate::{
+    core::{DevId, Device, DeviceInfo, DmName, DmOptions, DmUuid, DM},
+    result::{DmError, DmResult, ErrorEnum},
+    shared::{
+        device_create, device_exists, device_match, parse_device, parse_value, DmDevice,
+        TargetLine, TargetParams, TargetTable, TargetTypeBuf,
+    },
+    units::Sectors,
 };
-use crate::units::Sectors;
 
 const FLAKEY_TARGET_NAME: &str = "flakey";
 const LINEAR_TARGET_NAME: &str = "linear";
@@ -479,12 +478,12 @@ impl LinearDev {
 
 #[cfg(test)]
 mod tests {
-    use std::clone::Clone;
-    use std::fs::OpenOptions;
-    use std::path::Path;
+    use std::{clone::Clone, fs::OpenOptions, path::Path};
 
-    use crate::core::{devnode_to_devno, Device};
-    use crate::testing::{blkdev_size, test_name, test_with_spec};
+    use crate::{
+        core::{devnode_to_devno, Device},
+        testing::{blkdev_size, test_name, test_with_spec},
+    };
 
     use super::*;
 

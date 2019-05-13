@@ -2,17 +2,15 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-use std::os::linux::fs::MetadataExt;
-use std::path::Path;
-use std::str::FromStr;
-use std::{fmt, io};
+use std::{fmt, io, os::linux::fs::MetadataExt, path::Path, str::FromStr};
 
 use libc::{dev_t, major, makedev, minor};
 use nix::sys::stat::SFlag;
 
-use crate::result::{DmError, DmResult};
-
-use crate::core::errors::ErrorKind;
+use crate::{
+    core::errors::ErrorKind,
+    result::{DmError, DmResult},
+};
 
 /// A struct containing the device's major and minor numbers
 ///

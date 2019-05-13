@@ -297,10 +297,12 @@ macro_rules! checked_add {
 #[cfg(test)]
 mod tests {
 
-    use std::fmt;
-    use std::iter::Sum;
-    use std::ops::{Add, AddAssign, Deref, Div, Mul, Rem, Sub, SubAssign};
-    use std::u64;
+    use std::{
+        fmt,
+        iter::Sum,
+        ops::{Add, AddAssign, Deref, Div, Mul, Rem, Sub, SubAssign},
+        u64,
+    };
 
     range!(Units, "units");
 

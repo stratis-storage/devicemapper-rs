@@ -3,10 +3,7 @@
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 use std::str::from_utf8;
 
-use crate::core::{Device, DmFlags, DmName, DmUuid};
-
-use crate::core::dm_ioctl as dmi;
-use crate::core::util::slice_to_null;
+use crate::core::{dm_ioctl as dmi, util::slice_to_null, Device, DmFlags, DmName, DmUuid};
 
 /// Name max length
 pub const DM_NAME_LEN: usize = 128;

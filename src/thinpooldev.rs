@@ -2,25 +2,25 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-use std::collections::hash_set::HashSet;
-use std::fmt;
-use std::path::PathBuf;
-use std::str::FromStr;
+use std::{collections::hash_set::HashSet, fmt, path::PathBuf, str::FromStr};
 
-use crate::core::{DevId, Device, DeviceInfo, DmName, DmOptions, DmUuid, DM};
-use crate::lineardev::{LinearDev, LinearDevTargetParams};
-use crate::result::{DmError, DmResult, ErrorEnum};
-use crate::shared::{
-    device_create, device_exists, device_match, get_status_line_fields,
-    make_unexpected_value_error, parse_device, parse_value, DmDevice, TargetLine, TargetParams,
-    TargetTable, TargetTypeBuf,
+use crate::{
+    core::{DevId, Device, DeviceInfo, DmName, DmOptions, DmUuid, DM},
+    lineardev::{LinearDev, LinearDevTargetParams},
+    result::{DmError, DmResult, ErrorEnum},
+    shared::{
+        device_create, device_exists, device_match, get_status_line_fields,
+        make_unexpected_value_error, parse_device, parse_value, DmDevice, TargetLine, TargetParams,
+        TargetTable, TargetTypeBuf,
+    },
+    units::{DataBlocks, MetaBlocks, Sectors},
 };
-use crate::units::{DataBlocks, MetaBlocks, Sectors};
+
+#[cfg(test)]
+use std::path::Path;
 
 #[cfg(test)]
 use crate::core::devnode_to_devno;
-#[cfg(test)]
-use std::path::Path;
 
 const THINPOOL_TARGET_NAME: &str = "thin-pool";
 
@@ -612,13 +612,14 @@ impl ThinPoolDev {
 }
 
 #[cfg(test)]
-use crate::consts::IEC;
-#[cfg(test)]
-use crate::lineardev::LinearTargetParams;
-#[cfg(test)]
-use crate::testing::{blkdev_size, test_name};
-#[cfg(test)]
 use std::fs::OpenOptions;
+
+#[cfg(test)]
+use crate::{
+    consts::IEC,
+    lineardev::LinearTargetParams,
+    testing::{blkdev_size, test_name},
+};
 
 /// Values are explicitly stated in the device-mapper kernel documentation.
 #[cfg(test)]
@@ -682,9 +683,10 @@ pub fn minimal_thinpool(dm: &DM, path: &Path) -> ThinPoolDev {
 mod tests {
     use std::path::Path;
 
-    use crate::testing::{test_name, test_with_spec};
-
-    use crate::core::errors::{Error, ErrorKind};
+    use crate::{
+        core::errors::{Error, ErrorKind},
+        testing::{test_name, test_with_spec},
+    };
 
     use super::*;
 

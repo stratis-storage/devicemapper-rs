@@ -2,21 +2,25 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-use std::fs::File;
-use std::io::Read;
-use std::os::unix::io::AsRawFd;
-use std::panic::catch_unwind;
-use std::path::{Path, PathBuf};
-use std::process::Command;
-use std::sync::{Once, ONCE_INIT};
+use std::{
+    fs::File,
+    io::Read,
+    os::unix::io::AsRawFd,
+    panic::catch_unwind,
+    path::{Path, PathBuf},
+    process::Command,
+    sync::{Once, ONCE_INIT},
+};
 
 use libmount;
 use nix::mount::{umount2, MntFlags};
 use uuid::Uuid;
 
-use crate::core::{DevId, DmNameBuf, DmOptions, DmUuidBuf, DM};
-use crate::result::{DmError, DmResult, ErrorEnum};
-use crate::units::Bytes;
+use crate::{
+    core::{DevId, DmNameBuf, DmOptions, DmUuidBuf, DM},
+    result::{DmError, DmResult, ErrorEnum},
+    units::Bytes,
+};
 
 static INIT: Once = ONCE_INIT;
 static mut DM_CONTEXT: Option<DM> = None;

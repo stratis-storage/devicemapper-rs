@@ -2,20 +2,25 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-use std::fs::OpenOptions;
-use std::io::{Seek, SeekFrom, Write};
-use std::os::unix::io::AsRawFd;
-use std::path::{Path, PathBuf};
-use std::{io, panic};
+use std::{
+    fs::OpenOptions,
+    io::{
+        self, {Seek, SeekFrom, Write},
+    },
+    os::unix::io::AsRawFd,
+    panic,
+    path::{Path, PathBuf},
+};
 
 use loopdev::{LoopControl, LoopDevice};
 use nix;
 use tempfile::{self, TempDir};
 
-use crate::consts::IEC;
-use crate::units::{Bytes, Sectors, SECTOR_SIZE};
-
-use crate::testing::test_lib::clean_up;
+use crate::{
+    consts::IEC,
+    testing::test_lib::clean_up,
+    units::{Bytes, Sectors, SECTOR_SIZE},
+};
 
 /// Write buf at offset length times.
 fn write_sectors<P: AsRef<Path>>(
