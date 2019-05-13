@@ -116,8 +116,8 @@ mod tests {
     use std::iter;
     use std::ops::Deref;
 
-    use crate::result::{DmError, DmResult};
     use crate::core::errors::{Error, ErrorKind};
+    use crate::result::{DmError, DmResult};
 
     fn err_func(err_msg: &str) -> DmError {
         DmError::Core(ErrorKind::InvalidArgument(err_msg.into()).into())

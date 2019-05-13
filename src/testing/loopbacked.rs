@@ -13,8 +13,8 @@ use nix;
 use tempfile::{self, TempDir};
 
 use crate::consts::IEC;
-use crate::units::{Bytes, Sectors, SECTOR_SIZE};
 use crate::testing::test_lib::clean_up;
+use crate::units::{Bytes, Sectors, SECTOR_SIZE};
 
 /// Write buf at offset length times.
 fn write_sectors<P: AsRef<Path>>(

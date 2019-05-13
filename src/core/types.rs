@@ -6,9 +6,9 @@ use std::borrow::Borrow;
 use std::fmt;
 use std::ops::Deref;
 
-use crate::result::{DmError, DmResult};
 use crate::core::deviceinfo::{DM_NAME_LEN, DM_UUID_LEN};
 use crate::core::errors::ErrorKind;
+use crate::result::{DmError, DmResult};
 
 /// An error function to construct an error when creating a new string id.
 fn err_func(err_msg: &str) -> DmError {

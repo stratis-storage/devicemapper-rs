@@ -10,8 +10,8 @@ use std::{fmt, io};
 use libc::{dev_t, major, makedev, minor};
 use nix::sys::stat::SFlag;
 
-use crate::result::{DmError, DmResult};
 use crate::core::errors::ErrorKind;
+use crate::result::{DmError, DmResult};
 
 /// A struct containing the device's major and minor numbers
 ///

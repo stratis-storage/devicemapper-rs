@@ -430,6 +430,7 @@ mod tests {
     use uuid::Uuid;
 
     use crate::consts::IEC;
+    use crate::core::errors::{Error, ErrorKind};
     use crate::shared::DmDevice;
     use crate::testing::{
         blkdev_size, test_name, test_string, test_uuid, test_with_spec, udev_settle, xfs_create_fs,
@@ -437,7 +438,6 @@ mod tests {
     };
     use crate::thinpooldev::{minimal_thinpool, ThinPoolStatus};
     use crate::units::DataBlocks;
-    use crate::core::errors::{Error, ErrorKind};
 
     use super::*;
 

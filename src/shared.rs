@@ -5,8 +5,8 @@
 // A module to contain functionality shared among the various types of
 // devices.
 
-use std::fmt;
 use std::borrow::Borrow;
+use std::fmt;
 use std::ops::Deref;
 use std::path::{Path, PathBuf};
 use std::str::FromStr;
