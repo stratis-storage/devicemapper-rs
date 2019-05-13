@@ -2,19 +2,19 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-use std::fmt;
-use std::path::PathBuf;
-use std::str::FromStr;
+use std::{fmt, path::PathBuf, str::FromStr};
 
-use crate::core::{DevId, Device, DeviceInfo, DmCookie, DmFlags, DmName, DmOptions, DmUuid, DM};
-use crate::result::{DmError, DmResult, ErrorEnum};
-use crate::shared::{
-    device_create, device_exists, device_match, get_status_line_fields, message, parse_device,
-    parse_value, DmDevice, TargetLine, TargetParams, TargetTable, TargetTypeBuf,
+use crate::{
+    core::{DevId, Device, DeviceInfo, DmCookie, DmFlags, DmName, DmOptions, DmUuid, DM},
+    result::{DmError, DmResult, ErrorEnum},
+    shared::{
+        device_create, device_exists, device_match, get_status_line_fields, message, parse_device,
+        parse_value, DmDevice, TargetLine, TargetParams, TargetTable, TargetTypeBuf,
+    },
+    thindevid::ThinDevId,
+    thinpooldev::ThinPoolDev,
+    units::Sectors,
 };
-use crate::thindevid::ThinDevId;
-use crate::thinpooldev::ThinPoolDev;
-use crate::units::Sectors;
 
 const THIN_TARGET_NAME: &str = "thin";
 
@@ -419,25 +419,29 @@ impl ThinDev {
 #[cfg(test)]
 mod tests {
 
-    use std::collections::HashMap;
-    use std::fs::{canonicalize, OpenOptions};
-    use std::io::Write;
-    use std::path::Path;
+    use std::{
+        collections::HashMap,
+        fs::{canonicalize, OpenOptions},
+        io::Write,
+        path::Path,
+    };
 
     use libudev;
     use nix::mount::{mount, umount2, MntFlags, MsFlags};
     use tempfile;
     use uuid::Uuid;
 
-    use crate::consts::IEC;
-    use crate::core::errors::{Error, ErrorKind};
-    use crate::shared::DmDevice;
-    use crate::testing::{
-        blkdev_size, test_name, test_string, test_uuid, test_with_spec, udev_settle, xfs_create_fs,
-        xfs_set_uuid,
+    use crate::{
+        consts::IEC,
+        core::errors::{Error, ErrorKind},
+        shared::DmDevice,
+        testing::{
+            blkdev_size, test_name, test_string, test_uuid, test_with_spec, udev_settle,
+            xfs_create_fs, xfs_set_uuid,
+        },
+        thinpooldev::{minimal_thinpool, ThinPoolStatus},
+        units::DataBlocks,
     };
-    use crate::thinpooldev::{minimal_thinpool, ThinPoolStatus};
-    use crate::units::DataBlocks;
 
     use super::*;
 

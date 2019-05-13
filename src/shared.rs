@@ -5,17 +5,19 @@
 // A module to contain functionality shared among the various types of
 // devices.
 
-use std::borrow::Borrow;
-use std::fmt;
-use std::ops::Deref;
-use std::path::{Path, PathBuf};
-use std::str::FromStr;
-
-use crate::core::{
-    devnode_to_devno, DevId, Device, DeviceInfo, DmFlags, DmName, DmOptions, DmUuid, DM,
+use std::{
+    borrow::Borrow,
+    fmt,
+    ops::Deref,
+    path::{Path, PathBuf},
+    str::FromStr,
 };
-use crate::result::{DmError, DmResult, ErrorEnum};
-use crate::units::Sectors;
+
+use crate::{
+    core::{devnode_to_devno, DevId, Device, DeviceInfo, DmFlags, DmName, DmOptions, DmUuid, DM},
+    result::{DmError, DmResult, ErrorEnum},
+    units::Sectors,
+};
 
 fn err_func(err_msg: &str) -> DmError {
     DmError::Dm(ErrorEnum::Invalid, err_msg.into())

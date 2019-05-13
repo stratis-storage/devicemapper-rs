@@ -2,20 +2,20 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-use std::fs::File;
-use std::mem::size_of;
-use std::os::unix::io::AsRawFd;
-use std::{cmp, slice, u32};
+use std::{cmp, fs::File, mem::size_of, os::unix::io::AsRawFd, slice, u32};
 
-use nix::libc::c_ulong;
-use nix::libc::ioctl as nix_ioctl;
+use nix::libc::{c_ulong, ioctl as nix_ioctl};
 
-use crate::core::deviceinfo::{DM_NAME_LEN, DM_UUID_LEN};
-use crate::core::dm_ioctl as dmi;
-use crate::core::errors::ErrorKind;
-use crate::core::util::{align_to, slice_to_null};
-use crate::core::{DevId, Device, DeviceInfo, DmFlags, DmName, DmNameBuf, DmOptions, DmUuid};
-use crate::result::{DmError, DmResult};
+use crate::{
+    core::{
+        deviceinfo::{DM_NAME_LEN, DM_UUID_LEN},
+        dm_ioctl as dmi,
+        errors::ErrorKind,
+        util::{align_to, slice_to_null},
+        DevId, Device, DeviceInfo, DmFlags, DmName, DmNameBuf, DmOptions, DmUuid,
+    },
+    result::{DmError, DmResult},
+};
 
 /// Indicator to send IOCTL to DM
 const DM_IOCTL: u8 = 0xfd;
@@ -713,9 +713,11 @@ impl DM {
 #[cfg(test)]
 mod tests {
 
-    use crate::core::errors::Error;
-    use crate::result::DmError;
-    use crate::testing::{test_name, test_uuid};
+    use crate::{
+        core::errors::Error,
+        result::DmError,
+        testing::{test_name, test_uuid},
+    };
 
     use super::*;
 

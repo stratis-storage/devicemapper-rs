@@ -110,24 +110,27 @@ mod testing;
 #[macro_use]
 extern crate matches;
 
-pub use crate::cachedev::{
-    CacheDev, CacheDevPerformance, CacheDevStatus, CacheDevUsage, CacheDevWorkingStatus,
-    MAX_CACHE_BLOCK_SIZE, MIN_CACHE_BLOCK_SIZE,
+pub use crate::{
+    cachedev::{
+        CacheDev, CacheDevPerformance, CacheDevStatus, CacheDevUsage, CacheDevWorkingStatus,
+        MAX_CACHE_BLOCK_SIZE, MIN_CACHE_BLOCK_SIZE,
+    },
+    consts::IEC,
+    core::{
+        devnode_to_devno, DevId, Device, DmCookie, DmFlags, DmName, DmNameBuf, DmOptions, DmUuid,
+        DmUuidBuf, DM,
+    },
+    lineardev::{
+        FlakeyTargetParams, LinearDev, LinearDevTargetParams, LinearDevTargetTable,
+        LinearTargetParams,
+    },
+    result::{DmError, DmResult, ErrorEnum},
+    shared::{device_exists, DmDevice, TargetLine, TargetType, TargetTypeBuf},
+    thindev::{ThinDev, ThinDevWorkingStatus, ThinStatus},
+    thindevid::ThinDevId,
+    thinpooldev::{
+        ThinPoolDev, ThinPoolNoSpacePolicy, ThinPoolStatus, ThinPoolStatusSummary, ThinPoolUsage,
+        ThinPoolWorkingStatus,
+    },
+    units::{Bytes, DataBlocks, MetaBlocks, Sectors, SECTOR_SIZE},
 };
-pub use crate::consts::IEC;
-pub use crate::core::{
-    devnode_to_devno, DevId, Device, DmCookie, DmFlags, DmName, DmNameBuf, DmOptions, DmUuid,
-    DmUuidBuf, DM,
-};
-pub use crate::lineardev::{
-    FlakeyTargetParams, LinearDev, LinearDevTargetParams, LinearDevTargetTable, LinearTargetParams,
-};
-pub use crate::result::{DmError, DmResult, ErrorEnum};
-pub use crate::shared::{device_exists, DmDevice, TargetLine, TargetType, TargetTypeBuf};
-pub use crate::thindev::{ThinDev, ThinDevWorkingStatus, ThinStatus};
-pub use crate::thindevid::ThinDevId;
-pub use crate::thinpooldev::{
-    ThinPoolDev, ThinPoolNoSpacePolicy, ThinPoolStatus, ThinPoolStatusSummary, ThinPoolUsage,
-    ThinPoolWorkingStatus,
-};
-pub use crate::units::{Bytes, DataBlocks, MetaBlocks, Sectors, SECTOR_SIZE};

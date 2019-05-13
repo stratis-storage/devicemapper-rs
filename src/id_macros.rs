@@ -111,13 +111,12 @@ macro_rules! str_id {
 
 #[cfg(test)]
 mod tests {
-    use std::borrow::Borrow;
-    use std::fmt;
-    use std::iter;
-    use std::ops::Deref;
+    use std::{borrow::Borrow, fmt, iter, ops::Deref};
 
-    use crate::core::errors::{Error, ErrorKind};
-    use crate::result::{DmError, DmResult};
+    use crate::{
+        core::errors::{Error, ErrorKind},
+        result::{DmError, DmResult},
+    };
 
     fn err_func(err_msg: &str) -> DmError {
         DmError::Core(ErrorKind::InvalidArgument(err_msg.into()).into())
