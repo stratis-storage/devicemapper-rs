@@ -2,20 +2,24 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-use std::collections::{HashMap, HashSet};
-use std::fmt;
-use std::path::PathBuf;
-use std::str::FromStr;
-
-use crate::core::{DevId, Device, DeviceInfo, DmName, DmOptions, DmUuid, DM};
-use crate::lineardev::{LinearDev, LinearDevTargetParams};
-use crate::result::{DmError, DmResult, ErrorEnum};
-use crate::shared::{
-    device_create, device_exists, device_match, get_status_line_fields,
-    make_unexpected_value_error, parse_device, parse_value, DmDevice, TargetLine, TargetParams,
-    TargetTable, TargetTypeBuf,
+use std::{
+    collections::{HashMap, HashSet},
+    fmt,
+    path::PathBuf,
+    str::FromStr,
 };
-use crate::units::{DataBlocks, MetaBlocks, Sectors};
+
+use crate::{
+    core::{DevId, Device, DeviceInfo, DmName, DmOptions, DmUuid, DM},
+    lineardev::{LinearDev, LinearDevTargetParams},
+    result::{DmError, DmResult, ErrorEnum},
+    shared::{
+        device_create, device_exists, device_match, get_status_line_fields,
+        make_unexpected_value_error, parse_device, parse_value, DmDevice, TargetLine, TargetParams,
+        TargetTable, TargetTypeBuf,
+    },
+    units::{DataBlocks, MetaBlocks, Sectors},
+};
 
 const CACHE_TARGET_NAME: &str = "cache";
 

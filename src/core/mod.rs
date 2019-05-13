@@ -14,9 +14,11 @@ pub mod errors;
 mod types;
 pub(self) mod util;
 
-pub use self::device::{devnode_to_devno, Device};
-pub use self::deviceinfo::DeviceInfo;
-pub use self::dm::DM;
-pub use self::dm_flags::{DmCookie, DmFlags};
-pub use self::dm_options::DmOptions;
-pub use self::types::{DevId, DmName, DmNameBuf, DmUuid, DmUuidBuf};
+pub use self::{
+    device::{devnode_to_devno, Device},
+    deviceinfo::DeviceInfo,
+    dm::DM,
+    dm_flags::{DmCookie, DmFlags},
+    dm_options::DmOptions,
+    types::{DevId, DmName, DmNameBuf, DmUuid, DmUuidBuf},
+};

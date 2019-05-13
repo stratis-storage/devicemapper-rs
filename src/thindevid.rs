@@ -2,13 +2,14 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-use std::fmt;
-use std::str::FromStr;
+use std::{fmt, str::FromStr};
 
 use serde;
 
-use crate::result::{DmError, DmResult, ErrorEnum};
-use crate::shared::parse_value;
+use crate::{
+    result::{DmError, DmResult, ErrorEnum},
+    shared::parse_value,
+};
 
 const THIN_DEV_ID_LIMIT: u64 = 0x1_000_000; // 2 ^ 24
 
