@@ -2,11 +2,12 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-// An omnibus macro that includes all simple macros.
+/// An omnibus macro that includes all simple macros.
 macro_rules! range {
     ($T: ident, $display_name: expr) => {
         #[derive(Clone, Copy, Default, Eq, Ord, PartialEq, PartialOrd)]
-        /// A type for $T
+
+        /// A struct upon which operations can be performed.
         pub struct $T(pub u64);
 
         checked_add!($T);
@@ -26,6 +27,7 @@ macro_rules! range {
     };
 }
 
+/// Performs the / operation on $display_name.
 macro_rules! self_div {
     ($T:ident) => {
         impl Div<$T> for $T {
@@ -37,6 +39,7 @@ macro_rules! self_div {
     };
 }
 
+/// Performs the + operation on $display_name.
 macro_rules! add {
     ($T:ident) => {
         impl Add<$T> for $T {
@@ -48,6 +51,7 @@ macro_rules! add {
     };
 }
 
+/// Performs the - operation on $display_name.
 macro_rules! sub {
     ($T:ident) => {
         impl Sub<$T> for $T {
@@ -59,6 +63,7 @@ macro_rules! sub {
     };
 }
 
+/// Performs the += operation on $display_name.
 macro_rules! add_assign {
     ($T:ident) => {
         impl AddAssign<$T> for $T {
@@ -69,6 +74,7 @@ macro_rules! add_assign {
     };
 }
 
+/// Performs the -= operation on $display_name.
 macro_rules! sub_assign {
     ($T:ident) => {
         impl SubAssign<$T> for $T {
@@ -79,6 +85,7 @@ macro_rules! sub_assign {
     };
 }
 
+/// Dereferences the value for $display_name.
 macro_rules! deref {
     ($T:ident) => {
         impl Deref for $T {
@@ -90,6 +97,7 @@ macro_rules! deref {
     };
 }
 
+/// Performs the conversion for $display_name.
 macro_rules! from {
     ($T:ident) => {
         impl From<u64> for $T {
@@ -286,7 +294,7 @@ macro_rules! self_rem {
 macro_rules! checked_add {
     ($T: ident) => {
         impl $T {
-            /// Add two items of type $T, return None if overflow.
+            /// Add two $display_name, return None if overflow.
             pub fn checked_add(&self, other: $T) -> Option<$T> {
                 self.0.checked_add(other.0).map($T)
             }
