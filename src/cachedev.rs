@@ -14,7 +14,7 @@ use crate::{
     lineardev::{LinearDev, LinearDevTargetParams},
     result::{DmError, DmResult, ErrorEnum},
     shared::{
-        device_create, device_exists, device_match, get_status_line_fields,
+        device_create, device_exists, device_match, get_status, get_status_line_fields,
         make_unexpected_value_error, parse_device, parse_value, DmDevice, TargetLine, TargetParams,
         TargetTable, TargetTypeBuf,
     },
@@ -722,15 +722,7 @@ impl CacheDev {
 
     /// Get the current status of the cache device.
     pub fn status(&self, dm: &DM) -> DmResult<CacheDevStatus> {
-        let (_, status) = dm.table_status(&DevId::Name(self.name()), &DmOptions::new())?;
-
-        assert_eq!(
-            status.len(),
-            1,
-            "Kernel must return 1 line from cache dev status"
-        );
-
-        status.first().expect("assertion above holds").3.parse()
+        status!(self, dm)
     }
 }
 
