@@ -707,7 +707,7 @@ mod tests {
                     DataBlocks(tp.data_dev().size() / tp.data_block_size())
                 );
             }
-            _ => assert!(false),
+            status => panic!("unexpected thinpool status: {:?}", status),
         }
 
         let table = ThinPoolDev::read_kernel_table(&dm, &DevId::Name(tp.name()))

@@ -860,7 +860,7 @@ mod tests {
 
                 assert_eq!(status.needs_check, false);
             }
-            _ => assert!(false),
+            status => panic!("unexpected thinpool status: {:?}", status),
         }
 
         let table = CacheDev::read_kernel_table(&dm, &DevId::Name(cache.name()))
