@@ -724,7 +724,7 @@ mod tests {
     #[test]
     /// Test that some version can be obtained.
     fn sudo_test_version() {
-        assert!(DM::new().unwrap().version().is_ok());
+        assert_matches!(DM::new().unwrap().version(), Ok(_));
     }
 
     #[test]
@@ -836,7 +836,7 @@ mod tests {
             dm.device_info(&DevId::Name(&name)).unwrap().uuid().unwrap(),
             &*uuid
         );
-        assert!(dm.device_info(&DevId::Uuid(&uuid)).is_ok());
+        assert_matches!(dm.device_info(&DevId::Uuid(&uuid)), Ok(_));
         dm.device_remove(&DevId::Name(&name), &DmOptions::new())
             .unwrap();
     }
@@ -875,7 +875,7 @@ mod tests {
             Err(DmError::Core(Error(ErrorKind::IoctlError(_, _), _)))
         );
 
-        assert!(dm.device_info(&DevId::Name(&new_name)).is_ok());
+        assert_matches!(dm.device_info(&DevId::Name(&new_name)), Ok(_));
 
         let devices = dm.list_devices().unwrap();
         assert_eq!(devices.len(), 1);

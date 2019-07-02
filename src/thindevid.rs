@@ -84,7 +84,7 @@ mod tests {
     #[test]
     /// Verify that new_checked_u64 discriminates.
     fn test_new_checked_u64() {
-        assert!(ThinDevId::new_u64(2u64.pow(32)).is_err());
-        assert!(ThinDevId::new_u64(THIN_DEV_ID_LIMIT - 1).is_ok());
+        assert_matches!(ThinDevId::new_u64(2u64.pow(32)), Err(_));
+        assert_matches!(ThinDevId::new_u64(THIN_DEV_ID_LIMIT - 1), Ok(_));
     }
 }
