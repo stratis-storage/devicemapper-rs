@@ -724,7 +724,7 @@ mod tests {
     #[test]
     /// Test that some version can be obtained.
     fn sudo_test_version() {
-        assert!(DM::new().unwrap().version().is_ok());
+        assert_matches!(DM::new().unwrap().version(), Ok(_));
     }
 
     #[test]
