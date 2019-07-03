@@ -489,13 +489,13 @@ mod tests {
 
     /// Verify that a new linear dev with 0 segments fails.
     fn test_empty(_paths: &[&Path]) {
-        assert!(LinearDev::setup(
+        assert_matches!(LinearDev::setup(
             &DM::new().unwrap(),
             &test_name("new").expect("valid format"),
             None,
             vec![],
-        )
-        .is_err());
+        ),
+        Err(_));
     }
 
     /// Verify that setting an empty table on an existing DM device fails.
@@ -513,7 +513,7 @@ mod tests {
         )];
         let mut ld = LinearDev::setup(&dm, &name, None, table).unwrap();
 
-        assert!(ld.set_table(&dm, vec![]).is_err());
+        assert_matches!(ld.set_table(&dm, vec![]), Err(_));
         ld.resume(&dm).unwrap();
         ld.teardown(&dm).unwrap();
     }
@@ -657,8 +657,8 @@ mod tests {
             Sectors(1),
             LinearDevTargetParams::Linear(params2),
         )];
-        assert!(LinearDev::setup(&dm, &name, None, table2).is_err());
-        assert!(LinearDev::setup(&dm, &name, None, table).is_ok());
+        assert_matches!(LinearDev::setup(&dm, &name, None, table2), Err(_));
+        assert_matches!(LinearDev::setup(&dm, &name, None, table), Ok(_));
         ld.teardown(&dm).unwrap();
     }
 
@@ -678,7 +678,7 @@ mod tests {
         )];
         let mut ld = LinearDev::setup(&dm, &name, None, table.clone()).unwrap();
         let ld2 = LinearDev::setup(&dm, &ersatz, None, table);
-        assert!(ld2.is_ok());
+        assert_matches!(ld2, Ok(_));
 
         ld2.unwrap().teardown(&dm).unwrap();
         ld.teardown(&dm).unwrap();

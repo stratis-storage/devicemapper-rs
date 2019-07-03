@@ -916,7 +916,7 @@ mod tests {
             extra_length,
             LinearDevTargetParams::Linear(cache_params),
         ));
-        assert!(cache.set_meta_table(&dm, table.clone()).is_ok());
+        assert_matches!(cache.set_meta_table(&dm, table.clone()), Ok(_));
         cache.resume(&dm).unwrap();
 
         match cache.status(&dm).unwrap() {
@@ -970,7 +970,7 @@ mod tests {
             extra_length,
             LinearDevTargetParams::Linear(cache_params),
         ));
-        assert!(cache.set_cache_table(&dm, cache_table.clone()).is_ok());
+        assert_matches!(cache.set_cache_table(&dm, cache_table.clone()), Ok(_));
         cache.resume(&dm).unwrap();
 
         match cache.status(&dm).unwrap() {
@@ -987,7 +987,7 @@ mod tests {
 
         cache_table.pop();
 
-        assert!(cache.set_cache_table(&dm, cache_table).is_ok());
+        assert_matches!(cache.set_cache_table(&dm, cache_table), Ok(_));
         cache.resume(&dm).unwrap();
 
         match cache.status(&dm).unwrap() {
