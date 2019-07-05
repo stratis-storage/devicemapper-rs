@@ -475,15 +475,17 @@ mod tests {
         let dm = DM::new().unwrap();
         let mut tp = minimal_thinpool(&dm, paths[0]);
 
-        assert!(ThinDev::new(
-            &dm,
-            &test_name("name").expect("is valid DM name"),
-            None,
-            Sectors(0),
-            &tp,
-            ThinDevId::new_u64(0).expect("is below limit")
-        )
-        .is_err());
+        assert_matches!(
+            ThinDev::new(
+                &dm,
+                &test_name("name").expect("is valid DM name"),
+                None,
+                Sectors(0),
+                &tp,
+                ThinDevId::new_u64(0).expect("is below limit")
+            ),
+            Err(_)
+        );
 
         udev_settle().unwrap();
         tp.teardown(&dm).unwrap();
@@ -563,11 +565,11 @@ mod tests {
         assert!(device_exists(&dm, &id).unwrap());
 
         // Setting up the just created thin dev succeeds.
-        assert!(ThinDev::setup(&dm, &id, None, td_size, &tp, thin_id).is_ok());
+        assert_matches!(ThinDev::setup(&dm, &id, None, td_size, &tp, thin_id), Ok(_));
         udev_settle().unwrap();
 
         // Setting up the just created thin dev once more succeeds.
-        assert!(ThinDev::setup(&dm, &id, None, td_size, &tp, thin_id).is_ok());
+        assert_matches!(ThinDev::setup(&dm, &id, None, td_size, &tp, thin_id), Ok(_));
 
         // Teardown the thindev, then set it back up.
         td.teardown(&dm).unwrap();
