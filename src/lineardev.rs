@@ -81,6 +81,36 @@ impl TargetParams for LinearTargetParams {
     }
 }
 
+/// Flakey target optional feature parameters:
+/// If no feature parameters are present, during the periods of
+/// unreliability, all I/O returns errors.
+#[derive(Debug)]
+pub enum FeatureArgs {
+    /// drop_writes:
+    ///
+    ///	All write I/O is silently ignored.
+    ///	Read I/O is handled correctly.
+    drop_writes(String),
+    /// error_writes:
+    ///
+	/// All write I/O is failed with an error signalled.
+	/// Read I/O is handled correctly.
+    error_writes(String),
+    /// corrupt_bio_byte <Nth_byte> <direction> <value> <flags>:
+    ///
+    ///	During <down interval>, replace <Nth_byte> of the data of
+    ///	each matching bio with <value>.
+    ///
+    /// <Nth_byte>: The offset of the byte to replace.
+    ///             Counting starts at 1, to replace the first byte.
+    /// <direction>: Either 'r' to corrupt reads or 'w' to corrupt writes.
+    ///	            'w' is incompatible with drop_writes.
+    /// <value>:    The value (from 0-255) to write.
+    /// <flags>:    Perform the replacement only if bio->bi_opf has all the
+    ///	            selected flags set.
+    corrupt_bio_byte(u64, char, u64, u64),
+}
+
 /// Target params for flakey target
 // FIXME: Refine feature args handling. Reading the docs indicates that flakey
 // feature args are unlike the one word feature args of cachedev or thinpooldev
@@ -98,7 +128,7 @@ pub struct FlakeyTargetParams {
     /// DM source type is unsigned, so restrict to u32.
     pub down_interval: u32,
     /// Optional feature arguments
-    pub feature_args: HashSet<String>,
+    pub feature_args: FeatureArgs,
 }
 
 impl FlakeyTargetParams {
@@ -108,14 +138,14 @@ impl FlakeyTargetParams {
         start_offset: Sectors,
         up_interval: u32,
         down_interval: u32,
-        feature_args: Vec<String>,
+        feature_args: FeatureArgs,
     ) -> FlakeyTargetParams {
         FlakeyTargetParams {
             device,
             start_offset,
             up_interval,
             down_interval,
-            feature_args: feature_args.into_iter().collect::<HashSet<_>>(),
+            feature_args,
         }
     }
 }
@@ -140,24 +170,6 @@ impl fmt::Display for FlakeyTargetParams {
     /// Optional feature parameters:
     ///  If no feature parameters are present, during the periods of
     ///  unreliability, all I/O returns errors.
-    ///
-    /// drop_writes:
-    ///
-    ///	All write I/O is silently ignored.
-    ///	Read I/O is handled correctly.
-    ///
-    /// corrupt_bio_byte <Nth_byte> <direction> <value> <flags>:
-    ///
-    ///	During <down interval>, replace <Nth_byte> of the data of
-    ///	each matching bio with <value>.
-    ///
-    ///    <Nth_byte>: The offset of the byte to replace.
-    ///		Counting starts at 1, to replace the first byte.
-    ///    <direction>: Either 'r' to corrupt reads or 'w' to corrupt writes.
-    ///		 'w' is incompatible with drop_writes.
-    ///    <value>: The value (from 0-255) to write.
-    ///    <flags>: Perform the replacement only if bio->bi_opf has all the
-    ///	     selected flags set.
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{} {}", FLAKEY_TARGET_NAME, self.param_str())
     }
@@ -192,13 +204,6 @@ impl FromStr for FlakeyTargetParams {
         let up_interval = parse_value(vals[3], "up interval")?;
         let down_interval = parse_value(vals[4], "down interval")?;
 
-        let num_feature_args: usize = parse_value(vals[5], "number of feature args")?;
-
-        let feature_args: Vec<String> = vals[6..6 + num_feature_args]
-            .iter()
-            .map(|x| x.to_string())
-            .collect();
-
         Ok(FlakeyTargetParams::new(
             device,
             start_offset,
@@ -218,10 +223,6 @@ impl TargetParams for FlakeyTargetParams {
                 "{} {}",
                 self.feature_args.len(),
                 self.feature_args
-                    .iter()
-                    .cloned()
-                    .collect::<Vec<_>>()
-                    .join(" ")
             )
         };
 
