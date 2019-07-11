@@ -81,10 +81,80 @@ impl TargetParams for LinearTargetParams {
     }
 }
 
+#[derive(Debug, Hash, Clone, Eq, PartialEq)]
+pub enum Direction {
+    Reads,
+    Writes,
+}
+
+impl fmt::Display for Direction {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            Direction::Reads => write!(f, "r"),
+            Direction::Writes => write!(f, "w"),
+        }
+    }
+}
+
+impl FromStr for Direction {
+    type Err = DmError;
+    fn from_str(s: &str) -> DmResult<Direction> {
+        if s == "r" {
+            Ok(Direction::Reads)
+        } else if s == "w" {
+            Ok(Direction::Writes)
+        } else {
+            let err_msg = format!("Expected r or w, found {}", s);
+            Err(DmError::Dm(ErrorEnum::Invalid, err_msg))
+        }
+    }
+}
+
+/// Flakey target optional feature parameters:
+/// If no feature parameters are present, during the periods of
+/// unreliability, all I/O returns errors.
+#[derive(Debug, Hash, Clone, Eq, PartialEq)]
+pub enum FeatureArg {
+    /// drop_writes:
+    ///
+    ///	All write I/O is silently ignored.
+    ///	Read I/O is handled correctly.
+    DropWrites,
+    /// error_writes:
+    ///
+    /// All write I/O is failed with an error signalled.
+    /// Read I/O is handled correctly.
+    ErrorWrites,
+    /// corrupt_bio_byte <Nth_byte> <direction> <value> <flags>:
+    ///
+    ///	During <down interval>, replace <Nth_byte> of the data of
+    ///	each matching bio with <value>.
+    ///
+    /// <Nth_byte>: The offset of the byte to replace.
+    ///             Counting starts at 1, to replace the first byte.
+    /// <direction>: Either 'r' to corrupt reads or 'w' to corrupt writes.
+    ///	            'w' is incompatible with drop_writes.
+    /// <value>:    The value (from 0-255) to write.
+    /// <flags>:    Perform the replacement only if bio->bi_opf has all the
+    ///	            selected flags set.
+    CorruptBioByte(u64, Direction, u8, u64),
+}
+
+impl fmt::Display for FeatureArg {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            FeatureArg::DropWrites => write!(f, "drop_writes"),
+            FeatureArg::ErrorWrites => write!(f, "error_writes"),
+            FeatureArg::CorruptBioByte(offset, direction, value, flags) => write!(
+                f,
+                "corrupt_bio_byte {} {} {} {}",
+                offset, direction, value, flags
+            ),
+        }
+    }
+}
+
 /// Target params for flakey target
-// FIXME: Refine feature args handling. Reading the docs indicates that flakey
-// feature args are unlike the one word feature args of cachedev or thinpooldev
-// and will require more complicated management.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct FlakeyTargetParams {
     /// The device on which this segment resides
@@ -98,7 +168,7 @@ pub struct FlakeyTargetParams {
     /// DM source type is unsigned, so restrict to u32.
     pub down_interval: u32,
     /// Optional feature arguments
-    pub feature_args: HashSet<String>,
+    pub feature_args: HashSet<FeatureArg>,
 }
 
 impl FlakeyTargetParams {
@@ -108,7 +178,7 @@ impl FlakeyTargetParams {
         start_offset: Sectors,
         up_interval: u32,
         down_interval: u32,
-        feature_args: Vec<String>,
+        feature_args: Vec<FeatureArg>,
     ) -> FlakeyTargetParams {
         FlakeyTargetParams {
             device,
@@ -140,24 +210,6 @@ impl fmt::Display for FlakeyTargetParams {
     /// Optional feature parameters:
     ///  If no feature parameters are present, during the periods of
     ///  unreliability, all I/O returns errors.
-    ///
-    /// drop_writes:
-    ///
-    ///	All write I/O is silently ignored.
-    ///	Read I/O is handled correctly.
-    ///
-    /// corrupt_bio_byte <Nth_byte> <direction> <value> <flags>:
-    ///
-    ///	During <down interval>, replace <Nth_byte> of the data of
-    ///	each matching bio with <value>.
-    ///
-    ///    <Nth_byte>: The offset of the byte to replace.
-    ///		Counting starts at 1, to replace the first byte.
-    ///    <direction>: Either 'r' to corrupt reads or 'w' to corrupt writes.
-    ///		 'w' is incompatible with drop_writes.
-    ///    <value>: The value (from 0-255) to write.
-    ///    <flags>: Perform the replacement only if bio->bi_opf has all the
-    ///	     selected flags set.
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{} {}", FLAKEY_TARGET_NAME, self.param_str())
     }
@@ -167,6 +219,58 @@ impl FromStr for FlakeyTargetParams {
     type Err = DmError;
 
     fn from_str(s: &str) -> DmResult<FlakeyTargetParams> {
+        fn parse_feature_args(vals: &[&str]) -> DmResult<Vec<FeatureArg>> {
+            let mut vals_iter = vals.iter();
+            let mut result: Vec<FeatureArg> = Vec::new();
+            while let Some(x) = vals_iter.next() {
+                match x {
+                    &"drop_writes" => result.push(FeatureArg::DropWrites),
+                    &"error_writes" => result.push(FeatureArg::ErrorWrites),
+                    &"corrupt_bio_byte" => {
+                        let offset = vals_iter
+                            .next()
+                            .ok_or({
+                                let err_msg = "corrupt_bio_byte takes 4 parameters";
+                                DmError::Dm(ErrorEnum::Invalid, err_msg.to_string())
+                            })
+                            .and_then(|s| parse_value::<u64>(*s, "offset"))?;
+
+                        let direction = vals_iter
+                            .next()
+                            .ok_or({
+                                let err_msg = "corrupt_bio_byte takes 4 parameters";
+                                DmError::Dm(ErrorEnum::Invalid, err_msg.to_string())
+                            })
+                            .and_then(|s| parse_value::<Direction>(*s, "direction"))?;
+
+                        let value = vals_iter
+                            .next()
+                            .ok_or({
+                                let err_msg = "corrupt_bio_byte takes 4 parameters";
+                                DmError::Dm(ErrorEnum::Invalid, err_msg.to_string())
+                            })
+                            .and_then(|s| parse_value::<u8>(*s, "value"))?;
+
+                        let flags = vals_iter
+                            .next()
+                            .ok_or({
+                                let err_msg = "corrupt_bio_byte takes 4 parameters";
+                                DmError::Dm(ErrorEnum::Invalid, err_msg.to_string())
+                            })
+                            .and_then(|s| parse_value::<u64>(*s, "flags"))?;
+
+                        result.push(FeatureArg::CorruptBioByte(offset, direction, value, flags));
+                    }
+                    x => {
+                        let err_msg = format!("{} is an unrecognized feature parameter", x);
+                        return Err(DmError::Dm(ErrorEnum::Invalid, err_msg));
+                    }
+                }
+            }
+
+            Ok(result)
+        }
+
         let vals = s.split(' ').collect::<Vec<_>>();
 
         if vals.len() < 5 {
@@ -195,10 +299,9 @@ impl FromStr for FlakeyTargetParams {
         let feature_args = if vals.len() == 5 {
             vec![]
         } else {
-            vals[6..6 + parse_value::<usize>(vals[5], "number of feature args")?]
-                .iter()
-                .map(|x| x.to_string())
-                .collect()
+            parse_feature_args(
+                &vals[6..6 + parse_value::<usize>(vals[5], "number of feature args")?],
+            )?
         };
 
         Ok(FlakeyTargetParams::new(
@@ -221,7 +324,7 @@ impl TargetParams for FlakeyTargetParams {
                 self.feature_args.len(),
                 self.feature_args
                     .iter()
-                    .cloned()
+                    .map(|x| x.to_string())
                     .collect::<Vec<_>>()
                     .join(" ")
             )
@@ -723,6 +826,96 @@ mod tests {
     fn test_flakey_target_params_none() {
         let result = "flakey 8:32 0 16 2".parse::<FlakeyTargetParams>().unwrap();
         assert_eq!(result.feature_args, HashSet::new());
+    }
+
+    #[test]
+    fn test_flakey_target_params_drop_writes() {
+        let result = "flakey 8:32 0 16 2 1 drop_writes"
+            .parse::<FlakeyTargetParams>()
+            .unwrap();
+        let expected = [FeatureArg::DropWrites]
+            .iter()
+            .cloned()
+            .collect::<HashSet<_>>();
+        assert_eq!(result.feature_args, expected);
+    }
+
+    #[test]
+    fn test_flakey_target_params_error_writes() {
+        let result = "flakey 8:32 0 16 2 1 error_writes"
+            .parse::<FlakeyTargetParams>()
+            .unwrap();
+        let expected = [FeatureArg::ErrorWrites]
+            .iter()
+            .cloned()
+            .collect::<HashSet<_>>();
+        assert_eq!(result.feature_args, expected);
+    }
+
+    #[test]
+    fn test_flakey_target_params_corrupt_bio_byte_reads() {
+        let result = "flakey 8:32 0 16 2 5 corrupt_bio_byte 32 r 1 0"
+            .parse::<FlakeyTargetParams>()
+            .unwrap();
+        let expected = [FeatureArg::CorruptBioByte(32, Direction::Reads, 1, 0)]
+            .iter()
+            .cloned()
+            .collect::<HashSet<_>>();
+        assert_eq!(result.feature_args, expected);
+    }
+
+    #[test]
+    fn test_flakey_target_params_corrupt_bio_byte_writes() {
+        let result = "flakey 8:32 0 16 2 5 corrupt_bio_byte 224 w 0 32"
+            .parse::<FlakeyTargetParams>()
+            .unwrap();
+        let expected = [FeatureArg::CorruptBioByte(224, Direction::Writes, 0, 32)]
+            .iter()
+            .cloned()
+            .collect::<HashSet<_>>();
+        assert_eq!(result.feature_args, expected);
+    }
+
+    #[test]
+    fn test_flakey_target_params_corrupt_bio_byte_and_drop_writes() {
+        let result = "flakey 8:32 0 16 2 6 corrupt_bio_byte 32 r 1 0 drop_writes"
+            .parse::<FlakeyTargetParams>()
+            .unwrap();
+        let expected = [
+            FeatureArg::CorruptBioByte(32, Direction::Reads, 1, 0),
+            FeatureArg::DropWrites,
+        ]
+        .iter()
+        .cloned()
+        .collect::<HashSet<_>>();
+        assert_eq!(result.feature_args, expected);
+    }
+
+    #[test]
+    fn test_flakey_target_params_drop_writes_and_corrupt_bio_byte() {
+        let result = "flakey 8:32 0 16 2 6 corrupt_bio_byte 32 r 1 0 drop_writes"
+            .parse::<FlakeyTargetParams>()
+            .unwrap();
+        let expected = [
+            FeatureArg::DropWrites,
+            FeatureArg::CorruptBioByte(32, Direction::Reads, 1, 0),
+        ]
+        .iter()
+        .cloned()
+        .collect::<HashSet<_>>();
+        assert_eq!(result.feature_args, expected);
+    }
+
+    #[test]
+    fn test_flakey_target_params_error_writes_and_drop_writes() {
+        let result = "flakey 8:32 0 16 2 2 error_writes drop_writes"
+            .parse::<FlakeyTargetParams>()
+            .unwrap();
+        let expected = [FeatureArg::ErrorWrites, FeatureArg::DropWrites]
+            .iter()
+            .cloned()
+            .collect::<HashSet<_>>();
+        assert_eq!(result.feature_args, expected);
     }
 
     #[test]
