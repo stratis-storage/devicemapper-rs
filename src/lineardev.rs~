@@ -96,20 +96,6 @@ impl fmt::Display for Direction {
     }
 }
 
-impl FromStr for Direction {
-    type Err = DmError;
-    fn from_str(s: &str) -> DmResult<Direction> {
-        if s == "r" {
-            Ok(Direction::Reads)
-        } else if s == "w" {
-            Ok(Direction::Writes)
-        } else {
-            let err_msg = format!("Expected r or w, found {}", s);
-            Err(DmError::Dm(ErrorEnum::Invalid, err_msg))
-        }
-    }
-}
-
 /// Flakey target optional feature parameters:
 /// If no feature parameters are present, during the periods of
 /// unreliability, all I/O returns errors.
@@ -145,10 +131,10 @@ impl fmt::Display for FeatureArg {
         match self {
             FeatureArg::DropWrites => write!(f, "drop_writes"),
             FeatureArg::ErrorWrites => write!(f, "error_writes"),
-            FeatureArg::CorruptBioByte(offset, direction, value, flags) => write!(
+            FeatureArg::CorruptBioByte(byte, direction, value, flags) => write!(
                 f,
                 "corrupt_bio_byte {} {} {} {}",
-                offset, direction, value, flags
+                byte, direction, value, flags
             ),
         }
     }
@@ -218,59 +204,42 @@ impl fmt::Display for FlakeyTargetParams {
     }
 }
 
+use crate::lineardev::FeatureArg::{CorruptBioByte, DropWrites, ErrorWrites};
+
 impl FromStr for FlakeyTargetParams {
     type Err = DmError;
 
     fn from_str(s: &str) -> DmResult<FlakeyTargetParams> {
-        fn parse_feature_args(vals: &[&str]) -> DmResult<Vec<FeatureArg>> {
-            let mut vals_iter = vals.iter();
+        fn parse_direction(val: &str) -> DmResult<Direction> {
+            if val == "r" {
+                Ok(Direction::Reads)
+            } else if val == "w" {
+                Ok(Direction::Writes)
+            } else {
+                let err_msg = format!("Expected r or w, got {}", val);
+                Err(DmError::Dm(ErrorEnum::Invalid, err_msg))
+            }
+        }
+
+        fn parse_feature_args(vals: &[&str], num_feature_args: usize) -> DmResult<Vec<FeatureArg>> {
             let mut result: Vec<FeatureArg> = Vec::new();
-            while let Some(x) = vals_iter.next() {
-                match x {
-                    &"drop_writes" => result.push(FeatureArg::DropWrites),
-                    &"error_writes" => result.push(FeatureArg::ErrorWrites),
-                    &"corrupt_bio_byte" => {
-                        let offset = vals_iter
-                            .next()
-                            .ok_or({
-                                let err_msg = "corrupt_bio_byte takes 4 parameters";
-                                DmError::Dm(ErrorEnum::Invalid, err_msg.to_string())
-                            })
-                            .and_then(|s| parse_value::<u64>(*s, "offset"))?;
 
-                        let direction = vals_iter
-                            .next()
-                            .ok_or({
-                                let err_msg = "corrupt_bio_byte takes 4 parameters";
-                                DmError::Dm(ErrorEnum::Invalid, err_msg.to_string())
-                            })
-                            .and_then(|s| parse_value::<Direction>(*s, "direction"))?;
-
-                        let value = vals_iter
-                            .next()
-                            .ok_or({
-                                let err_msg = "corrupt_bio_byte takes 4 parameters";
-                                DmError::Dm(ErrorEnum::Invalid, err_msg.to_string())
-                            })
-                            .and_then(|s| parse_value::<u8>(*s, "value"))?;
-
-                        let flags = vals_iter
-                            .next()
-                            .ok_or({
-                                let err_msg = "corrupt_bio_byte takes 4 parameters";
-                                DmError::Dm(ErrorEnum::Invalid, err_msg.to_string())
-                            })
-                            .and_then(|s| parse_value::<u64>(*s, "flags"))?;
-
-                        result.push(FeatureArg::CorruptBioByte(offset, direction, value, flags));
-                    }
-                    x => {
-                        let err_msg = format!("{} is an unrecognized feature parameter", x);
-                        return Err(DmError::Dm(ErrorEnum::Invalid, err_msg));
-                    }
+            for x in 0..num_feature_args {
+                if vals[x] == "drop_writes" {
+                    result.push(DropWrites);
+                    print!("DEBUG: result: {:?}", result);
+                } else if vals[x] == "error_writes" {
+                    result.push(ErrorWrites);
+                } else if vals[x] == "corrupt_bio_byte" {
+                    let byte: u64 = parse_value(vals[x + 1], "byte offset")?;
+                    let direction: Direction = parse_direction(vals[x + 2])?;
+                    let value: u8 = parse_value(vals[x + 3], "value")?;
+                    let flags: u64 = parse_value(vals[x + 4], "flags")?;
+                    result.push(CorruptBioByte(byte, direction, value, flags));
+                } else {
+                    continue;
                 }
             }
-
             Ok(result)
         }
 
@@ -819,6 +788,7 @@ mod tests {
     }
 
     #[test]
+<<<<<<< HEAD
     fn test_flakey_target_params_zero() {
         let result = "flakey 8:32 0 16 2 0"
             .parse::<FlakeyTargetParams>()
@@ -830,8 +800,7 @@ mod tests {
     fn test_flakey_target_params_none() {
         let result = "flakey 8:32 0 16 2".parse::<FlakeyTargetParams>().unwrap();
         assert_eq!(result.feature_args, HashSet::new());
-    }
-
+=======
     fn test_flakey_target_params_drop_writes() {
         let result = "flakey 8:32 0 16 2 1 drop_writes"
             .parse::<FlakeyTargetParams>()
@@ -853,72 +822,7 @@ mod tests {
             .cloned()
             .collect::<HashSet<_>>();
         assert_eq!(result.feature_args, expected);
-    }
-
-    #[test]
-    fn test_flakey_target_params_corrupt_bio_byte_reads() {
-        let result = "flakey 8:32 0 16 2 5 corrupt_bio_byte 32 r 1 0"
-            .parse::<FlakeyTargetParams>()
-            .unwrap();
-        let expected = [FeatureArg::CorruptBioByte(32, Direction::Reads, 1, 0)]
-            .iter()
-            .cloned()
-            .collect::<HashSet<_>>();
-        assert_eq!(result.feature_args, expected);
-    }
-
-    #[test]
-    fn test_flakey_target_params_corrupt_bio_byte_writes() {
-        let result = "flakey 8:32 0 16 2 5 corrupt_bio_byte 224 w 0 32"
-            .parse::<FlakeyTargetParams>()
-            .unwrap();
-        let expected = [FeatureArg::CorruptBioByte(224, Direction::Writes, 0, 32)]
-            .iter()
-            .cloned()
-            .collect::<HashSet<_>>();
-        assert_eq!(result.feature_args, expected);
-    }
-
-    #[test]
-    fn test_flakey_target_params_corrupt_bio_byte_and_drop_writes() {
-        let result = "flakey 8:32 0 16 2 6 corrupt_bio_byte 32 r 1 0 drop_writes"
-            .parse::<FlakeyTargetParams>()
-            .unwrap();
-        let expected = [
-            FeatureArg::CorruptBioByte(32, Direction::Reads, 1, 0),
-            FeatureArg::DropWrites,
-        ]
-        .iter()
-        .cloned()
-        .collect::<HashSet<_>>();
-        assert_eq!(result.feature_args, expected);
-    }
-
-    #[test]
-    fn test_flakey_target_params_drop_writes_and_corrupt_bio_byte() {
-        let result = "flakey 8:32 0 16 2 6 corrupt_bio_byte 32 r 1 0 drop_writes"
-            .parse::<FlakeyTargetParams>()
-            .unwrap();
-        let expected = [
-            FeatureArg::DropWrites,
-            FeatureArg::CorruptBioByte(32, Direction::Reads, 1, 0),
-        ]
-        .iter()
-        .cloned()
-        .collect::<HashSet<_>>();
-        assert_eq!(result.feature_args, expected);
-    }
-
-    #[test]
-    fn test_flakey_target_params_error_writes_and_drop_writes() {
-        let result = "flakey 8:32 0 16 2 2 error_writes drop_writes"
-            .parse::<FlakeyTargetParams>()
-            .unwrap();
-        let expected = [FeatureArg::ErrorWrites, FeatureArg::DropWrites]
-            .iter()
-            .cloned()
-            .collect::<HashSet<_>>();
-        assert_eq!(result.feature_args, expected);
+>>>>>>> added drop_writes and error_writes tests, fixed off-by-one error
     }
 
     #[test]
