@@ -143,7 +143,7 @@ pub struct FlakeyTargetParams {
     /// DM source type is unsigned, so restrict to u32.
     pub down_interval: u32,
     /// Optional feature arguments
-    pub feature_args: HashSet<String>,
+    pub feature_args: HashSet<FeatureArg>,
 }
 
 impl FlakeyTargetParams {
@@ -266,7 +266,7 @@ impl TargetParams for FlakeyTargetParams {
                 self.feature_args.len(),
                 self.feature_args
                     .iter()
-                    .cloned()
+                    .map(|x| x.to_string())
                     .collect::<Vec<_>>()
                     .join(" ")
             )
