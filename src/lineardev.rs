@@ -210,16 +210,17 @@ impl FromStr for FlakeyTargetParams {
     type Err = DmError;
 
     fn from_str(s: &str) -> DmResult<FlakeyTargetParams> {
-        fn parse_direction(vals: &str) -> Direction {
+        fn parse_direction(val: &str) -> DmResult<Direction> {
             let result: Direction;
-            if vals == "r" {
+            if val == "r" {
                 result = Direction::Reads;
-            } else if vals == "w" {
+            } else if val == "w" {
                 result = Direction::Writes;
             } else {
-                panic!();
+                let err_msg = format!("Expected r or w, got {}", val);
+                return Err(DmError::Dm(ErrorEnum::Invalid, err_msg));
             }
-            result
+            Ok(result)
         }
 
         fn parse_feature_args(vals: &[&str], num_feature_args: usize) -> Vec<FeatureArg> {
@@ -231,7 +232,7 @@ impl FromStr for FlakeyTargetParams {
                     result.push(ErrorWrites);
                 } else if vals[x] == "corrupt_bio_byte" {
                     let byte: u64 = vals[x + 1].parse::<u64>().unwrap();
-                    let direction: Direction = parse_direction(vals[x + 2]);
+                    let direction: Direction = parse_direction(vals[x + 2]).unwrap();
                     let value: u8 = vals[x + 3].parse::<u8>().unwrap();
                     let flags: u64 = vals[x + 4].parse::<u64>().unwrap();
                     result.push(CorruptBioByte(byte, direction, value, flags));
