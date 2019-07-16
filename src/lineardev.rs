@@ -81,6 +81,22 @@ impl TargetParams for LinearTargetParams {
     }
 }
 
+#[derive(Debug, Hash, Clone, Eq, PartialEq)]
+#[allow(dead_code)]
+pub enum Direction {
+    Reads,
+    Writes,
+}
+
+impl fmt::Display for Direction {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            Direction::Reads => write!(f, "r"),
+            Direction::Writes => write!(f, "w"),
+        }
+    }
+}
+
 /// Flakey target optional feature parameters:
 /// If no feature parameters are present, during the periods of
 /// unreliability, all I/O returns errors.
@@ -109,7 +125,7 @@ pub enum FeatureArg {
     /// <value>:    The value (from 0-255) to write.
     /// <flags>:    Perform the replacement only if bio->bi_opf has all the
     ///	            selected flags set.
-    CorruptBioByte(u64, char, u8, u64),
+    CorruptBioByte(u64, Direction, u8, u64),
 }
 
 impl fmt::Display for FeatureArg {
@@ -196,6 +212,18 @@ impl FromStr for FlakeyTargetParams {
     type Err = DmError;
 
     fn from_str(s: &str) -> DmResult<FlakeyTargetParams> {
+        fn parse_direction(vals: &str) -> Direction {
+            let result: Direction;
+            if vals == "r" {
+                result = Direction::Reads;
+            } else if vals == "w" {
+                result = Direction::Writes;
+            } else {
+                panic!();
+            }
+            result
+        }
+
         fn parse_feature_args(vals: &[&str], num_feature_args: usize) -> Vec<FeatureArg> {
             let mut result: Vec<FeatureArg> = Vec::new();
             for x in 0..num_feature_args - 1 {
@@ -205,7 +233,7 @@ impl FromStr for FlakeyTargetParams {
                     result.push(ErrorWrites);
                 } else if vals[x] == "corrupt_bio_byte" {
                     let byte: u64 = vals[x + 1].parse::<u64>().unwrap();
-                    let direction: char = vals[x + 2].parse::<char>().unwrap();
+                    let direction: Direction = parse_direction(vals[x + 2]);
                     let value: u8 = vals[x + 3].parse::<u8>().unwrap();
                     let flags: u64 = vals[x + 4].parse::<u64>().unwrap();
                     result.push(CorruptBioByte(byte, direction, value, flags));
