@@ -221,7 +221,7 @@ impl FromStr for FlakeyTargetParams {
             }
         }
 
-        fn parse_feature_args(vals: &[&str], num_feature_args: usize) -> Vec<FeatureArg> {
+        fn parse_feature_args(vals: &[&str], num_feature_args: usize) -> DmResult<Vec<FeatureArg>> {
             let mut result: Vec<FeatureArg> = Vec::new();
             for x in 0..num_feature_args - 1 {
                 if vals[x] == "drop_writes" {
@@ -238,7 +238,7 @@ impl FromStr for FlakeyTargetParams {
                     continue;
                 }
             }
-            result
+            Ok(result)
         }
 
         let vals = s.split(' ').collect::<Vec<_>>();
@@ -269,7 +269,7 @@ impl FromStr for FlakeyTargetParams {
         let num_feature_args: usize = parse_value(vals[5], "number of feature args")?;
 
         let feature_args: Vec<FeatureArg> =
-            parse_feature_args(&vals[6..6 + num_feature_args], num_feature_args);
+            parse_feature_args(&vals[6..6 + num_feature_args], num_feature_args)?;
 
         Ok(FlakeyTargetParams::new(
             device,
