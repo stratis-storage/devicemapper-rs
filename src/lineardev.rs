@@ -229,10 +229,10 @@ impl FromStr for FlakeyTargetParams {
                 } else if vals[x] == "error_writes" {
                     result.push(ErrorWrites);
                 } else if vals[x] == "corrupt_bio_byte" {
-                    let byte: u64 = vals[x + 1].parse::<u64>().unwrap();
-                    let direction: Direction = parse_direction(vals[x + 2]).unwrap();
-                    let value: u8 = vals[x + 3].parse::<u8>().unwrap();
-                    let flags: u64 = vals[x + 4].parse::<u64>().unwrap();
+                    let byte: u64 = parse_value(vals[x + 1], "byte")?;
+                    let direction: Direction = parse_direction(vals[x + 2])?;
+                    let value: u8 = parse_value(vals[x + 4], "value")?;
+                    let flags: u64 = parse_value(vals[x + 4], "flags")?;
                     result.push(CorruptBioByte(byte, direction, value, flags));
                 } else {
                     continue;
