@@ -211,16 +211,14 @@ impl FromStr for FlakeyTargetParams {
 
     fn from_str(s: &str) -> DmResult<FlakeyTargetParams> {
         fn parse_direction(val: &str) -> DmResult<Direction> {
-            let result: Direction;
             if val == "r" {
-                result = Direction::Reads;
+                Ok(Direction::Reads)
             } else if val == "w" {
-                result = Direction::Writes;
+                Ok(Direction::Writes)
             } else {
                 let err_msg = format!("Expected r or w, got {}", val);
-                return Err(DmError::Dm(ErrorEnum::Invalid, err_msg));
+                Err(DmError::Dm(ErrorEnum::Invalid, err_msg))
             }
-            Ok(result)
         }
 
         fn parse_feature_args(vals: &[&str], num_feature_args: usize) -> Vec<FeatureArg> {
