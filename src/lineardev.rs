@@ -82,7 +82,6 @@ impl TargetParams for LinearTargetParams {
 }
 
 #[derive(Debug, Hash, Clone, Eq, PartialEq)]
-#[allow(dead_code)]
 pub enum Direction {
     Reads,
     Writes,
@@ -101,7 +100,6 @@ impl fmt::Display for Direction {
 /// If no feature parameters are present, during the periods of
 /// unreliability, all I/O returns errors.
 #[derive(Debug, Hash, Clone, Eq, PartialEq)]
-#[allow(dead_code)]
 pub enum FeatureArg {
     /// drop_writes:
     ///
