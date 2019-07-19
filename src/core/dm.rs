@@ -8,11 +8,14 @@ use nix::libc::{c_ulong, ioctl as nix_ioctl};
 
 use crate::{
     core::{
-        deviceinfo::{DM_NAME_LEN, DM_UUID_LEN},
+        device::Device,
+        deviceinfo::{DeviceInfo, DM_NAME_LEN, DM_UUID_LEN},
+        dm_flags::DmFlags,
         dm_ioctl as dmi,
+        dm_options::DmOptions,
         errors::ErrorKind,
+        types::{DevId, DmName, DmNameBuf, DmUuid},
         util::{align_to, slice_to_null},
-        DevId, Device, DeviceInfo, DmFlags, DmName, DmNameBuf, DmOptions, DmUuid,
     },
     result::{DmError, DmResult},
 };
