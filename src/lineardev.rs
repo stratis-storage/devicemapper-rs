@@ -807,11 +807,23 @@ mod tests {
     }
 
     #[test]
-    fn test_flakey_target_params_corrupt_bio_byte() {
+    fn test_flakey_target_params_corrupt_bio_byte_reads() {
         let result = "flakey 8:32 0 16 2 5 corrupt_bio_byte 32 r 1 0"
             .parse::<FlakeyTargetParams>()
             .unwrap();
         let expected = [FeatureArg::CorruptBioByte(32, Direction::Reads, 1, 0)]
+            .iter()
+            .cloned()
+            .collect::<HashSet<_>>();
+        assert_eq!(result.feature_args, expected);
+    }
+
+    #[test]
+    fn test_flakey_target_params_corrupt_bio_byte_writes() {
+        let result = "flakey 8:32 0 16 2 5 corrupt_bio_byte 224 w 0 32"
+            .parse::<FlakeyTargetParams>()
+            .unwrap();
+        let expected = [FeatureArg::CorruptBioByte(224, Direction::Writes, 0, 32)]
             .iter()
             .cloned()
             .collect::<HashSet<_>>();
