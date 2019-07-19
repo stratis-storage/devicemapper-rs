@@ -227,7 +227,6 @@ impl FromStr for FlakeyTargetParams {
             for x in 0..num_feature_args {
                 if vals[x] == "drop_writes" {
                     result.push(DropWrites);
-                    print!("DEBUG: result: {:?}", result);
                 } else if vals[x] == "error_writes" {
                     result.push(ErrorWrites);
                 } else if vals[x] == "corrupt_bio_byte" {
@@ -818,7 +817,7 @@ mod tests {
             .collect::<HashSet<_>>();
         assert_eq!(result.feature_args, expected);
     }
-    
+
     #[test]
     fn loop_test_duplicate_segments() {
         test_with_spec(1, test_duplicate_segments);
