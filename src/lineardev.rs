@@ -223,9 +223,11 @@ impl FromStr for FlakeyTargetParams {
 
         fn parse_feature_args(vals: &[&str], num_feature_args: usize) -> DmResult<Vec<FeatureArg>> {
             let mut result: Vec<FeatureArg> = Vec::new();
-            for x in 0..num_feature_args - 1 {
+
+            for x in 0..num_feature_args {
                 if vals[x] == "drop_writes" {
                     result.push(DropWrites);
+                    print!("DEBUG: result: {:?}", result);
                 } else if vals[x] == "error_writes" {
                     result.push(ErrorWrites);
                 } else if vals[x] == "corrupt_bio_byte" {
@@ -779,6 +781,30 @@ mod tests {
         ld.resume(&dm).unwrap();
 
         ld.teardown(&dm).unwrap();
+    }
+
+    #[test]
+    fn test_flakey_target_params_drop_writes() {
+        let result = "flakey 8:32 0 16 2 1 drop_writes"
+            .parse::<FlakeyTargetParams>()
+            .unwrap();
+        let expected = [FeatureArg::DropWrites]
+            .iter()
+            .cloned()
+            .collect::<HashSet<_>>();
+        assert_eq!(result.feature_args, expected);
+    }
+
+    #[test]
+    fn test_flakey_target_params_error_writes() {
+        let result = "flakey 8:32 0 16 2 1 error_writes"
+            .parse::<FlakeyTargetParams>()
+            .unwrap();
+        let expected = [FeatureArg::ErrorWrites]
+            .iter()
+            .cloned()
+            .collect::<HashSet<_>>();
+        assert_eq!(result.feature_args, expected);
     }
 
     #[test]
