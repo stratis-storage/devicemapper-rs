@@ -819,6 +819,48 @@ mod tests {
     }
 
     #[test]
+    fn test_flakey_target_params_corrupt_bio_byte_and_drop_writes() {
+        let result = "flakey 8:32 0 16 2 6 corrupt_bio_byte 32 r 1 0 drop_writes"
+            .parse::<FlakeyTargetParams>()
+            .unwrap();
+        let expected = [
+            FeatureArg::CorruptBioByte(32, Direction::Reads, 1, 0),
+            FeatureArg::DropWrites,
+        ]
+        .iter()
+        .cloned()
+        .collect::<HashSet<_>>();
+        assert_eq!(result.feature_args, expected);
+    }
+
+    #[test]
+    fn test_flakey_target_params_drop_writes_and_corrupt_bio_byte() {
+        let result = "flakey 8:32 0 16 2 6 corrupt_bio_byte 32 r 1 0 drop_writes"
+            .parse::<FlakeyTargetParams>()
+            .unwrap();
+        let expected = [
+            FeatureArg::DropWrites,
+            FeatureArg::CorruptBioByte(32, Direction::Reads, 1, 0),
+        ]
+        .iter()
+        .cloned()
+        .collect::<HashSet<_>>();
+        assert_eq!(result.feature_args, expected);
+    }
+
+    #[test]
+    fn test_flakey_target_params_error_writes_and_drop_writes() {
+        let result = "flakey 8:32 0 16 2 2 error_writes drop_writes"
+            .parse::<FlakeyTargetParams>()
+            .unwrap();
+        let expected = [FeatureArg::ErrorWrites, FeatureArg::DropWrites]
+            .iter()
+            .cloned()
+            .collect::<HashSet<_>>();
+        assert_eq!(result.feature_args, expected);
+    }
+
+    #[test]
     fn loop_test_duplicate_segments() {
         test_with_spec(1, test_duplicate_segments);
     }
