@@ -808,6 +808,18 @@ mod tests {
     }
 
     #[test]
+    fn test_flakey_target_params_corrupt_bio_byte() {
+        let result = "flakey 8:32 0 16 2 5 corrupt_bio_byte 32 r 1 0"
+            .parse::<FlakeyTargetParams>()
+            .unwrap();
+        let expected = [FeatureArg::CorruptBioByte(32, Direction::Reads, 1, 0)]
+            .iter()
+            .cloned()
+            .collect::<HashSet<_>>();
+        assert_eq!(result.feature_args, expected);
+    }
+    
+    #[test]
     fn loop_test_duplicate_segments() {
         test_with_spec(1, test_duplicate_segments);
     }
