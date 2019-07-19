@@ -6,7 +6,7 @@ use std::{self, path::PathBuf};
 
 use nix;
 
-use crate::core::DeviceInfo;
+use crate::core::deviceinfo::DeviceInfo;
 
 error_chain! {
     errors {

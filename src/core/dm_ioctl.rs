@@ -9,7 +9,7 @@
 
 use std::{borrow::Cow, fmt};
 
-use crate::core::{util::slice_to_null, Device};
+use crate::core::{device::Device, util::slice_to_null};
 
 pub type __s8 = ::libc::c_char;
 pub type __u8 = ::libc::c_uchar;

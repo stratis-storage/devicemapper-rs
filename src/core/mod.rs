@@ -5,14 +5,14 @@
 //! Modules that support handling of devicemapper ioctls at a low-level.
 
 mod device;
-pub(self) mod deviceinfo;
+mod deviceinfo;
 mod dm;
 mod dm_flags;
-pub(self) mod dm_ioctl;
+mod dm_ioctl;
 mod dm_options;
 pub mod errors;
 mod types;
-pub(self) mod util;
+mod util;
 
 pub use self::{
     device::{devnode_to_devno, Device},
