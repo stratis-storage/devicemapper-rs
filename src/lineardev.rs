@@ -96,6 +96,20 @@ impl fmt::Display for Direction {
     }
 }
 
+impl FromStr for Direction {
+    type Err = DmError;
+    fn from_str(val: &str) -> DmResult<Direction> {
+        if val == "r" {
+            Ok(Direction::Reads)
+        } else if val == "w" {
+            Ok(Direction::Writes)
+        } else {
+            let err_msg = format!("Failed to parse from input \"{}\", expected r or w", val);
+            Err(DmError::Dm(ErrorEnum::Invalid, err_msg))
+        }
+    }
+}
+
 /// Flakey target optional feature parameters:
 /// If no feature parameters are present, during the periods of
 /// unreliability, all I/O returns errors.
@@ -131,10 +145,10 @@ impl fmt::Display for FeatureArg {
         match self {
             FeatureArg::DropWrites => write!(f, "drop_writes"),
             FeatureArg::ErrorWrites => write!(f, "error_writes"),
-            FeatureArg::CorruptBioByte(byte, direction, value, flags) => write!(
+            FeatureArg::CorruptBioByte(offset, direction, value, flags) => write!(
                 f,
                 "corrupt_bio_byte {} {} {} {}",
-                byte, direction, value, flags
+                offset, direction, value, flags
             ),
         }
     }
@@ -210,37 +224,21 @@ impl FromStr for FlakeyTargetParams {
     type Err = DmError;
 
     fn from_str(s: &str) -> DmResult<FlakeyTargetParams> {
-        fn parse_direction(val: &str, desc: &str) -> DmResult<Direction> {
-            if val == "r" {
-                Ok(Direction::Reads)
-            } else if val == "w" {
-                Ok(Direction::Writes)
-            } else {
-                let err_msg = format!(
-                    "Failed to parse \"{}\" from input \"{}\", expected r or w",
-                    desc, val
-                );
-                Err(DmError::Dm(ErrorEnum::Invalid, err_msg))
-            }
-        }
-
         fn parse_feature_args(vals: &[&str]) -> DmResult<Vec<FeatureArg>> {
             let mut vals_iter = vals.iter();
             let mut result: Vec<FeatureArg> = Vec::new();
-
-            let mut vals_0 = vals_iter.next();
-            while vals_0 != None {
-                match vals_0.cloned() {
-                    Some("drop_writes") => result.push(DropWrites),
-                    Some("error_writes") => result.push(ErrorWrites),
-                    Some("corrupt_bio_byte") => {
-                        let byte = vals_iter
+            while let Some(x) = vals_iter.next() {
+                match x {
+                    &"drop_writes" => result.push(DropWrites),
+                    &"error_writes" => result.push(ErrorWrites),
+                    &"corrupt_bio_byte" => {
+                        let offset = vals_iter
                             .next()
                             .ok_or({
                                 let err_msg = "corrupt_bio_byte takes 4 parameters";
                                 DmError::Dm(ErrorEnum::Invalid, err_msg.to_string())
                             })
-                            .and_then(|s| parse_value::<u64>(*s, "byte offset"))?;
+                            .and_then(|s| parse_value::<u64>(*s, "offset"))?;
 
                         let direction = vals_iter
                             .next()
@@ -248,7 +246,7 @@ impl FromStr for FlakeyTargetParams {
                                 let err_msg = "corrupt_bio_byte takes 4 parameters";
                                 DmError::Dm(ErrorEnum::Invalid, err_msg.to_string())
                             })
-                            .and_then(|s| parse_direction(*s, "direction"))?;
+                            .and_then(|s| parse_value::<Direction>(*s, "direction"))?;
 
                         let value = vals_iter
                             .next()
@@ -266,18 +264,13 @@ impl FromStr for FlakeyTargetParams {
                             })
                             .and_then(|s| parse_value::<u64>(*s, "flags"))?;
 
-                        result.push(CorruptBioByte(byte, direction, value, flags));
+                        result.push(CorruptBioByte(offset, direction, value, flags));
                     }
-                    Some(x) => {
+                    x => {
                         let err_msg = format!("{} is an unrecognized feature parameter", x);
                         return Err(DmError::Dm(ErrorEnum::Invalid, err_msg));
                     }
-                    None => {
-                        let err_msg = "No paremeters were passed in";
-                        return Err(DmError::Dm(ErrorEnum::Invalid, err_msg.to_string()));
-                    }
                 }
-                vals_0 = vals_iter.next();
             }
 
             Ok(result)
