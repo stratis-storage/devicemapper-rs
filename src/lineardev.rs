@@ -192,12 +192,14 @@ impl FromStr for FlakeyTargetParams {
         let up_interval = parse_value(vals[3], "up interval")?;
         let down_interval = parse_value(vals[4], "down interval")?;
 
-        let num_feature_args: usize = parse_value(vals[5], "number of feature args")?;
-
-        let feature_args: Vec<String> = vals[6..6 + num_feature_args]
-            .iter()
-            .map(|x| x.to_string())
-            .collect();
+        let feature_args = if vals.len() == 5 {
+            vec![]
+        } else {
+            vals[6..6 + parse_value::<usize>(vals[5], "number of feature args")?]
+                .iter()
+                .map(|x| x.to_string())
+                .collect()
+        };
 
         Ok(FlakeyTargetParams::new(
             device,
@@ -707,6 +709,20 @@ mod tests {
         ld.resume(&dm).unwrap();
 
         ld.teardown(&dm).unwrap();
+    }
+
+    #[test]
+    fn test_flakey_target_params_zero() {
+        let result = "flakey 8:32 0 16 2 0"
+            .parse::<FlakeyTargetParams>()
+            .unwrap();
+        assert_eq!(result.feature_args, HashSet::new());
+    }
+
+    #[test]
+    fn test_flakey_target_params_none() {
+        let result = "flakey 8:32 0 16 2".parse::<FlakeyTargetParams>().unwrap();
+        assert_eq!(result.feature_args, HashSet::new());
     }
 
     #[test]
