@@ -167,7 +167,7 @@ impl FromStr for FlakeyTargetParams {
     type Err = DmError;
 
     fn from_str(s: &str) -> DmResult<FlakeyTargetParams> {
-        let mut vals = s.split(' ').collect::<Vec<_>>();
+        let vals = s.split(' ').collect::<Vec<_>>();
 
         if vals.len() < 5 {
             let err_msg = format!(
@@ -192,16 +192,20 @@ impl FromStr for FlakeyTargetParams {
         let up_interval = parse_value(vals[3], "up interval")?;
         let down_interval = parse_value(vals[4], "down interval")?;
 
-        if vals.len() == 5 {
-            vals.push("0");
-        }
+        let num_feature_args = if vals.len() == 5 {
+            0
+        } else {
+            parse_value(vals[5], "number of feature args")?
+        };
 
-        let num_feature_args: usize = parse_value(vals[5], "number of feature args")?;
-
-        let feature_args: Vec<String> = vals[6..6 + num_feature_args]
-            .iter()
-            .map(|x| x.to_string())
-            .collect();
+        let feature_args = if num_feature_args == 0 {
+            vec![]
+        } else {
+            vals[6..6 + num_feature_args]
+                .iter()
+                .map(|x| x.to_string())
+                .collect()
+        };
 
         Ok(FlakeyTargetParams::new(
             device,
