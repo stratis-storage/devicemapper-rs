@@ -167,7 +167,7 @@ impl FromStr for FlakeyTargetParams {
     type Err = DmError;
 
     fn from_str(s: &str) -> DmResult<FlakeyTargetParams> {
-        let vals = s.split(' ').collect::<Vec<_>>();
+        let mut vals = s.split(' ').collect::<Vec<_>>();
 
         if vals.len() < 5 {
             let err_msg = format!(
@@ -191,6 +191,10 @@ impl FromStr for FlakeyTargetParams {
 
         let up_interval = parse_value(vals[3], "up interval")?;
         let down_interval = parse_value(vals[4], "down interval")?;
+
+        if vals.len() == 5 {
+            vals.push("0");
+        }
 
         let num_feature_args: usize = parse_value(vals[5], "number of feature args")?;
 
@@ -707,6 +711,30 @@ mod tests {
         ld.resume(&dm).unwrap();
 
         ld.teardown(&dm).unwrap();
+    }
+
+    #[test]
+    fn test_flakey_target_params_zero() {
+        let result = "flakey 8:32 0 16 2 0"
+            .parse::<FlakeyTargetParams>()
+            .unwrap();
+        let expected = []
+            .iter()
+            .cloned()
+            .collect::<HashSet<_>>();
+        assert_eq!(result.feature_args, expected);
+    }
+
+    #[test]
+    fn test_flakey_target_params_none() {
+        let result = "flakey 8:32 0 16 2"
+            .parse::<FlakeyTargetParams>()
+            .unwrap();
+        let expected = []
+            .iter()
+            .cloned()
+            .collect::<HashSet<_>>();
+        assert_eq!(result.feature_args, expected);
     }
 
     #[test]
