@@ -218,8 +218,6 @@ impl fmt::Display for FlakeyTargetParams {
     }
 }
 
-use crate::lineardev::FeatureArg::{CorruptBioByte, DropWrites, ErrorWrites};
-
 impl FromStr for FlakeyTargetParams {
     type Err = DmError;
 
@@ -229,8 +227,8 @@ impl FromStr for FlakeyTargetParams {
             let mut result: Vec<FeatureArg> = Vec::new();
             while let Some(x) = vals_iter.next() {
                 match x {
-                    &"drop_writes" => result.push(DropWrites),
-                    &"error_writes" => result.push(ErrorWrites),
+                    &"drop_writes" => result.push(FeatureArg::DropWrites),
+                    &"error_writes" => result.push(FeatureArg::ErrorWrites),
                     &"corrupt_bio_byte" => {
                         let offset = vals_iter
                             .next()
@@ -264,7 +262,7 @@ impl FromStr for FlakeyTargetParams {
                             })
                             .and_then(|s| parse_value::<u64>(*s, "flags"))?;
 
-                        result.push(CorruptBioByte(offset, direction, value, flags));
+                        result.push(FeatureArg::CorruptBioByte(offset, direction, value, flags));
                     }
                     x => {
                         let err_msg = format!("{} is an unrecognized feature parameter", x);
