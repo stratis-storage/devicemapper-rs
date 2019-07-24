@@ -98,13 +98,13 @@ impl fmt::Display for Direction {
 
 impl FromStr for Direction {
     type Err = DmError;
-    fn from_str(val: &str) -> DmResult<Direction> {
-        if val == "r" {
+    fn from_str(s: &str) -> DmResult<Direction> {
+        if s == "r" {
             Ok(Direction::Reads)
-        } else if val == "w" {
+        } else if s == "w" {
             Ok(Direction::Writes)
         } else {
-            let err_msg = format!("Failed to parse from input \"{}\", expected r or w", val);
+            let err_msg = format!("Expected r or w, found {}", s);
             Err(DmError::Dm(ErrorEnum::Invalid, err_msg))
         }
     }
