@@ -192,16 +192,10 @@ impl FromStr for FlakeyTargetParams {
         let up_interval = parse_value(vals[3], "up interval")?;
         let down_interval = parse_value(vals[4], "down interval")?;
 
-        let num_feature_args = if vals.len() == 5 {
-            0
-        } else {
-            parse_value(vals[5], "number of feature args")?
-        };
-
-        let feature_args = if num_feature_args == 0 {
+        let feature_args = if vals.len() == 5 {
             vec![]
         } else {
-            vals[6..6 + num_feature_args]
+            vals[6..6 + parse_value::<usize>(vals[5], "number of feature args")?]
                 .iter()
                 .map(|x| x.to_string())
                 .collect()
