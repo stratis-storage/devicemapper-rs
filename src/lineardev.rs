@@ -716,15 +716,13 @@ mod tests {
         let result = "flakey 8:32 0 16 2 0"
             .parse::<FlakeyTargetParams>()
             .unwrap();
-        let expected = [].iter().cloned().collect::<HashSet<_>>();
-        assert_eq!(result.feature_args, expected);
+        assert_eq!(result.feature_args, HashSet::new());
     }
 
     #[test]
     fn test_flakey_target_params_none() {
         let result = "flakey 8:32 0 16 2".parse::<FlakeyTargetParams>().unwrap();
-        let expected = [].iter().cloned().collect::<HashSet<_>>();
-        assert_eq!(result.feature_args, expected);
+        assert_eq!(result.feature_args, HashSet::new());
     }
 
     #[test]
