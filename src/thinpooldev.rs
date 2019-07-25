@@ -86,11 +86,14 @@ impl FromStr for ThinPoolTargetParams {
         let data_block_size = Sectors(parse_value(vals[3], "data block size")?);
         let low_water_mark = DataBlocks(parse_value(vals[4], "low water mark")?);
 
-        let num_feature_args: usize = parse_value(vals[5], "number of feature args")?;
-        let feature_args: Vec<String> = vals[6..6 + num_feature_args]
-            .iter()
-            .map(|x| x.to_string())
-            .collect();
+        let feature_args = if vals.len() == 5 {
+            vec![]
+        } else {
+            vals[6..6 + parse_value::<usize>(vals[5], "number of feature args")?]
+                .iter()
+                .map(|x| x.to_string())
+                .collect()
+        };
 
         Ok(ThinPoolTargetParams::new(
             metadata_dev,
@@ -868,5 +871,21 @@ mod tests {
     #[test]
     fn loop_test_suspend() {
         test_with_spec(1, test_suspend);
+    }
+
+    #[test]
+    fn test_thinpool_target_params_zero() {
+        let result = "thin-pool /dev/sdb1 /dev/sdb1 16 2 0"
+            .parse::<ThinPoolTargetParams>()
+            .unwrap();
+        assert_eq!(result.feature_args, HashSet::new());
+    }
+
+    #[test]
+    fn test_thinpool_target_params_none() {
+        let result = "thin-pool /dev/sdb1 /dev/sdb1 16 2 0"
+            .parse::<ThinPoolTargetParams>()
+            .unwrap();
+        assert_eq!(result.feature_args, HashSet::new());
     }
 }
