@@ -883,7 +883,7 @@ mod tests {
 
     #[test]
     fn test_thinpool_target_params_none() {
-        let result = "thin-pool /dev/sdb1 /dev/sdb1 16 2 0"
+        let result = "thin-pool /dev/sdb1 /dev/sdb1 16 2"
             .parse::<ThinPoolTargetParams>()
             .unwrap();
         assert_eq!(result.feature_args, HashSet::new());
