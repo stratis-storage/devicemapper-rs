@@ -63,7 +63,7 @@ impl FromStr for ThinPoolTargetParams {
     fn from_str(s: &str) -> DmResult<ThinPoolTargetParams> {
         let vals = s.split(' ').collect::<Vec<_>>();
 
-        if vals.len() < 6 {
+        if vals.len() < 5 {
             let err_msg = format!(
                 "expected at least 6 values in params string \"{}\", found {}",
                 s,
@@ -875,7 +875,7 @@ mod tests {
 
     #[test]
     fn test_thinpool_target_params_zero() {
-        let result = "thin-pool /dev/sdb1 /dev/sdb1 16 2 0"
+        let result = "thin-pool 42:42 42:43 16 2 0"
             .parse::<ThinPoolTargetParams>()
             .unwrap();
         assert_eq!(result.feature_args, HashSet::new());
@@ -883,7 +883,7 @@ mod tests {
 
     #[test]
     fn test_thinpool_target_params_none() {
-        let result = "thin-pool /dev/sdb1 /dev/sdb1 16 2"
+        let result = "thin-pool 42:42 42:43 16 2"
             .parse::<ThinPoolTargetParams>()
             .unwrap();
         assert_eq!(result.feature_args, HashSet::new());
