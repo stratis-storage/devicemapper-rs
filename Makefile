@@ -27,6 +27,9 @@ travis_fmt:
 build:
 	RUSTFLAGS="${DENY}" cargo build
 
+build-tests:
+	RUSTFLAGS="${DENY}" cargo test --no-run
+
 test:
 	RUSTFLAGS="${DENY}" RUST_BACKTRACE=1 cargo test -- --skip sudo_ --skip loop_
 
