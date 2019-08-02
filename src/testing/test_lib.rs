@@ -202,7 +202,5 @@ fn dm_test_fs_unmount() -> Result<()> {
 /// Unmount any filesystems or devicemapper devices which contain DM_TEST_ID
 /// in the path or name. Immediately return on first error.
 pub(super) fn clean_up() -> Result<()> {
-    dm_test_fs_unmount()?;
-    dm_test_devices_remove()?;
-    Ok(())
+    dm_test_fs_unmount().and_then(|_| dm_test_devices_remove())
 }
