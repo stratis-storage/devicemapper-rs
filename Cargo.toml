@@ -16,7 +16,7 @@ libc = "0.2.36"
 nix = "0.14"
 bitflags = "1"
 serde = "1"
-error-chain = "0.12"
+error-chain = "0.12.1"
 
 [dev-dependencies]
 loopdev = "0.2"
