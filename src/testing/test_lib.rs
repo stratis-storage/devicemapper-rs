@@ -110,10 +110,6 @@ pub fn test_uuid(name: &str) -> DmResult<DmUuidBuf> {
     DmUuidBuf::new(test_string(name))
 }
 
-// For an explanation see:
-// https://github.com/rust-lang-nursery/error-chain/issues/254.
-// FIXME: Drop dependence on error-chain entirely.
-#[allow(deprecated)]
 mod cleanup_errors {
     use libmount;
     use nix;
@@ -206,7 +202,5 @@ fn dm_test_fs_unmount() -> Result<()> {
 /// Unmount any filesystems or devicemapper devices which contain DM_TEST_ID
 /// in the path or name. Immediately return on first error.
 pub(super) fn clean_up() -> Result<()> {
-    dm_test_fs_unmount()?;
-    dm_test_devices_remove()?;
-    Ok(())
+    dm_test_fs_unmount().and_then(|_| dm_test_devices_remove())
 }
