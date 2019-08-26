@@ -464,7 +464,7 @@ mod tests {
             .scan_devices()
             .unwrap()
             .find(|x| x.devnode().map_or(false, |d| dev_node_search == d))
-            .and_then(|dev| Some(device_as_map(&dev)));
+            .map(|dev| device_as_map(&dev));
         result
     }
 
