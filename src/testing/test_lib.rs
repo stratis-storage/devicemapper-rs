@@ -9,7 +9,7 @@ use std::{
     panic::catch_unwind,
     path::{Path, PathBuf},
     process::Command,
-    sync::{Once, ONCE_INIT},
+    sync::Once,
 };
 
 use libmount;
@@ -22,7 +22,7 @@ use crate::{
     units::Bytes,
 };
 
-static INIT: Once = ONCE_INIT;
+static INIT: Once = Once::new();
 static mut DM_CONTEXT: Option<DM> = None;
 
 // send IOCTL via blkgetsize64
