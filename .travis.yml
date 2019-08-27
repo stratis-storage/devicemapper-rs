@@ -48,10 +48,11 @@ matrix:
           env: TASK=docs
 
         # ALLOWED FAILURES
-        # test on beta to be good Rustaceans
+        # Run clippy on beta to be good Rustaceans
         - rust: beta
-          sudo: required
-          env: TASK=sudo_test
+          before_script:
+              - rustup component add clippy
+          env: TASK=clippy
         # Run "cargo expand" on rust nightly, in order to see expanded macros
         # that happen to be of interest.
         - rust: nightly
