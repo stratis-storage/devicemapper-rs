@@ -26,7 +26,18 @@ static INIT: Once = Once::new();
 static mut DM_CONTEXT: Option<DM> = None;
 
 // send IOCTL via blkgetsize64
-ioctl_read!(blkgetsize64, 0x12, 114, u64);
+ioctl_read!(
+    /// # Safety
+    ///
+    /// This function is a wrapper for `libc::ioctl` and therefore is unsafe for the same reasons
+    /// as other libc bindings. It accepts a file descriptor and mutable pointer so the semantics
+    /// of the invoked `ioctl` command should be examined to determine the effect it will have
+    /// on the resources passed to the command.
+    blkgetsize64,
+    0x12,
+    114,
+    u64
+);
 
 /// get the size of a given block device file
 pub fn blkdev_size(file: &File) -> Bytes {
