@@ -10,6 +10,9 @@ ${HOME}/.cargo/bin/cargo-expand:
 ${HOME}/.cargo/bin/cargo-tree:
 	cargo install cargo-tree
 
+${HOME}/.cargo/bin/cargo-audit:
+	cargo install cargo-audit
+
 expand: ${HOME}/.cargo/bin/cargo-expand
 	PATH=${HOME}/.cargo/bin:${PATH} cargo expand core::errors
 	PATH=${HOME}/.cargo/bin:${PATH} cargo expand core::types
@@ -17,6 +20,9 @@ expand: ${HOME}/.cargo/bin/cargo-expand
 
 tree: ${HOME}/.cargo/bin/cargo-tree
 	PATH=${HOME}/.cargo/bin:${PATH} cargo tree
+
+audit: ${HOME}/.cargo/bin/cargo-audit
+	PATH=${HOME}/.cargo/bin:${PATH} cargo audit -D
 
 fmt:
 	cargo fmt
@@ -43,6 +49,7 @@ docs:
 	cargo doc --no-deps
 
 .PHONY:
+	audit
 	build
 	clippy
 	docs
