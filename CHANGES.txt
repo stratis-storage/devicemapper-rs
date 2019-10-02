@@ -1,0 +1,31 @@
+devicemapper 0.28.1 (UNRELEASED)
+================================
+Recommended Rust toolchain version: 1.37
+Lowest supported Rust toolchain version: 1.36
+
+New minimum Rust crate requirements:
+  - error_chain: 0.12.1
+
+- Fix incorrect parsing of flakey target parameters:
+  https://github.com/stratis-storage/devicemapper-rs/issues/261
+  https://github.com/stratis-storage/devicemapper-rs/pull/492
+
+- Fix some bugs in parsing target parameters when the number of feature
+  arguments is 0:
+  https://github.com/stratis-storage/devicemapper-rs/issues/484
+  https://github.com/stratis-storage/devicemapper-rs/pull/489
+  https://github.com/stratis-storage/devicemapper-rs/pull/495
+
+- Tidies and Maintenance:
+  https://github.com/stratis-storage/devicemapper-rs/pull/502
+  https://github.com/stratis-storage/devicemapper-rs/pull/501
+  https://github.com/stratis-storage/devicemapper-rs/pull/500
+  https://github.com/stratis-storage/devicemapper-rs/pull/499
+  https://github.com/stratis-storage/devicemapper-rs/pull/497
+  https://github.com/stratis-storage/devicemapper-rs/pull/496
+  https://github.com/stratis-storage/devicemapper-rs/pull/494
+  https://github.com/stratis-storage/devicemapper-rs/pull/487
+  https://github.com/stratis-storage/devicemapper-rs/pull/486
+  https://github.com/stratis-storage/devicemapper-rs/pull/480
+  https://github.com/stratis-storage/devicemapper-rs/pull/478
+  https://github.com/stratis-storage/devicemapper-rs/pull/477 
