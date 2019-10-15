@@ -611,7 +611,7 @@ mod tests {
 
         let dm = DM::new().unwrap();
         let name = test_name("name").expect("valid format");
-        let dev = Device::from(devnode_to_devno(&paths[0]).unwrap().unwrap());
+        let dev = Device::from(devnode_to_devno(paths[0]).unwrap().unwrap());
         let params = LinearTargetParams::new(dev, Sectors(0));
         let table = vec![TargetLine::new(
             Sectors(0),
@@ -631,7 +631,7 @@ mod tests {
 
         let dm = DM::new().unwrap();
         let name = test_name("name").expect("valid format");
-        let dev = Device::from(devnode_to_devno(&paths[0]).unwrap().unwrap());
+        let dev = Device::from(devnode_to_devno(paths[0]).unwrap().unwrap());
         let params = LinearTargetParams::new(dev, Sectors(0));
         let table = vec![TargetLine::new(
             Sectors(0),
@@ -652,7 +652,7 @@ mod tests {
 
         let dm = DM::new().unwrap();
         let name = test_name("name").expect("valid format");
-        let dev = Device::from(devnode_to_devno(&paths[0]).unwrap().unwrap());
+        let dev = Device::from(devnode_to_devno(paths[0]).unwrap().unwrap());
         let params = LinearTargetParams::new(dev, Sectors(0));
         let table = vec![TargetLine::new(
             Sectors(0),
@@ -677,7 +677,7 @@ mod tests {
 
         let dm = DM::new().unwrap();
         let name = test_name("name").expect("valid format");
-        let dev = Device::from(devnode_to_devno(&paths[0]).unwrap().unwrap());
+        let dev = Device::from(devnode_to_devno(paths[0]).unwrap().unwrap());
         let params = LinearTargetParams::new(dev, Sectors(0));
         let table = vec![
             TargetLine::new(
@@ -723,7 +723,7 @@ mod tests {
 
         let dm = DM::new().unwrap();
         let name = test_name("name").expect("valid format");
-        let dev = Device::from(devnode_to_devno(&paths[0]).unwrap().unwrap());
+        let dev = Device::from(devnode_to_devno(paths[0]).unwrap().unwrap());
         let table = (0..5)
             .map(|n| {
                 TargetLine::new(
@@ -750,7 +750,7 @@ mod tests {
 
         let dm = DM::new().unwrap();
         let name = test_name("name").expect("valid format");
-        let dev = Device::from(devnode_to_devno(&paths[0]).unwrap().unwrap());
+        let dev = Device::from(devnode_to_devno(paths[0]).unwrap().unwrap());
         let params = LinearTargetParams::new(dev, Sectors(0));
         let table = vec![TargetLine::new(
             Sectors(0),
@@ -776,7 +776,7 @@ mod tests {
         let dm = DM::new().unwrap();
         let name = test_name("name").expect("valid format");
         let ersatz = test_name("ersatz").expect("valid format");
-        let dev = Device::from(devnode_to_devno(&paths[0]).unwrap().unwrap());
+        let dev = Device::from(devnode_to_devno(paths[0]).unwrap().unwrap());
         let params = LinearTargetParams::new(dev, Sectors(0));
         let table = vec![TargetLine::new(
             Sectors(0),
@@ -797,7 +797,7 @@ mod tests {
 
         let dm = DM::new().unwrap();
         let name = test_name("name").expect("valid format");
-        let dev = Device::from(devnode_to_devno(&paths[0]).unwrap().unwrap());
+        let dev = Device::from(devnode_to_devno(paths[0]).unwrap().unwrap());
         let params = LinearTargetParams::new(dev, Sectors(0));
         let table = vec![TargetLine::new(
             Sectors(0),

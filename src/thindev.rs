@@ -272,7 +272,7 @@ impl ThinDev {
             name,
             uuid,
             &table,
-            &DmOptions::new().set_cookie(DmCookie::DM_UDEV_PRIMARY_SOURCE_FLAG),
+            DmOptions::new().set_cookie(DmCookie::DM_UDEV_PRIMARY_SOURCE_FLAG),
         )?;
 
         Ok(ThinDev {
@@ -314,7 +314,7 @@ impl ThinDev {
                 name,
                 uuid,
                 &table,
-                &DmOptions::new().set_cookie(DmCookie::DM_UDEV_PRIMARY_SOURCE_FLAG),
+                DmOptions::new().set_cookie(DmCookie::DM_UDEV_PRIMARY_SOURCE_FLAG),
             )?;
             ThinDev {
                 dev_info: Box::new(dev_info),
@@ -337,7 +337,7 @@ impl ThinDev {
         snapshot_thin_id: ThinDevId,
     ) -> DmResult<ThinDev> {
         let source_id = DevId::Name(self.name());
-        dm.device_suspend(&source_id, &DmOptions::new().set_flags(DmFlags::DM_SUSPEND))?;
+        dm.device_suspend(&source_id, DmOptions::new().set_flags(DmFlags::DM_SUSPEND))?;
         message(
             dm,
             thin_pool,
@@ -353,7 +353,7 @@ impl ThinDev {
             snapshot_name,
             snapshot_uuid,
             &table,
-            &DmOptions::new().set_cookie(DmCookie::DM_UDEV_PRIMARY_SOURCE_FLAG),
+            DmOptions::new().set_cookie(DmCookie::DM_UDEV_PRIMARY_SOURCE_FLAG),
         )?);
         Ok(ThinDev { dev_info, table })
     }

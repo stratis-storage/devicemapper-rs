@@ -43,7 +43,7 @@ sudo_test:
 	sudo env "PATH=${PATH}" RUSTFLAGS="${DENY}" RUST_BACKTRACE=1 RUST_TEST_THREADS=1 cargo test
 
 clippy:
-	cargo clippy --all-targets --all-features -- -D warnings
+	cargo clippy --all-targets --all-features -- -D warnings -D clippy::needless_borrow
 
 docs:
 	cargo doc --no-deps
