@@ -55,8 +55,8 @@ impl DmOptions {
 
         hdr.data_start = size_of::<dmi::Struct_dm_ioctl>() as u32;
 
-        if let Some(ref id) = id {
-            match *(*id) {
+        if let Some(id) = id {
+            match id {
                 DevId::Name(name) => DM::hdr_set_name(&mut hdr, name),
                 DevId::Uuid(uuid) => DM::hdr_set_uuid(&mut hdr, uuid),
             };
@@ -958,7 +958,7 @@ mod tests {
         assert_matches!(
             DM::new().unwrap().table_status(
                 &DevId::Name(&name),
-                &DmOptions::new().set_flags(DmFlags::DM_STATUS_TABLE)
+                DmOptions::new().set_flags(DmFlags::DM_STATUS_TABLE)
             ),
             Err(DmError::Core(Error(ErrorKind::IoctlError(_, _), _)))
         );
