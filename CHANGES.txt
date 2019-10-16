@@ -1,7 +1,7 @@
 devicemapper 0.28.1 (UNRELEASED)
 ================================
-Recommended Rust toolchain version: 1.37
-Lowest supported Rust toolchain version: 1.36
+Recommended Rust toolchain version: 1.38
+Lowest supported Rust toolchain version: 1.37
 
 New minimum Rust crate requirements:
   - error_chain: 0.12.1
@@ -17,6 +17,10 @@ New minimum Rust crate requirements:
   https://github.com/stratis-storage/devicemapper-rs/pull/495
 
 - Tidies and Maintenance:
+  https://github.com/stratis-storage/devicemapper-rs/pull/509
+  https://github.com/stratis-storage/devicemapper-rs/pull/508
+  https://github.com/stratis-storage/devicemapper-rs/pull/507
+  https://github.com/stratis-storage/devicemapper-rs/pull/504
   https://github.com/stratis-storage/devicemapper-rs/pull/502
   https://github.com/stratis-storage/devicemapper-rs/pull/501
   https://github.com/stratis-storage/devicemapper-rs/pull/500
