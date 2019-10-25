@@ -44,7 +44,7 @@ matrix:
         # test
         - rust: stable
           sudo: required
-          env: TASK=sudo_test
+          script: sudo PATH=${TRAVIS_HOME}/.cargo/bin:$PATH make -f Makefile sudo_test
         # Build docs
         - rust: stable
           env: TASK=docs
