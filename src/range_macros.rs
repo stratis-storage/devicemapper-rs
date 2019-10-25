@@ -4,9 +4,11 @@
 
 // An omnibus macro that includes all simple macros.
 macro_rules! range {
-    ($T: ident, $display_name: expr) => {
+    ( $(#[$comment:meta])? $T: ident, $display_name: expr) => {
+        $(
+            #[$comment]
+        )?
         #[derive(Clone, Copy, Default, Eq, Ord, PartialEq, PartialOrd)]
-        /// A type for $T
         pub struct $T(pub u64);
 
         checked_add!($T);
@@ -286,7 +288,7 @@ macro_rules! self_rem {
 macro_rules! checked_add {
     ($T: ident) => {
         impl $T {
-            /// Add two items of type $T, return None if overflow.
+            /// Add two items of the same type, return None if overflow.
             pub fn checked_add(&self, other: $T) -> Option<$T> {
                 self.0.checked_add(other.0).map($T)
             }
