@@ -440,7 +440,6 @@ mod tests {
     const MIN_THIN_DEV_SIZE: Sectors = Sectors(1);
 
     // Return a hashmap of key-value pairs for udev entry.
-    #[allow(clippy::let_and_return)] // Necessary to avoid a borrowing error
     fn get_udev_db_entry(dev_node_search: &PathBuf) -> Option<HashMap<String, String>> {
         // Takes a libudev device entry and returns the properties as a HashMap.
         fn device_as_map(device: &libudev::Device) -> HashMap<String, String> {
@@ -460,12 +459,11 @@ mod tests {
         let mut enumerator = libudev::Enumerator::new(&context).unwrap();
         enumerator.match_subsystem("block").unwrap();
 
-        let result = enumerator
+        enumerator
             .scan_devices()
             .unwrap()
             .find(|x| x.devnode().map_or(false, |d| dev_node_search == d))
-            .map(|dev| device_as_map(&dev));
-        result
+            .map(|dev| device_as_map(&dev))
     }
 
     /// Verify that specifying a size of 0 Sectors will cause a failure.
