@@ -3,39 +3,43 @@
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 // An omnibus macro that includes all simple macros.
-macro_rules! range {
+macro_rules! range_u64 {
     ( $(#[$comment:meta])? $T: ident, $display_name: expr) => {
+        range!($(#[$comment])? $T, $display_name, u64, serialize_u64);
+        from_u64!($T);
+        mul!($T, u64, u32, u16, u8);
+        div!($T, u64, u32, u16, u8);
+    }
+}
+
+macro_rules! range_u128 {
+    ( $(#[$comment:meta])? $T: ident, $display_name: expr) => {
+        range!($(#[$comment])? $T, $display_name, u128, serialize_u128);
+        from_u128!($T);
+        mul!($T, u128, u64, u32, u16, u8);
+        div!($T, u128, u64, u32, u16, u8);
+    }
+}
+
+macro_rules! range {
+    ( $(#[$comment:meta])? $T: ident, $display_name: expr, $inner:ty, $serde_method:ident) => {
         $(
             #[$comment]
         )?
         #[derive(Clone, Copy, Default, Eq, Ord, PartialEq, PartialOrd)]
-        pub struct $T(pub u64);
+        pub struct $T(pub $inner);
 
         checked_add!($T);
         debug_macro!($T);
         display!($T, $display_name);
-        serde_macro!($T);
+        serde_macro!($T, $serde_method);
         sum!($T);
         add!($T);
         add_assign!($T);
         sub!($T);
         sub_assign!($T);
-        mul!($T);
-        div!($T);
         rem!($T);
-        deref!($T);
-        from!($T);
-    };
-}
-
-macro_rules! self_div {
-    ($T:ident) => {
-        impl std::ops::Div<$T> for $T {
-            type Output = u64;
-            fn div(self, rhs: $T) -> u64 {
-                self.0 / *rhs
-            }
-        }
+        deref!($T, $inner);
     };
 }
 
@@ -82,10 +86,10 @@ macro_rules! sub_assign {
 }
 
 macro_rules! deref {
-    ($T:ident) => {
+    ($T:ident, $inner:ty) => {
         impl std::ops::Deref for $T {
-            type Target = u64;
-            fn deref(&self) -> &u64 {
+            type Target = $inner;
+            fn deref(&self) -> &$inner {
                 &self.0
             }
         }
@@ -93,12 +97,38 @@ macro_rules! deref {
 }
 
 macro_rules! from {
-    ($T:ident) => {
-        impl From<u64> for $T {
-            fn from(t: u64) -> $T {
+    ($T:ident, $inner:ty, $($t:ty),+) => {
+        $(
+            impl From<$t> for $T {
+                fn from(t: $t) -> $T {
+                    $T(<$inner>::from(t))
+                }
+            }
+        )+
+
+        impl From<usize> for $T {
+            fn from(t: usize) -> $T {
+                $T(t as $inner)
+            }
+        }
+
+        impl From<$inner> for $T {
+            fn from(t: $inner) -> $T {
                 $T(t)
             }
         }
+    };
+}
+
+macro_rules! from_u64 {
+    ($T:ident) => {
+        from!($T, u64, u32, u16, u8);
+    };
+}
+
+macro_rules! from_u128 {
+    ($T:ident) => {
+        from!($T, u128, u64, u32, u16, u8);
     };
 }
 
@@ -124,13 +154,13 @@ macro_rules! display {
 }
 
 macro_rules! serde_macro {
-    ($T:ident) => {
+    ($T:ident, $serde_method:ident) => {
         impl serde::Serialize for $T {
             fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
             where
                 S: serde::Serializer,
             {
-                serializer.serialize_u64(**self)
+                serializer.$serde_method(**self)
             }
         }
 
@@ -157,34 +187,34 @@ macro_rules! sum {
 
 // Define a complete set of division operations.
 macro_rules! div {
-    ($T: ident) => {
-        unsigned_div!(u64, $T);
-        unsigned_div!(u32, $T);
-        unsigned_div!(u16, $T);
-        unsigned_div!(u8, $T);
-        usize_div!($T);
-        self_div!($T);
-    };
-}
-
-macro_rules! unsigned_div {
-    ($t:ty, $T:ident) => {
-        impl std::ops::Div<$t> for $T {
-            type Output = $T;
-            fn div(self, rhs: $t) -> $T {
-                $T(self.0 / u64::from(rhs))
+    ($T:ident, $inner:ty, $($t:ty),+) => {
+        $(
+            impl std::ops::Div<$t> for $T {
+                type Output = $T;
+                fn div(self, rhs: $t) -> $T {
+                    $T(self.0 / <$inner>::from(rhs))
+                }
             }
-        }
-    };
-}
+        )+
 
-macro_rules! usize_div {
-    ($T:ident) => {
         impl std::ops::Div<usize> for $T {
             type Output = $T;
             fn div(self, rhs: usize) -> $T {
-                #[allow(clippy::cast_lossless)]
-                $T(self.0 / rhs as u64)
+                $T(self.0 / rhs as $inner)
+            }
+        }
+
+        impl std::ops::Div<$inner> for $T {
+            type Output = $T;
+            fn div(self, rhs: $inner) -> $T {
+                $T(self.0 / rhs)
+            }
+        }
+
+        impl std::ops::Div for $T {
+            type Output = $inner;
+            fn div(self, rhs: $T) -> $inner {
+                self.0 / *rhs
             }
         }
     };
@@ -192,48 +222,48 @@ macro_rules! usize_div {
 
 // Define a complete set of multiplication operations.
 macro_rules! mul {
-    ($T: ident) => {
-        unsigned_mul!(u64, $T);
-        unsigned_mul!(u32, $T);
-        unsigned_mul!(u16, $T);
-        unsigned_mul!(u8, $T);
-        usize_mul!($T);
-    };
-}
+    ($T:ident, $inner:ty, $($t:ty),+) => {
+        $(
+            impl std::ops::Mul<$t> for $T {
+                type Output = $T;
+                fn mul(self, rhs: $t) -> $T {
+                    $T(self.0 * <$inner>::from(rhs))
+                }
+            }
 
-macro_rules! unsigned_mul {
-    ($t:ty, $T:ident) => {
-        impl std::ops::Mul<$t> for $T {
+            impl std::ops::Mul<$T> for $t {
+                type Output = $T;
+                fn mul(self, rhs: $T) -> $T {
+                    $T(rhs.0 * <$inner>::from(self))
+                }
+            }
+        )+
+
+        impl std::ops::Mul<$inner> for $T {
             type Output = $T;
-            fn mul(self, rhs: $t) -> $T {
-                $T(self.0 * u64::from(rhs))
+            fn mul(self, rhs: $inner) -> $T {
+                $T(self.0 * rhs)
             }
         }
 
-        impl std::ops::Mul<$T> for $t {
+        impl std::ops::Mul<$T> for $inner {
             type Output = $T;
             fn mul(self, rhs: $T) -> $T {
-                $T(u64::from(self) * rhs.0)
+                $T(rhs.0 * self)
             }
         }
-    };
-}
 
-macro_rules! usize_mul {
-    ($T:ident) => {
         impl std::ops::Mul<usize> for $T {
             type Output = $T;
             fn mul(self, rhs: usize) -> $T {
-                #[allow(clippy::cast_lossless)]
-                $T(self.0 * rhs as u64)
+                $T(self.0 * rhs as $inner)
             }
         }
 
         impl std::ops::Mul<$T> for usize {
             type Output = $T;
             fn mul(self, rhs: $T) -> $T {
-                #[allow(clippy::cast_lossless)]
-                $T(self as u64 * rhs.0)
+                $T(rhs.0 * self as $inner)
             }
         }
     };
@@ -242,44 +272,13 @@ macro_rules! usize_mul {
 // Define a complete set of remainder operations.
 macro_rules! rem {
     ($T: ident) => {
-        unsigned_rem!(u64, $T);
-        unsigned_rem!(u32, $T);
-        unsigned_rem!(u16, $T);
-        unsigned_rem!(u8, $T);
-        usize_rem!($T);
-        self_rem!($T);
-    };
-}
-
-macro_rules! unsigned_rem {
-    ($t:ty, $T:ident) => {
-        impl std::ops::Rem<$t> for $T {
+        impl<T> std::ops::Rem<T> for $T
+        where
+            $T: From<T>,
+        {
             type Output = $T;
-            fn rem(self, rhs: $t) -> $T {
-                $T(self.0 % u64::from(rhs))
-            }
-        }
-    };
-}
-
-macro_rules! usize_rem {
-    ($T:ident) => {
-        impl std::ops::Rem<usize> for $T {
-            type Output = $T;
-            fn rem(self, rhs: usize) -> $T {
-                #[allow(clippy::cast_lossless)]
-                $T(self.0 % rhs as u64)
-            }
-        }
-    };
-}
-
-macro_rules! self_rem {
-    ($T:ident) => {
-        impl std::ops::Rem<$T> for $T {
-            type Output = $T;
-            fn rem(self, rhs: $T) -> $T {
-                $T(self.0 % u64::from(rhs.0))
+            fn rem(self, rhs: T) -> $T {
+                $T(self.0 % <$T>::from(rhs).0)
             }
         }
     };
@@ -301,7 +300,7 @@ mod tests {
 
     use std::u64;
 
-    range!(Units, "units");
+    range_u64!(Units, "units");
 
     #[test]
     /// Test implicit derivations for Units
@@ -330,7 +329,7 @@ mod tests {
     /// Test non-arithmetic derivations that are derived explicitly
     fn test_explicit_derivations() {
         // Test From
-        assert_eq!(Units::from(3) + Units(3), Units(6));
+        assert_eq!(Units::from(3u8) + Units(3), Units(6));
 
         // Test Deref
         assert_eq!(*Units(3) + 3, 6);
