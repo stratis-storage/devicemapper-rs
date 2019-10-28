@@ -55,7 +55,7 @@ pub fn blkdev_size(file: &File) -> Bytes {
     let mut val: u64 = 0;
 
     unsafe { blkgetsize64(file.as_raw_fd(), &mut val) }.unwrap();
-    Bytes(val)
+    Bytes(u128::from(val))
 }
 
 fn get_dm() -> &'static DM {
