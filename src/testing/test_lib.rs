@@ -17,13 +17,25 @@ use nix::mount::{umount2, MntFlags};
 use uuid::Uuid;
 
 use crate::{
-    core::{DevId, DmNameBuf, DmOptions, DmUuidBuf, DM},
+    core::{DevId, Device, DmNameBuf, DmOptions, DmUuidBuf, DM},
     result::{DmError, DmResult, ErrorEnum},
     units::Bytes,
 };
 
 static INIT: Once = Once::new();
 static mut DM_CONTEXT: Option<DM> = None;
+
+impl DM {
+    /// Returns a subset of the devices returned by list_devices(), namely
+    /// the devices whose names end with DM_TEST_ID, our test device suffix.
+    /// This function is useful for listing devices in tests that should not
+    /// take non-test devices into account.
+    pub fn list_test_devices(&self) -> DmResult<Vec<(DmNameBuf, Device, Option<u32>)>> {
+        let mut test_devs = self.list_devices()?;
+        test_devs.retain(|x| x.0.as_bytes().ends_with(DM_TEST_ID.as_bytes()));
+        Ok(test_devs)
+    }
+}
 
 // send IOCTL via blkgetsize64
 ioctl_read!(
@@ -146,14 +158,13 @@ fn dm_test_devices_remove() -> Result<()> {
         let mut remain = Vec::new();
 
         for n in get_dm()
-            .list_devices()
+            .list_test_devices()
             .map_err(|e| {
                 let err_msg = "failed while listing DM devices, giving up";
                 Error::with_chain(e, err_msg)
             })?
             .iter()
             .map(|d| &d.0)
-            .filter(|n| n.to_string().contains(DM_TEST_ID))
         {
             match get_dm().device_remove(&DevId::Name(n), &DmOptions::new()) {
                 Ok(_) => progress_made = true,
