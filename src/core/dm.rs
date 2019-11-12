@@ -930,8 +930,8 @@ mod tests {
 
     #[test]
     /// Test that device rename to different name works.
-    /// Verify that the only device in the list of devices is a device with
-    /// the new name.
+    /// Verify that the only test device in the list of devices is a device
+    /// with the new name.
     fn sudo_test_rename() {
         let dm = DM::new().unwrap();
         let name = test_name("example-dev").expect("is valid DM name");
@@ -947,7 +947,7 @@ mod tests {
 
         assert_matches!(dm.device_info(&DevId::Name(&new_name)), Ok(_));
 
-        let devices = dm.list_devices().unwrap();
+        let devices = dm.list_test_devices().unwrap();
         assert_eq!(devices.len(), 1);
         assert_eq!(devices[0].0.as_ref(), &*new_name);
 
