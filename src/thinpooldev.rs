@@ -91,7 +91,7 @@ impl FromStr for ThinPoolTargetParams {
         } else {
             vals[6..6 + parse_value::<usize>(vals[5], "number of feature args")?]
                 .iter()
-                .map(|x| x.to_string())
+                .map(|x| (*x).to_string())
                 .collect()
         };
 
