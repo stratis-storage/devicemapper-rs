@@ -95,7 +95,7 @@ impl FromStr for CacheTargetParams {
         let end_feature_args_index = 6 + num_feature_args;
         let feature_args: Vec<String> = vals[6..end_feature_args_index]
             .iter()
-            .map(|x| x.to_string())
+            .map(|x| (*x).to_string())
             .collect();
 
         let policy = vals[end_feature_args_index].to_owned();
@@ -408,7 +408,7 @@ impl FromStr for CacheDevStatus {
         let core_args_start_index = 12usize + num_feature_args;
         let feature_args: Vec<String> = status_vals[12..core_args_start_index]
             .iter()
-            .map(|x| x.to_string())
+            .map(|x| (*x).to_string())
             .collect();
 
         let (policy_start_index, core_args) =
@@ -916,7 +916,7 @@ mod tests {
             extra_length,
             LinearDevTargetParams::Linear(cache_params),
         ));
-        assert_matches!(cache.set_meta_table(&dm, table.clone()), Ok(_));
+        assert_matches!(cache.set_meta_table(&dm, table), Ok(_));
         cache.resume(&dm).unwrap();
 
         match cache.status(&dm).unwrap() {
