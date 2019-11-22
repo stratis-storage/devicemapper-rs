@@ -7,6 +7,9 @@
 mod loopbacked;
 mod test_lib;
 
+#[cfg(test)]
+pub mod test_lib;
+
 pub use self::{
     loopbacked::test_with_spec,
     test_lib::{
