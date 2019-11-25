@@ -5,7 +5,7 @@
 //! Modules that support testing.
 
 mod loopbacked;
-pub(self) mod test_lib;
+mod test_lib;
 
 pub use self::{
     loopbacked::test_with_spec,
