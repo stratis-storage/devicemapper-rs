@@ -20,9 +20,6 @@ use crate::{
     result::{DmError, DmResult},
 };
 
-#[cfg(test)]
-use crate::testing::test_lib::DM_TEST_ID;
-
 /// Indicator to send IOCTL to DM
 const DM_IOCTL: u8 = 0xfd;
 /// Control path for user space to pass IOCTL to kernel DM
@@ -270,16 +267,6 @@ impl DM {
         }
 
         Ok(devs)
-    }
-
-    /// Returns a list of tuples containing DM test device names, a Device, which
-    /// holds their major and minor device numbers, and on kernels that
-    /// support it, each device's last event_nr.
-    #[cfg(test)]
-    pub fn list_test_devices(&self) -> DmResult<Vec<(DmNameBuf, Device, Option<u32>)>> {
-        let mut test_devs = self.list_devices()?;
-        test_devs.retain(|x| x.0.as_bytes().ends_with(DM_TEST_ID.as_bytes()));
-        Ok(test_devs)
     }
 
     /// Create a DM device. It starts out in a "suspended" state.
@@ -753,8 +740,7 @@ mod tests {
     /// Verify that if no devices have been created the list of test devices
     /// is empty.
     fn sudo_test_list_devices_empty() {
-        let dm = DM::new().unwrap();
-        assert!(dm.list_test_devices().unwrap().is_empty());
+        assert!(DM::new().unwrap().list_test_devices().unwrap().is_empty());
     }
 
     #[test]
