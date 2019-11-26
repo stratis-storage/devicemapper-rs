@@ -737,20 +737,21 @@ mod tests {
     }
 
     #[test]
-    /// Verify that if no devices have been created the list is empty.
+    /// Verify that if no devices have been created the list of test devices
+    /// is empty.
     fn sudo_test_list_devices_empty() {
-        assert!(DM::new().unwrap().list_devices().unwrap().is_empty());
+        assert!(DM::new().unwrap().list_test_devices().unwrap().is_empty());
     }
 
     #[test]
-    /// Verify that if one device has been created, it will be the only device
-    /// listed.
+    /// Verify that if one test device has been created, it will be the only
+    /// test device listed.
     fn sudo_test_list_devices() {
         let dm = DM::new().unwrap();
         let name = test_name("example-dev").expect("is valid DM name");
         dm.device_create(&name, None, &DmOptions::new()).unwrap();
 
-        let devices = dm.list_devices().unwrap();
+        let devices = dm.list_test_devices().unwrap();
 
         assert_eq!(
             devices.iter().map(|x| x.0.as_ref()).collect::<Vec<_>>(),
@@ -863,8 +864,8 @@ mod tests {
 
     #[test]
     /// Test that device rename to different name works.
-    /// Verify that the only device in the list of devices is a device with
-    /// the new name.
+    /// Verify that the only test device in the list of devices is a device
+    /// with the new name.
     fn sudo_test_rename() {
         let dm = DM::new().unwrap();
         let name = test_name("example-dev").expect("is valid DM name");
@@ -880,7 +881,7 @@ mod tests {
 
         assert_matches!(dm.device_info(&DevId::Name(&new_name)), Ok(_));
 
-        let devices = dm.list_devices().unwrap();
+        let devices = dm.list_test_devices().unwrap();
         assert_eq!(devices.len(), 1);
         assert_eq!(devices[0].0.as_ref(), &*new_name);
 
