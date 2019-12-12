@@ -19,17 +19,15 @@ const META_BLOCK_SIZE: Sectors = Sectors(8);
 #[allow(dead_code)]
 const MAX_META_DEV_SIZE: MetaBlocks = MetaBlocks(255 * ((1 << 14) - 64));
 
-range!(
+range_u64!(
     /// A type for data blocks
     DataBlocks,
-    u64,
     "data blocks"
 );
 
-range!(
+range_u64!(
     /// A type for meta blocks
     MetaBlocks,
-    u64,
     "meta blocks"
 );
 
@@ -40,10 +38,9 @@ impl MetaBlocks {
     }
 }
 
-range!(
+range_u128!(
     /// A type for bytes
     Bytes,
-    u128,
     "bytes"
 );
 
@@ -54,10 +51,9 @@ impl Bytes {
     }
 }
 
-range!(
+range_u64!(
     /// A type for sectors
     Sectors,
-    u64,
     "sectors"
 );
 
