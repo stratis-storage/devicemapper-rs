@@ -6,7 +6,6 @@
 // devices.
 
 use std::{
-    borrow::Borrow,
     fmt,
     ops::Deref,
     path::{Path, PathBuf},
