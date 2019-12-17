@@ -2,14 +2,14 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-use std::{borrow::Borrow, fmt, ops::Deref};
+use std::{fmt, ops::Deref};
 
 use crate::{
     core::{
         deviceinfo::{DM_NAME_LEN, DM_UUID_LEN},
         errors::ErrorKind,
     },
-    result::{DmError, DmResult},
+    result::DmError,
 };
 
 /// An error function to construct an error when creating a new string id.

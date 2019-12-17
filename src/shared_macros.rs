@@ -51,8 +51,11 @@ macro_rules! table {
 macro_rules! status {
     ($s:ident, $dm:ident) => {
         get_status(
-            &$dm.table_status(&DevId::Name($s.name()), &DmOptions::new())?
-                .1,
+            &$dm.table_status(
+                &$crate::core::DevId::Name($s.name()),
+                &$crate::core::DmOptions::new(),
+            )?
+            .1,
         )?
         .parse()
     };

@@ -35,13 +35,13 @@ macro_rules! str_check {
 macro_rules! str_id {
     ($B:ident, $O:ident, $MAX:ident, $err_func:ident) => {
         /// The borrowed version of the DM identifier.
-        #[derive(Debug, PartialEq, Eq, Hash)]
+        #[derive(std::fmt::Debug, PartialEq, Eq, std::hash::Hash)]
         pub struct $B {
             inner: str,
         }
 
         /// The owned version of the DM identifier.
-        #[derive(Debug, Clone, PartialEq, Eq, Hash)]
+        #[derive(std::fmt::Debug, Clone, PartialEq, Eq, std::hash::Hash)]
         pub struct $O {
             inner: String,
         }
@@ -49,7 +49,7 @@ macro_rules! str_id {
         impl $B {
             /// Create a new borrowed identifier from a `&str`.
             #[allow(clippy::new_ret_no_self)]
-            pub fn new(value: &str) -> DmResult<&$B> {
+            pub fn new(value: &str) -> $crate::result::DmResult<&$B> {
                 if let Some(err_msg) = str_check!(value, $MAX - 1) {
                     return Err($err_func(&err_msg));
                 }
@@ -71,8 +71,8 @@ macro_rules! str_id {
             }
         }
 
-        impl fmt::Display for $B {
-            fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        impl std::fmt::Display for $B {
+            fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
                 write!(f, "{}", &self.inner)
             }
         }
@@ -80,7 +80,7 @@ macro_rules! str_id {
         impl $O {
             /// Construct a new owned identifier.
             #[allow(clippy::new_ret_no_self)]
-            pub fn new(value: String) -> DmResult<$O> {
+            pub fn new(value: String) -> $crate::result::DmResult<$O> {
                 if let Some(err_msg) = str_check!(&value, $MAX - 1) {
                     return Err($err_func(&err_msg));
                 }
@@ -94,13 +94,13 @@ macro_rules! str_id {
             }
         }
 
-        impl Borrow<$B> for $O {
+        impl std::borrow::Borrow<$B> for $O {
             fn borrow(&self) -> &$B {
                 self.deref()
             }
         }
 
-        impl Deref for $O {
+        impl std::ops::Deref for $O {
             type Target = $B;
             fn deref(&self) -> &$B {
                 $B::new(&self.inner).expect("inner satisfies all correctness criteria for $B::new")
@@ -111,11 +111,11 @@ macro_rules! str_id {
 
 #[cfg(test)]
 mod tests {
-    use std::{borrow::Borrow, fmt, iter, ops::Deref};
+    use std::{iter, ops::Deref};
 
     use crate::{
         core::errors::{Error, ErrorKind},
-        result::{DmError, DmResult},
+        result::DmError,
     };
 
     fn err_func(err_msg: &str) -> DmError {
