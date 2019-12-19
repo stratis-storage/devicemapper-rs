@@ -30,7 +30,7 @@ macro_rules! range {
 
 macro_rules! self_div {
     ($T:ident) => {
-        impl Div<$T> for $T {
+        impl std::ops::Div<$T> for $T {
             type Output = u64;
             fn div(self, rhs: $T) -> u64 {
                 self.0 / *rhs
@@ -41,7 +41,7 @@ macro_rules! self_div {
 
 macro_rules! add {
     ($T:ident) => {
-        impl Add<$T> for $T {
+        impl std::ops::Add<$T> for $T {
             type Output = $T;
             fn add(self, rhs: $T) -> $T {
                 $T(self.0 + *rhs)
@@ -52,7 +52,7 @@ macro_rules! add {
 
 macro_rules! sub {
     ($T:ident) => {
-        impl Sub<$T> for $T {
+        impl std::ops::Sub<$T> for $T {
             type Output = $T;
             fn sub(self, rhs: $T) -> $T {
                 $T(self.0 - *rhs)
@@ -63,7 +63,7 @@ macro_rules! sub {
 
 macro_rules! add_assign {
     ($T:ident) => {
-        impl AddAssign<$T> for $T {
+        impl std::ops::AddAssign<$T> for $T {
             fn add_assign(&mut self, rhs: $T) {
                 *self = $T(self.0 + *rhs)
             }
@@ -73,7 +73,7 @@ macro_rules! add_assign {
 
 macro_rules! sub_assign {
     ($T:ident) => {
-        impl SubAssign<$T> for $T {
+        impl std::ops::SubAssign<$T> for $T {
             fn sub_assign(&mut self, rhs: $T) {
                 *self = $T(self.0 - *rhs)
             }
@@ -83,7 +83,7 @@ macro_rules! sub_assign {
 
 macro_rules! deref {
     ($T:ident) => {
-        impl Deref for $T {
+        impl std::ops::Deref for $T {
             type Target = u64;
             fn deref(&self) -> &u64 {
                 &self.0
@@ -104,8 +104,8 @@ macro_rules! from {
 
 macro_rules! debug_macro {
     ($T:ident) => {
-        impl fmt::Debug for $T {
-            fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        impl std::fmt::Debug for $T {
+            fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
                 write!(f, stringify!($T))?;
                 write!(f, "({})", **self)
             }
@@ -115,8 +115,8 @@ macro_rules! debug_macro {
 
 macro_rules! display {
     ($T:ident, $display_name:expr) => {
-        impl fmt::Display for $T {
-            fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        impl std::fmt::Display for $T {
+            fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
                 write!(f, "{} {}", self.0, $display_name)
             }
         }
@@ -147,9 +147,9 @@ macro_rules! serde_macro {
 
 macro_rules! sum {
     ($T:ident) => {
-        impl Sum for $T {
+        impl std::iter::Sum for $T {
             fn sum<I: Iterator<Item = $T>>(iter: I) -> $T {
-                iter.fold($T::default(), Add::add)
+                iter.fold($T::default(), std::ops::Add::add)
             }
         }
     };
@@ -169,7 +169,7 @@ macro_rules! div {
 
 macro_rules! unsigned_div {
     ($t:ty, $T:ident) => {
-        impl Div<$t> for $T {
+        impl std::ops::Div<$t> for $T {
             type Output = $T;
             fn div(self, rhs: $t) -> $T {
                 $T(self.0 / u64::from(rhs))
@@ -180,7 +180,7 @@ macro_rules! unsigned_div {
 
 macro_rules! usize_div {
     ($T:ident) => {
-        impl Div<usize> for $T {
+        impl std::ops::Div<usize> for $T {
             type Output = $T;
             fn div(self, rhs: usize) -> $T {
                 #[allow(clippy::cast_lossless)]
@@ -203,14 +203,14 @@ macro_rules! mul {
 
 macro_rules! unsigned_mul {
     ($t:ty, $T:ident) => {
-        impl Mul<$t> for $T {
+        impl std::ops::Mul<$t> for $T {
             type Output = $T;
             fn mul(self, rhs: $t) -> $T {
                 $T(self.0 * u64::from(rhs))
             }
         }
 
-        impl Mul<$T> for $t {
+        impl std::ops::Mul<$T> for $t {
             type Output = $T;
             fn mul(self, rhs: $T) -> $T {
                 $T(u64::from(self) * rhs.0)
@@ -221,7 +221,7 @@ macro_rules! unsigned_mul {
 
 macro_rules! usize_mul {
     ($T:ident) => {
-        impl Mul<usize> for $T {
+        impl std::ops::Mul<usize> for $T {
             type Output = $T;
             fn mul(self, rhs: usize) -> $T {
                 #[allow(clippy::cast_lossless)]
@@ -229,7 +229,7 @@ macro_rules! usize_mul {
             }
         }
 
-        impl Mul<$T> for usize {
+        impl std::ops::Mul<$T> for usize {
             type Output = $T;
             fn mul(self, rhs: $T) -> $T {
                 #[allow(clippy::cast_lossless)]
@@ -253,7 +253,7 @@ macro_rules! rem {
 
 macro_rules! unsigned_rem {
     ($t:ty, $T:ident) => {
-        impl Rem<$t> for $T {
+        impl std::ops::Rem<$t> for $T {
             type Output = $T;
             fn rem(self, rhs: $t) -> $T {
                 $T(self.0 % u64::from(rhs))
@@ -264,7 +264,7 @@ macro_rules! unsigned_rem {
 
 macro_rules! usize_rem {
     ($T:ident) => {
-        impl Rem<usize> for $T {
+        impl std::ops::Rem<usize> for $T {
             type Output = $T;
             fn rem(self, rhs: usize) -> $T {
                 #[allow(clippy::cast_lossless)]
@@ -276,7 +276,7 @@ macro_rules! usize_rem {
 
 macro_rules! self_rem {
     ($T:ident) => {
-        impl Rem<$T> for $T {
+        impl std::ops::Rem<$T> for $T {
             type Output = $T;
             fn rem(self, rhs: $T) -> $T {
                 $T(self.0 % u64::from(rhs.0))
@@ -299,12 +299,7 @@ macro_rules! checked_add {
 #[cfg(test)]
 mod tests {
 
-    use std::{
-        fmt,
-        iter::Sum,
-        ops::{Add, AddAssign, Deref, Div, Mul, Rem, Sub, SubAssign},
-        u64,
-    };
+    use std::u64;
 
     range!(Units, "units");
 
