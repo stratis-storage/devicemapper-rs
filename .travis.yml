@@ -47,12 +47,18 @@ matrix:
         - rust: stable
           env: TASK=docs
 
-        # ALLOWED FAILURES
+
+        # INTERMITTENTLY ALLOWED FAILURES
+        # Allowed if a failure occurs after a new Rust release until the
+        # failure is addressed.
         # Run clippy on beta to be good Rustaceans
         - rust: beta
           before_script:
               - rustup component add clippy
           env: TASK=clippy
+
+
+        # ALLOWED FAILURES
         # Run "cargo expand" on rust nightly, in order to see expanded macros
         # that happen to be of interest.
         - rust: nightly
