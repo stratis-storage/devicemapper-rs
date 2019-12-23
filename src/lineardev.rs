@@ -117,8 +117,8 @@ impl FromStr for Direction {
 pub enum FeatureArg {
     /// drop_writes:
     ///
-    ///	All write I/O is silently ignored.
-    ///	Read I/O is handled correctly.
+    /// All write I/O is silently ignored.
+    /// Read I/O is handled correctly.
     DropWrites,
     /// error_writes:
     ///
@@ -127,16 +127,16 @@ pub enum FeatureArg {
     ErrorWrites,
     /// corrupt_bio_byte <Nth_byte> <direction> <value> <flags>:
     ///
-    ///	During <down interval>, replace <Nth_byte> of the data of
-    ///	each matching bio with <value>.
+    /// During <down interval>, replace <Nth_byte> of the data of
+    /// each matching bio with <value>.
     ///
     /// <Nth_byte>: The offset of the byte to replace.
     ///             Counting starts at 1, to replace the first byte.
     /// <direction>: Either 'r' to corrupt reads or 'w' to corrupt writes.
-    ///	            'w' is incompatible with drop_writes.
+    ///             'w' is incompatible with drop_writes.
     /// <value>:    The value (from 0-255) to write.
     /// <flags>:    Perform the replacement only if bio->bi_opf has all the
-    ///	            selected flags set.
+    ///             selected flags set.
     CorruptBioByte(u64, Direction, u8, u64),
 }
 
