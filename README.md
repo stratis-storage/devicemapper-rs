@@ -16,7 +16,7 @@
 
 ### How to contribute
 
-GitHub used for pull requests and issue tracking.
+GitHub is used for pull requests and issue tracking.
 
 ### License
 
