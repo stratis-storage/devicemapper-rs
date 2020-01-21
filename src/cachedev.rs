@@ -539,7 +539,6 @@ impl DmDevice<CacheDevTargetTable> for CacheDev {
 impl CacheDev {
     /// Construct a new CacheDev with the given data and meta devs.
     /// Returns an error if the device is already known to the kernel.
-    #[allow(clippy::new_ret_no_self)]
     pub fn new(
         dm: &DM,
         name: &DmName,

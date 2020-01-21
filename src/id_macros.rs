@@ -48,7 +48,6 @@ macro_rules! str_id {
 
         impl $B {
             /// Create a new borrowed identifier from a `&str`.
-            #[allow(clippy::new_ret_no_self)]
             pub fn new(value: &str) -> $crate::result::DmResult<&$B> {
                 if let Some(err_msg) = str_check!(value, $MAX - 1) {
                     return Err($err_func(&err_msg));
@@ -79,7 +78,6 @@ macro_rules! str_id {
 
         impl $O {
             /// Construct a new owned identifier.
-            #[allow(clippy::new_ret_no_self)]
             pub fn new(value: String) -> $crate::result::DmResult<$O> {
                 if let Some(err_msg) = str_check!(&value, $MAX - 1) {
                     return Err($err_func(&err_msg));

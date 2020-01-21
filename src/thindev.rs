@@ -249,7 +249,6 @@ impl ThinDev {
     /// If the specified thin_id is already in use by the thin pool an error
     /// is returned. If the device is already among the list of devices that
     /// dm is aware of, return an error.
-    #[allow(clippy::new_ret_no_self)]
     pub fn new(
         dm: &DM,
         name: &DmName,
