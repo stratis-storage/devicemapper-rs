@@ -20,42 +20,42 @@ matrix:
     include:
 
         # MANDATORY CHECKS USING CURRENT DEVELOPMENT COMPILER
-        # rustfmt
-        - rust: 1.40.0
+        - name: "Run rustfmt on recommended development toolchain"
+          rust: 1.40.0
           before_script:
               - rustup component add rustfmt
           env: TASK=travis_fmt
-        # clippy
-        - rust: 1.40.0
+        - name: "Run clippy on recommended development toolchain"
+          rust: 1.40.0
           before_script:
               - rustup component add clippy
           env: TASK=clippy
 
         # MANDATORY TESTING USING LOWEST SUPPORTED COMPILER
-        # tests
-        - rust: 1.39.0
+        - name: "Run all tests on lowest supported toolchain"
+          rust: 1.39.0
           sudo: required
           script: sudo PATH=${TRAVIS_HOME}/.cargo/bin:$PATH make -f Makefile sudo_test
 
 
         # MANDATORY TESTING ON STABLE
-        # compile
-        - rust: stable
+        - name: "Build on stable toolchain"
+          rust: stable
           env: TASK=build
-        # test
-        - rust: stable
+        - name: "Run all tests on stable toolchain"
+          rust: stable
           sudo: required
           script: sudo PATH=${TRAVIS_HOME}/.cargo/bin:$PATH make -f Makefile sudo_test
-        # Build docs
-        - rust: stable
+        - name: "Build docs on stable toolchain"
+          rust: stable
           env: TASK=docs
 
 
         # INTERMITTENTLY ALLOWED FAILURES
         # Allowed if a failure occurs after a new Rust release until the
         # failure is addressed.
-        # Run clippy on beta to be good Rustaceans
-        - rust: beta
+        - name: "Run clippy on beta toolchain"
+          rust: beta
           before_script:
               - rustup component add clippy
           env: TASK=clippy
@@ -64,13 +64,15 @@ matrix:
         # ALLOWED FAILURES
         # Run "cargo expand" on rust nightly, in order to see expanded macros
         # that happen to be of interest.
-        - rust: nightly
+        - name: "Expand macros on nightly toolchain"
+          rust: nightly
           before_script:
               - rustup component add rustfmt
           env: TASK=expand
         # Run "cargo audit" on rust stable. Make it an allowed failure. It
         # should be an advisory and should not gate our development.
-        - rust: stable
+        - name: "Audit code for security advisories on stable toolchain"
+          rust: stable
           env: TASK=audit
 
 branches:
