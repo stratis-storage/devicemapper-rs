@@ -31,7 +31,7 @@ matrix:
 
         # MANDATORY TESTING USING LOWEST SUPPORTED COMPILER
         - name: "Run all tests on lowest supported toolchain"
-          rust: 1.39.0
+          rust: 1.40.0
           sudo: required
           script: sudo PATH=${TRAVIS_HOME}/.cargo/bin:$PATH make -f Makefile sudo_test
 
