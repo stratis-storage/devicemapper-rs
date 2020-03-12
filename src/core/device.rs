@@ -128,7 +128,7 @@ mod tests {
 
     #[test]
     /// Verify conversion is correct both ways
-    pub fn test_dev_t_conversion() {
+    fn test_dev_t_conversion() {
         let test_devt_1: dev_t = 0xabcd_ef12_3456_7890;
 
         let dev1 = Device::from(test_devt_1);
@@ -143,7 +143,7 @@ mod tests {
 
     #[test]
     /// Verify conversion is correct both ways
-    pub fn test_kdev_t_conversion() {
+    fn test_kdev_t_conversion() {
         let test_devt_1: u32 = 0x1234_5678;
 
         let dev1 = Device::from_kdev_t(test_devt_1);
