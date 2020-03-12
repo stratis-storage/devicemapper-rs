@@ -947,7 +947,7 @@ mod tests {
     }
 
     #[test]
-    pub fn loop_test_thindev_destroy() {
+    fn loop_test_thindev_destroy() {
         test_with_spec(1, test_thindev_destroy);
     }
 }
