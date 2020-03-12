@@ -417,9 +417,7 @@ mod tests {
         path::Path,
     };
 
-    use libudev;
     use nix::mount::{mount, umount2, MntFlags, MsFlags};
-    use tempfile;
     use uuid::Uuid;
 
     use crate::{

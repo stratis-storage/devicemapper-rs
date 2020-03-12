@@ -13,7 +13,6 @@ use std::{
 };
 
 use loopdev::{LoopControl, LoopDevice};
-use nix;
 use tempfile::{self, TempDir};
 
 use crate::{

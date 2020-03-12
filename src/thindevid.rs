@@ -4,8 +4,6 @@
 
 use std::{fmt, str::FromStr};
 
-use serde;
-
 use crate::{
     result::{DmError, DmResult, ErrorEnum},
     shared::parse_value,
