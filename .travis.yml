@@ -8,7 +8,7 @@ addons:
 
 language: rust
 
-matrix:
+jobs:
     fast_finish: true
     allow_failures:
         # Allow macro-expansion test to fail
