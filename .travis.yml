@@ -15,6 +15,7 @@ jobs:
         - rust: nightly
         # Allow audit task to fail
         - env: TASK=audit
+          rust: beta
     include:
 
         # MANDATORY CHECKS USING CURRENT DEVELOPMENT COMPILER
