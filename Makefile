@@ -48,6 +48,9 @@ clippy:
 docs:
 	cargo doc --no-deps
 
+yamllint:
+	yamllint --strict .travis.yml
+
 .PHONY:
 	audit
 	build
@@ -58,3 +61,4 @@ docs:
 	test
 	travis_fmt
 	tree
+	yamllint
