@@ -1,77 +1,91 @@
+---
 os: linux
 group: edge
 
 addons:
   apt:
     packages:
-    - libdevmapper-dev
+      - libdevmapper-dev
 
 language: rust
 
 jobs:
-    fast_finish: true
-    allow_failures:
-        # Allow macro-expansion test to fail
-        - rust: nightly
-        # Allow audit task to fail
-        - env: TASK=audit
-    include:
+  fast_finish: true
+  allow_failures:
+    # Allow macro-expansion test to fail
+    - rust: nightly
+    # Allow audit task to fail
+    - env: TASK=audit
+  include:
 
-        # MANDATORY CHECKS USING CURRENT DEVELOPMENT COMPILER
-        - name: "Run rustfmt on recommended development toolchain"
-          rust: 1.42.0
-          before_script:
-              - rustup component add rustfmt
-          env: TASK=travis_fmt
-        - name: "Run clippy on recommended development toolchain"
-          rust: 1.42.0
-          before_script:
-              - rustup component add clippy
-          env: TASK=clippy
+    # MANDATORY CHECKS USING CURRENT DEVELOPMENT COMPILER
+    - name: "Run rustfmt on recommended development toolchain"
+      rust: 1.42.0
+      before_script:
+        - rustup component add rustfmt
+      env: TASK=travis_fmt
+    - name: "Run clippy on recommended development toolchain"
+      rust: 1.42.0
+      before_script:
+        - rustup component add clippy
+      env: TASK=clippy
 
-        # MANDATORY TESTING USING LOWEST SUPPORTED COMPILER
-        - name: "Run all tests on lowest supported toolchain"
-          rust: 1.41.0
-          script: sudo PATH=${TRAVIS_HOME}/.cargo/bin:$PATH make -f Makefile sudo_test
-
-
-        # MANDATORY TESTING ON STABLE
-        - name: "Build on stable toolchain"
-          rust: stable
-          env: TASK=build
-        - name: "Run all tests on stable toolchain"
-          rust: stable
-          script: sudo PATH=${TRAVIS_HOME}/.cargo/bin:$PATH make -f Makefile sudo_test
-        - name: "Build docs on stable toolchain"
-          rust: stable
-          env: TASK=docs
+    # MANDATORY TESTING USING LOWEST SUPPORTED COMPILER
+    - name: "Run all tests on lowest supported toolchain"
+      rust: 1.41.0
+      script:
+        - >
+          sudo PATH=${TRAVIS_HOME}/.cargo/bin:$PATH
+          make -f Makefile sudo_test
 
 
-        # INTERMITTENTLY ALLOWED FAILURES
-        # Allowed if a failure occurs after a new Rust release until the
-        # failure is addressed.
-        - name: "Run clippy on beta toolchain"
-          rust: beta
-          before_script:
-              - rustup component add clippy
-          env: TASK=clippy
+    # MANDATORY TESTING ON STABLE
+    - name: "Build on stable toolchain"
+      rust: stable
+      env: TASK=build
+    - name: "Run all tests on stable toolchain"
+      rust: stable
+      script:
+        - >
+          sudo PATH=${TRAVIS_HOME}/.cargo/bin:$PATH
+          make -f Makefile sudo_test
+    - name: "Build docs on stable toolchain"
+      rust: stable
+      env: TASK=docs
 
 
-        # ALLOWED FAILURES
-        # Run "cargo expand" on rust nightly, in order to see expanded macros
-        # that happen to be of interest.
-        - name: "Expand macros on nightly toolchain"
-          rust: nightly
-          before_script:
-              - rustup component add rustfmt
-          env: TASK=expand
-        # Run "cargo audit" on rust stable. Make it an allowed failure. It
-        # should be an advisory and should not gate our development.
-        - name: "Audit code for security advisories on stable toolchain"
-          rust: stable
-          env: TASK=audit
+    # INTERMITTENTLY ALLOWED FAILURES
+    # Allowed if a failure occurs after a new Rust release until the
+    # failure is addressed.
+    - name: "Run clippy on beta toolchain"
+      rust: beta
+      before_script:
+        - rustup component add clippy
+      env: TASK=clippy
+
+
+    # ALLOWED FAILURES
+    # Run "cargo expand" on rust nightly, in order to see expanded macros
+    # that happen to be of interest.
+    - name: "Expand macros on nightly toolchain"
+      rust: nightly
+      before_script:
+        - rustup component add rustfmt
+      env: TASK=expand
+    # Run "cargo audit" on rust stable. Make it an allowed failure. It
+    # should be an advisory and should not gate our development.
+    - name: "Audit code for security advisories on stable toolchain"
+      rust: stable
+      env: TASK=audit
+
+    # VERIFICATION OF TEST INFRASTRUCTURE
+    - name: "run yamllint 1.20.0 on .travis.yml"
+      language: python
+      python: "3.7.6"
+      install: pip3 install yamllint==1.20.0
+      env: TASK=yamllint
 
 branches:
-    only: master
+  only: master
 
 script: make -f Makefile $TASK
