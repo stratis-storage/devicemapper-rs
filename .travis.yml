@@ -20,12 +20,12 @@ jobs:
 
     # MANDATORY CHECKS USING CURRENT DEVELOPMENT COMPILER
     - name: "Run rustfmt on recommended development toolchain"
-      rust: 1.42.0
+      rust: 1.43.0
       before_script:
         - rustup component add rustfmt
       env: TASK=travis_fmt
     - name: "Run clippy on recommended development toolchain"
-      rust: 1.42.0
+      rust: 1.43.0
       before_script:
         - rustup component add clippy
       env: TASK=clippy
