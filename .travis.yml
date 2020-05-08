@@ -32,7 +32,7 @@ jobs:
 
     # MANDATORY TESTING USING LOWEST SUPPORTED COMPILER
     - name: "Run all tests on lowest supported toolchain"
-      rust: 1.41.0
+      rust: 1.43.0
       script:
         - >
           sudo PATH=${TRAVIS_HOME}/.cargo/bin:$PATH
