@@ -10,6 +10,7 @@ use std::{
 };
 
 use crate::{
+    consts::IEC,
     core::{DevId, Device, DeviceInfo, DmName, DmOptions, DmUuid, DM},
     lineardev::{LinearDev, LinearDevTargetParams},
     result::{DmError, DmResult, ErrorEnum},
@@ -20,6 +21,12 @@ use crate::{
     },
     units::{DataBlocks, MetaBlocks, Sectors},
 };
+
+// Specified in kernel docs
+/// The minimum size recommended in the docs for a cache block.
+pub const MIN_CACHE_BLOCK_SIZE: Sectors = Sectors(64); // 32 KiB
+/// The maximum size recommended in the docs for a cache block.
+pub const MAX_CACHE_BLOCK_SIZE: Sectors = Sectors(2 * IEC::Mi); // 1 GiB
 
 const CACHE_TARGET_NAME: &str = "cache";
 
@@ -731,20 +738,11 @@ use std::fs::OpenOptions;
 use std::path::Path;
 
 #[cfg(test)]
-use crate::consts::IEC;
-#[cfg(test)]
 use crate::core::devnode_to_devno;
 #[cfg(test)]
 use crate::lineardev::LinearTargetParams;
 #[cfg(test)]
 use crate::testing::{blkdev_size, test_name};
-
-// Specified in kernel docs
-/// The minimum size recommended in the docs for a cache block.
-pub const MIN_CACHE_BLOCK_SIZE: Sectors = Sectors(64); // 32 KiB
-/// The maximum size recommended in the docs for a cache block.
-#[allow(clippy::decimal_literal_representation)]
-pub const MAX_CACHE_BLOCK_SIZE: Sectors = Sectors(2_097_152); // 1 GiB
 
 #[cfg(test)]
 // Make a minimal cachedev. Put the meta and cache on one device, and put
