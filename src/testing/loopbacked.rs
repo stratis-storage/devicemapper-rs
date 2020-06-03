@@ -112,7 +112,7 @@ fn get_devices(count: u8, dir: &TempDir) -> Vec<LoopTestDev> {
 /// Then, take down the loop devices.
 pub fn test_with_spec<F>(count: u8, test: F)
 where
-    F: Fn(&[&Path]) -> () + panic::RefUnwindSafe,
+    F: Fn(&[&Path]) + panic::RefUnwindSafe,
 {
     clean_up().unwrap();
 
