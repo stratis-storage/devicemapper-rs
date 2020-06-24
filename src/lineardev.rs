@@ -935,6 +935,28 @@ mod tests {
     }
 
     #[test]
+    fn test_flakey_correct_feature_args_input() {
+        let result = "flakey 8:32 0 16 2 2 error_writes drop_writes"
+            .parse::<FlakeyTargetParams>()
+            .unwrap();
+        let expected = [FeatureArg::ErrorWrites, FeatureArg::DropWrites]
+            .iter()
+            .cloned()
+            .collect::<HashSet<_>>();
+        assert_eq!(result.feature_args, expected);
+    }
+
+    #[test]
+    #[should_panic]
+    fn test_flakey_incorrect_feature_args_input() {
+        let result = "flakey 8:32 0 16 2 3 error_writes drop_writes"
+            .parse::<FlakeyTargetParams>()
+            .unwrap();
+        let expected = vec![].iter().cloned().collect::<HashSet<_>>();
+        assert_eq!(result.feature_args, expected);
+    }
+
+    #[test]
     fn loop_test_duplicate_segments() {
         test_with_spec(1, test_duplicate_segments);
     }
