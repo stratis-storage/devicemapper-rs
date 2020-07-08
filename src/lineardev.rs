@@ -322,8 +322,9 @@ impl FromStr for FlakeyTargetParams {
             ))
         } else {
             let err_msg = format!(
-                "expected {} feature arguments, found a number smaller than that",
-                vals[5]
+                "Expected {} feature arguments but found {}",
+                vals[5],
+                vals.len() - 6
             );
             Err(DmError::Dm(ErrorEnum::Invalid, err_msg))
         }
@@ -947,13 +948,9 @@ mod tests {
     }
 
     #[test]
-    #[should_panic]
     fn test_flakey_incorrect_feature_args_input() {
-        let result = "flakey 8:32 0 16 2 3 error_writes drop_writes"
-            .parse::<FlakeyTargetParams>()
-            .unwrap();
-        let expected = vec![].iter().cloned().collect::<HashSet<_>>();
-        assert_eq!(result.feature_args, expected);
+        let result = "flakey 8:32 0 16 2 3 error_writes drop_writes".parse::<FlakeyTargetParams>();
+        assert_matches!(result, Err(DmError::Dm(ErrorEnum::Invalid, _)));
     }
 
     #[test]
