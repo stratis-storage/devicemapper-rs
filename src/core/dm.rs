@@ -4,7 +4,7 @@
 
 use std::{cmp, fs::File, mem::size_of, os::unix::io::AsRawFd, slice, u32};
 
-use nix::libc::{c_ulong, ioctl as nix_ioctl};
+use nix::libc::ioctl as nix_ioctl;
 
 use crate::{
     core::{
@@ -136,8 +136,7 @@ impl DM {
                 .as_mut()
                 .expect("pointer to own structure v can not be NULL")
         };
-        let op =
-            request_code_readwrite!(DM_IOCTL, ioctl, size_of::<dmi::Struct_dm_ioctl>()) as c_ulong;
+        let op = request_code_readwrite!(DM_IOCTL, ioctl, size_of::<dmi::Struct_dm_ioctl>());
         loop {
             if let Err(err) =
                 unsafe { convert_ioctl_res!(nix_ioctl(self.file.as_raw_fd(), op, v.as_mut_ptr())) }
