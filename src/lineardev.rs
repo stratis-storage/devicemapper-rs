@@ -296,38 +296,32 @@ impl FromStr for FlakeyTargetParams {
         let up_interval = parse_value(vals[3], "up interval")?;
         let down_interval = parse_value(vals[4], "down interval")?;
 
-        if vals.len() == 5 {
-            let feature_args = vec![];
-            Ok(FlakeyTargetParams::new(
-                device,
-                start_offset,
-                up_interval,
-                down_interval,
-                feature_args,
-            ))
+        let feature_args = if vals.len() == 5 {
+            vec![]
         } else if vals
             .as_slice()
             .get(5 + parse_value::<usize>(vals[5], "number of feature args")?)
             .is_some()
         {
-            let feature_args = parse_feature_args(
+            parse_feature_args(
                 &vals[6..6 + parse_value::<usize>(vals[5], "number of feature args")?],
-            )?;
-            Ok(FlakeyTargetParams::new(
-                device,
-                start_offset,
-                up_interval,
-                down_interval,
-                feature_args,
-            ))
+            )?
         } else {
             let err_msg = format!(
                 "Expected {} feature arguments but found {}",
                 vals[5],
                 vals.len() - 6
             );
-            Err(DmError::Dm(ErrorEnum::Invalid, err_msg))
-        }
+            return Err(DmError::Dm(ErrorEnum::Invalid, err_msg));
+        };
+
+        Ok(FlakeyTargetParams::new(
+            device,
+            start_offset,
+            up_interval,
+            down_interval,
+            feature_args,
+        ))
     }
 }
 
