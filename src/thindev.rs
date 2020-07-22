@@ -518,8 +518,7 @@ mod tests {
     /// Verify that calling new() for the second time fails. Verify that
     /// setup() is idempotent, calling setup() twice in succession succeeds.
     /// Verify that setup() succeeds on an existing device, whether or not
-    /// it has been torn down. Verify that it is possible to suspend and resume
-    /// the device.
+    /// it has been torn down.
     fn test_basic(paths: &[&Path]) {
         assert!(!paths.is_empty());
 
@@ -570,11 +569,6 @@ mod tests {
         td.teardown(&dm).unwrap();
         let mut td = ThinDev::setup(&dm, &id, None, td_size, &tp, thin_id).unwrap();
         udev_settle().unwrap();
-
-        td.suspend(&dm, false).unwrap();
-        td.suspend(&dm, false).unwrap();
-        td.resume(&dm).unwrap();
-        td.resume(&dm).unwrap();
 
         td.destroy(&dm, &tp).unwrap();
         tp.teardown(&dm).unwrap();
