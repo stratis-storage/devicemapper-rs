@@ -1,6 +1,6 @@
 RUST_2018_IDIOMS = -D bare-trait-objects  \
-		   -D ellipsis-inclusive-range-patterns \
-		   -D unused-extern-crates
+                   -D ellipsis-inclusive-range-patterns \
+                   -D unused-extern-crates
 
 DENY = -D warnings -D future-incompatible -D unused ${RUST_2018_IDIOMS}
 
