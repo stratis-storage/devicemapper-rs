@@ -12,8 +12,6 @@ language: rust
 jobs:
   fast_finish: true
   allow_failures:
-    # Allow macro-expansion test to fail
-    - rust: nightly
     # Allow audit task to fail
     - env: TASK=audit
   include:
@@ -65,13 +63,6 @@ jobs:
 
 
     # ALLOWED FAILURES
-    # Run "cargo expand" on rust nightly, in order to see expanded macros
-    # that happen to be of interest.
-    - name: "Expand macros on nightly toolchain"
-      rust: nightly
-      before_script:
-        - rustup component add rustfmt
-      env: TASK=expand
     # Run "cargo audit" on rust stable. Make it an allowed failure. It
     # should be an advisory and should not gate our development.
     - name: "Audit code for security advisories on stable toolchain"

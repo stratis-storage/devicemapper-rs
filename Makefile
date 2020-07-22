@@ -4,19 +4,11 @@ RUST_2018_IDIOMS = -D bare-trait-objects  \
 
 DENY = -D warnings -D future-incompatible -D unused ${RUST_2018_IDIOMS}
 
-${HOME}/.cargo/bin/cargo-expand:
-	cargo install cargo-expand
-
 ${HOME}/.cargo/bin/cargo-tree:
 	cargo install cargo-tree
 
 ${HOME}/.cargo/bin/cargo-audit:
 	cargo install cargo-audit
-
-expand: ${HOME}/.cargo/bin/cargo-expand
-	PATH=${HOME}/.cargo/bin:${PATH} cargo expand core::errors
-	PATH=${HOME}/.cargo/bin:${PATH} cargo expand core::types
-	PATH=${HOME}/.cargo/bin:${PATH} cargo expand units
 
 tree: ${HOME}/.cargo/bin/cargo-tree
 	PATH=${HOME}/.cargo/bin:${PATH} cargo tree
