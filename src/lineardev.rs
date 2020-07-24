@@ -296,16 +296,16 @@ impl FromStr for FlakeyTargetParams {
         let up_interval = parse_value(vals[3], "up interval")?;
         let down_interval = parse_value(vals[4], "down interval")?;
 
-        let feature_args = if vals.len() == 5 {
+        let num_feature_args = if vals.len() == 5 {
+            0
+        } else {
+            parse_value::<usize>(vals[5], "number of feature args")?
+        };
+
+        let feature_args = if num_feature_args == 0 {
             vec![]
-        } else if vals
-            .as_slice()
-            .get(5 + parse_value::<usize>(vals[5], "number of feature args")?)
-            .is_some()
-        {
-            parse_feature_args(
-                &vals[6..6 + parse_value::<usize>(vals[5], "number of feature args")?],
-            )?
+        } else if vals.as_slice().get(5 + num_feature_args).is_some() {
+            parse_feature_args(&vals[6..6 + num_feature_args])?
         } else {
             let err_msg = format!(
                 "Expected {} feature arguments but found {}",
