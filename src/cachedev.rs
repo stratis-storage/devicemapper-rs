@@ -106,18 +106,11 @@ impl FromStr for CacheTargetParams {
 
         let feature_args: Vec<String> = if num_feature_args == 0 {
             vec![]
-        } else if vals.as_slice().get(5 + num_feature_args).is_some() {
+        } else {
             vals[6..6 + num_feature_args]
                 .iter()
                 .map(|x| (*x).to_string())
                 .collect()
-        } else {
-            let err_msg = format!(
-                "Expected {} feature arguments but found {}",
-                vals[5],
-                vals.len() - 6
-            );
-            return Err(DmError::Dm(ErrorEnum::Invalid, err_msg));
         };
 
         let end_feature_args_index = 6 + num_feature_args;
@@ -125,11 +118,7 @@ impl FromStr for CacheTargetParams {
         let policy = vals[end_feature_args_index].to_owned();
 
         if vals.len() <= end_feature_args_index + 1 {
-            let err_msg = format!(
-                "Expected {} feature arguments but found {}",
-                vals[5],
-                vals.len() - 6
-            );
+            let err_msg = format!("Expected more arguments than were provided",);
             return Err(DmError::Dm(ErrorEnum::Invalid, err_msg));
         }
 
@@ -1109,6 +1098,12 @@ mod tests {
     fn test_cache_target_params_incorrect_feature_args() {
         let result = "cache 42:42 42:43 42:44 16 3 writethrough passthrough default 0"
             .parse::<CacheTargetParams>();
+        assert_matches!(result, Err(DmError::Dm(ErrorEnum::Invalid, _)));
+    }
+
+    #[test]
+    fn test_cache_target_params_less_than_8_values() {
+        let result = "cache 42:42 42:43 42:44 16 1 writethrough".parse::<CacheTargetParams>();
         assert_matches!(result, Err(DmError::Dm(ErrorEnum::Invalid, _)));
     }
 }
