@@ -1120,5 +1120,4 @@ mod tests {
             .parse::<CacheTargetParams>();
         assert_matches!(result, Err(DmError::Dm(ErrorEnum::Invalid, _)));
     }
-
 }
