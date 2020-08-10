@@ -104,23 +104,23 @@ impl FromStr for CacheTargetParams {
             parse_value::<usize>(vals[5], "number of feature args")?
         };
 
-        let feature_args: Vec<String> = if num_feature_args == 0 {
-            vec![]
-        } else {
-            vals[6..6 + num_feature_args]
-                .iter()
-                .map(|x| (*x).to_string())
-                .collect()
-        };
-
         let end_feature_args_index = 6 + num_feature_args;
-
-        let policy = vals[end_feature_args_index].to_owned();
 
         if vals.len() <= end_feature_args_index + 1 {
             let err_msg = format!("Only {} arguments provided, expected more", vals.len());
             return Err(DmError::Dm(ErrorEnum::Invalid, err_msg));
         }
+
+        let feature_args: Vec<String> = if num_feature_args == 0 {
+            vec![]
+        } else {
+            vals[6..end_feature_args_index]
+                .iter()
+                .map(|x| (*x).to_string())
+                .collect()
+        };
+
+        let policy = vals[end_feature_args_index].to_owned();
 
         let num_policy_args: usize =
             parse_value(vals[end_feature_args_index + 1], "number of policy args")?;
@@ -1111,6 +1111,12 @@ mod tests {
     #[test]
     fn test_cache_target_params_less_than_8_values() {
         let result = "cache 42:42 42:43 42:44 16 1 writethrough".parse::<CacheTargetParams>();
+        assert_matches!(result, Err(DmError::Dm(ErrorEnum::Invalid, _)));
+    }
+
+    #[test]
+    fn test_cache_target_params_too_few() {
+        let result = "cache 42:42 42:43 42:44 16 2".parse::<CacheTargetParams>();
         assert_matches!(result, Err(DmError::Dm(ErrorEnum::Invalid, _)));
     }
 }
