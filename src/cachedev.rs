@@ -1116,7 +1116,9 @@ mod tests {
 
     #[test]
     fn test_cache_target_params_too_few() {
-        let result = "cache 42:42 42:43 42:44 16 2".parse::<CacheTargetParams>();
+        let result = "cache 42:42 42:43 42:44 16 4 writethrough passthrough default 0"
+            .parse::<CacheTargetParams>();
         assert_matches!(result, Err(DmError::Dm(ErrorEnum::Invalid, _)));
     }
+
 }
