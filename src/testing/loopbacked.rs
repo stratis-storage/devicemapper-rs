@@ -4,9 +4,7 @@
 
 use std::{
     fs::OpenOptions,
-    io::{
-        self, {Seek, SeekFrom, Write},
-    },
+    io::{self, Seek, SeekFrom, Write},
     os::unix::io::AsRawFd,
     panic,
     path::{Path, PathBuf},
