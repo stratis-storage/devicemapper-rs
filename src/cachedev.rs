@@ -106,8 +106,8 @@ impl FromStr for CacheTargetParams {
 
         let end_feature_args_index = 6 + num_feature_args;
 
-        if vals.len() <= end_feature_args_index + 1 {
-            let err_msg = format!("Only {} arguments provided, expected more", vals.len());
+	if vals.len() <= end_feature_args_index + 1 {
+            let err_msg = format!("Expected {} feature arguments but found {}", vals[5], vals.len() - 6);
             return Err(DmError::Dm(ErrorEnum::Invalid, err_msg));
         }
 
@@ -124,12 +124,6 @@ impl FromStr for CacheTargetParams {
 
         let num_policy_args: usize =
             parse_value(vals[end_feature_args_index + 1], "number of policy args")?;
-
-        let num_expected_args = 8 + num_feature_args + num_policy_args;
-        if vals.len() < num_expected_args {
-            let err_msg = format!("Based on number of feature arguments and policy args provided, {} arguments were expected, but {} were provided", num_expected_args, vals.len());
-            return Err(DmError::Dm(ErrorEnum::Invalid, err_msg));
-        }
 
         let start_policy_args_index = end_feature_args_index + 2;
         let end_policy_args_index = start_policy_args_index + num_policy_args;
