@@ -106,8 +106,12 @@ impl FromStr for CacheTargetParams {
 
         let end_feature_args_index = 6 + num_feature_args;
 
-	if vals.len() <= end_feature_args_index + 1 {
-            let err_msg = format!("Expected {} feature arguments but found {}", vals[5], vals.len() - 6);
+        if vals.len() < end_feature_args_index + 2 {
+            let err_msg = format!(
+                "Expected {} feature arguments but found {}",
+                vals[5],
+                vals.len() - 6
+            );
             return Err(DmError::Dm(ErrorEnum::Invalid, err_msg));
         }
 
@@ -1096,22 +1100,29 @@ mod tests {
     }
 
     #[test]
-    fn test_cache_target_params_incorrect_feature_args() {
+    fn test_cache_target_params_missing_1_feature_arg() {
         let result = "cache 42:42 42:43 42:44 16 3 writethrough passthrough default 0"
             .parse::<CacheTargetParams>();
         assert_matches!(result, Err(DmError::Dm(ErrorEnum::Invalid, _)));
     }
 
     #[test]
-    fn test_cache_target_params_less_than_8_values() {
-        let result = "cache 42:42 42:43 42:44 16 1 writethrough".parse::<CacheTargetParams>();
+    fn test_cache_target_params_missing_2_feature_args() {
+        let result = "cache 42:42 42:43 42:44 16 4 writethrough passthrough default 0"
+            .parse::<CacheTargetParams>();
         assert_matches!(result, Err(DmError::Dm(ErrorEnum::Invalid, _)));
     }
 
     #[test]
-    fn test_cache_target_params_too_few() {
-        let result = "cache 42:42 42:43 42:44 16 4 writethrough passthrough default 0"
-            .parse::<CacheTargetParams>();
+    fn test_cache_target_params_missing_3_feature_args() {
+        let result =
+            "cache 42:42 42:43 42:44 16 4 writethrough default 0".parse::<CacheTargetParams>();
+        assert_matches!(result, Err(DmError::Dm(ErrorEnum::Invalid, _)));
+    }
+
+    #[test]
+    fn test_cache_target_params_less_than_8_values() {
+        let result = "cache 42:42 42:43 42:44 16 1 writethrough".parse::<CacheTargetParams>();
         assert_matches!(result, Err(DmError::Dm(ErrorEnum::Invalid, _)));
     }
 }
