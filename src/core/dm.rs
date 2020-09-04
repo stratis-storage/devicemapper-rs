@@ -553,15 +553,15 @@ impl DM {
     // will either be backwards-compatible, or will increment
     // DM_VERSION_MAJOR.  Since calls made with a non-matching major version
     // will fail, this protects against callers parsing unknown formats.
-    // (The targets.push() call triggers an erroneous lint error, as
-    //  detailed in rust-clippy issue #5902.)
-    #[allow(clippy::unknown_clippy_lints)]
-    #[allow(clippy::same_item_push)]
     fn parse_table_status(count: u32, buf: &[u8]) -> Vec<(u64, u64, String, String)> {
         let mut targets = Vec::new();
         if !buf.is_empty() {
             let mut next_off = 0;
 
+            // (The targets.push() call triggers an erroneous lint error, as
+            //  detailed in rust-clippy issue #5902.)
+            #[allow(clippy::unknown_clippy_lints)]
+            #[allow(clippy::same_item_push)]
             for _ in 0..count {
                 let result = &buf[next_off..];
                 let targ = unsafe {
