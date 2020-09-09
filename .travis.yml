@@ -14,6 +14,9 @@ jobs:
   allow_failures:
     # Allow audit task to fail
     - env: TASK=audit
+    # Allow stable clippy task to fail
+    - rust: stable
+      env: TASK=clippy
   include:
 
     # MANDATORY CHECKS USING CURRENT DEVELOPMENT COMPILER
@@ -52,22 +55,19 @@ jobs:
       env: TASK=docs
 
 
-    # INTERMITTENTLY ALLOWED FAILURES
-    # Allowed if a failure occurs after a new Rust release until the
-    # failure is addressed.
-    - name: "Run clippy on beta toolchain"
-      rust: beta
-      before_script:
-        - rustup component add clippy
-      env: TASK=clippy
-
-
     # ALLOWED FAILURES
     # Run "cargo audit" on rust stable. Make it an allowed failure. It
     # should be an advisory and should not gate our development.
     - name: "Audit code for security advisories on stable toolchain"
       rust: stable
       env: TASK=audit
+    # Allowed because a failure may occur after a new Rust stable
+    # version is released.
+    - name: "Run clippy on stable toolchain"
+      rust: stable
+      before_script:
+        - rustup component add clippy
+      env: TASK=clippy
 
     # VERIFICATION OF TEST INFRASTRUCTURE
     - name: "run yamllint 1.23.0 on .travis.yml"
