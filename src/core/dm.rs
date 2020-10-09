@@ -558,10 +558,6 @@ impl DM {
         if !buf.is_empty() {
             let mut next_off = 0;
 
-            // (The targets.push() call triggers an erroneous lint error, as
-            //  detailed in rust-clippy issue #5902.)
-            #[allow(clippy::unknown_clippy_lints)]
-            #[allow(clippy::same_item_push)]
             for _ in 0..count {
                 let result = &buf[next_off..];
                 let targ = unsafe {
