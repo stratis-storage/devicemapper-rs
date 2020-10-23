@@ -1,10 +1,12 @@
 devicemapper 0.28.1 (UNRELEASED)
 ================================
-Recommended Rust toolchain version: 1.38
-Lowest supported Rust toolchain version: 1.37
+Recommended Rust toolchain version: 1.47.0
+Lowest supported Rust toolchain version: 1.45
 
 New minimum Rust crate requirements:
-  - error_chain: 0.12.1
+  - error_chain: 0.12.4
+
+YAML linter: yamllint (1.23.0)
 
 - Fix incorrect parsing of flakey target parameters:
   https://github.com/stratis-storage/devicemapper-rs/issues/261
@@ -16,7 +18,68 @@ New minimum Rust crate requirements:
   https://github.com/stratis-storage/devicemapper-rs/pull/489
   https://github.com/stratis-storage/devicemapper-rs/pull/495
 
+- Fix an incompatibility with musl:
+  https://github.com/stratis-storage/devicemapper-rs/issues/560
+  https://github.com/stratis-storage/devicemapper-rs/pull/562
+
+- Use fully qualified names in macros:
+  https://github.com/stratis-storage/devicemapper-rs/pull/524
+
 - Tidies and Maintenance:
+  https://github.com/stratis-storage/devicemapper-rs/pull/582
+  https://github.com/stratis-storage/devicemapper-rs/pull/581
+  https://github.com/stratis-storage/devicemapper-rs/pull/580
+  https://github.com/stratis-storage/devicemapper-rs/pull/579
+  https://github.com/stratis-storage/devicemapper-rs/pull/578
+  https://github.com/stratis-storage/devicemapper-rs/pull/577
+  https://github.com/stratis-storage/devicemapper-rs/pull/576
+  https://github.com/stratis-storage/devicemapper-rs/pull/575
+  https://github.com/stratis-storage/devicemapper-rs/pull/574
+  https://github.com/stratis-storage/devicemapper-rs/pull/573
+  https://github.com/stratis-storage/devicemapper-rs/pull/572
+  https://github.com/stratis-storage/devicemapper-rs/pull/571
+  https://github.com/stratis-storage/devicemapper-rs/pull/569
+  https://github.com/stratis-storage/devicemapper-rs/pull/568
+  https://github.com/stratis-storage/devicemapper-rs/pull/567
+  https://github.com/stratis-storage/devicemapper-rs/pull/566
+  https://github.com/stratis-storage/devicemapper-rs/pull/565
+  https://github.com/stratis-storage/devicemapper-rs/pull/564
+  https://github.com/stratis-storage/devicemapper-rs/pull/561
+  https://github.com/stratis-storage/devicemapper-rs/pull/558
+  https://github.com/stratis-storage/devicemapper-rs/pull/555
+  https://github.com/stratis-storage/devicemapper-rs/pull/554
+  https://github.com/stratis-storage/devicemapper-rs/pull/553
+  https://github.com/stratis-storage/devicemapper-rs/pull/552
+  https://github.com/stratis-storage/devicemapper-rs/pull/551
+  https://github.com/stratis-storage/devicemapper-rs/pull/550
+  https://github.com/stratis-storage/devicemapper-rs/pull/548
+  https://github.com/stratis-storage/devicemapper-rs/pull/547
+  https://github.com/stratis-storage/devicemapper-rs/pull/546
+  https://github.com/stratis-storage/devicemapper-rs/pull/545
+  https://github.com/stratis-storage/devicemapper-rs/pull/544
+  https://github.com/stratis-storage/devicemapper-rs/pull/543
+  https://github.com/stratis-storage/devicemapper-rs/pull/542
+  https://github.com/stratis-storage/devicemapper-rs/pull/541
+  https://github.com/stratis-storage/devicemapper-rs/pull/540
+  https://github.com/stratis-storage/devicemapper-rs/pull/539
+  https://github.com/stratis-storage/devicemapper-rs/pull/538
+  https://github.com/stratis-storage/devicemapper-rs/pull/536
+  https://github.com/stratis-storage/devicemapper-rs/pull/534
+  https://github.com/stratis-storage/devicemapper-rs/pull/533
+  https://github.com/stratis-storage/devicemapper-rs/pull/532
+  https://github.com/stratis-storage/devicemapper-rs/pull/531
+  https://github.com/stratis-storage/devicemapper-rs/pull/530
+  https://github.com/stratis-storage/devicemapper-rs/pull/529
+  https://github.com/stratis-storage/devicemapper-rs/pull/528
+  https://github.com/stratis-storage/devicemapper-rs/pull/527
+  https://github.com/stratis-storage/devicemapper-rs/pull/521
+  https://github.com/stratis-storage/devicemapper-rs/pull/520
+  https://github.com/stratis-storage/devicemapper-rs/pull/519
+  https://github.com/stratis-storage/devicemapper-rs/pull/518
+  https://github.com/stratis-storage/devicemapper-rs/pull/517
+  https://github.com/stratis-storage/devicemapper-rs/pull/514
+  https://github.com/stratis-storage/devicemapper-rs/pull/512
+  https://github.com/stratis-storage/devicemapper-rs/pull/511
   https://github.com/stratis-storage/devicemapper-rs/pull/509
   https://github.com/stratis-storage/devicemapper-rs/pull/508
   https://github.com/stratis-storage/devicemapper-rs/pull/507
