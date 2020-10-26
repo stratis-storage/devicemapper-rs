@@ -5,6 +5,8 @@ Lowest supported Rust toolchain version: 1.45
 
 New minimum Rust crate requirements:
   - error_chain: 0.12.4
+  - nix: 0.18
+  - uuid: 0.8
 
 YAML linter: yamllint (1.23.0)
 
@@ -26,6 +28,8 @@ YAML linter: yamllint (1.23.0)
   https://github.com/stratis-storage/devicemapper-rs/pull/524
 
 - Tidies and Maintenance:
+  https://github.com/stratis-storage/devicemapper-rs/pull/584
+  https://github.com/stratis-storage/devicemapper-rs/pull/583
   https://github.com/stratis-storage/devicemapper-rs/pull/582
   https://github.com/stratis-storage/devicemapper-rs/pull/581
   https://github.com/stratis-storage/devicemapper-rs/pull/580
