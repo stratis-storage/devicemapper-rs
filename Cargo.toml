@@ -13,7 +13,7 @@ edition = "2018"
 
 [dependencies]
 libc = "0.2.36"
-nix = "0.14"
+nix = "0.18"
 bitflags = "1"
 serde = "1"
 error-chain = "0.12.4"
@@ -26,5 +26,5 @@ libmount = "0.1.11"
 matches = "0.1.8"
 
 [dev-dependencies.uuid]
-version = "0.7"
+version = "0.8"
 features = ["v4"]
