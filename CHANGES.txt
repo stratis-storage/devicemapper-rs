@@ -1,5 +1,5 @@
-devicemapper 0.28.1 (UNRELEASED)
-================================
+devicemapper 0.28.1
+===================
 Recommended Rust toolchain version: 1.47.0
 Lowest supported Rust toolchain version: 1.45
 
@@ -28,6 +28,7 @@ YAML linter: yamllint (1.23.0)
   https://github.com/stratis-storage/devicemapper-rs/pull/524
 
 - Tidies and Maintenance:
+  https://github.com/stratis-storage/devicemapper-rs/pull/585
   https://github.com/stratis-storage/devicemapper-rs/pull/584
   https://github.com/stratis-storage/devicemapper-rs/pull/583
   https://github.com/stratis-storage/devicemapper-rs/pull/582
