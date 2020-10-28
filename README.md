@@ -1,7 +1,3 @@
-[![Build Status](https://travis-ci.org/stratis-storage/devicemapper-rs.svg?branch=master)](https://travis-ci.org/stratis-storage/devicemapper-rs)
-
-[![crates.io](http://meritbadge.herokuapp.com/devicemapper)](https://crates.io/crates/devicemapper)
-
 ## devicemapper-rs
 
 #### A library wrapping Linux's devicemapper ioctls (does not use libdm).
