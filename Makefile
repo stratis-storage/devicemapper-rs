@@ -41,7 +41,7 @@ docs:
 	cargo doc --no-deps
 
 yamllint:
-	yamllint --strict .travis.yml
+	yamllint --strict .github/workflows/main.yml
 
 .PHONY:
 	audit
