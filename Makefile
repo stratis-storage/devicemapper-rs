@@ -14,7 +14,7 @@ tree: ${HOME}/.cargo/bin/cargo-tree
 	PATH=${HOME}/.cargo/bin:${PATH} cargo tree
 
 audit: ${HOME}/.cargo/bin/cargo-audit
-	PATH=${HOME}/.cargo/bin:${PATH} cargo audit -D
+	PATH=${HOME}/.cargo/bin:${PATH} cargo audit -D warnings
 
 fmt:
 	cargo fmt
