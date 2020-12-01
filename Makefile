@@ -14,7 +14,7 @@ tree: ${HOME}/.cargo/bin/cargo-tree
 	PATH=${HOME}/.cargo/bin:${PATH} cargo tree
 
 audit: ${HOME}/.cargo/bin/cargo-audit
-	PATH=${HOME}/.cargo/bin:${PATH} cargo audit -D
+	PATH=${HOME}/.cargo/bin:${PATH} cargo audit -D warnings
 
 fmt:
 	cargo fmt
@@ -41,7 +41,7 @@ docs:
 	cargo doc --no-deps
 
 yamllint:
-	yamllint --strict .travis.yml
+	yamllint --strict .github/workflows/main.yml
 
 .PHONY:
 	audit
