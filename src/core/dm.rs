@@ -2,7 +2,13 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-use std::{cmp, fs::File, mem::size_of, os::unix::io::AsRawFd, slice, u32};
+use std::{
+    cmp,
+    fs::File,
+    mem::size_of,
+    os::unix::io::{AsRawFd, RawFd},
+    slice, u32,
+};
 
 use nix::libc::ioctl as nix_ioctl;
 
@@ -708,6 +714,12 @@ impl DM {
         self.do_ioctl(dmi::DM_DEV_ARM_POLL_CMD as u8, &mut hdr, None)?;
 
         Ok(DeviceInfo::new(hdr))
+    }
+}
+
+impl AsRawFd for DM {
+    fn as_raw_fd(&self) -> RawFd {
+        self.file.as_raw_fd()
     }
 }
 
