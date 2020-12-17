@@ -25,7 +25,7 @@ jobs:
             task: make -f Makefile clippy
           # MANDATORY TESTING USING LOWEST SUPPORTED COMPILER
           - components: cargo
-            toolchain: 1.45.0
+            toolchain: 1.47.0
             task: >
               sudo PATH=$GITHUB_WORKSPACE/.cargo/bin:$PATH
               make -f Makefile sudo_test
