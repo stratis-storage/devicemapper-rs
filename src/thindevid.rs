@@ -9,7 +9,7 @@ use crate::{
     shared::parse_value,
 };
 
-const THIN_DEV_ID_LIMIT: u64 = 0x1_000_000; // 2 ^ 24
+const THIN_DEV_ID_LIMIT: u64 = 0x0100_0000; // 2 ^ 24
 
 #[derive(Debug, Clone, Copy, Eq, PartialEq, Hash)]
 /// A thindev id is a 24 bit number, i.e., its bit width is not a power of 2.
