@@ -452,10 +452,12 @@ impl DM {
         // Construct targets first, since we need to know how many & size
         // before initializing the header.
         for t in targets {
-            let mut targ: dmi::Struct_dm_target_spec = Default::default();
-            targ.sector_start = t.0;
-            targ.length = t.1;
-            targ.status = 0;
+            let mut targ = dmi::Struct_dm_target_spec {
+                sector_start: t.0,
+                length: t.1,
+                status: 0,
+                ..Default::default()
+            };
 
             let dst: &mut [u8] = unsafe { &mut *(&mut targ.target_type[..] as *mut [u8]) };
             let bytes = t.2.as_bytes();
@@ -685,8 +687,10 @@ impl DM {
     ) -> DmResult<(DeviceInfo, Option<String>)> {
         let mut hdr = DmOptions::new().to_ioctl_hdr(Some(id), DmFlags::empty());
 
-        let mut msg_struct: dmi::Struct_dm_target_msg = Default::default();
-        msg_struct.sector = sector.unwrap_or_default();
+        let msg_struct = dmi::Struct_dm_target_msg {
+            sector: sector.unwrap_or_default(),
+            ..Default::default()
+        };
         let mut data_in = unsafe {
             let ptr = &msg_struct as *const dmi::Struct_dm_target_msg as *mut u8;
             slice::from_raw_parts(ptr, size_of::<dmi::Struct_dm_target_msg>()).to_vec()
