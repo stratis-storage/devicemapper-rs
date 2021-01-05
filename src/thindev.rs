@@ -51,7 +51,7 @@ impl FromStr for ThinTargetParams {
     fn from_str(s: &str) -> DmResult<ThinTargetParams> {
         let vals = s.split(' ').collect::<Vec<_>>();
         let len = vals.len();
-        if len < 3 || len > 4 {
+        if !(3..=4).contains(&len) {
             let err_msg = format!(
                 "expected 3 or 4 values in params string \"{}\", found {}",
                 s, len
