@@ -7,7 +7,7 @@ macro_rules! range_u64 {
     ( $(#[$comment:meta])? $T: ident, $display_name: expr) => {
         range!($(#[$comment])? $T, $display_name, u64, serialize_u64);
         from_u64!($T);
-        commut_mul!($T, usize, u64, u32, u16, u8);
+        mul!($T, u64, u32, u16, u8);
         div!($T, u64, u32, u16, u8);
     }
 }
@@ -16,7 +16,7 @@ macro_rules! range_u128 {
     ( $(#[$comment:meta])? $T: ident, $display_name: expr) => {
         range!($(#[$comment])? $T, $display_name, u128, serialize_u128);
         from_u128!($T);
-        commut_mul!($T, usize, u128, u64, u32, u16, u8);
+        mul!($T, u128, u64, u32, u16, u8);
         div!($T, u128, u64, u32, u16, u8);
     }
 }
@@ -38,7 +38,6 @@ macro_rules! range {
         add_assign!($T);
         sub!($T);
         sub_assign!($T);
-        mul!($T, $inner);
         rem!($T);
         deref!($T, $inner);
     };
@@ -223,30 +222,51 @@ macro_rules! div {
 
 // Define a complete set of multiplication operations.
 macro_rules! mul {
-    ($T:ident, $inner:ty) => {
-        impl<T> std::ops::Mul<T> for $T
-        where
-            $T: From<T>,
-        {
-            type Output = $T;
-            fn mul(self, rhs: T) -> $T {
-                $T(self.0 * $T::from(rhs).0)
-            }
-        }
-    };
-}
-
-macro_rules! commut_mul {
-    ($T:ident, $( $t:ty ),+) => {
+    ($T:ident, $inner:ty, $($t:ty),+) => {
         $(
+            impl std::ops::Mul<$t> for $T {
+                type Output = $T;
+                fn mul(self, rhs: $t) -> $T {
+                    $T(self.0 * <$inner>::from(rhs))
+                }
+            }
+
             impl std::ops::Mul<$T> for $t {
                 type Output = $T;
                 fn mul(self, rhs: $T) -> $T {
-                    rhs * self
+                    $T(rhs.0 * <$inner>::from(self))
                 }
             }
         )+
-    }
+
+        impl std::ops::Mul<$inner> for $T {
+            type Output = $T;
+            fn mul(self, rhs: $inner) -> $T {
+                $T(self.0 * rhs)
+            }
+        }
+
+        impl std::ops::Mul<$T> for $inner {
+            type Output = $T;
+            fn mul(self, rhs: $T) -> $T {
+                $T(rhs.0 * self)
+            }
+        }
+
+        impl std::ops::Mul<usize> for $T {
+            type Output = $T;
+            fn mul(self, rhs: usize) -> $T {
+                $T(self.0 * rhs as $inner)
+            }
+        }
+
+        impl std::ops::Mul<$T> for usize {
+            type Output = $T;
+            fn mul(self, rhs: $T) -> $T {
+                $T(rhs.0 * self as $inner)
+            }
+        }
+    };
 }
 
 // Define a complete set of remainder operations.
