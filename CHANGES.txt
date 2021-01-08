@@ -1,3 +1,31 @@
+devicemapper 0.29.0 (UNRELEASED)
+================================
+Recommended Rust toolchain version: 1.48.0
+Lowest supported Rust toolchain version: 1.47
+
+YAML linter: yamllint (1.25.0)
+Python: 3.8.5
+
+New minimum Rust crate requirements:
+  - nix: 0.19
+
+- Use u128 for underlying Bytes represenation:
+  https://github.com/stratis-storage/devicemapper-rs/issues/426
+  https://github.com/stratis-storage/devicemapper-rs/pull/598
+
+- Implement AsRawFd for DM:
+  https://github.com/stratis-storage/devicemapper-rs/pull/592
+
+- Tidies and Maintenance:
+  https://github.com/stratis-storage/devicemapper-rs/pull/599
+  https://github.com/stratis-storage/devicemapper-rs/pull/597
+  https://github.com/stratis-storage/devicemapper-rs/pull/595
+  https://github.com/stratis-storage/devicemapper-rs/pull/594
+  https://github.com/stratis-storage/devicemapper-rs/pull/591
+  https://github.com/stratis-storage/devicemapper-rs/pull/590
+  https://github.com/stratis-storage/devicemapper-rs/pull/588
+
+
 devicemapper 0.28.1
 ===================
 Recommended Rust toolchain version: 1.47.0
