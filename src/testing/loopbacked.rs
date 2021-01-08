@@ -3,6 +3,7 @@
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 use std::{
+    convert::TryInto,
     fs::OpenOptions,
     io::{self, Seek, SeekFrom, Write},
     os::unix::io::AsRawFd,
@@ -28,7 +29,7 @@ fn write_sectors<P: AsRef<Path>>(
 ) -> io::Result<()> {
     let mut f = OpenOptions::new().write(true).open(path)?;
 
-    f.seek(SeekFrom::Start(*offset.bytes()))?;
+    f.seek(SeekFrom::Start((*offset.bytes()).try_into().unwrap()))?;
     for _ in 0..*length {
         f.write_all(buf)?;
     }
@@ -59,7 +60,12 @@ impl LoopTestDev {
 
         // Wipe one MiB at the start of the device. Devicemapper data may be
         // left on the device even after a teardown.
-        wipe_sectors(&ld.path().unwrap(), Sectors(0), Bytes(IEC::Mi).sectors()).unwrap();
+        wipe_sectors(
+            &ld.path().unwrap(),
+            Sectors(0),
+            Bytes(u128::from(IEC::Mi)).sectors(),
+        )
+        .unwrap();
 
         LoopTestDev { ld }
     }

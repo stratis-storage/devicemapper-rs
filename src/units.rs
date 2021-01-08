@@ -19,13 +19,13 @@ const META_BLOCK_SIZE: Sectors = Sectors(8);
 #[allow(dead_code)]
 const MAX_META_DEV_SIZE: MetaBlocks = MetaBlocks(255 * ((1 << 14) - 64));
 
-range!(
+range_u64!(
     /// A type for data blocks
     DataBlocks,
     "data blocks"
 );
 
-range!(
+range_u64!(
     /// A type for meta blocks
     MetaBlocks,
     "meta blocks"
@@ -38,7 +38,7 @@ impl MetaBlocks {
     }
 }
 
-range!(
+range_u128!(
     /// A type for bytes
     Bytes,
     "bytes"
@@ -47,11 +47,11 @@ range!(
 impl Bytes {
     /// Return the number of Sectors fully contained in these bytes.
     pub fn sectors(self) -> Sectors {
-        Sectors(self.0 / SECTOR_SIZE as u64)
+        Sectors((self.0 / SECTOR_SIZE as u128) as u64)
     }
 }
 
-range!(
+range_u64!(
     /// A type for sectors
     Sectors,
     "sectors"
@@ -60,7 +60,8 @@ range!(
 impl Sectors {
     /// The number of bytes in these sectors.
     pub fn bytes(self) -> Bytes {
-        Bytes(self.0 * SECTOR_SIZE as u64)
+        // Keep both as u128 before multiplication or overflow could occur
+        Bytes(u128::from(self.0) * SECTOR_SIZE as u128)
     }
 
     /// The number of whole metablocks contained in these sectors.
