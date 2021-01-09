@@ -9,6 +9,7 @@ readme = "README.md"
 keywords = ["Linux", "device", "mapper", "libdm", "storage"]
 license = "MPL-2.0"
 edition = "2018"
+exclude = [".gitignore", ".github/*"]
 
 [dependencies]
 libc = "0.2.36"
