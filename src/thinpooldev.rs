@@ -625,7 +625,10 @@ const MAX_DATA_BLOCK_SIZE: Sectors = Sectors(2 * IEC::Mi); // 1 GiB
 const MIN_RECOMMENDED_METADATA_SIZE: Sectors = Sectors(4 * IEC::Ki); // 2 MiB
 #[cfg(test)]
 #[allow(dead_code)]
-const MAX_RECOMMENDED_METADATA_SIZE: Sectors = Sectors(32 * IEC::Mi); // 16 GiB
+// Note that this value is stated in the kernel docs to be 16 GiB, but the
+// devicemapper source gives a different value for THIN_METADATA_MAX_SECTORS,
+// which is the actual maximum size.
+const MAX_METADATA_SIZE: MetaBlocks = MetaBlocks(255 * ((1 << 14) - 64));
 
 #[cfg(test)]
 /// Generate a minimal thinpool dev. Use all the space available not consumed
