@@ -539,7 +539,10 @@ mod tests {
         assert_eq!(table.params.pool, tp.device());
         assert_eq!(table.params.thin_id, thin_id);
 
-        assert_matches!(td.status(&dm).unwrap(), ThinStatus::Error | ThinStatus::Working(_));
+        assert_matches!(
+            td.status(&dm).unwrap(),
+            ThinStatus::Error | ThinStatus::Working(_)
+        );
 
         assert_eq!(
             blkdev_size(&OpenOptions::new().read(true).open(td.devnode()).unwrap()),
