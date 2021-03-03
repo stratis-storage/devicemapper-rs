@@ -4,6 +4,10 @@ RUST_2018_IDIOMS = -D bare-trait-objects  \
 
 DENY = -D warnings -D future-incompatible -D unused ${RUST_2018_IDIOMS}
 
+# Clippy-related lints
+CLIPPY_CARGO = -D clippy::cargo_common_metadata \
+               -D clippy::wildcard_dependencies
+
 ${HOME}/.cargo/bin/cargo-tree:
 	cargo install cargo-tree
 
@@ -35,7 +39,7 @@ sudo_test:
 	RUSTFLAGS="${DENY}" RUST_BACKTRACE=1 RUST_TEST_THREADS=1 cargo test
 
 clippy:
-	cargo clippy --all-targets --all-features -- -D warnings -D clippy::needless_borrow
+	cargo clippy --all-targets --all-features -- -D warnings -D clippy::needless_borrow ${CLIPPY_CARGO}
 
 docs:
 	cargo doc --no-deps
