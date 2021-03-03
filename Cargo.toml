@@ -6,6 +6,7 @@ description = "A library for using Linux device mapper"
 documentation = "https://docs.rs/devicemapper/"
 repository = "https://github.com/stratis-storage/devicemapper-rs"
 readme = "README.md"
+categories = ["os"]
 keywords = ["Linux", "device", "mapper", "libdm", "storage"]
 license = "MPL-2.0"
 edition = "2018"
