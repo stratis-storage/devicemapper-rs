@@ -41,7 +41,7 @@ jobs:
           - components: cargo
             toolchain: stable
             task: make -f Makefile docs
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-18.04
     steps:
       - uses: actions/checkout@v2
       - uses: actions-rs/toolchain@v1
@@ -72,7 +72,7 @@ jobs:
           - components: clippy
             toolchain: stable
             task: clippy
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-18.04
     steps:
       - uses: actions/checkout@v2
       - uses: actions-rs/toolchain@v1
@@ -92,7 +92,7 @@ jobs:
     env:
       TASK: yamllint
       PYTHON: 3.8.6
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-18.04
     steps:
       - uses: actions/checkout@v2
       - uses: actions/setup-python@v2
