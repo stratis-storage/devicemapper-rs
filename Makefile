@@ -6,6 +6,7 @@ DENY = -D warnings -D future-incompatible -D unused ${RUST_2018_IDIOMS}
 
 # Clippy-related lints
 CLIPPY_CARGO = -D clippy::cargo_common_metadata \
+               -D clippy::multiple_crate_versions \
                -D clippy::wildcard_dependencies
 
 ${HOME}/.cargo/bin/cargo-tree:
