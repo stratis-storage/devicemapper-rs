@@ -30,6 +30,14 @@ travis_fmt:
 build:
 	RUSTFLAGS="${DENY}" cargo build
 
+build-minimal-dependencies:
+	RUSTFLAGS="${DENY}" cargo build -Z minimal-versions
+
+test-minimal-dependencies:
+	cargo update -Z minimal-versions
+	cargo update -p pkg-config --precise 0.3.19
+	RUSTFLAGS="${DENY}" cargo test --no-run
+
 build-tests:
 	RUSTFLAGS="${DENY}" cargo test --no-run
 

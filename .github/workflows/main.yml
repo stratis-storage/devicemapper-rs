@@ -41,6 +41,13 @@ jobs:
           - components: cargo
             toolchain: stable
             task: make -f Makefile docs
+          # MANDATORY TESTING ON NIGHTLY
+          - components: cargo
+            toolchain: nightly
+            task: make -f Makefile build-minimal-dependencies
+          - components: cargo
+            toolchain: nightly
+            task: make -f Makefile test-minimal-dependencies
     runs-on: ubuntu-18.04
     steps:
       - uses: actions/checkout@v2

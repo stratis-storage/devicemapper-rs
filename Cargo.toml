@@ -14,18 +14,18 @@ exclude = [".gitignore", ".github/*"]
 
 [dependencies]
 libc = "0.2.36"
-nix = "0.19"
-bitflags = "1"
-serde = "1"
+nix = "0.19.0"
+bitflags = "1.1.0"
+serde = "1.0.100"
 error-chain = "0.12.4"
 
 [dev-dependencies]
-loopdev = "0.2"
-tempfile = "3.0.1"
+loopdev = "0.2.0"
+tempfile = "3.0.2"
 libudev = "0.2.0"
 libmount = "0.1.11"
 matches = "0.1.8"
 
 [dev-dependencies.uuid]
-version = "0.8"
+version = "0.8.0"
 features = ["v4"]
