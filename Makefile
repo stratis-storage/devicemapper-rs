@@ -9,6 +9,12 @@ CLIPPY_CARGO = -D clippy::cargo_common_metadata \
                -D clippy::multiple_crate_versions \
                -D clippy::wildcard_dependencies
 
+# Clippy allow/deny adjudications for pedantic lints
+#
+# Allows represent lints we fail but which we may
+# conclude are helpful at some time.
+CLIPPY_PEDANTIC = -A clippy::upper_case_acronyms
+
 ${HOME}/.cargo/bin/cargo-tree:
 	cargo install cargo-tree
 
@@ -40,7 +46,7 @@ sudo_test:
 	RUSTFLAGS="${DENY}" RUST_BACKTRACE=1 RUST_TEST_THREADS=1 cargo test
 
 clippy:
-	cargo clippy --all-targets --all-features -- -D warnings -D clippy::needless_borrow ${CLIPPY_CARGO}
+	cargo clippy --all-targets --all-features -- -D warnings -D clippy::needless_borrow ${CLIPPY_CARGO} ${CLIPPY_PEDANTIC}
 
 docs:
 	cargo doc --no-deps
