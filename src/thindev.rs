@@ -437,7 +437,7 @@ mod tests {
     const MIN_THIN_DEV_SIZE: Sectors = Sectors(1);
 
     // Return a hashmap of key-value pairs for udev entry.
-    fn get_udev_db_entry(dev_node_search: &PathBuf) -> Option<HashMap<String, String>> {
+    fn get_udev_db_entry(dev_node_search: &Path) -> Option<HashMap<String, String>> {
         // Takes a libudev device entry and returns the properties as a HashMap.
         fn device_as_map(device: &libudev::Device) -> HashMap<String, String> {
             let rc: HashMap<_, _> = device
@@ -579,7 +579,7 @@ mod tests {
     fn test_udev_userspace(paths: &[&Path]) {
         // Make sure we are meeting all our expectations in user space with regards to udev
         // handling.
-        fn validate(path_uuid: &Uuid, devnode: &PathBuf) {
+        fn validate(path_uuid: &Uuid, devnode: &Path) {
             udev_settle().unwrap();
 
             // Make sure the uuid symlink was created
@@ -599,7 +599,7 @@ mod tests {
         }
 
         // Set the FS with devnode to a new auto generated UUID
-        fn set_new_fs_uuid(devnode: &PathBuf) -> Uuid {
+        fn set_new_fs_uuid(devnode: &Path) -> Uuid {
             // Tmp mount & umount to complete the XFS transactions so that we can change the UUID
             let tmp_dir = tempfile::Builder::new()
                 .prefix(&test_string("test_udev_userspace_mp"))

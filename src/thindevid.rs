@@ -50,7 +50,7 @@ impl FromStr for ThinDevId {
     type Err = DmError;
 
     fn from_str(s: &str) -> Result<ThinDevId, DmError> {
-        Ok(ThinDevId::new_u64(parse_value(s, "thindev id")?)?)
+        ThinDevId::new_u64(parse_value(s, "thindev id")?)
     }
 }
 
