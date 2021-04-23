@@ -52,7 +52,7 @@ docs:
 	cargo doc --no-deps
 
 yamllint:
-	yamllint --strict .github/workflows/main.yml
+	yamllint --strict .github/workflows/*.yml
 
 .PHONY:
 	audit
