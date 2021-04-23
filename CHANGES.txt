@@ -1,9 +1,10 @@
-devicemapper 0.29.1 (UNRELEASED)
-================================
+devicemapper 0.29.1
+===================
 Recommended Rust toolchain version: 1.51.0
 Lowest supported Rust toolchain version: 1.49
 
 - Tidies and Maintenance:
+  https://github.com/stratis-storage/devicemapper-rs/pull/612
   https://github.com/stratis-storage/devicemapper-rs/pull/611
   https://github.com/stratis-storage/devicemapper-rs/pull/608
   https://github.com/stratis-storage/devicemapper-rs/pull/607
