@@ -26,7 +26,7 @@ macro_rules! range {
         $(
             #[$comment]
         )?
-        #[derive(Clone, Copy, Default, Eq, Ord, PartialEq, PartialOrd)]
+        #[derive(Clone, Copy, Default, Eq, Hash, Ord, PartialEq, PartialOrd)]
         pub struct $T(pub $inner);
 
         checked_add!($T);
