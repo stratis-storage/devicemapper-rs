@@ -2,10 +2,9 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-use std::{
-    ffi::CString,
-    fmt::{self, Debug},
-};
+use std::fmt::{self, Debug};
+
+use crate::core::util::str_from_c_str;
 
 #[allow(non_camel_case_types)]
 #[allow(dead_code)]
@@ -25,19 +24,6 @@ pub use bindings::{
 /// this implementation can be removed.
 impl Debug for dm_ioctl {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        fn c_char_slice_to_string(slice: &[libc::c_char]) -> Option<String> {
-            let cstring = CString::new(
-                slice
-                    .iter()
-                    .map(|&c| c as u8)
-                    .take_while(|c| *c != 0u8)
-                    .chain([0].iter().cloned())
-                    .collect::<Vec<_>>(),
-            )
-            .ok()?;
-            cstring.into_string().ok()
-        }
-
         f.debug_struct("Struct_dm_ioctl")
             .field("version", &self.version)
             .field("data_size", &self.data_size)
@@ -50,18 +36,15 @@ impl Debug for dm_ioctl {
             .field("dev", &self.dev)
             .field(
                 "name",
-                &c_char_slice_to_string(&self.name as &[libc::c_char])
-                    .unwrap_or_else(|| "Could not parse string".to_string()),
+                &str_from_c_str(&self.name as &[libc::c_char]).unwrap_or("Could not parse string"),
             )
             .field(
                 "uuid",
-                &c_char_slice_to_string(&self.uuid as &[libc::c_char])
-                    .unwrap_or_else(|| "Could not parse string".to_string()),
+                &str_from_c_str(&self.uuid as &[libc::c_char]).unwrap_or("Could not parse string"),
             )
             .field(
                 "data",
-                &c_char_slice_to_string(&self.data as &[libc::c_char])
-                    .unwrap_or_else(|| "Could not parse string".to_string()),
+                &str_from_c_str(&self.data as &[libc::c_char]).unwrap_or("Could not parse string"),
             )
             .finish()
     }

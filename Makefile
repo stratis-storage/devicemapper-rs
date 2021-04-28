@@ -49,7 +49,7 @@ sudo_test:
 	RUSTFLAGS="${DENY}" RUST_BACKTRACE=1 RUST_TEST_THREADS=1 cargo test
 
 clippy:
-	cargo clippy --all-targets --all-features -- -D warnings -D clippy::needless_borrow ${CLIPPY_CARGO} ${CLIPPY_PEDANTIC}
+	RUSTFLAGS="${DENY}" cargo clippy --all-targets --all-features -- -D clippy::needless_borrow ${CLIPPY_CARGO} ${CLIPPY_PEDANTIC}
 
 docs:
 	cargo doc --no-deps
