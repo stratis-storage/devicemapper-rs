@@ -88,12 +88,14 @@ impl DM {
     }
 
     fn hdr_set_name(hdr: &mut dmi::Struct_dm_ioctl, name: &DmName) -> DmResult<()> {
-        name.as_bytes().read_exact(mut_slice_from_c_str(&mut hdr.name))?;
+        name.as_bytes()
+            .read_exact(mut_slice_from_c_str(&mut hdr.name))?;
         Ok(())
     }
 
     fn hdr_set_uuid(hdr: &mut dmi::Struct_dm_ioctl, uuid: &DmUuid) -> DmResult<()> {
-        uuid.as_bytes().read_exact(mut_slice_from_c_str(&mut hdr.uuid))?;
+        uuid.as_bytes()
+            .read_exact(mut_slice_from_c_str(&mut hdr.uuid))?;
         Ok(())
     }
 
