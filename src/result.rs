@@ -2,7 +2,7 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-use std::{error::Error, fmt};
+use std::{error::Error, fmt, io};
 
 use crate::core::errors;
 
@@ -39,6 +39,12 @@ pub type DmResult<T> = Result<T, DmError>;
 impl From<errors::Error> for DmError {
     fn from(err: errors::Error) -> DmError {
         DmError::Core(err)
+    }
+}
+
+impl From<io::Error> for DmError {
+    fn from(err: io::Error) -> DmError {
+        DmError::Core(errors::ErrorKind::GeneralIoError(err).into())
     }
 }
 

@@ -4,7 +4,9 @@
 
 use std::{
     cmp,
+    convert::TryInto,
     fs::File,
+    io::{Cursor, Read},
     mem::size_of,
     os::unix::io::{AsRawFd, RawFd},
     slice, u32,
@@ -15,15 +17,15 @@ use nix::libc::ioctl as nix_ioctl;
 use crate::{
     core::{
         device::Device,
-        deviceinfo::{DeviceInfo, DM_NAME_LEN, DM_UUID_LEN},
+        deviceinfo::DeviceInfo,
         dm_flags::DmFlags,
         dm_ioctl as dmi,
         dm_options::DmOptions,
         errors::ErrorKind,
         types::{DevId, DmName, DmNameBuf, DmUuid},
-        util::{align_to, slice_to_null},
+        util::{align_to, mut_slice_from_c_str, serialize, str_from_byte_slice, str_from_c_str},
     },
-    result::{DmError, DmResult},
+    result::{DmError, DmResult, ErrorEnum},
 };
 
 /// Indicator to send IOCTL to DM
@@ -51,7 +53,11 @@ pub struct DM {
 
 impl DmOptions {
     /// Generate a header to be used for IOCTL.
-    fn to_ioctl_hdr(&self, id: Option<&DevId>, allowable_flags: DmFlags) -> dmi::Struct_dm_ioctl {
+    fn to_ioctl_hdr(
+        &self,
+        id: Option<&DevId>,
+        allowable_flags: DmFlags,
+    ) -> DmResult<dmi::Struct_dm_ioctl> {
         let clean_flags = allowable_flags & self.flags();
         let event_nr = u32::from(self.cookie().bits()) << 16;
         let mut hdr: dmi::Struct_dm_ioctl = Default::default();
@@ -67,12 +73,12 @@ impl DmOptions {
 
         if let Some(id) = id {
             match id {
-                DevId::Name(name) => DM::hdr_set_name(&mut hdr, name),
-                DevId::Uuid(uuid) => DM::hdr_set_uuid(&mut hdr, uuid),
+                DevId::Name(name) => DM::hdr_set_name(&mut hdr, name)?,
+                DevId::Uuid(uuid) => DM::hdr_set_uuid(&mut hdr, uuid)?,
             };
         };
 
-        hdr
+        Ok(hdr)
     }
 }
 
@@ -85,18 +91,16 @@ impl DM {
         })
     }
 
-    fn hdr_set_name(hdr: &mut dmi::Struct_dm_ioctl, name: &DmName) {
-        let name_dest: &mut [u8; DM_NAME_LEN] =
-            unsafe { &mut *(&mut hdr.name as *mut [u8; DM_NAME_LEN]) };
-        let bytes = name.as_bytes();
-        name_dest[..bytes.len()].clone_from_slice(bytes);
+    fn hdr_set_name(hdr: &mut dmi::Struct_dm_ioctl, name: &DmName) -> DmResult<()> {
+        name.as_bytes()
+            .read_exact(mut_slice_from_c_str(&mut hdr.name))?;
+        Ok(())
     }
 
-    fn hdr_set_uuid(hdr: &mut dmi::Struct_dm_ioctl, uuid: &DmUuid) {
-        let uuid_dest: &mut [u8; DM_UUID_LEN] =
-            unsafe { &mut *(&mut hdr.uuid as *mut [u8; DM_UUID_LEN]) };
-        let bytes = uuid.as_bytes();
-        uuid_dest[..bytes.len()].clone_from_slice(bytes);
+    fn hdr_set_uuid(hdr: &mut dmi::Struct_dm_ioctl, uuid: &DmUuid) -> DmResult<()> {
+        uuid.as_bytes()
+            .read_exact(mut_slice_from_c_str(&mut hdr.uuid))?;
+        Ok(())
     }
 
     /// Get the file within the DM context, likely for polling purposes.
@@ -152,7 +156,7 @@ impl DM {
             if let Err(err) =
                 unsafe { convert_ioctl_res!(nix_ioctl(self.file.as_raw_fd(), op, v.as_mut_ptr())) }
             {
-                let info = DeviceInfo::new(hdr.clone());
+                let info = DeviceInfo::new(*hdr)?;
                 return Err(DmError::Core(
                     ErrorKind::IoctlError(Box::new(info), err).into(),
                 ));
@@ -193,7 +197,7 @@ impl DM {
 
     /// Devicemapper version information: Major, Minor, and patchlevel versions.
     pub fn version(&self) -> DmResult<(u32, u32, u32)> {
-        let mut hdr = DmOptions::new().to_ioctl_hdr(None, DmFlags::empty());
+        let mut hdr = DmOptions::new().to_ioctl_hdr(None, DmFlags::empty())?;
 
         self.do_ioctl(dmi::DM_VERSION_CMD as u8, &mut hdr, None)?;
 
@@ -208,7 +212,7 @@ impl DM {
     ///
     /// Valid flags: DM_DEFERRED_REMOVE
     pub fn remove_all(&self, options: &DmOptions) -> DmResult<()> {
-        let mut hdr = options.to_ioctl_hdr(None, DmFlags::DM_DEFERRED_REMOVE);
+        let mut hdr = options.to_ioctl_hdr(None, DmFlags::DM_DEFERRED_REMOVE)?;
 
         self.do_ioctl(dmi::DM_REMOVE_ALL_CMD as u8, &mut hdr, None)?;
 
@@ -219,7 +223,7 @@ impl DM {
     /// holds their major and minor device numbers, and on kernels that
     /// support it, each device's last event_nr.
     pub fn list_devices(&self) -> DmResult<Vec<(DmNameBuf, Device, Option<u32>)>> {
-        let mut hdr = DmOptions::new().to_ioctl_hdr(None, DmFlags::empty());
+        let mut hdr = DmOptions::new().to_ioctl_hdr(None, DmFlags::empty())?;
         let data_out = self.do_ioctl(dmi::DM_LIST_DEVICES_CMD as u8, &mut hdr, None)?;
 
         let mut devs = Vec::new();
@@ -233,9 +237,14 @@ impl DM {
                         .expect("pointer to own structure result can not be NULL")
                 };
 
-                let slc = slice_to_null(&result[size_of::<dmi::Struct_dm_name_list>()..])
-                    .expect("kernel data is well-formatted");
-                let dm_name = String::from_utf8_lossy(slc).into_owned();
+                let dm_name = str_from_byte_slice(&result[size_of::<dmi::Struct_dm_name_list>()..])
+                    .map(|s| s.to_owned())
+                    .ok_or_else(|| {
+                        DmError::Dm(
+                            ErrorEnum::Invalid,
+                            "Devicemapper name is not valid UTF8".to_string(),
+                        )
+                    })?;
 
                 // Get each device's event number after its name, if the kernel
                 // DM version supports it.
@@ -246,26 +255,29 @@ impl DM {
                         0..=36 => None,
                         _ => {
                             // offsetof "name" in Struct_dm_name_list.
-                            // TODO: Consider using pointer::offset_to when stable
-                            let mut offset = 12;
-                            offset += slc.len() + 1; // name + trailing NULL char
-                            let aligned_offset = align_to(offset, size_of::<u64>());
-                            let new_slc = &result[aligned_offset..];
-
-                            let nr = unsafe { *(new_slc.as_ptr() as *const u32) };
+                            let offset = align_to(
+                                size_of::<dmi::Struct_dm_name_list>() + dm_name.len() + 1,
+                                size_of::<u64>(),
+                            );
+                            let nr = u32::from_ne_bytes(
+                                result[offset..offset + size_of::<u32>()]
+                                    .try_into()
+                                    .map_err(|_| {
+                                        DmError::Dm(
+                                            ErrorEnum::Invalid,
+                                            "Incorrectly sized slice for u32".to_string(),
+                                        )
+                                    })?,
+                            );
 
                             Some(nr)
                         }
                     }
                 };
 
-                devs.push((
-                    DmNameBuf::new(dm_name).expect("name obtained from kernel"),
-                    device.dev.into(),
-                    event_nr,
-                ));
+                devs.push((DmNameBuf::new(dm_name)?, device.dev.into(), event_nr));
 
-                if device.next == 0 {
+                if result.is_empty() {
                     break;
                 }
 
@@ -297,16 +309,17 @@ impl DM {
         uuid: Option<&DmUuid>,
         options: &DmOptions,
     ) -> DmResult<DeviceInfo> {
-        let mut hdr = options.to_ioctl_hdr(None, DmFlags::DM_READONLY | DmFlags::DM_PERSISTENT_DEV);
+        let mut hdr =
+            options.to_ioctl_hdr(None, DmFlags::DM_READONLY | DmFlags::DM_PERSISTENT_DEV)?;
 
-        Self::hdr_set_name(&mut hdr, name);
+        Self::hdr_set_name(&mut hdr, name)?;
         if let Some(uuid) = uuid {
-            Self::hdr_set_uuid(&mut hdr, uuid);
+            Self::hdr_set_uuid(&mut hdr, uuid)?;
         }
 
         self.do_ioctl(dmi::DM_DEV_CREATE_CMD as u8, &mut hdr, None)?;
 
-        Ok(DeviceInfo::new(hdr))
+        DeviceInfo::new(hdr)
     }
 
     /// Remove a DM device and its mapping tables.
@@ -317,11 +330,11 @@ impl DM {
     ///
     /// Valid flags: DM_DEFERRED_REMOVE
     pub fn device_remove(&self, id: &DevId, options: &DmOptions) -> DmResult<DeviceInfo> {
-        let mut hdr = options.to_ioctl_hdr(Some(id), DmFlags::DM_DEFERRED_REMOVE);
+        let mut hdr = options.to_ioctl_hdr(Some(id), DmFlags::DM_DEFERRED_REMOVE)?;
 
         self.do_ioctl(dmi::DM_DEV_REMOVE_CMD as u8, &mut hdr, None)?;
 
-        Ok(DeviceInfo::new(hdr))
+        DeviceInfo::new(hdr)
     }
 
     /// Change a DM device's name OR set the device's uuid for the first time.
@@ -342,12 +355,12 @@ impl DM {
         };
         data_in.push(b'\0');
 
-        let mut hdr = options.to_ioctl_hdr(None, DmFlags::DM_UUID);
-        Self::hdr_set_name(&mut hdr, old_name);
+        let mut hdr = options.to_ioctl_hdr(None, DmFlags::DM_UUID)?;
+        Self::hdr_set_name(&mut hdr, old_name)?;
 
         self.do_ioctl(dmi::DM_DEV_RENAME_CMD as u8, &mut hdr, Some(&data_in))?;
 
-        Ok(DeviceInfo::new(hdr))
+        DeviceInfo::new(hdr)
     }
 
     /// Suspend or resume a DM device, depending on if DM_SUSPEND flag
@@ -377,22 +390,22 @@ impl DM {
         let mut hdr = options.to_ioctl_hdr(
             Some(id),
             DmFlags::DM_SUSPEND | DmFlags::DM_NOFLUSH | DmFlags::DM_SKIP_LOCKFS,
-        );
+        )?;
 
         self.do_ioctl(dmi::DM_DEV_SUSPEND_CMD as u8, &mut hdr, None)?;
 
-        Ok(DeviceInfo::new(hdr))
+        DeviceInfo::new(hdr)
     }
 
     /// Get DeviceInfo for a device. This is also returned by other
     /// methods, but if just the DeviceInfo is desired then this just
     /// gets it.
     pub fn device_info(&self, id: &DevId) -> DmResult<DeviceInfo> {
-        let mut hdr = DmOptions::new().to_ioctl_hdr(Some(id), DmFlags::empty());
+        let mut hdr = DmOptions::new().to_ioctl_hdr(Some(id), DmFlags::empty())?;
 
         self.do_ioctl(dmi::DM_DEV_STATUS_CMD as u8, &mut hdr, None)?;
 
-        Ok(DeviceInfo::new(hdr))
+        DeviceInfo::new(hdr)
     }
 
     /// Wait for a device to report an event.
@@ -408,13 +421,13 @@ impl DM {
         id: &DevId,
         options: &DmOptions,
     ) -> DmResult<(DeviceInfo, Vec<(u64, u64, String, String)>)> {
-        let mut hdr = options.to_ioctl_hdr(Some(id), DmFlags::DM_QUERY_INACTIVE_TABLE);
+        let mut hdr = options.to_ioctl_hdr(Some(id), DmFlags::DM_QUERY_INACTIVE_TABLE)?;
 
         let data_out = self.do_ioctl(dmi::DM_DEV_WAIT_CMD as u8, &mut hdr, None)?;
 
-        let status = DM::parse_table_status(hdr.target_count, &data_out);
+        let status = DM::parse_table_status(hdr.target_count, &data_out)?;
 
-        Ok((DeviceInfo::new(hdr), status))
+        DeviceInfo::new(hdr).map(|info| (info, status))
     }
 
     /// Load targets for a device into its inactive table slot.
@@ -450,66 +463,52 @@ impl DM {
         id: &DevId,
         targets: &[(u64, u64, String, String)],
     ) -> DmResult<DeviceInfo> {
-        let mut targs = Vec::new();
-
+        let mut cursor = Cursor::new(Vec::new());
         // Construct targets first, since we need to know how many & size
         // before initializing the header.
-        for t in targets {
+        for (sector_start, length, target_type, params) in targets {
             let mut targ = dmi::Struct_dm_target_spec {
-                sector_start: t.0,
-                length: t.1,
+                sector_start: *sector_start,
+                length: *length,
                 status: 0,
                 ..Default::default()
             };
 
-            let dst: &mut [u8] = unsafe { &mut *(&mut targ.target_type[..] as *mut [u8]) };
-            let bytes = t.2.as_bytes();
+            let dst = mut_slice_from_c_str(&mut targ.target_type);
             assert!(
-                bytes.len() <= dst.len(),
+                target_type.len() <= dst.len(),
                 "TargetType max length = targ.target_type.len()"
             );
-            dst[..bytes.len()].clone_from_slice(bytes);
+            target_type.as_bytes().read_exact(dst)?;
 
-            let mut params = t.3.to_owned();
-            let params_len = params.len();
-            let pad_bytes = align_to(params_len + 1usize, 8usize) - params_len;
-            params.extend(vec!["\0"; pad_bytes]);
+            let align_to_size = 8usize;
+            let aligned_len = align_to(params.len() + 1usize, align_to_size);
+            targ.next = (size_of::<dmi::Struct_dm_target_spec>() + aligned_len) as u32;
 
-            targ.next = (size_of::<dmi::Struct_dm_target_spec>() + params.len()) as u32;
-
-            targs.push((targ, params));
+            serialize(&mut cursor, &targ, None)?;
+            serialize(&mut cursor, &params.as_bytes(), Some(align_to_size))?;
         }
 
-        let mut hdr = DmOptions::new().to_ioctl_hdr(Some(id), DmFlags::empty());
+        let mut hdr = DmOptions::new().to_ioctl_hdr(Some(id), DmFlags::empty())?;
 
         // io_ioctl() will set hdr.data_size but we must set target_count
-        hdr.target_count = targs.len() as u32;
+        hdr.target_count = targets.len() as u32;
 
         // Flatten targets into a buf
-        let mut data_in = Vec::new();
-
-        for (targ, param) in targs {
-            unsafe {
-                let ptr = &targ as *const dmi::Struct_dm_target_spec as *mut u8;
-                let slc = slice::from_raw_parts(ptr, size_of::<dmi::Struct_dm_target_spec>());
-                data_in.extend_from_slice(slc);
-            }
-
-            data_in.extend(param.as_bytes());
-        }
+        let data_in = cursor.into_inner();
 
         self.do_ioctl(dmi::DM_TABLE_LOAD_CMD as u8, &mut hdr, Some(&data_in))?;
 
-        Ok(DeviceInfo::new(hdr))
+        DeviceInfo::new(hdr)
     }
 
     /// Clear the "inactive" table for a device.
     pub fn table_clear(&self, id: &DevId) -> DmResult<DeviceInfo> {
-        let mut hdr = DmOptions::new().to_ioctl_hdr(Some(id), DmFlags::empty());
+        let mut hdr = DmOptions::new().to_ioctl_hdr(Some(id), DmFlags::empty())?;
 
         self.do_ioctl(dmi::DM_TABLE_CLEAR_CMD as u8, &mut hdr, None)?;
 
-        Ok(DeviceInfo::new(hdr))
+        DeviceInfo::new(hdr)
     }
 
     /// Query DM for which devices are referenced by the "active"
@@ -520,7 +519,7 @@ impl DM {
     ///
     /// Valid flags: DM_QUERY_INACTIVE_TABLE
     pub fn table_deps(&self, id: &DevId, options: &DmOptions) -> DmResult<Vec<Device>> {
-        let mut hdr = options.to_ioctl_hdr(Some(id), DmFlags::DM_QUERY_INACTIVE_TABLE);
+        let mut hdr = options.to_ioctl_hdr(Some(id), DmFlags::DM_QUERY_INACTIVE_TABLE)?;
 
         let data_out = self.do_ioctl(dmi::DM_TABLE_DEPS_CMD as u8, &mut hdr, None)?;
 
@@ -563,7 +562,7 @@ impl DM {
     // will either be backwards-compatible, or will increment
     // DM_VERSION_MAJOR.  Since calls made with a non-matching major version
     // will fail, this protects against callers parsing unknown formats.
-    fn parse_table_status(count: u32, buf: &[u8]) -> Vec<(u64, u64, String, String)> {
+    fn parse_table_status(count: u32, buf: &[u8]) -> DmResult<Vec<(u64, u64, String, String)>> {
         let mut targets = Vec::new();
         if !buf.is_empty() {
             let mut next_off = 0;
@@ -576,24 +575,31 @@ impl DM {
                         .expect("assume all parsing succeeds")
                 };
 
-                let target_type = unsafe {
-                    let cast: &[u8; 16] = &*(&targ.target_type as *const [u8; 16]);
-                    let slc = slice_to_null(cast).expect("assume all parsing succeeds");
-                    String::from_utf8_lossy(slc).trim_end().to_owned()
-                };
+                let target_type = str_from_c_str(&targ.target_type)
+                    .ok_or_else(|| {
+                        DmError::Dm(
+                            ErrorEnum::Invalid,
+                            "Could not convert target type to a String".to_string(),
+                        )
+                    })?
+                    .to_string();
 
-                let params = {
-                    let slc = slice_to_null(&result[size_of::<dmi::Struct_dm_target_spec>()..])
-                        .expect("assume all parsing succeeds");
-                    String::from_utf8_lossy(slc).trim_end().to_owned()
-                };
+                let params =
+                    str_from_byte_slice(&result[size_of::<dmi::Struct_dm_target_spec>()..])
+                        .ok_or_else(|| {
+                            DmError::Dm(
+                                ErrorEnum::Invalid,
+                                "Invalid DM target parameters returned from kernel".to_string(),
+                            )
+                        })?
+                        .to_string();
 
                 targets.push((targ.sector_start, targ.length, target_type, params));
 
                 next_off = targ.next as usize;
             }
         }
-        targets
+        Ok(targets)
     }
 
     /// Return the status of all targets for a device's "active"
@@ -633,19 +639,19 @@ impl DM {
         let mut hdr = options.to_ioctl_hdr(
             Some(id),
             DmFlags::DM_NOFLUSH | DmFlags::DM_STATUS_TABLE | DmFlags::DM_QUERY_INACTIVE_TABLE,
-        );
+        )?;
 
         let data_out = self.do_ioctl(dmi::DM_TABLE_STATUS_CMD as u8, &mut hdr, None)?;
 
-        let status = DM::parse_table_status(hdr.target_count, &data_out);
+        let status = DM::parse_table_status(hdr.target_count, &data_out)?;
 
-        Ok((DeviceInfo::new(hdr), status))
+        DeviceInfo::new(hdr).map(|info| (info, status))
     }
 
     /// Returns a list of each loaded target type with its name, and
     /// version broken into major, minor, and patchlevel.
     pub fn list_versions(&self) -> DmResult<Vec<(String, u32, u32, u32)>> {
-        let mut hdr = DmOptions::new().to_ioctl_hdr(None, DmFlags::empty());
+        let mut hdr = DmOptions::new().to_ioctl_hdr(None, DmFlags::empty())?;
 
         let data_out = self.do_ioctl(dmi::DM_LIST_VERSIONS_CMD as u8, &mut hdr, None)?;
 
@@ -660,10 +666,15 @@ impl DM {
                         .expect("pointer to own structure result can not be NULL")
                 };
 
-                let name_slc =
-                    slice_to_null(&result[size_of::<dmi::Struct_dm_target_versions>()..])
-                        .expect("kernel data is well-formatted");
-                let name = String::from_utf8_lossy(name_slc).into_owned();
+                let name =
+                    str_from_byte_slice(&result[size_of::<dmi::Struct_dm_target_versions>()..])
+                        .ok_or_else(|| {
+                            DmError::Dm(
+                                ErrorEnum::Invalid,
+                                "Invalid DM target name returned from kernel".to_string(),
+                            )
+                        })?
+                        .to_string();
                 targets.push((name, tver.version[0], tver.version[1], tver.version[2]));
 
                 if tver.next == 0 {
@@ -686,7 +697,7 @@ impl DM {
         sector: Option<u64>,
         msg: &str,
     ) -> DmResult<(DeviceInfo, Option<String>)> {
-        let mut hdr = DmOptions::new().to_ioctl_hdr(Some(id), DmFlags::empty());
+        let mut hdr = DmOptions::new().to_ioctl_hdr(Some(id), DmFlags::empty())?;
 
         let msg_struct = dmi::Struct_dm_target_msg {
             sector: sector.unwrap_or_default(),
@@ -707,18 +718,18 @@ impl DM {
         } else {
             None
         };
-        Ok((DeviceInfo::new(hdr), output))
+        DeviceInfo::new(hdr).map(|info| (info, output))
     }
 
     /// If DM is being used to poll for events, once it indicates readiness it
     /// will continue to do so until we rearm it, which is what this method
     /// does.
     pub fn arm_poll(&self) -> DmResult<DeviceInfo> {
-        let mut hdr = DmOptions::new().to_ioctl_hdr(None, DmFlags::empty());
+        let mut hdr = DmOptions::new().to_ioctl_hdr(None, DmFlags::empty())?;
 
         self.do_ioctl(dmi::DM_DEV_ARM_POLL_CMD as u8, &mut hdr, None)?;
 
-        Ok(DeviceInfo::new(hdr))
+        DeviceInfo::new(hdr)
     }
 }
 

@@ -43,5 +43,11 @@ error_chain! {
             description("failed to get metadata for a device")
             display("failed to stat metadata for device at {} due to IO error: {}", path.to_string_lossy(), e)
         }
+
+        /// An error returned on general IO failure
+        GeneralIoError(e: std::io::Error) {
+            description("failed to perform IO operation")
+            display("failed to perform operation due to IO error: {}", e)
+        }
     }
 }
