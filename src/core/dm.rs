@@ -6,7 +6,7 @@ use std::{
     cmp,
     convert::TryInto,
     fs::File,
-    io::{Cursor, Read},
+    io::{Cursor, Read, Write},
     mem::size_of,
     os::unix::io::{AsRawFd, RawFd},
     slice, u32,
@@ -23,7 +23,10 @@ use crate::{
         dm_options::DmOptions,
         errors::ErrorKind,
         types::{DevId, DmName, DmNameBuf, DmUuid},
-        util::{align_to, mut_slice_from_c_str, serialize, str_from_byte_slice, str_from_c_str},
+        util::{
+            align_to, c_struct_from_slice, mut_slice_from_c_str, slice_from_c_struct,
+            str_from_byte_slice, str_from_c_str,
+        },
     },
     result::{DmError, DmResult, ErrorEnum},
 };
@@ -88,14 +91,12 @@ impl DM {
     }
 
     fn hdr_set_name(hdr: &mut dmi::Struct_dm_ioctl, name: &DmName) -> DmResult<()> {
-        name.as_bytes()
-            .read_exact(mut_slice_from_c_str(&mut hdr.name))?;
+        let _ = name.as_bytes().read(mut_slice_from_c_str(&mut hdr.name))?;
         Ok(())
     }
 
     fn hdr_set_uuid(hdr: &mut dmi::Struct_dm_ioctl, uuid: &DmUuid) -> DmResult<()> {
-        uuid.as_bytes()
-            .read_exact(mut_slice_from_c_str(&mut hdr.uuid))?;
+        let _ = uuid.as_bytes().read(mut_slice_from_c_str(&mut hdr.uuid))?;
         Ok(())
     }
 
@@ -225,13 +226,18 @@ impl DM {
             let mut result = &data_out[..];
 
             loop {
-                let device = unsafe {
-                    (result.as_ptr() as *const dmi::Struct_dm_name_list)
-                        .as_ref()
-                        .expect("pointer to own structure result can not be NULL")
-                };
+                let device =
+                    c_struct_from_slice::<dmi::Struct_dm_name_list>(result).ok_or_else(|| {
+                        DmError::Dm(
+                            ErrorEnum::Invalid,
+                            "Received null pointer from kernel".to_string(),
+                        )
+                    })?;
+                let name_offset = unsafe {
+                    (device.name.as_ptr() as *const u8).offset_from(device as *const _ as *const u8)
+                } as usize;
 
-                let dm_name = str_from_byte_slice(&result[size_of::<dmi::Struct_dm_name_list>()..])
+                let dm_name = str_from_byte_slice(&result[name_offset as usize..])
                     .map(|s| s.to_owned())
                     .ok_or_else(|| {
                         DmError::Dm(
@@ -249,10 +255,8 @@ impl DM {
                         0..=36 => None,
                         _ => {
                             // offsetof "name" in Struct_dm_name_list.
-                            let offset = align_to(
-                                size_of::<dmi::Struct_dm_name_list>() + dm_name.len() + 1,
-                                size_of::<u64>(),
-                            );
+                            let offset =
+                                align_to(name_offset + dm_name.len() + 1, size_of::<u64>());
                             let nr = u32::from_ne_bytes(
                                 result[offset..offset + size_of::<u32>()]
                                     .try_into()
@@ -271,7 +275,7 @@ impl DM {
 
                 devs.push((DmNameBuf::new(dm_name)?, device.dev.into(), event_nr));
 
-                if result.is_empty() {
+                if device.next == 0 {
                     break;
                 }
 
@@ -473,14 +477,18 @@ impl DM {
                 target_type.len() <= dst.len(),
                 "TargetType max length = targ.target_type.len()"
             );
-            target_type.as_bytes().read_exact(dst)?;
+            let _ = target_type.as_bytes().read(dst)?;
 
-            let align_to_size = 8usize;
+            // Size of the largest single member of dm_target_spec
+            let align_to_size = size_of::<u64>();
             let aligned_len = align_to(params.len() + 1usize, align_to_size);
             targ.next = (size_of::<dmi::Struct_dm_target_spec>() + aligned_len) as u32;
 
-            serialize(&mut cursor, &targ, None)?;
-            serialize(&mut cursor, &params.as_bytes(), Some(align_to_size))?;
+            cursor.write_all(slice_from_c_struct(&targ))?;
+            cursor.write_all(params.as_bytes())?;
+
+            let padding = aligned_len - params.len();
+            cursor.write_all(vec![0; padding].as_slice())?;
         }
 
         let mut hdr = DmOptions::new().to_ioctl_hdr(Some(id), DmFlags::empty())?;

@@ -2,13 +2,7 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-use std::{
-    io::{Cursor, Write},
-    mem::size_of,
-    slice, str,
-};
-
-use crate::result::DmResult;
+use std::{mem::size_of, slice, str};
 
 /// The smallest number divisible by `align_to` and at least `num`.
 /// Precondition: `align_to` is a power of 2.
@@ -44,20 +38,11 @@ pub fn mut_slice_from_c_str(c_str: &mut [i8]) -> &mut [u8] {
 }
 
 /// Convert the C struct into a properly-sized byte slice
-fn slice_from_c_struct<T>(strct: &T) -> &[u8] {
+pub fn slice_from_c_struct<T>(strct: &T) -> &[u8] {
     unsafe { slice::from_raw_parts(strct as *const _ as *const u8, size_of::<T>()) }
 }
 
-/// Serialize a sequence of C structs into a byte vector
-pub fn serialize<T>(
-    cur: &mut Cursor<Vec<u8>>,
-    strct: &T,
-    alignment: Option<usize>,
-) -> DmResult<()> {
-    cur.write_all(slice_from_c_struct(strct))?;
-    if let Some(a) = alignment {
-        cur.set_position(align_to(cur.position() as usize, a) as u64);
-    }
-
-    Ok(())
+/// Convert the byte slice into a properly sized C string reference
+pub fn c_struct_from_slice<T>(slice: &[u8]) -> Option<&T> {
+    unsafe { (slice as *const _ as *const T).as_ref() }
 }
