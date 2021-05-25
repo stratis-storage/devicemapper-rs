@@ -113,8 +113,8 @@ pub trait DmDevice<T: TargetTable> {
     fn table(&self) -> &T;
 
     /// Load a table
-    fn table_load(&self, dm: &DM, table: &T) -> DmResult<()> {
-        dm.table_load(&DevId::Name(self.name()), &table.to_raw_table())?;
+    fn table_load(&self, dm: &DM, table: &T, options: &DmOptions) -> DmResult<()> {
+        dm.table_load(&DevId::Name(self.name()), &table.to_raw_table(), options)?;
         Ok(())
     }
 
@@ -144,7 +144,7 @@ pub fn device_create<T: TargetTable>(
     dm.device_create(name, uuid, &DmOptions::new())?;
 
     let id = DevId::Name(name);
-    let dev_info = match dm.table_load(&id, &table.to_raw_table()) {
+    let dev_info = match dm.table_load(&id, &table.to_raw_table(), &DmOptions::default()) {
         Err(e) => {
             dm.device_remove(&id, &DmOptions::new())?;
             return Err(e);

@@ -390,7 +390,7 @@ impl ThinDev {
     pub fn set_table(&mut self, dm: &DM, table: TargetLine<ThinTargetParams>) -> DmResult<()> {
         let table = ThinDevTargetTable::new(table.start, table.length, table.params);
         self.suspend(dm, false)?;
-        self.table_load(dm, &table)?;
+        self.table_load(dm, &table, &DmOptions::default())?;
         self.resume(dm)?;
 
         self.table = table;

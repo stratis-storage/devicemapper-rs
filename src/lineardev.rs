@@ -565,7 +565,7 @@ impl LinearDev {
     ) -> DmResult<()> {
         let table = LinearDevTargetTable::new(table);
         self.suspend(dm, false)?;
-        self.table_load(dm, &table)?;
+        self.table_load(dm, &table, &DmOptions::default())?;
         self.table = table;
         Ok(())
     }
