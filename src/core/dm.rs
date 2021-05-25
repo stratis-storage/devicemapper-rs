@@ -467,7 +467,47 @@ impl DM {
         id: &DevId,
         targets: &[(u64, u64, String, String)],
     ) -> DmResult<DeviceInfo> {
+        self.table_load_flags(id, targets, DmFlags::empty())
+    }
+
+    /// Load targets for a device into its inactive table slot with flags.
+    ///
+    /// Valid flags: DM_READONLY
+    ///
+    /// `targets` is an array of (sector_start, sector_length, type, params).
+    ///
+    /// `params` are target-specific, please see [Linux kernel documentation]
+    /// https://git.kernel.org/cgit/linux/kernel/git/torvalds/linux.git/tree/ ->
+    /// Documentation/device-mapper
+    /// for more.
+    ///
+    /// # Example
+    ///
+    /// ```no_run
+    /// use devicemapper::{DM, DevId, DmFlags, DmName};
+    /// let dm = DM::new().unwrap();
+    ///
+    /// // Create a 16MiB device (32768 512-byte sectors) that maps to /dev/sdb1
+    /// // starting 1MiB into sdb1
+    /// let table = vec![(
+    ///     0,
+    ///     32768,
+    ///     "linear".into(),
+    ///     "/dev/sdb1 2048".into()
+    /// )];
+    ///
+    /// let name = DmName::new("example-dev").expect("is valid DM name");
+    /// let id = DevId::Name(name);
+    /// dm.table_load_flags(&id, &table, DmFlags::DM_READONLY).unwrap();
+    /// ```
+    pub fn table_load_flags(
+        &self,
+        id: &DevId,
+        targets: &[(u64, u64, String, String)],
+        flags: DmFlags,
+    ) -> DmResult<DeviceInfo> {
         let mut cursor = Cursor::new(Vec::new());
+
         // Construct targets first, since we need to know how many & size
         // before initializing the header.
         for (sector_start, length, target_type, params) in targets {
@@ -497,7 +537,9 @@ impl DM {
             cursor.write_all(vec![0; padding].as_slice())?;
         }
 
-        let mut hdr = DmOptions::new().to_ioctl_hdr(Some(id), DmFlags::empty())?;
+        let mut hdr = DmOptions::new()
+            .set_flags(flags)
+            .to_ioctl_hdr(Some(id), DmFlags::DM_READONLY)?;
 
         // io_ioctl() will set hdr.data_size but we must set target_count
         hdr.target_count = targets.len() as u32;

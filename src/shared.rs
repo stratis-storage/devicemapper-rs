@@ -118,6 +118,12 @@ pub trait DmDevice<T: TargetTable> {
         Ok(())
     }
 
+    /// Load a table with flags
+    fn table_load_flags(&self, dm: &DM, table: &T, flags: DmFlags) -> DmResult<()> {
+        dm.table_load_flags(&DevId::Name(self.name()), &table.to_raw_table(), flags)?;
+        Ok(())
+    }
+
     /// Erase the kernel's memory of this device.
     fn teardown(&mut self, dm: &DM) -> DmResult<()>;
 
