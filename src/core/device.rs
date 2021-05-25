@@ -2,10 +2,13 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-use std::{fmt, io, os::linux::fs::MetadataExt, path::Path, str::FromStr};
+use std::{fmt, io, path::Path, str::FromStr};
 
 use libc::{dev_t, major, makedev, minor};
-use nix::sys::stat::SFlag;
+use nix::{
+    errno::Errno,
+    sys::stat::{self, SFlag},
+};
 
 use crate::{
     core::errors::ErrorKind,
@@ -63,16 +66,28 @@ impl FromStr for Device {
 
 impl From<dev_t> for Device {
     fn from(val: dev_t) -> Device {
-        Device {
-            major: unsafe { major(val) },
-            minor: unsafe { minor(val) },
-        }
+        let major = unsafe { major(val) };
+        #[cfg(target_os = "android")]
+        let major = major as u32;
+
+        let minor = unsafe { minor(val) };
+        #[cfg(target_os = "android")]
+        let minor = minor as u32;
+
+        Device { major, minor }
     }
 }
 
 impl From<Device> for dev_t {
     fn from(dev: Device) -> dev_t {
-        unsafe { makedev(dev.major, dev.minor) }
+        #[cfg(target_os = "android")]
+        unsafe {
+            makedev(dev.major as i32, dev.minor as i32)
+        }
+        #[cfg(not(target_os = "android"))]
+        unsafe {
+            makedev(dev.major, dev.minor)
+        }
     }
 }
 
@@ -102,22 +117,19 @@ impl Device {
 /// interested in other sorts of devices. Return None if the device appears
 /// not to exist.
 pub fn devnode_to_devno(path: &Path) -> DmResult<Option<u64>> {
-    match path.metadata() {
+    match stat::stat(path) {
         Ok(metadata) => Ok(
-            if metadata.st_mode() & SFlag::S_IFMT.bits() == SFlag::S_IFBLK.bits() {
-                Some(metadata.st_rdev())
+            if metadata.st_mode & SFlag::S_IFMT.bits() == SFlag::S_IFBLK.bits() {
+                Some(metadata.st_rdev)
             } else {
                 None
             },
         ),
-        Err(err) => {
-            if err.kind() == io::ErrorKind::NotFound {
-                return Ok(None);
-            }
-            Err(DmError::Core(
-                ErrorKind::MetadataIoError(path.to_owned(), err).into(),
-            ))
-        }
+        Err(err) if err == nix::Error::Sys(Errno::ENOENT) => Ok(None),
+        Err(err) => Err(DmError::Core(
+            ErrorKind::MetadataIoError(path.to_owned(), io::Error::new(io::ErrorKind::Other, err))
+                .into(),
+        )),
     }
 }
 

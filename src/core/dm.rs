@@ -147,6 +147,8 @@ impl DM {
         };
         let op = request_code_readwrite!(DM_IOCTL, ioctl, size_of::<dmi::Struct_dm_ioctl>());
         loop {
+            #[cfg(target_os = "android")]
+            let op = op as i32;
             if let Err(err) =
                 unsafe { convert_ioctl_res!(nix_ioctl(self.file.as_raw_fd(), op, v.as_mut_ptr())) }
             {
