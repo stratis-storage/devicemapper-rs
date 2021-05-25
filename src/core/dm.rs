@@ -28,8 +28,12 @@ use crate::{
 
 /// Indicator to send IOCTL to DM
 const DM_IOCTL: u8 = 0xfd;
+#[cfg(target_os = "linux")]
 /// Control path for user space to pass IOCTL to kernel DM
 const DM_CTL_PATH: &str = "/dev/mapper/control";
+#[cfg(target_os = "android")]
+/// Control path for user space to pass IOCTL to kernel DM
+const DM_CTL_PATH: &str = "/dev/device-mapper";
 /// Major version
 const DM_VERSION_MAJOR: u32 = 4;
 /// Minor version
