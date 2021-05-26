@@ -28,8 +28,12 @@ use crate::{
 
 /// Indicator to send IOCTL to DM
 const DM_IOCTL: u8 = 0xfd;
+#[cfg(target_os = "linux")]
 /// Control path for user space to pass IOCTL to kernel DM
 const DM_CTL_PATH: &str = "/dev/mapper/control";
+#[cfg(target_os = "android")]
+/// Control path for user space to pass IOCTL to kernel DM
+const DM_CTL_PATH: &str = "/dev/device-mapper";
 /// Major version
 const DM_VERSION_MAJOR: u32 = 4;
 /// Minor version
@@ -143,6 +147,8 @@ impl DM {
         };
         let op = request_code_readwrite!(DM_IOCTL, ioctl, size_of::<dmi::Struct_dm_ioctl>());
         loop {
+            #[cfg(target_os = "android")]
+            let op = op as i32;
             if let Err(err) =
                 unsafe { convert_ioctl_res!(nix_ioctl(self.file.as_raw_fd(), op, v.as_mut_ptr())) }
             {
