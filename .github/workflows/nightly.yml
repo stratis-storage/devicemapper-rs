@@ -39,3 +39,35 @@ jobs:
           sudo apt-get -y install libdevmapper-dev
       - name: Test ${{ matrix.task }} on ${{ matrix.toolchain }} toolchain
         run: make -f Makefile ${{ matrix.task }}
+
+  checks-with-ci-repo:
+    continue-on-error: true
+    runs-on: ubuntu-18.04
+    container:
+      image: fedora:33  # CURRENT DEVELOPMENT ENVIRONMENT
+    steps:
+      - uses: actions/checkout@v2
+      - name: Install dependencies for Fedora
+        run: >
+          dnf install -y
+          clang
+          curl
+          cryptsetup-devel
+          dbus-devel
+          git
+          libblkid-devel
+          make
+          openssl-devel
+          python-requests
+          python-semantic_version
+          systemd-devel
+      - uses: actions-rs/toolchain@v1
+        with:
+          components: cargo
+          toolchain: 1.52.1  # CURRENT DEVELOPMENT TOOLCHAIN
+          override: true
+      - name: Check out ci repo
+        run: git clone https://github.com/stratis-storage/ci.git
+      - name: Compare Fedora versions
+        run: compare_fedora_versions
+        working-directory: ./ci/dependency_management
