@@ -13,19 +13,19 @@ edition = "2018"
 exclude = [".gitignore", ".github/*"]
 
 [dependencies]
-libc = "0.2.94"
-nix = "0.20"
 bitflags = "1.1.0"
-serde = "1.0.60"
 error-chain = "0.12.4"
+libc = "0.2.94"
+nix = "0.20.0"
+serde = "1.0.60"
 
 [dev-dependencies]
-loopdev = "0.2"
-tempfile = "3.0.2"
-libudev = "0.2.0"
 libmount = "0.1.11"
+libudev = "0.2.0"
+loopdev = "0.2.0"
 matches = "0.1.8"
+tempfile = "3.0.2"
 
 [dev-dependencies.uuid]
-version = "0.8"
+version = "0.8.0"
 features = ["v4"]
