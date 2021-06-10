@@ -27,6 +27,9 @@ tree: ${HOME}/.cargo/bin/cargo-tree
 audit: ${HOME}/.cargo/bin/cargo-audit
 	PATH=${HOME}/.cargo/bin:${PATH} cargo audit -D warnings
 
+check-fedora-versions:
+	`${COMPARE_FEDORA_VERSIONS} | jq '[.missing == [], .high == []] | all'`
+
 fmt:
 	cargo fmt
 
@@ -57,6 +60,7 @@ yamllint:
 .PHONY:
 	audit
 	build
+	check-fedora-versions:
 	clippy
 	docs
 	fmt
