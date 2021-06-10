@@ -52,10 +52,7 @@ jobs:
           dnf install -y
           clang
           curl
-          cryptsetup-devel
-          dbus-devel
           git
-          libblkid-devel
           make
           openssl-devel
           python-requests
