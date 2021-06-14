@@ -9,7 +9,7 @@ use std::{
     io::{Cursor, Read, Write},
     mem::size_of,
     os::unix::io::{AsRawFd, RawFd},
-    slice, u32,
+    slice, str, u32,
 };
 
 use nix::libc::ioctl as nix_ioctl;
@@ -722,7 +722,16 @@ impl DM {
         let data_out = self.do_ioctl(dmi::DM_TARGET_MSG_CMD as u8, &mut hdr, Some(&data_in))?;
 
         let output = if (hdr.flags & DmFlags::DM_DATA_OUT.bits()) > 0 {
-            Some(String::from_utf8_lossy(&data_out[..data_out.len() - 1]).into_owned())
+            Some(
+                str::from_utf8(&data_out[..data_out.len() - 1])
+                    .map(|res| res.to_string())
+                    .map_err(|_| {
+                        DmError::Dm(
+                            ErrorEnum::Invalid,
+                            "Could not convert output to a String".to_string(),
+                        )
+                    })?,
+            )
         } else {
             None
         };
