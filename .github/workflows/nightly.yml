@@ -65,5 +65,5 @@ jobs:
       - name: Check out ci repo
         run: git clone https://github.com/stratis-storage/ci.git
       - name: Compare Fedora versions
-        run: compare_fedora_versions
+        run: ./compare_fedora_versions
         working-directory: ./ci/dependency_management
