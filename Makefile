@@ -32,6 +32,11 @@ tree: ${HOME}/.cargo/bin/cargo-tree
 audit: ${HOME}/.cargo/bin/cargo-audit
 	PATH=${HOME}/.cargo/bin:${PATH} cargo audit -D warnings
 
+verify-dependency-bounds:
+	RUSTFLAGS="${DENY}" cargo build
+	${SET_LOWER_BOUNDS} ${MANIFEST_PATH_ARGS}
+	RUSTFLAGS="${DENY}" cargo build
+
 check-fedora-versions:
 	`${COMPARE_FEDORA_VERSIONS} ${MANIFEST_PATH_ARGS} \
 		| jq '[.missing == [], .high == []] | all'`
