@@ -1,3 +1,8 @@
+ifeq ($(origin MANIFEST_PATH), undefined)
+else
+  MANIFEST_PATH_ARGS = --manifest-path=${MANIFEST_PATH}
+endif
+
 RUST_2018_IDIOMS = -D bare-trait-objects  \
                    -D ellipsis-inclusive-range-patterns \
                    -D unused-extern-crates
@@ -28,7 +33,8 @@ audit: ${HOME}/.cargo/bin/cargo-audit
 	PATH=${HOME}/.cargo/bin:${PATH} cargo audit -D warnings
 
 check-fedora-versions:
-	`${COMPARE_FEDORA_VERSIONS} | jq '[.missing == [], .high == []] | all'`
+	`${COMPARE_FEDORA_VERSIONS} ${MANIFEST_PATH_ARGS} \
+		| jq '[.missing == [], .high == []] | all'`
 
 fmt:
 	cargo fmt

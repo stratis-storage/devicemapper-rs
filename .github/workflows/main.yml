@@ -83,6 +83,7 @@ jobs:
       - name: Run check-fedora-versions target
         run: >
           COMPARE_FEDORA_VERSIONS=./compare_fedora_versions
+          MANIFEST_PATH=../../Cargo.toml
           make -f ../../Makefile check-fedora-versions
         working-directory: ./ci/dependency_management
 
