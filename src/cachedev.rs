@@ -855,7 +855,7 @@ mod tests {
 
                 assert_eq!(status.metadata_mode, CacheDevMetadataMode::Good);
 
-                assert_eq!(status.needs_check, false);
+                assert!(status.needs_check, "{}", false);
             }
             status => panic!("unexpected thinpool status: {:?}", status),
         }
