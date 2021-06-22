@@ -699,7 +699,7 @@ mod tests {
             ThinPoolStatus::Working(ref status)
                 if status.summary == ThinPoolStatusSummary::Good =>
             {
-                assert!(status.discard_passdown, "{}", false);
+                assert!(!status.discard_passdown);
                 assert_eq!(status.held_metadata_root, None);
 
                 let usage = &status.usage;
