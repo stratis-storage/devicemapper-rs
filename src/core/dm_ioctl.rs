@@ -10,6 +10,7 @@ use crate::core::util::str_from_c_str;
 #[allow(dead_code)]
 #[allow(non_snake_case)]
 #[allow(clippy::redundant_static_lifetimes)]
+#[allow(deref_nullptr)]
 mod bindings {
     include!(concat!(env!("OUT_DIR"), "/bindings.rs"));
 }
