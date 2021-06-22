@@ -11,6 +11,7 @@ use crate::core::util::str_from_c_str;
 #[allow(non_snake_case)]
 #[allow(clippy::redundant_static_lifetimes)]
 #[allow(deref_nullptr)]
+#[allow(unknown_lints)]
 mod bindings {
     include!(concat!(env!("OUT_DIR"), "/bindings.rs"));
 }
