@@ -18,10 +18,10 @@ jobs:
         include:
           # MANDATORY CHECKS USING CURRENT DEVELOPMENT COMPILER
           - components: rustfmt
-            toolchain: 1.52.1
+            toolchain: 1.53.0
             task: make -f Makefile travis_fmt
           - components: clippy
-            toolchain: 1.52.1
+            toolchain: 1.53.0
             task: make -f Makefile clippy
           # MANDATORY TESTING USING LOWEST SUPPORTED COMPILER
           - components: cargo
@@ -87,7 +87,7 @@ jobs:
       - uses: actions-rs/toolchain@v1
         with:
           components: cargo
-          toolchain: 1.52.1  # CURRENT DEVELOPMENT TOOLCHAIN
+          toolchain: 1.53.0  # CURRENT DEVELOPMENT TOOLCHAIN
           override: true
       - name: Check out ci repo
         run: git clone https://github.com/stratis-storage/ci.git
