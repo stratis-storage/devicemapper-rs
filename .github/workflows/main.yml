@@ -75,11 +75,14 @@ jobs:
         run: |
           sudo apt-get -q update
           sudo apt-get -y install libdevmapper-dev
-      - uses: actions-rs/cargo@v1
-        with:
-          use-cross: true
-          command: check
-          args: --target ${{ matrix.target }}
+      - name: Install core/std for ${{ matrix.target }}
+        run: >
+          rustup target add
+          --toolchain ${{ matrix.toolchain }}
+          ${{ matrix.target }}
+      - name: Run 'cargo check' on the specified target
+        run: cargo check --target ${{ matrix.target }}
+
 
   checks-with-ci-repo:
     strategy:
