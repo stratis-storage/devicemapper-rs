@@ -15,11 +15,13 @@ pub fn align_to(num: usize, align_to: usize) -> usize {
 }
 
 /// Convert from a &[i8] to a &[u8].
+#[cfg(not(target_os = "android"))]
 pub fn byte_slice_from_c_str(c_str: &[i8]) -> &[u8] {
     unsafe { slice::from_raw_parts(c_str as *const _ as *const u8, c_str.len()) }
 }
 
 /// Return a String parsed from the C string up to the first \0, or None
+#[cfg(not(target_os = "android"))]
 pub fn str_from_c_str(slc: &[i8]) -> Option<&str> {
     let slc = byte_slice_from_c_str(slc);
     str_from_byte_slice(slc)
@@ -33,6 +35,7 @@ pub fn str_from_byte_slice(slc: &[u8]) -> Option<&str> {
 }
 
 /// Return a mutable slice from the mutable C string provided as input
+#[cfg(not(target_os = "android"))]
 pub fn mut_slice_from_c_str(c_str: &mut [i8]) -> &mut [u8] {
     unsafe { slice::from_raw_parts_mut(c_str as *mut _ as *mut u8, c_str.len()) }
 }

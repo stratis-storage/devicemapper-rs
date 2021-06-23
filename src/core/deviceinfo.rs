@@ -6,13 +6,16 @@ use std::convert::TryFrom;
 
 use semver::Version;
 
+#[cfg(target_os = "android")]
+use crate::core::util::str_from_byte_slice;
+#[cfg(not(target_os = "android"))]
+use crate::core::util::str_from_c_str;
 use crate::{
     core::{
         device::Device,
         dm_flags::DmFlags,
         dm_ioctl as dmi,
         types::{DmName, DmNameBuf, DmUuid, DmUuidBuf},
-        util::str_from_c_str,
     },
     result::{DmError, DmResult, ErrorEnum},
 };
@@ -41,7 +44,11 @@ impl TryFrom<dmi::Struct_dm_ioctl> for DeviceInfo {
     type Error = DmError;
 
     fn try_from(ioctl: dmi::Struct_dm_ioctl) -> DmResult<Self> {
-        let uuid = str_from_c_str(&ioctl.uuid as &[i8]).ok_or_else(|| {
+        #[cfg(not(target_os = "android"))]
+        let uuid = str_from_c_str(&ioctl.uuid as &[i8]);
+        #[cfg(target_os = "android")]
+        let uuid = str_from_byte_slice(&ioctl.uuid as &[u8]);
+        let uuid = uuid.ok_or_else(|| {
             DmError::Dm(
                 ErrorEnum::Invalid,
                 "Devicemapper UUID is not null terminated".to_string(),
@@ -52,6 +59,20 @@ impl TryFrom<dmi::Struct_dm_ioctl> for DeviceInfo {
         } else {
             Some(DmUuidBuf::new(uuid.to_string())?)
         };
+
+        #[cfg(not(target_os = "android"))]
+        let name = str_from_c_str(&ioctl.name as &[i8]);
+        #[cfg(target_os = "android")]
+        let name = str_from_byte_slice(&ioctl.name as &[u8]);
+        let name = DmNameBuf::new(
+            name.ok_or_else(|| {
+                DmError::Dm(
+                    ErrorEnum::Invalid,
+                    "Devicemapper name is not null terminated".to_string(),
+                )
+            })?
+            .to_string(),
+        )?;
         Ok(DeviceInfo {
             version: Version::new(
                 u64::from(ioctl.version[0]),
@@ -67,16 +88,7 @@ impl TryFrom<dmi::Struct_dm_ioctl> for DeviceInfo {
             // dm_ioctl struct reserves 64 bits for device but kernel "huge"
             // encoding is only 32 bits.
             dev: Device::from_kdev_t(ioctl.dev as u32),
-            name: DmNameBuf::new(
-                str_from_c_str(&ioctl.name as &[i8])
-                    .ok_or_else(|| {
-                        DmError::Dm(
-                            ErrorEnum::Invalid,
-                            "Devicemapper name is not null terminated".to_string(),
-                        )
-                    })?
-                    .to_string(),
-            )?,
+            name,
             uuid,
         })
     }

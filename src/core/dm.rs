@@ -23,13 +23,13 @@ use crate::{
         dm_options::DmOptions,
         errors::ErrorKind,
         types::{DevId, DmName, DmNameBuf, DmUuid},
-        util::{
-            align_to, c_struct_from_slice, mut_slice_from_c_str, slice_from_c_struct,
-            str_from_byte_slice, str_from_c_str,
-        },
+        util::{align_to, c_struct_from_slice, slice_from_c_struct, str_from_byte_slice},
     },
     result::{DmError, DmResult, ErrorEnum},
 };
+
+#[cfg(not(target_os = "android"))]
+use crate::core::util::{mut_slice_from_c_str, str_from_c_str};
 
 /// Indicator to send IOCTL to DM
 const DM_IOCTL: u8 = 0xfd;
@@ -95,12 +95,22 @@ impl DM {
     }
 
     fn hdr_set_name(hdr: &mut dmi::Struct_dm_ioctl, name: &DmName) -> DmResult<()> {
-        let _ = name.as_bytes().read(mut_slice_from_c_str(&mut hdr.name))?;
+        #[cfg(not(target_os = "android"))]
+        let hdr_name = mut_slice_from_c_str(&mut hdr.name);
+        #[cfg(target_os = "android")]
+        let hdr_name = &mut hdr.name;
+
+        let _ = name.as_bytes().read(hdr_name)?;
         Ok(())
     }
 
     fn hdr_set_uuid(hdr: &mut dmi::Struct_dm_ioctl, uuid: &DmUuid) -> DmResult<()> {
-        let _ = uuid.as_bytes().read(mut_slice_from_c_str(&mut hdr.uuid))?;
+        #[cfg(not(target_os = "android"))]
+        let hdr_uuid = mut_slice_from_c_str(&mut hdr.uuid);
+        #[cfg(target_os = "android")]
+        let hdr_uuid = &mut hdr.uuid;
+
+        let _ = uuid.as_bytes().read(hdr_uuid)?;
         Ok(())
     }
 
@@ -478,7 +488,11 @@ impl DM {
                 ..Default::default()
             };
 
+            #[cfg(not(target_os = "android"))]
             let dst = mut_slice_from_c_str(&mut targ.target_type);
+            #[cfg(target_os = "android")]
+            let dst = &mut targ.target_type;
+
             assert!(
                 target_type.len() <= dst.len(),
                 "TargetType max length = targ.target_type.len()"
@@ -583,7 +597,12 @@ impl DM {
                         .expect("assume all parsing succeeds")
                 };
 
-                let target_type = str_from_c_str(&targ.target_type)
+                #[cfg(not(target_os = "android"))]
+                let target_type = str_from_c_str(&targ.target_type);
+                #[cfg(target_os = "android")]
+                let target_type = str_from_byte_slice(&targ.target_type);
+
+                let target_type = target_type
                     .ok_or_else(|| {
                         DmError::Dm(
                             ErrorEnum::Invalid,
