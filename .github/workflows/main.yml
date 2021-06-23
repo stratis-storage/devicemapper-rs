@@ -56,6 +56,31 @@ jobs:
       - name: Test ${{ matrix.task }} on ${{ matrix.toolchain }} toolchain
         run: ${{ matrix.task }}
 
+  architecture-specific-checks:
+    strategy:
+      matrix:
+        include:
+          - components: cargo
+            toolchain: 1.52.1
+            target: aarch64-linux-android
+    runs-on: ubuntu-18.04
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: ${{ matrix.toolchain }}
+          target: ${{ matrix.target }}
+          override: true
+      - name: Install dependencies
+        run: |
+          sudo apt-get -q update
+          sudo apt-get -y install libdevmapper-dev
+      - uses: actions-rs/cargo@v1
+        with:
+          use-cross: true
+          command: build
+          args: --target ${{ matrix.target }}
+
   checks-with-ci-repo:
     strategy:
       matrix:
