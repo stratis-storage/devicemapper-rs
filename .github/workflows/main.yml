@@ -78,7 +78,7 @@ jobs:
       - uses: actions-rs/cargo@v1
         with:
           use-cross: true
-          command: build
+          command: check
           args: --target ${{ matrix.target }}
 
   checks-with-ci-repo:
