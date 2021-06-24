@@ -38,8 +38,7 @@ verify-dependency-bounds:
 	RUSTFLAGS="${DENY}" cargo build
 
 check-fedora-versions:
-	`${COMPARE_FEDORA_VERSIONS} ${MANIFEST_PATH_ARGS} \
-		| jq '[.missing == [], .high == []] | all'`
+	${COMPARE_FEDORA_VERSIONS} ${MANIFEST_PATH_ARGS}
 
 fmt:
 	cargo fmt
