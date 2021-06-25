@@ -4,6 +4,8 @@
 
 use std::{mem::size_of, slice, str};
 
+use libc::c_char;
+
 /// The smallest number divisible by `align_to` and at least `num`.
 /// Precondition: `align_to` is a power of 2.
 /// Precondition: `num` + `align_to` < usize::MAX + 1.
@@ -14,13 +16,13 @@ pub fn align_to(num: usize, align_to: usize) -> usize {
     (num + agn) & !agn
 }
 
-/// Convert from a &[i8] to a &[u8].
-pub fn byte_slice_from_c_str(c_str: &[i8]) -> &[u8] {
+/// Convert from a &[c_char] to a &[u8].
+pub fn byte_slice_from_c_str(c_str: &[c_char]) -> &[u8] {
     unsafe { slice::from_raw_parts(c_str as *const _ as *const u8, c_str.len()) }
 }
 
 /// Return a String parsed from the C string up to the first \0, or None
-pub fn str_from_c_str(slc: &[i8]) -> Option<&str> {
+pub fn str_from_c_str(slc: &[c_char]) -> Option<&str> {
     let slc = byte_slice_from_c_str(slc);
     str_from_byte_slice(slc)
 }
@@ -33,7 +35,7 @@ pub fn str_from_byte_slice(slc: &[u8]) -> Option<&str> {
 }
 
 /// Return a mutable slice from the mutable C string provided as input
-pub fn mut_slice_from_c_str(c_str: &mut [i8]) -> &mut [u8] {
+pub fn mut_slice_from_c_str(c_str: &mut [c_char]) -> &mut [u8] {
     unsafe { slice::from_raw_parts_mut(c_str as *mut _ as *mut u8, c_str.len()) }
 }
 
