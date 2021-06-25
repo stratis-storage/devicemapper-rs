@@ -33,9 +33,9 @@ audit: ${HOME}/.cargo/bin/cargo-audit
 	PATH=${HOME}/.cargo/bin:${PATH} cargo audit -D warnings
 
 verify-dependency-bounds:
-	RUSTFLAGS="${DENY}" cargo build
+	RUSTFLAGS="${DENY}" cargo build ${MANIFEST_PATH_ARGS}
 	${SET_LOWER_BOUNDS} ${MANIFEST_PATH_ARGS}
-	RUSTFLAGS="${DENY}" cargo build
+	RUSTFLAGS="${DENY}" cargo build ${MANIFEST_PATH_ARGS}
 
 check-fedora-versions:
 	${COMPARE_FEDORA_VERSIONS} ${MANIFEST_PATH_ARGS}
@@ -78,4 +78,5 @@ yamllint:
 	test
 	travis_fmt
 	tree
+	verify-dependency-bounds
 	yamllint
