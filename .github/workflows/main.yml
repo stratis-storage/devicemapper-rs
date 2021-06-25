@@ -57,14 +57,6 @@ jobs:
         run: ${{ matrix.task }}
 
   musl-checks:
-    strategy:
-      matrix:
-        include:
-          - task: make -f Makefile travis_fmt
-          - task: make -f Makefile clippy
-          - task: make -f Makefile sudo_test
-          - task: make -f Makefile build
-          - task: make -f Makefile docs
     runs-on: ubuntu-18.04
     container:
       image: alpine
@@ -72,8 +64,8 @@ jobs:
       - uses: actions/checkout@v2
       - name: Install dependencies
         run: apk add cargo clang linux-headers make rust
-      - name: Test ${{ matrix.task }} on Alpine Linux
-        run: ${{ matrix.task }}
+      - name: Test build on Alpine Linux
+        run: make -f Makefile build
 
   checks-with-ci-repo:
     strategy:
