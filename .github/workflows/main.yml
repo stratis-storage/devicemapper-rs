@@ -56,6 +56,29 @@ jobs:
       - name: Test ${{ matrix.task }} on ${{ matrix.toolchain }} toolchain
         run: ${{ matrix.task }}
 
+  android-build:
+    env:
+      TARGET: aarch64-linux-android
+    runs-on: ubuntu-18.04
+    container:
+      image: docker.io/circleci/android:api-30-ndk
+    steps:
+      - uses: actions/checkout@v2
+      - name: Install dependencies
+        run: |
+          sudo apt-get -q update
+          sudo apt-get -y install clang
+      - uses: actions-rs/toolchain@v1
+        with:
+          components: cargo
+          toolchain: stable
+          target: x86_64-unknown-linux-gnu
+          override: true
+      - name: Add Android target
+        run: rustup target add ${{ env.TARGET }}
+      - name: Cross compilation build on Android
+        run: cargo build --target ${{ env.TARGET }}
+
   checks-with-ci-repo:
     strategy:
       matrix:
