@@ -57,6 +57,8 @@ jobs:
         run: ${{ matrix.task }}
 
   musl-checks:
+    env:
+      PATH: /github/home/.cargo/bin:$PATH
     strategy:
       matrix:
         include:
