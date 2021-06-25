@@ -60,18 +60,10 @@ jobs:
     strategy:
       matrix:
         include:
-          # MANDATORY CHECKS USING CURRENT DEVELOPMENT COMPILER
           - task: make -f Makefile travis_fmt
           - task: make -f Makefile clippy
-          # MANDATORY TESTING USING LOWEST SUPPORTED COMPILER
-          - task: >
-              sudo PATH=$GITHUB_WORKSPACE/.cargo/bin:$PATH
-              make -f Makefile sudo_test
-          # MANDATORY TESTING ON STABLE
+          - task: make -f Makefile sudo_test
           - task: make -f Makefile build
-          - task: >
-              sudo PATH=$GITHUB_WORKSPACE/.cargo/bin:$PATH
-              make -f Makefile sudo_test
           - task: make -f Makefile docs
     runs-on: ubuntu-18.04
     container:
