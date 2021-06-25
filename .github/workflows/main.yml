@@ -56,6 +56,50 @@ jobs:
       - name: Test ${{ matrix.task }} on ${{ matrix.toolchain }} toolchain
         run: ${{ matrix.task }}
 
+  musl-checks:
+    strategy:
+      matrix:
+        include:
+          # MANDATORY CHECKS USING CURRENT DEVELOPMENT COMPILER
+          - components: rustfmt
+            toolchain: 1.53.0
+            task: make -f Makefile travis_fmt
+          - components: clippy
+            toolchain: 1.53.0
+            task: make -f Makefile clippy
+          # MANDATORY TESTING USING LOWEST SUPPORTED COMPILER
+          - components: cargo
+            toolchain: 1.49.0
+            task: >
+              sudo PATH=$GITHUB_WORKSPACE/.cargo/bin:$PATH
+              make -f Makefile sudo_test
+          # MANDATORY TESTING ON STABLE
+          - components: cargo
+            toolchain: stable
+            task: make -f Makefile build
+          - components: cargo
+            toolchain: stable
+            task: >
+              sudo PATH=$GITHUB_WORKSPACE/.cargo/bin:$PATH
+              make -f Makefile sudo_test
+          - components: cargo
+            toolchain: stable
+            task: make -f Makefile docs
+    runs-on: ubuntu-18.04
+    container:
+      image: alpine
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions-rs/toolchain@v1
+        with:
+          components: ${{ matrix.components }}
+          toolchain: ${{ matrix.toolchain }}
+          override: true
+      - name: Install dependencies
+        run: apk add clang linux-headers make
+      - name: Test ${{ matrix.task }} on ${{ matrix.toolchain }} toolchain
+        run: ${{ matrix.task }}
+
   checks-with-ci-repo:
     strategy:
       matrix:
