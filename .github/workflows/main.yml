@@ -59,6 +59,7 @@ jobs:
   android-build:
     env:
       TARGET: aarch64-linux-android
+      GITHUB_WORKSPACE: ${{ env.HOME }}/__w/devicemapper-rs
     runs-on: ubuntu-18.04
     container:
       image: docker.io/circleci/android:api-30-ndk
