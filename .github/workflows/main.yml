@@ -68,7 +68,7 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt-get -q update
-          sudo apt-get -y install clang
+          sudo apt-get -y install libclang-dev
       - uses: actions-rs/toolchain@v1
         with:
           components: cargo
