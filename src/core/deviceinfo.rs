@@ -4,6 +4,7 @@
 
 use std::convert::TryFrom;
 
+use libc::c_char;
 use semver::Version;
 
 use crate::{
@@ -41,7 +42,7 @@ impl TryFrom<dmi::Struct_dm_ioctl> for DeviceInfo {
     type Error = DmError;
 
     fn try_from(ioctl: dmi::Struct_dm_ioctl) -> DmResult<Self> {
-        let uuid = str_from_c_str(&ioctl.uuid as &[i8]).ok_or_else(|| {
+        let uuid = str_from_c_str(&ioctl.uuid as &[c_char]).ok_or_else(|| {
             DmError::Dm(
                 ErrorEnum::Invalid,
                 "Devicemapper UUID is not null terminated".to_string(),
@@ -68,7 +69,7 @@ impl TryFrom<dmi::Struct_dm_ioctl> for DeviceInfo {
             // encoding is only 32 bits.
             dev: Device::from_kdev_t(ioctl.dev as u32),
             name: DmNameBuf::new(
-                str_from_c_str(&ioctl.name as &[i8])
+                str_from_c_str(&ioctl.name as &[c_char])
                     .ok_or_else(|| {
                         DmError::Dm(
                             ErrorEnum::Invalid,
