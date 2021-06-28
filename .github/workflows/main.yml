@@ -80,6 +80,17 @@ jobs:
       - name: Cross compilation build on Android
         run: cargo build --target ${{ env.TARGET }}
 
+  musl-checks:
+    runs-on: ubuntu-18.04
+    container:
+      image: alpine
+    steps:
+      - uses: actions/checkout@v2
+      - name: Install dependencies
+        run: apk add cargo clang-dev linux-headers make rust
+      - name: Test build on Alpine Linux
+        run: make -f Makefile build
+
   checks-with-ci-repo:
     strategy:
       matrix:
