@@ -1,3 +1,8 @@
+ifeq ($(origin FEDORA_RELEASE), undefined)
+else
+  FEDORA_RELEASE_ARGS = --manifest-path=${MANIFEST_PATH}
+endif
+
 ifeq ($(origin MANIFEST_PATH), undefined)
 else
   MANIFEST_PATH_ARGS = --manifest-path=${MANIFEST_PATH}
@@ -37,8 +42,12 @@ verify-dependency-bounds:
 	${SET_LOWER_BOUNDS} ${MANIFEST_PATH_ARGS}
 	RUSTFLAGS="${DENY}" cargo build ${MANIFEST_PATH_ARGS}
 
-check-fedora-versions:
-	${COMPARE_FEDORA_VERSIONS} ${MANIFEST_PATH_ARGS}
+test-compare-fedora-versions:
+	echo "Testing that COMPARE_FEDORA_VERSIONS environment variable is set to a valid path"
+	test -e "${COMPARE_FEDORA_VERSIONS}"
+
+check-fedora-versions: test-compare-fedora-versions
+	${COMPARE_FEDORA_VERSIONS} ${MANIFEST_PATH_ARGS} ${FEDORA_RELEASE_ARGS}
 
 fmt:
 	cargo fmt
@@ -76,6 +85,7 @@ yamllint:
 	fmt
 	sudo_test
 	test
+	test-compare-fedora-versions
 	travis_fmt
 	tree
 	verify-dependency-bounds
