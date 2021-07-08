@@ -37,7 +37,12 @@ tree: ${HOME}/.cargo/bin/cargo-tree
 audit: ${HOME}/.cargo/bin/cargo-audit
 	PATH=${HOME}/.cargo/bin:${PATH} cargo audit -D warnings
 
-verify-dependency-bounds:
+SET_LOWER_BOUNDS ?=
+test-set-lower-bounds:
+	echo "Testing that SET_LOWER_BOUNDS environment variable is set to a valid path"
+	test -e "${SET_LOWER_BOUNDS}"
+
+verify-dependency-bounds: test-set-lower-bounds
 	RUSTFLAGS="${DENY}" cargo build ${MANIFEST_PATH_ARGS}
 	${SET_LOWER_BOUNDS} ${MANIFEST_PATH_ARGS}
 	RUSTFLAGS="${DENY}" cargo build ${MANIFEST_PATH_ARGS}
@@ -86,6 +91,7 @@ yamllint:
 	sudo_test
 	test
 	test-compare-fedora-versions
+	test-set-lower-bounds
 	travis_fmt
 	tree
 	verify-dependency-bounds
