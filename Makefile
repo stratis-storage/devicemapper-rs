@@ -31,11 +31,21 @@ ${HOME}/.cargo/bin/cargo-tree:
 ${HOME}/.cargo/bin/cargo-audit:
 	cargo install cargo-audit
 
+${HOME}/.cargo/bin/cargo-tarpaulin:
+	cargo install cargo-tarpaulin
+
 tree: ${HOME}/.cargo/bin/cargo-tree
 	PATH=${HOME}/.cargo/bin:${PATH} cargo tree
 
 audit: ${HOME}/.cargo/bin/cargo-audit
 	PATH=${HOME}/.cargo/bin:${PATH} cargo audit -D warnings
+
+tarpaulin: ${HOME}/.cargo/bin/cargo-tarpaulin
+	PATH=${HOME}/.cargo/bin:${PATH}  \
+	RUSTFLAGS="${DENY}" \
+	RUST_BACKTRACE=1 \
+	RUST_TEST_THREADS=1 \
+	cargo tarpaulin -v
 
 SET_LOWER_BOUNDS ?=
 test-set-lower-bounds:
