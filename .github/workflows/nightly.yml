@@ -19,12 +19,17 @@ jobs:
           # should be an advisory and should not gate our development.
           - components: cargo
             toolchain: stable
-            task: audit
+            task: make -f Makefile audit
           # Allowed because a failure may occur after a new Rust stable
           # version is released.
           - components: clippy
             toolchain: stable
-            task: clippy
+            task: make -f Makefile clippy
+          - components: cargo
+            toolchain: 1.53.0
+            task: >
+              sudo PATH=$GITHUB_WORKSPACE/.cargo/bin:$PATH
+              make -f Makefile tarpaulin
     runs-on: ubuntu-18.04
     steps:
       - uses: actions/checkout@v2
@@ -38,4 +43,4 @@ jobs:
           sudo apt-get -q update
           sudo apt-get -y install libdevmapper-dev
       - name: Test ${{ matrix.task }} on ${{ matrix.toolchain }} toolchain
-        run: make -f Makefile ${{ matrix.task }}
+        run: ${{ matrix.task }}
