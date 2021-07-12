@@ -422,7 +422,7 @@ mod tests {
 
     use crate::{
         consts::IEC,
-        core::errors::{Error, ErrorKind},
+        core::errors::Error,
         shared::DmDevice,
         testing::{
             blkdev_size, test_name, test_string, test_uuid, test_with_spec, udev_settle,
@@ -506,7 +506,7 @@ mod tests {
                 &tp,
                 ThinDevId::new_u64(0).expect("is below limit")
             ),
-            Err(DmError::Core(Error(ErrorKind::IoctlError(_, _), _)))
+            Err(DmError::Core(Error::IoctlError(_, _)))
         );
 
         tp.teardown(&dm).unwrap();
@@ -552,7 +552,7 @@ mod tests {
         // New thindev w/ same id fails.
         assert_matches!(
             ThinDev::new(&dm, &id, None, td_size, &tp, thin_id),
-            Err(DmError::Core(Error(ErrorKind::IoctlError(_, _), _)))
+            Err(DmError::Core(Error::IoctlError(_, _)))
         );
 
         // Verify that the device of that name does exist.
@@ -897,7 +897,7 @@ mod tests {
         // This should fail
         assert_matches!(
             ThinDev::setup(&dm, &thin_name, None, tp.size(), &tp, thin_id),
-            Err(DmError::Core(Error(ErrorKind::IoctlError(_, _), _)))
+            Err(DmError::Core(Error::IoctlError(_, _)))
         );
 
         tp.teardown(&dm).unwrap();

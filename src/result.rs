@@ -2,12 +2,12 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-use std::{error::Error, fmt, io};
+use std::{error::Error, fmt};
 
 use crate::core::errors;
 
 /// A very simple breakdown of outer layer errors.
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub enum ErrorEnum {
     /// generic error code
     Error,
@@ -25,7 +25,7 @@ impl fmt::Display for ErrorEnum {
 
 /// Super error type, with constructors distinguishing outer errors from
 /// core errors.
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub enum DmError {
     /// DM errors
     Dm(ErrorEnum, String),
@@ -39,12 +39,6 @@ pub type DmResult<T> = Result<T, DmError>;
 impl From<errors::Error> for DmError {
     fn from(err: errors::Error) -> DmError {
         DmError::Core(err)
-    }
-}
-
-impl From<io::Error> for DmError {
-    fn from(err: io::Error) -> DmError {
-        DmError::Core(errors::ErrorKind::GeneralIoError(err).into())
     }
 }
 

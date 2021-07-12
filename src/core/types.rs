@@ -7,14 +7,14 @@ use std::{fmt, ops::Deref};
 use crate::{
     core::{
         deviceinfo::{DM_NAME_LEN, DM_UUID_LEN},
-        errors::ErrorKind,
+        errors,
     },
     result::DmError,
 };
 
 /// An error function to construct an error when creating a new string id.
 fn err_func(err_msg: &str) -> DmError {
-    DmError::Core(ErrorKind::InvalidArgument(err_msg.into()).into())
+    DmError::Core(errors::Error::InvalidArgument(err_msg.into()))
 }
 
 // A devicemapper name. Really just a string, but also the argument type of
