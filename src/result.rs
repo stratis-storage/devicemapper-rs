@@ -57,11 +57,4 @@ impl fmt::Display for DmError {
     }
 }
 
-impl Error for DmError {
-    fn description(&self) -> &str {
-        match *self {
-            DmError::Core(ref err) => err.description(),
-            DmError::Dm(_, ref msg) => msg,
-        }
-    }
-}
+impl Error for DmError {}
