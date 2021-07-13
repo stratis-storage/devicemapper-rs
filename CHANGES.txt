@@ -1,5 +1,5 @@
-devicemapper 0.29.2 (UNRELEASED)
-================================
+devicemapper 0.29.2
+===================
 Recommended Rust toolchain version: 1.53.0
 Lowest supported Rust toolchain version: 1.49
 
