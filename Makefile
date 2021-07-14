@@ -1,6 +1,6 @@
 ifeq ($(origin FEDORA_RELEASE), undefined)
 else
-  FEDORA_RELEASE_ARGS = --manifest-path=${MANIFEST_PATH}
+  FEDORA_RELEASE_ARGS = --release=${FEDORA_RELEASE}
 endif
 
 ifeq ($(origin MANIFEST_PATH), undefined)
