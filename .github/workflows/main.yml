@@ -137,16 +137,12 @@ jobs:
 
   # VERIFICATION OF TEST INFRASTRUCTURE
   yamllint:
-    env:
-      TASK: yamllint
-      PYTHON: 3.8.6
     runs-on: ubuntu-18.04
+    container:
+      image: fedora:33  # CURRENT DEVELOPMENT ENVIRONMENT
     steps:
       - uses: actions/checkout@v2
-      - uses: actions/setup-python@v2
-        with:
-          python-version: ${{ env.PYTHON }}
-      - name: Install dependencies
-        run: pip3 install yamllint==1.26.0
+      - name: Install dependencies for Fedora
+        run: dnf install -y make yamllint
       - name: Run yamllint
-        run: make -f Makefile $TASK
+        run: make -f Makefile yamllint
