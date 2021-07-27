@@ -4,9 +4,9 @@ name: devicemapper CI
 # yamllint disable-line rule:truthy
 on:
   push:
-    branches: [master]
+    branches: [patch-0.29.2]
   pull_request:
-    branches: [master]
+    branches: [patch-0.29.2]
 
   # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
