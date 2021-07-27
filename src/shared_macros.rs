@@ -13,7 +13,10 @@ macro_rules! device {
 
 macro_rules! name {
     ($s:ident) => {
-        $s.dev_info.name()
+        match $s.dev_info.name() {
+            Some(n) => n,
+            None => panic!("Name is required for device"),
+        }
     };
 }
 

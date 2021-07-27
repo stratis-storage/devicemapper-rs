@@ -34,7 +34,7 @@ pub struct DeviceInfo {
     flags: DmFlags,
     event_nr: u32,
     dev: Device,
-    name: DmNameBuf,
+    name: Option<DmNameBuf>,
     uuid: Option<DmUuidBuf>,
 }
 
@@ -53,6 +53,17 @@ impl TryFrom<dmi::Struct_dm_ioctl> for DeviceInfo {
         } else {
             Some(DmUuidBuf::new(uuid.to_string())?)
         };
+        let name = str_from_c_str(&ioctl.name as &[c_char]).ok_or_else(|| {
+            DmError::Dm(
+                ErrorEnum::Invalid,
+                "Devicemapper name is not null terminated".to_string(),
+            )
+        })?;
+        let name = if name.is_empty() {
+            None
+        } else {
+            Some(DmNameBuf::new(name.to_string())?)
+        };
         Ok(DeviceInfo {
             version: Version::new(
                 u64::from(ioctl.version[0]),
@@ -68,17 +79,8 @@ impl TryFrom<dmi::Struct_dm_ioctl> for DeviceInfo {
             // dm_ioctl struct reserves 64 bits for device but kernel "huge"
             // encoding is only 32 bits.
             dev: Device::from_kdev_t(ioctl.dev as u32),
-            name: DmNameBuf::new(
-                str_from_c_str(&ioctl.name as &[c_char])
-                    .ok_or_else(|| {
-                        DmError::Dm(
-                            ErrorEnum::Invalid,
-                            "Devicemapper name is not null terminated".to_string(),
-                        )
-                    })?
-                    .to_string(),
-            )?,
             uuid,
+            name,
         })
     }
 }
@@ -109,8 +111,8 @@ impl DeviceInfo {
     }
 
     /// The device's name.
-    pub fn name(&self) -> &DmName {
-        self.name.as_ref()
+    pub fn name(&self) -> Option<&DmName> {
+        self.name.as_ref().map(|name| name.as_ref())
     }
 
     /// The device's devicemapper uuid.
