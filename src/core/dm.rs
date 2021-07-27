@@ -640,7 +640,7 @@ impl DM {
     /// let id = DevId::Name(name);
     /// let res = dm.table_status(&id,
     ///                           &DmOptions::new().set_flags(DmFlags::DM_STATUS_TABLE)).unwrap();
-    /// println!("{} {:?}", res.0.name(), res.1);
+    /// println!("{:?} {:?}", res.0.name(), res.1);
     /// ```
     #[allow(clippy::type_complexity)]
     pub fn table_status(
@@ -815,7 +815,7 @@ mod tests {
         let dm = DM::new().unwrap();
         let name = test_name("example-dev").expect("is valid DM name");
         let result = dm.device_create(&name, None, &DmOptions::new()).unwrap();
-        assert_eq!(result.name(), &*name);
+        assert_eq!(result.name(), Some(&*name));
         dm.device_remove(&DevId::Name(&name), &DmOptions::new())
             .unwrap();
     }
@@ -829,7 +829,7 @@ mod tests {
         let result = dm
             .device_create(&name, Some(&uuid), &DmOptions::new())
             .unwrap();
-        assert_eq!(result.name(), &*name);
+        assert_eq!(result.name(), Some(&*name));
         assert_eq!(result.uuid().unwrap(), &*uuid);
         dm.device_remove(&DevId::Name(&name), &DmOptions::new())
             .unwrap();
