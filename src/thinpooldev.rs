@@ -545,7 +545,7 @@ impl ThinPoolDev {
         new_table.table.params.low_water_mark = low_water_mark;
 
         self.suspend(dm, false)?;
-        self.table_load(dm, &new_table)?;
+        self.table_load(dm, &new_table, &DmOptions::default())?;
 
         self.table = new_table;
         Ok(())
@@ -574,7 +574,7 @@ impl ThinPoolDev {
 
         // Reload the table even though it is unchanged.
         // See comment on CacheDev::set_cache_table for reason.
-        self.table_load(dm, self.table())?;
+        self.table_load(dm, self.table(), &DmOptions::default())?;
 
         Ok(())
     }
@@ -597,7 +597,7 @@ impl ThinPoolDev {
 
         let mut table = self.table.clone();
         table.table.length = self.data_dev.size();
-        self.table_load(dm, &table)?;
+        self.table_load(dm, &table, &DmOptions::default())?;
 
         self.table = table;
 

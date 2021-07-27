@@ -443,10 +443,12 @@ impl DM {
     /// Documentation/device-mapper
     /// for more.
     ///
+    /// `options` Valid flags: DM_READ_ONLY
+    ///
     /// # Example
     ///
     /// ```no_run
-    /// use devicemapper::{DM, DevId, DmName};
+    /// use devicemapper::{DM, DevId, DmName, DmOptions};
     /// let dm = DM::new().unwrap();
     ///
     /// // Create a 16MiB device (32768 512-byte sectors) that maps to /dev/sdb1
@@ -460,14 +462,16 @@ impl DM {
     ///
     /// let name = DmName::new("example-dev").expect("is valid DM name");
     /// let id = DevId::Name(name);
-    /// dm.table_load(&id, &table).unwrap();
+    /// dm.table_load(&id, &table, &DmOptions::default()).unwrap();
     /// ```
     pub fn table_load(
         &self,
         id: &DevId,
         targets: &[(u64, u64, String, String)],
+        options: &DmOptions,
     ) -> DmResult<DeviceInfo> {
         let mut cursor = Cursor::new(Vec::new());
+
         // Construct targets first, since we need to know how many & size
         // before initializing the header.
         for (sector_start, length, target_type, params) in targets {
@@ -497,7 +501,7 @@ impl DM {
             cursor.write_all(vec![0; padding].as_slice())?;
         }
 
-        let mut hdr = DmOptions::new().to_ioctl_hdr(Some(id), DmFlags::empty())?;
+        let mut hdr = options.to_ioctl_hdr(Some(id), DmFlags::DM_READONLY)?;
 
         // io_ioctl() will set hdr.data_size but we must set target_count
         hdr.target_count = targets.len() as u32;

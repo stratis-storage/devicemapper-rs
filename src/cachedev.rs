@@ -626,7 +626,7 @@ impl CacheDev {
 
         let mut table = self.table.clone();
         table.table.length = self.origin_dev.size();
-        self.table_load(dm, &table)?;
+        self.table_load(dm, &table, &DmOptions::default())?;
 
         self.table = table;
 
@@ -651,7 +651,7 @@ impl CacheDev {
         // Reload the table, even though it is unchanged. Otherwise, we
         // suffer from whacky smq bug documented in the following PR:
         // https://github.com/stratis-storage/devicemapper-rs/pull/279.
-        self.table_load(dm, self.table())?;
+        self.table_load(dm, self.table(), &DmOptions::default())?;
 
         Ok(())
     }
@@ -674,7 +674,7 @@ impl CacheDev {
         // Reload the table, even though it is unchanged. Otherwise, we
         // suffer from whacky smq bug documented in the following PR:
         // https://github.com/stratis-storage/devicemapper-rs/pull/279.
-        self.table_load(dm, self.table())?;
+        self.table_load(dm, self.table(), &DmOptions::default())?;
 
         Ok(())
     }
