@@ -1,12 +1,14 @@
 ifeq ($(origin FEDORA_RELEASE), undefined)
 else
-  FEDORA_RELEASE_ARGS = --manifest-path=${MANIFEST_PATH}
+  FEDORA_RELEASE_ARGS = --release=${FEDORA_RELEASE}
 endif
 
 ifeq ($(origin MANIFEST_PATH), undefined)
 else
   MANIFEST_PATH_ARGS = --manifest-path=${MANIFEST_PATH}
 endif
+
+IGNORE_ARGS ?=
 
 RUST_2018_IDIOMS = -D bare-trait-objects  \
                    -D ellipsis-inclusive-range-patterns \
@@ -62,7 +64,7 @@ test-compare-fedora-versions:
 	test -e "${COMPARE_FEDORA_VERSIONS}"
 
 check-fedora-versions: test-compare-fedora-versions
-	${COMPARE_FEDORA_VERSIONS} ${MANIFEST_PATH_ARGS} ${FEDORA_RELEASE_ARGS}
+	${COMPARE_FEDORA_VERSIONS} ${MANIFEST_PATH_ARGS} ${FEDORA_RELEASE_ARGS} ${IGNORE_ARGS}
 
 fmt:
 	cargo fmt

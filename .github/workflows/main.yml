@@ -4,9 +4,9 @@ name: devicemapper CI
 # yamllint disable-line rule:truthy
 on:
   push:
-    branches: [master]
+    branches: [patch-0.29.2]
   pull_request:
-    branches: [master]
+    branches: [patch-0.29.2]
 
   # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
@@ -99,16 +99,10 @@ jobs:
               SET_LOWER_BOUNDS=./set_lower_bounds
               MANIFEST_PATH=../../Cargo.toml
               make -f ../../Makefile verify-dependency-bounds
-          - task: >
-              COMPARE_FEDORA_VERSIONS=./compare_fedora_versions
-              MANIFEST_PATH=../../Cargo.toml
-              FEDORA_RELEASE=rawhide
-              make -f ../../Makefile check-fedora-versions
-          - task: >
-              COMPARE_FEDORA_VERSIONS=./compare_fedora_versions
-              MANIFEST_PATH=../../Cargo.toml
-              FEDORA_RELEASE=f34
-              make -f ../../Makefile check-fedora-versions
+          # yamllint disable rule:line-length
+          - task: |
+              COMPARE_FEDORA_VERSIONS=./compare_fedora_versions MANIFEST_PATH=../../Cargo.toml FEDORA_RELEASE=rawhide IGNORE_ARGS="--ignore-low semver" make -f ../../Makefile check-fedora-versions
+              COMPARE_FEDORA_VERSIONS=./compare_fedora_versions MANIFEST_PATH=../../Cargo.toml FEDORA_RELEASE=f34 make -f ../../Makefile check-fedora-versions
     runs-on: ubuntu-18.04
     container:
       image: fedora:33  # CURRENT DEVELOPMENT ENVIRONMENT
@@ -137,16 +131,12 @@ jobs:
 
   # VERIFICATION OF TEST INFRASTRUCTURE
   yamllint:
-    env:
-      TASK: yamllint
-      PYTHON: 3.8.6
     runs-on: ubuntu-18.04
+    container:
+      image: fedora:33  # CURRENT DEVELOPMENT ENVIRONMENT
     steps:
       - uses: actions/checkout@v2
-      - uses: actions/setup-python@v2
-        with:
-          python-version: ${{ env.PYTHON }}
-      - name: Install dependencies
-        run: pip3 install yamllint==1.26.0
+      - name: Install dependencies for Fedora
+        run: dnf install -y make yamllint
       - name: Run yamllint
-        run: make -f Makefile $TASK
+        run: make -f Makefile yamllint
