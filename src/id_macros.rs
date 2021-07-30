@@ -109,7 +109,7 @@ macro_rules! str_id {
 
 #[cfg(test)]
 mod tests {
-    use std::{iter, ops::Deref};
+    use std::ops::Deref;
 
     use crate::{
         core::errors::{Error, ErrorKind},
@@ -139,7 +139,7 @@ mod tests {
     #[test]
     /// Test for errors on an overlong name.
     fn test_too_long_name() {
-        let name = iter::repeat('a').take(TYPE_LEN + 1).collect::<String>();
+        let name = "a".repeat(TYPE_LEN + 1);
         assert_matches!(
             Id::new(&name),
             Err(DmError::Core(Error(ErrorKind::InvalidArgument(_), _)))
