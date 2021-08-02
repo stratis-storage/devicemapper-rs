@@ -4,7 +4,7 @@
 
 use std::{mem::size_of, slice, str};
 
-use libc::c_char;
+use nix::libc::c_char;
 
 /// The smallest number divisible by `align_to` and at least `num`.
 /// Precondition: `align_to` is a power of 2.
