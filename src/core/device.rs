@@ -5,10 +5,7 @@
 use std::{fmt, io, path::Path, str::FromStr};
 
 use libc::{dev_t, major, makedev, minor};
-use nix::{
-    errno::Errno,
-    sys::stat::{self, SFlag},
-};
+use nix::sys::stat::{self, SFlag};
 
 use crate::{
     core::errors::ErrorKind,
@@ -125,7 +122,7 @@ pub fn devnode_to_devno(path: &Path) -> DmResult<Option<u64>> {
                 None
             },
         ),
-        Err(err) if err == nix::Error::Sys(Errno::ENOENT) => Ok(None),
+        Err(err) if err == nix::Error::ENOENT => Ok(None),
         Err(err) => Err(DmError::Core(
             ErrorKind::MetadataIoError(path.to_owned(), io::Error::new(io::ErrorKind::Other, err))
                 .into(),
