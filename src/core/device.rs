@@ -25,7 +25,7 @@ pub struct Device {
 
 /// Display format is the device number in "<major>:<minor>" format
 impl fmt::Display for Device {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{}:{}", self.major, self.minor)
     }
 }

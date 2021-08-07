@@ -9,7 +9,7 @@ use std::{
     io::{Cursor, Read, Write},
     mem::size_of,
     os::unix::io::{AsRawFd, RawFd},
-    slice, str, u32,
+    slice, str,
 };
 
 use nix::libc::ioctl as nix_ioctl;
@@ -58,7 +58,7 @@ impl DmOptions {
     /// Generate a header to be used for IOCTL.
     fn to_ioctl_hdr(
         &self,
-        id: Option<&DevId>,
+        id: Option<&DevId<'_>>,
         allowable_flags: DmFlags,
     ) -> DmResult<dmi::Struct_dm_ioctl> {
         let clean_flags = allowable_flags & self.flags();
@@ -333,7 +333,7 @@ impl DM {
     /// used.
     ///
     /// Valid flags: DM_DEFERRED_REMOVE
-    pub fn device_remove(&self, id: &DevId, options: &DmOptions) -> DmResult<DeviceInfo> {
+    pub fn device_remove(&self, id: &DevId<'_>, options: &DmOptions) -> DmResult<DeviceInfo> {
         let mut hdr = options.to_ioctl_hdr(Some(id), DmFlags::DM_DEFERRED_REMOVE)?;
 
         self.do_ioctl(dmi::DM_DEV_REMOVE_CMD as u8, &mut hdr, None)?;
@@ -348,7 +348,7 @@ impl DM {
     /// must be "".
     /// Note: Possibly surprisingly, returned DeviceInfo's uuid or name field
     /// contains the previous value, not the newly set value.
-    pub fn device_rename(&self, old_name: &DmName, new: &DevId) -> DmResult<DeviceInfo> {
+    pub fn device_rename(&self, old_name: &DmName, new: &DevId<'_>) -> DmResult<DeviceInfo> {
         let mut options = DmOptions::new();
         let mut data_in = match *new {
             DevId::Name(name) => name.as_bytes().to_vec(),
@@ -390,7 +390,7 @@ impl DM {
     /// let id = DevId::Name(name);
     /// dm.device_suspend(&id, &DmOptions::new().set_flags(DmFlags::DM_SUSPEND)).unwrap();
     /// ```
-    pub fn device_suspend(&self, id: &DevId, options: &DmOptions) -> DmResult<DeviceInfo> {
+    pub fn device_suspend(&self, id: &DevId<'_>, options: &DmOptions) -> DmResult<DeviceInfo> {
         let mut hdr = options.to_ioctl_hdr(
             Some(id),
             DmFlags::DM_SUSPEND | DmFlags::DM_NOFLUSH | DmFlags::DM_SKIP_LOCKFS,
@@ -404,7 +404,7 @@ impl DM {
     /// Get DeviceInfo for a device. This is also returned by other
     /// methods, but if just the DeviceInfo is desired then this just
     /// gets it.
-    pub fn device_info(&self, id: &DevId) -> DmResult<DeviceInfo> {
+    pub fn device_info(&self, id: &DevId<'_>) -> DmResult<DeviceInfo> {
         let mut hdr = DmOptions::new().to_ioctl_hdr(Some(id), DmFlags::empty())?;
 
         self.do_ioctl(dmi::DM_DEV_STATUS_CMD as u8, &mut hdr, None)?;
@@ -422,7 +422,7 @@ impl DM {
     #[allow(clippy::type_complexity)]
     pub fn device_wait(
         &self,
-        id: &DevId,
+        id: &DevId<'_>,
         options: &DmOptions,
     ) -> DmResult<(DeviceInfo, Vec<(u64, u64, String, String)>)> {
         let mut hdr = options.to_ioctl_hdr(Some(id), DmFlags::DM_QUERY_INACTIVE_TABLE)?;
@@ -464,7 +464,7 @@ impl DM {
     /// ```
     pub fn table_load(
         &self,
-        id: &DevId,
+        id: &DevId<'_>,
         targets: &[(u64, u64, String, String)],
     ) -> DmResult<DeviceInfo> {
         let mut cursor = Cursor::new(Vec::new());
@@ -511,7 +511,7 @@ impl DM {
     }
 
     /// Clear the "inactive" table for a device.
-    pub fn table_clear(&self, id: &DevId) -> DmResult<DeviceInfo> {
+    pub fn table_clear(&self, id: &DevId<'_>) -> DmResult<DeviceInfo> {
         let mut hdr = DmOptions::new().to_ioctl_hdr(Some(id), DmFlags::empty())?;
 
         self.do_ioctl(dmi::DM_TABLE_CLEAR_CMD as u8, &mut hdr, None)?;
@@ -526,7 +526,7 @@ impl DM {
     /// inactive table.
     ///
     /// Valid flags: DM_QUERY_INACTIVE_TABLE
-    pub fn table_deps(&self, id: &DevId, options: &DmOptions) -> DmResult<Vec<Device>> {
+    pub fn table_deps(&self, id: &DevId<'_>, options: &DmOptions) -> DmResult<Vec<Device>> {
         let mut hdr = options.to_ioctl_hdr(Some(id), DmFlags::DM_QUERY_INACTIVE_TABLE)?;
 
         let data_out = self.do_ioctl(dmi::DM_TABLE_DEPS_CMD as u8, &mut hdr, None)?;
@@ -641,7 +641,7 @@ impl DM {
     #[allow(clippy::type_complexity)]
     pub fn table_status(
         &self,
-        id: &DevId,
+        id: &DevId<'_>,
         options: &DmOptions,
     ) -> DmResult<(DeviceInfo, Vec<(u64, u64, String, String)>)> {
         let mut hdr = options.to_ioctl_hdr(
@@ -701,7 +701,7 @@ impl DM {
     /// None.
     pub fn target_msg(
         &self,
-        id: &DevId,
+        id: &DevId<'_>,
         sector: Option<u64>,
         msg: &str,
     ) -> DmResult<(DeviceInfo, Option<String>)> {

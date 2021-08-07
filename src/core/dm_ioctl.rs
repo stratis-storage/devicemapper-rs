@@ -25,7 +25,7 @@ pub use bindings::{
 /// TODO: When https://github.com/rust-lang/rust-bindgen/issues/2041 is resolved,
 /// this implementation can be removed.
 impl Debug for dm_ioctl {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_struct("Struct_dm_ioctl")
             .field("version", &self.version)
             .field("data_size", &self.data_size)

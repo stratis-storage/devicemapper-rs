@@ -37,7 +37,7 @@ impl LinearTargetParams {
 }
 
 impl fmt::Display for LinearTargetParams {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{} {}", LINEAR_TARGET_NAME, self.param_str())
     }
 }
@@ -88,7 +88,7 @@ pub enum Direction {
 }
 
 impl fmt::Display for Direction {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Direction::Reads => write!(f, "r"),
             Direction::Writes => write!(f, "w"),
@@ -141,7 +141,7 @@ pub enum FeatureArg {
 }
 
 impl fmt::Display for FeatureArg {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             FeatureArg::DropWrites => write!(f, "drop_writes"),
             FeatureArg::ErrorWrites => write!(f, "error_writes"),
@@ -210,7 +210,7 @@ impl fmt::Display for FlakeyTargetParams {
     /// Optional feature parameters:
     ///  If no feature parameters are present, during the periods of
     ///  unreliability, all I/O returns errors.
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{} {}", FLAKEY_TARGET_NAME, self.param_str())
     }
 }
@@ -351,7 +351,7 @@ pub enum LinearDevTargetParams {
 }
 
 impl fmt::Display for LinearDevTargetParams {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match *self {
             LinearDevTargetParams::Flakey(ref flakey) => flakey.fmt(f),
             LinearDevTargetParams::Linear(ref linear) => linear.fmt(f),
@@ -418,7 +418,7 @@ impl LinearDevTargetTable {
 }
 
 impl fmt::Display for LinearDevTargetTable {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         for line in &self.table {
             writeln!(f, "{} {} {}", *line.start, *line.length, line.params)?;
         }
