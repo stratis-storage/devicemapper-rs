@@ -4,7 +4,7 @@
 
 use std::{fmt, io, path::Path, str::FromStr};
 
-use libc::{dev_t, major, makedev, minor};
+use nix::libc::{dev_t, major, makedev, minor};
 use nix::sys::stat::{self, SFlag};
 
 use crate::{

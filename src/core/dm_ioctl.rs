@@ -38,15 +38,18 @@ impl Debug for dm_ioctl {
             .field("dev", &self.dev)
             .field(
                 "name",
-                &str_from_c_str(&self.name as &[libc::c_char]).unwrap_or("Could not parse string"),
+                &str_from_c_str(&self.name as &[nix::libc::c_char])
+                    .unwrap_or("Could not parse string"),
             )
             .field(
                 "uuid",
-                &str_from_c_str(&self.uuid as &[libc::c_char]).unwrap_or("Could not parse string"),
+                &str_from_c_str(&self.uuid as &[nix::libc::c_char])
+                    .unwrap_or("Could not parse string"),
             )
             .field(
                 "data",
-                &str_from_c_str(&self.data as &[libc::c_char]).unwrap_or("Could not parse string"),
+                &str_from_c_str(&self.data as &[nix::libc::c_char])
+                    .unwrap_or("Could not parse string"),
             )
             .finish()
     }
