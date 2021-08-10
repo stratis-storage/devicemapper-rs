@@ -52,7 +52,7 @@ impl ThinPoolTargetParams {
 }
 
 impl fmt::Display for ThinPoolTargetParams {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{} {}", THINPOOL_TARGET_NAME, self.param_str())
     }
 }
@@ -154,7 +154,7 @@ impl ThinPoolDevTargetTable {
 }
 
 impl fmt::Display for ThinPoolDevTargetTable {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let table = &self.table;
         writeln!(f, "{} {} {}", *table.start, *table.length, table.params)
     }

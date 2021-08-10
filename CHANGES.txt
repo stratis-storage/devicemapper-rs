@@ -73,7 +73,7 @@ Python: 3.8.5
 New minimum Rust crate requirements:
   - nix: 0.19
 
-- Use u128 for underlying Bytes represenation:
+- Use u128 for underlying Bytes representation:
   https://github.com/stratis-storage/devicemapper-rs/issues/426
   https://github.com/stratis-storage/devicemapper-rs/pull/598
 
