@@ -20,7 +20,7 @@ pub enum Error {
     /// An error returned exclusively by DM methods.
     /// This error is initiated in DM::do_ioctl and returned by
     /// numerous wrapper methods.
-    IoctlError(Box<DeviceInfo>, Box<nix::Error>),
+    IoctlError(Option<Box<DeviceInfo>>, Box<nix::Error>),
 
     /// An error returned when the response exceeds the maximum possible
     /// size of the ioctl buffer.

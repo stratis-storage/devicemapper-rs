@@ -163,9 +163,8 @@ impl DM {
             if let Err(err) =
                 unsafe { convert_ioctl_res!(nix_ioctl(self.file.as_raw_fd(), op, v.as_mut_ptr())) }
             {
-                let info = DeviceInfo::new(*hdr)?;
                 return Err(DmError::Core(errors::Error::IoctlError(
-                    Box::new(info),
+                    DeviceInfo::new(*hdr).ok().map(Box::new),
                     Box::new(err),
                 )));
             }
