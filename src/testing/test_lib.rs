@@ -29,7 +29,7 @@ impl DM {
     /// the devices whose names end with DM_TEST_ID, our test device suffix.
     /// This function is useful for listing devices in tests that should not
     /// take non-test devices into account.
-    pub fn list_test_devices(&self) -> DmResult<Vec<(DmNameBuf, Device, Option<u32>)>> {
+    pub fn list_test_devices(&self) -> Result<Vec<(DmNameBuf, Device, Option<u32>)>> {
         let mut test_devs = self.list_devices()?;
         test_devs.retain(|x| x.0.as_bytes().ends_with(DM_TEST_ID.as_bytes()));
         Ok(test_devs)
@@ -133,11 +133,47 @@ pub fn test_uuid(name: &str) -> DmResult<DmUuidBuf> {
 }
 
 mod cleanup_errors {
-    error_chain! {
-        foreign_links {
-            Ioe(std::io::Error);
-            Mnt(libmount::mountinfo::ParseError);
-            Nix(nix::Error);
+    use super::DmError;
+
+    #[derive(Debug)]
+    pub enum Error {
+        Ioe(std::io::Error),
+        Mnt(libmount::mountinfo::ParseError),
+        Nix(nix::Error),
+        Msg(String),
+        Chained(String, Box<Error>),
+        Dm(DmError),
+    }
+
+    pub type Result<T> = std::result::Result<T, Error>;
+
+    impl From<nix::Error> for Error {
+        fn from(err: nix::Error) -> Error {
+            Error::Nix(err)
+        }
+    }
+
+    impl From<libmount::mountinfo::ParseError> for Error {
+        fn from(err: libmount::mountinfo::ParseError) -> Error {
+            Error::Mnt(err)
+        }
+    }
+
+    impl From<std::io::Error> for Error {
+        fn from(err: std::io::Error) -> Error {
+            Error::Ioe(err)
+        }
+    }
+
+    impl From<String> for Error {
+        fn from(err: String) -> Error {
+            Error::Msg(err)
+        }
+    }
+
+    impl From<DmError> for Error {
+        fn from(err: DmError) -> Error {
+            Error::Dm(err)
         }
     }
 }
@@ -155,8 +191,10 @@ fn dm_test_devices_remove() -> Result<()> {
         for n in get_dm()
             .list_test_devices()
             .map_err(|e| {
-                let err_msg = "failed while listing DM devices, giving up";
-                Error::with_chain(e, err_msg)
+                Error::Chained(
+                    "failed while listing DM devices, giving up".into(),
+                    Box::new(e),
+                )
             })?
             .iter()
             .map(|d| &d.0)
@@ -181,7 +219,7 @@ fn dm_test_devices_remove() -> Result<()> {
 
     || -> Result<()> {
         if catch_unwind(get_dm).is_err() {
-            return Err("Unable to initialize DM".into());
+            return Err("Unable to initialize DM".to_string().into());
         }
 
         do_while_progress().and_then(|remain| {
@@ -193,7 +231,12 @@ fn dm_test_devices_remove() -> Result<()> {
             }
         })
     }()
-    .map_err(|e| e.chain_err(|| "Failed to ensure removal of all test-generated DM devices"))
+    .map_err(|e| {
+        Error::Chained(
+            "Failed to ensure removal of all test-generated DM devices".into(),
+            Box::new(e),
+        )
+    })
 }
 
 /// Unmount any filesystems that contain DM_TEST_ID in the mount point.
@@ -213,7 +256,12 @@ fn dm_test_fs_unmount() -> Result<()> {
         }
         Ok(())
     }()
-    .map_err(|e| e.chain_err(|| "Failed to ensure all test-generated filesystems were unmounted"))
+    .map_err(|e| {
+        Error::Chained(
+            "Failed to ensure all test-generated filesystems were unmounted".into(),
+            Box::new(e),
+        )
+    })
 }
 
 /// Unmount any filesystems or devicemapper devices which contain DM_TEST_ID

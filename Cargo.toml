@@ -19,7 +19,6 @@ semver = "1.0.0"
 serde = "1.0.60"
 
 [dev-dependencies]
-error-chain = "0.12.4"
 libmount = "0.1.11"
 libudev = "0.2.0"
 loopdev = "0.2.0"
