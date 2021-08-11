@@ -14,7 +14,6 @@ exclude = [".gitignore", ".github/*"]
 
 [dependencies]
 bitflags = "1.1.0"
-error-chain = "0.12.4"
 nix = "0.22.0"
 semver = "1.0.0"
 serde = "1.0.60"

@@ -111,13 +111,10 @@ macro_rules! str_id {
 mod tests {
     use std::ops::Deref;
 
-    use crate::{
-        core::errors::{Error, ErrorKind},
-        result::DmError,
-    };
+    use crate::{core::errors::Error, result::DmError};
 
     fn err_func(err_msg: &str) -> DmError {
-        DmError::Core(ErrorKind::InvalidArgument(err_msg.into()).into())
+        DmError::Core(Error::InvalidArgument(err_msg.into()))
     }
 
     const TYPE_LEN: usize = 12;
@@ -126,13 +123,10 @@ mod tests {
     #[test]
     /// Test for errors on an empty name.
     fn test_empty_name() {
-        assert_matches!(
-            Id::new(""),
-            Err(DmError::Core(Error(ErrorKind::InvalidArgument(_), _)))
-        );
+        assert_matches!(Id::new(""), Err(DmError::Core(Error::InvalidArgument(_))));
         assert_matches!(
             IdBuf::new("".into()),
-            Err(DmError::Core(Error(ErrorKind::InvalidArgument(_), _)))
+            Err(DmError::Core(Error::InvalidArgument(_)))
         );
     }
 
@@ -142,11 +136,11 @@ mod tests {
         let name = "a".repeat(TYPE_LEN + 1);
         assert_matches!(
             Id::new(&name),
-            Err(DmError::Core(Error(ErrorKind::InvalidArgument(_), _)))
+            Err(DmError::Core(Error::InvalidArgument(_)))
         );
         assert_matches!(
             IdBuf::new(name),
-            Err(DmError::Core(Error(ErrorKind::InvalidArgument(_), _)))
+            Err(DmError::Core(Error::InvalidArgument(_)))
         );
     }
 

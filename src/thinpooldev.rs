@@ -681,7 +681,7 @@ mod tests {
     use std::path::Path;
 
     use crate::{
-        core::errors::{Error, ErrorKind},
+        core::errors::Error,
         testing::{test_name, test_with_spec},
     };
 
@@ -765,7 +765,7 @@ mod tests {
                 MIN_DATA_BLOCK_SIZE / 2u64,
                 DataBlocks(1)
             ),
-            Err(DmError::Core(Error(ErrorKind::IoctlError(_, _), _)))
+            Err(DmError::Core(Error::IoctlError(_, _)))
         );
         dm.device_remove(&DevId::Name(&meta_name), &DmOptions::new())
             .unwrap();

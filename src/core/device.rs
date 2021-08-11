@@ -2,13 +2,13 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-use std::{fmt, io, path::Path, str::FromStr};
+use std::{fmt, path::Path, str::FromStr};
 
 use nix::libc::{dev_t, major, makedev, minor};
 use nix::sys::stat::{self, SFlag};
 
 use crate::{
-    core::errors::ErrorKind,
+    core::errors,
     result::{DmError, DmResult},
 };
 
@@ -37,25 +37,19 @@ impl FromStr for Device {
         let vals = s.split(':').collect::<Vec<_>>();
         if vals.len() != 2 {
             let err_msg = format!("value \"{}\" split into wrong number of fields", s);
-            return Err(DmError::Core(ErrorKind::InvalidArgument(err_msg).into()));
+            return Err(DmError::Core(errors::Error::InvalidArgument(err_msg)));
         }
         let major = vals[0].parse::<u32>().map_err(|_| {
-            DmError::Core(
-                ErrorKind::InvalidArgument(format!(
-                    "could not parse \"{}\" to obtain major number",
-                    vals[0]
-                ))
-                .into(),
-            )
+            DmError::Core(errors::Error::InvalidArgument(format!(
+                "could not parse \"{}\" to obtain major number",
+                vals[0]
+            )))
         })?;
         let minor = vals[1].parse::<u32>().map_err(|_| {
-            DmError::Core(
-                ErrorKind::InvalidArgument(format!(
-                    "could not parse \"{}\" to obtain minor number",
-                    vals[1]
-                ))
-                .into(),
-            )
+            DmError::Core(errors::Error::InvalidArgument(format!(
+                "could not parse \"{}\" to obtain minor number",
+                vals[1]
+            )))
         })?;
         Ok(Device { major, minor })
     }
@@ -123,10 +117,10 @@ pub fn devnode_to_devno(path: &Path) -> DmResult<Option<u64>> {
             },
         ),
         Err(err) if err == nix::Error::ENOENT => Ok(None),
-        Err(err) => Err(DmError::Core(
-            ErrorKind::MetadataIoError(path.to_owned(), io::Error::new(io::ErrorKind::Other, err))
-                .into(),
-        )),
+        Err(err) => Err(DmError::Core(errors::Error::MetadataIoError(
+            path.to_owned(),
+            err.to_string(),
+        ))),
     }
 }
 
