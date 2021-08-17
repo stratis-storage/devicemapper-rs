@@ -90,7 +90,7 @@ impl DM {
     pub fn new() -> DmResult<DM> {
         Ok(DM {
             file: File::open(DM_CTL_PATH)
-                .map_err(|err| DmError::Core(errors::Error::ContextInitError(err.to_string())))?,
+                .map_err(|err| DmError::Core(errors::Error::ContextInit(err.to_string())))?,
         })
     }
 
@@ -98,7 +98,7 @@ impl DM {
         let _ = name
             .as_bytes()
             .read(mut_slice_from_c_str(&mut hdr.name))
-            .map_err(|err| errors::Error::GeneralIoError(err.to_string()))?;
+            .map_err(|err| errors::Error::GeneralIo(err.to_string()))?;
         Ok(())
     }
 
@@ -106,7 +106,7 @@ impl DM {
         let _ = uuid
             .as_bytes()
             .read(mut_slice_from_c_str(&mut hdr.uuid))
-            .map_err(|err| errors::Error::GeneralIoError(err.to_string()))?;
+            .map_err(|err| errors::Error::GeneralIo(err.to_string()))?;
         Ok(())
     }
 
@@ -163,7 +163,7 @@ impl DM {
             if let Err(err) =
                 unsafe { convert_ioctl_res!(nix_ioctl(self.file.as_raw_fd(), op, v.as_mut_ptr())) }
             {
-                return Err(DmError::Core(errors::Error::IoctlError(
+                return Err(DmError::Core(errors::Error::Ioctl(
                     DeviceInfo::new(*hdr).ok().map(Box::new),
                     Box::new(err),
                 )));
@@ -180,7 +180,7 @@ impl DM {
             // the size to exceed u32::MAX.
             let len = v.len();
             if len == u32::MAX as usize {
-                return Err(DmError::Core(errors::Error::IoctlResultTooLargeError));
+                return Err(DmError::Core(errors::Error::IoctlResultTooLarge));
             }
             v.resize((len as u32).saturating_mul(2) as usize, 0);
 
@@ -496,7 +496,7 @@ impl DM {
             let _ = target_type
                 .as_bytes()
                 .read(dst)
-                .map_err(|err| errors::Error::GeneralIoError(err.to_string()))?;
+                .map_err(|err| errors::Error::GeneralIo(err.to_string()))?;
 
             // Size of the largest single member of dm_target_spec
             let align_to_size = size_of::<u64>();
@@ -505,15 +505,15 @@ impl DM {
 
             cursor
                 .write_all(slice_from_c_struct(&targ))
-                .map_err(|err| errors::Error::GeneralIoError(err.to_string()))?;
+                .map_err(|err| errors::Error::GeneralIo(err.to_string()))?;
             cursor
                 .write_all(params.as_bytes())
-                .map_err(|err| errors::Error::GeneralIoError(err.to_string()))?;
+                .map_err(|err| errors::Error::GeneralIo(err.to_string()))?;
 
             let padding = aligned_len - params.len();
             cursor
                 .write_all(vec![0; padding].as_slice())
-                .map_err(|err| errors::Error::GeneralIoError(err.to_string()))?;
+                .map_err(|err| errors::Error::GeneralIo(err.to_string()))?;
         }
 
         let mut hdr = options.to_ioctl_hdr(Some(id), DmFlags::DM_READONLY)?;
@@ -863,7 +863,7 @@ mod tests {
 
         assert_matches!(
             dm.device_rename(&name, &DevId::Uuid(&new_uuid)),
-            Err(DmError::Core(Error::IoctlError(_, _)))
+            Err(DmError::Core(Error::Ioctl(_, _)))
         );
 
         dm.device_remove(&DevId::Name(&name), &DmOptions::new())
@@ -880,7 +880,7 @@ mod tests {
             .unwrap();
         assert_matches!(
             dm.device_rename(&name, &DevId::Uuid(&uuid)),
-            Err(DmError::Core(Error::IoctlError(_, _)))
+            Err(DmError::Core(Error::Ioctl(_, _)))
         );
 
         dm.device_remove(&DevId::Name(&name), &DmOptions::new())
@@ -917,7 +917,7 @@ mod tests {
 
         assert_matches!(
             dm.device_rename(&name, &DevId::Name(&name)),
-            Err(DmError::Core(Error::IoctlError(_, _)))
+            Err(DmError::Core(Error::Ioctl(_, _)))
         );
 
         dm.device_remove(&DevId::Name(&name), &DmOptions::new())
@@ -938,7 +938,7 @@ mod tests {
 
         assert_matches!(
             dm.device_info(&DevId::Name(&name)),
-            Err(DmError::Core(Error::IoctlError(_, _)))
+            Err(DmError::Core(Error::Ioctl(_, _)))
         );
 
         assert_matches!(dm.device_info(&DevId::Name(&new_name)), Ok(_));
@@ -953,7 +953,7 @@ mod tests {
 
         assert_matches!(
             dm.device_rename(&new_name, &DevId::Name(&third_name)),
-            Err(DmError::Core(Error::IoctlError(_, _)))
+            Err(DmError::Core(Error::Ioctl(_, _)))
         );
 
         dm.device_remove(&DevId::Name(&third_name), &DmOptions::new())
@@ -971,7 +971,7 @@ mod tests {
                 &test_name("old_name").expect("is valid DM name"),
                 &DevId::Name(&new_name)
             ),
-            Err(DmError::Core(Error::IoctlError(_, _)))
+            Err(DmError::Core(Error::Ioctl(_, _)))
         );
     }
 
@@ -983,7 +983,7 @@ mod tests {
                 &DevId::Name(&test_name("junk").expect("is valid DM name")),
                 &DmOptions::new()
             ),
-            Err(DmError::Core(Error::IoctlError(_, _)))
+            Err(DmError::Core(Error::Ioctl(_, _)))
         );
     }
 
@@ -1010,7 +1010,7 @@ mod tests {
                 &DevId::Name(&test_name("junk").expect("is valid DM name")),
                 &DmOptions::new()
             ),
-            Err(DmError::Core(Error::IoctlError(_, _)))
+            Err(DmError::Core(Error::Ioctl(_, _)))
         );
     }
 
@@ -1023,7 +1023,7 @@ mod tests {
                 &DevId::Name(&name),
                 DmOptions::new().set_flags(DmFlags::DM_STATUS_TABLE)
             ),
-            Err(DmError::Core(Error::IoctlError(_, _)))
+            Err(DmError::Core(Error::Ioctl(_, _)))
         );
     }
 
@@ -1055,7 +1055,7 @@ mod tests {
         let name = test_name("example_dev").expect("is valid DM name");
         assert_matches!(
             DM::new().unwrap().device_info(&DevId::Name(&name)),
-            Err(DmError::Core(Error::IoctlError(_, _)))
+            Err(DmError::Core(Error::Ioctl(_, _)))
         );
     }
 
@@ -1074,19 +1074,19 @@ mod tests {
             .unwrap();
         assert_matches!(
             dm.device_create(&name, Some(&uuid), &DmOptions::new()),
-            Err(DmError::Core(Error::IoctlError(_, _)))
+            Err(DmError::Core(Error::Ioctl(_, _)))
         );
         assert_matches!(
             dm.device_create(&name, None, &DmOptions::new()),
-            Err(DmError::Core(Error::IoctlError(_, _)))
+            Err(DmError::Core(Error::Ioctl(_, _)))
         );
         assert_matches!(
             dm.device_create(&name, Some(&uuid_alt), &DmOptions::new()),
-            Err(DmError::Core(Error::IoctlError(_, _)))
+            Err(DmError::Core(Error::Ioctl(_, _)))
         );
         assert_matches!(
             dm.device_create(&name_alt, Some(&uuid), &DmOptions::new()),
-            Err(DmError::Core(Error::IoctlError(_, _)))
+            Err(DmError::Core(Error::Ioctl(_, _)))
         );
         dm.device_remove(&DevId::Name(&name), &DmOptions::new())
             .unwrap();
