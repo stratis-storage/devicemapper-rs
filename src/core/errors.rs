@@ -9,7 +9,7 @@ use crate::core::deviceinfo::DeviceInfo;
 #[derive(Clone, Debug)]
 pub enum Error {
     /// An error returned on failure to create a devicemapper context
-    ContextInitError(String),
+    ContextInit(String),
 
     /// This is a generic error that can be returned when a method
     /// receives an invalid argument. Ideally, the argument should be
@@ -20,43 +20,43 @@ pub enum Error {
     /// An error returned exclusively by DM methods.
     /// This error is initiated in DM::do_ioctl and returned by
     /// numerous wrapper methods.
-    IoctlError(Option<Box<DeviceInfo>>, Box<nix::Error>),
+    Ioctl(Option<Box<DeviceInfo>>, Box<nix::Error>),
 
     /// An error returned when the response exceeds the maximum possible
     /// size of the ioctl buffer.
-    IoctlResultTooLargeError,
+    IoctlResultTooLarge,
 
     /// An error returned on failure to get metadata for a device
-    MetadataIoError(PathBuf, String),
+    MetadataIo(PathBuf, String),
 
     /// An error returned on general IO failure
-    GeneralIoError(String),
+    GeneralIo(String),
 }
 
 impl std::fmt::Display for Error {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Error::ContextInitError(err) => {
+            Error::ContextInit(err) => {
                 write!(f, "DM context not initialized due to IO error: {}", err)
             }
             Error::InvalidArgument(err) => write!(f, "invalid argument: {}", err),
-            Error::IoctlError(hdr, err) => write!(
+            Error::Ioctl(hdr, err) => write!(
                 f,
                 "low-level ioctl error due to nix error; header result: {:?}, error: {}",
                 hdr, err
             ),
-            Error::IoctlResultTooLargeError => write!(
+            Error::IoctlResultTooLarge => write!(
                 f,
                 "ioctl result too large for maximum buffer size: {} bytes",
                 u32::MAX
             ),
-            Error::MetadataIoError(device_path, err) => write!(
+            Error::MetadataIo(device_path, err) => write!(
                 f,
                 "failed to stat metadata for device at {} due to IO error: {}",
                 device_path.display(),
                 err
             ),
-            Error::GeneralIoError(err) => {
+            Error::GeneralIo(err) => {
                 write!(f, "failed to perform operation due to IO error: {}", err)
             }
         }
@@ -66,7 +66,7 @@ impl std::fmt::Display for Error {
 impl std::error::Error for Error {
     fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
         match self {
-            Error::IoctlError(_, err) => Some(err),
+            Error::Ioctl(_, err) => Some(err),
             _ => None,
         }
     }
