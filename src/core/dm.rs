@@ -449,7 +449,7 @@ impl DM {
     /// Documentation/device-mapper
     /// for more.
     ///
-    /// `options` Valid flags: DM_READ_ONLY
+    /// `options` Valid flags: DM_READ_ONLY, DM_SECURE_DATA
     ///
     /// # Example
     ///
@@ -516,7 +516,8 @@ impl DM {
                 .map_err(|err| errors::Error::GeneralIo(err.to_string()))?;
         }
 
-        let mut hdr = options.to_ioctl_hdr(Some(id), DmFlags::DM_READONLY)?;
+        let mut hdr =
+            options.to_ioctl_hdr(Some(id), DmFlags::DM_READONLY | DmFlags::DM_SECURE_DATA)?;
 
         // io_ioctl() will set hdr.data_size but we must set target_count
         hdr.target_count = targets.len() as u32;
