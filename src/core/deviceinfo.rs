@@ -18,11 +18,6 @@ use crate::{
     result::{DmError, DmResult},
 };
 
-/// Name max length
-pub const DM_NAME_LEN: usize = 128;
-/// UUID max length
-pub const DM_UUID_LEN: usize = 129;
-
 /// Contains information about the device.
 #[derive(Clone, Debug)]
 pub struct DeviceInfo {
