@@ -5,8 +5,31 @@
 use std::{env::var, path::PathBuf};
 
 use bindgen::Builder;
+use semver::Version;
+
+static SPECIFIED_KERNEL_VERSIONS: &[&str] = &["4.13.0"];
 
 fn main() {
+    let version_str = var("MAXIMUM_KERNEL_VERSION").unwrap_or_else(|_| {
+        SPECIFIED_KERNEL_VERSIONS
+            .iter()
+            .last()
+            .expect("No specified versions")
+            .to_string()
+    });
+
+    let version = Version::parse(&version_str).unwrap();
+
+    for ver in SPECIFIED_KERNEL_VERSIONS.iter().take_while(|ver_string| {
+        let iter_version = Version::parse(ver_string).expect("Could not parse version");
+        version >= iter_version
+    }) {
+        println!(
+            "cargo:rustc-cfg=devicemapper{}supported",
+            ver.split('.').take(2).collect::<Vec<_>>().join("")
+        );
+    }
+
     let bindings = Builder::default()
         .header("dm-ioctl.h")
         .derive_debug(true)
