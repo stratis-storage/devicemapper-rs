@@ -39,12 +39,6 @@ const DM_CTL_PATH: &str = "/dev/mapper/control";
 #[cfg(target_os = "android")]
 /// Control path for user space to pass IOCTL to kernel DM
 const DM_CTL_PATH: &str = "/dev/device-mapper";
-/// Major version
-const DM_VERSION_MAJOR: u32 = 4;
-/// Minor version
-const DM_VERSION_MINOR: u32 = 30;
-/// Patch level
-const DM_VERSION_PATCHLEVEL: u32 = 0;
 
 /// Start with a large buffer to make BUFFER_FULL rare. Libdm does this too.
 const MIN_BUF_SIZE: usize = 16 * 1024;
@@ -65,9 +59,9 @@ impl DmOptions {
         let event_nr = u32::from(self.cookie().bits()) << 16;
         let mut hdr: dmi::Struct_dm_ioctl = Default::default();
 
-        hdr.version[0] = DM_VERSION_MAJOR;
-        hdr.version[1] = DM_VERSION_MINOR;
-        hdr.version[2] = DM_VERSION_PATCHLEVEL;
+        hdr.version[0] = dmi::DM_VERSION_MAJOR;
+        hdr.version[1] = dmi::DM_VERSION_MINOR;
+        hdr.version[2] = dmi::DM_VERSION_PATCHLEVEL;
 
         hdr.flags = clean_flags.bits();
         hdr.event_nr = event_nr;
