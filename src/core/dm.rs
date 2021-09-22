@@ -31,8 +31,6 @@ use crate::{
     result::{DmError, DmResult, ErrorEnum},
 };
 
-/// Indicator to send IOCTL to DM
-const DM_IOCTL: u8 = 0xfd;
 #[cfg(target_os = "linux")]
 /// Control path for user space to pass IOCTL to kernel DM
 const DM_CTL_PATH: &str = "/dev/mapper/control";
@@ -150,7 +148,7 @@ impl DM {
                 .as_mut()
                 .expect("pointer to own structure v can not be NULL")
         };
-        let op = request_code_readwrite!(DM_IOCTL, ioctl, size_of::<dmi::Struct_dm_ioctl>());
+        let op = request_code_readwrite!(dmi::DM_IOCTL, ioctl, size_of::<dmi::Struct_dm_ioctl>());
         loop {
             #[cfg(target_os = "android")]
             let op = op as i32;
