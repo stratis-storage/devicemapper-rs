@@ -10,42 +10,41 @@ bitflags! {
     pub struct DmFlags: dmi::__u32 {
         /// In: Device should be read-only.
         /// Out: Device is read-only.
-        #[allow(clippy::identity_op)]
-        const DM_READONLY             = (1 << 0);
+        const DM_READONLY             = dmi::DM_READONLY_FLAG;
         /// In: Device should be suspended.
         /// Out: Device is suspended.
-        const DM_SUSPEND              = (1 << 1);
+        const DM_SUSPEND              = dmi::DM_SUSPEND_FLAG;
         /// In: Use passed-in minor number.
-        const DM_PERSISTENT_DEV       = (1 << 3);
+        const DM_PERSISTENT_DEV       = dmi::DM_PERSISTENT_DEV_FLAG;
         /// In: STATUS command returns table info instead of status.
-        const DM_STATUS_TABLE         = (1 << 4);
+        const DM_STATUS_TABLE         = dmi::DM_STATUS_TABLE_FLAG;
         /// Out: Active table is present.
-        const DM_ACTIVE_PRESENT       = (1 << 5);
+        const DM_ACTIVE_PRESENT       = dmi::DM_ACTIVE_PRESENT_FLAG;
         /// Out: Inactive table is present.
-        const DM_INACTIVE_PRESENT     = (1 << 6);
+        const DM_INACTIVE_PRESENT     = dmi::DM_INACTIVE_PRESENT_FLAG;
         /// Out: Passed-in buffer was too small.
-        const DM_BUFFER_FULL          = (1 << 8);
+        const DM_BUFFER_FULL          = dmi::DM_BUFFER_FULL_FLAG;
         /// Obsolete.
-        const DM_SKIP_BDGET           = (1 << 9);
+        const DM_SKIP_BDGET           = dmi::DM_SKIP_BDGET_FLAG;
         /// In: Avoid freezing filesystem when suspending.
-        const DM_SKIP_LOCKFS          = (1 << 10);
+        const DM_SKIP_LOCKFS          = dmi::DM_SKIP_LOCKFS_FLAG;
         /// In: Suspend without flushing queued I/Os.
-        const DM_NOFLUSH              = (1 << 11);
+        const DM_NOFLUSH              = dmi::DM_NOFLUSH_FLAG;
         /// In: Query inactive table instead of active.
-        const DM_QUERY_INACTIVE_TABLE = (1 << 12);
+        const DM_QUERY_INACTIVE_TABLE = dmi::DM_QUERY_INACTIVE_TABLE_FLAG;
         /// Out: A uevent was generated, the caller may need to wait for it.
-        const DM_UEVENT_GENERATED     = (1 << 13);
+        const DM_UEVENT_GENERATED     = dmi::DM_UEVENT_GENERATED_FLAG;
         /// In: Rename affects UUID field, not name field.
-        const DM_UUID                 = (1 << 14);
+        const DM_UUID                 = dmi::DM_UUID_FLAG;
         /// In: All buffers are wiped after use. Use when handling crypto keys.
-        const DM_SECURE_DATA          = (1 << 15);
+        const DM_SECURE_DATA          = dmi::DM_SECURE_DATA_FLAG;
         /// Out: A message generated output data.
-        const DM_DATA_OUT             = (1 << 16);
+        const DM_DATA_OUT             = dmi::DM_DATA_OUT_FLAG;
         /// In: Do not remove in-use devices.
         /// Out: Device scheduled to be removed when closed.
-        const DM_DEFERRED_REMOVE      = (1 << 17);
+        const DM_DEFERRED_REMOVE      = dmi::DM_DEFERRED_REMOVE;
         /// Out: Device is suspended internally.
-        const DM_INTERNAL_SUSPEND     = (1 << 18);
+        const DM_INTERNAL_SUSPEND     = dmi::DM_INTERNAL_SUSPEND_FLAG;
     }
 }
 
