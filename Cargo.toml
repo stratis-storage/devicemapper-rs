@@ -33,3 +33,6 @@ features = ["v4"]
 default_features = false
 features = ["runtime"]
 version = "0.57.0"
+
+[build-dependencies]
+semver = "1.0.0"
