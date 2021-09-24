@@ -12,12 +12,6 @@ IGNORE_ARGS ?=
 
 DENY = -D warnings -D future-incompatible -D unused -D rust_2018_idioms -D rust_2018_compatibility -D nonstandard_style
 
-# Clippy-related lints
-CLIPPY_CARGO = -D clippy::cargo_common_metadata \
-               -D clippy::multiple_crate_versions \
-               -D clippy::wildcard_dependencies \
-               -D clippy::all
-
 # Clippy allow/deny adjudications for pedantic lints
 #
 # Allows represent lints we fail but which we may
@@ -82,7 +76,11 @@ sudo_test:
 	RUSTFLAGS="${DENY}" RUST_BACKTRACE=1 RUST_TEST_THREADS=1 cargo test
 
 clippy:
-	RUSTFLAGS="${DENY}" cargo clippy --all-targets --all-features -- -D clippy::needless_borrow ${CLIPPY_CARGO} ${CLIPPY_PEDANTIC}
+	RUSTFLAGS="${DENY}" \
+        cargo clippy --all-targets --all-features -- \
+        -D clippy::cargo \
+        -D clippy::all \
+        ${CLIPPY_PEDANTIC}
 
 docs:
 	cargo doc --no-deps
