@@ -32,3 +32,10 @@ features = ["v4"]
 [dependencies.devicemapper-rs-sys]
 version = "0.1.0"
 path = "./devicemapper-rs-sys"
+
+[build-dependencies.devicemapper-rs-sys]
+version = "0.1.0"
+path = "./devicemapper-rs-sys"
+
+[build-dependencies]
+semver = "1.0.0"
