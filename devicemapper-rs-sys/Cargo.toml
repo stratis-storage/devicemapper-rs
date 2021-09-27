@@ -1,0 +1,18 @@
+[package]
+name = "devicemapper-rs-sys"
+version = "0.1.0"
+authors = ["Stratis Developers <stratis-devel@lists.fedorahosted.org>"]
+edition = "2018"
+description = "Low level bindings for devicemapper"
+license = "MPL-2.0"
+documentation = "https://docs.rs/devicemapper-rs-sys"
+homepage = "https://stratis-storage.github.io/"
+repository = "https://github.com/stratis-storage/devicemapper-rs"
+
+[dependencies]
+nix = "0.22"
+
+[build-dependencies.bindgen]
+default_features = false
+features = ["runtime"]
+version = "0.57.0"
