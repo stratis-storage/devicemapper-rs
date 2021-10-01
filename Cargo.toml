@@ -29,7 +29,13 @@ tempfile = "3.0.2"
 version = "0.8.0"
 features = ["v4"]
 
-[build-dependencies.bindgen]
-default_features = false
-features = ["runtime"]
-version = "0.57.0"
+[dependencies.devicemapper-rs-sys]
+version = "0.1.0"
+path = "./devicemapper-rs-sys"
+
+[build-dependencies.devicemapper-rs-sys]
+version = "0.1.0"
+path = "./devicemapper-rs-sys"
+
+[build-dependencies]
+semver = "1.0.0"

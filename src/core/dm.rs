@@ -753,6 +753,7 @@ impl DM {
     /// If DM is being used to poll for events, once it indicates readiness it
     /// will continue to do so until we rearm it, which is what this method
     /// does.
+    #[cfg(devicemapper437supported)]
     pub fn arm_poll(&self) -> DmResult<DeviceInfo> {
         let mut hdr = DmOptions::new().to_ioctl_hdr(None, DmFlags::empty())?;
 
