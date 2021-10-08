@@ -1,5 +1,5 @@
 [package]
-name = "devicemapper-rs-sys"
+name = "devicemapper-sys"
 version = "0.1.0"
 authors = ["Stratis Developers <stratis-devel@lists.fedorahosted.org>"]
 edition = "2018"

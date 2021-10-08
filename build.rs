@@ -4,7 +4,7 @@
 
 use semver::Version;
 
-use devicemapper_rs_sys::{DM_VERSION_MAJOR, DM_VERSION_MINOR, DM_VERSION_PATCHLEVEL};
+use devicemapper_sys::{DM_VERSION_MAJOR, DM_VERSION_MINOR, DM_VERSION_PATCHLEVEL};
 
 static SUPPORTED_VERSIONS: &[&str] = &["4.37.0"];
 
