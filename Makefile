@@ -95,7 +95,7 @@ yamllint:
 .PHONY:
 	audit
 	build
-	check-fedora-versions:
+	check-fedora-versions
 	clippy
 	docs
 	fmt
