@@ -96,6 +96,7 @@ yamllint:
 	audit
 	build
 	check-fedora-versions
+	check-fedora-versions-sys
 	clippy
 	docs
 	fmt
