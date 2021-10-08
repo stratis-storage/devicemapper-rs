@@ -56,7 +56,7 @@ test-compare-fedora-versions:
 
 check-fedora-versions: test-compare-fedora-versions
 	${COMPARE_FEDORA_VERSIONS} ${MANIFEST_PATH_ARGS} ${FEDORA_RELEASE_ARGS} ${IGNORE_ARGS} \
-        --ignore-missing devicemapper-rs-sys
+        --ignore-missing devicemapper-sys
 
 check-fedora-versions-sys: test-compare-fedora-versions
 	${COMPARE_FEDORA_VERSIONS} ${MANIFEST_PATH_ARGS} ${FEDORA_RELEASE_ARGS} ${IGNORE_ARGS}

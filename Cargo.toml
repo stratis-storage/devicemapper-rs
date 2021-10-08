@@ -29,11 +29,11 @@ tempfile = "3.0.2"
 version = "0.8.0"
 features = ["v4"]
 
-[dependencies.devicemapper-rs-sys]
+[dependencies.devicemapper-sys]
 version = "0.1.0"
 path = "./devicemapper-rs-sys"
 
-[build-dependencies.devicemapper-rs-sys]
+[build-dependencies.devicemapper-sys]
 version = "0.1.0"
 path = "./devicemapper-rs-sys"
 
