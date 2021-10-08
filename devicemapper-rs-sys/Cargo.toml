@@ -1,6 +1,6 @@
 [package]
 name = "devicemapper-sys"
-version = "0.1.0"
+version = "0.1.1"
 authors = ["Stratis Developers <stratis-devel@lists.fedorahosted.org>"]
 edition = "2018"
 description = "Low level bindings for devicemapper"
