@@ -52,13 +52,10 @@ macro_rules! table {
 }
 
 macro_rules! status {
-    ($s:ident, $dm:ident) => {
+    ($s:ident, $dm:ident, $options:ident) => {
         get_status(
-            &$dm.table_status(
-                &$crate::core::DevId::Name($s.name()),
-                $crate::core::DmOptions::default(),
-            )?
-            .1,
+            &$dm.table_status(&$crate::core::DevId::Name($s.name()), $options)?
+                .1,
         )?
         .parse()
     };
