@@ -5,10 +5,15 @@ name: devicemapper CI
 on:
   push:
     branches: [patch-0.29.2]
+    paths-ignore:
+      - 'CHANGES.txt'
+      - '**/README.md'
   pull_request:
     branches: [patch-0.29.2]
+    paths-ignore:
+      - 'CHANGES.txt'
+      - '**/README.md'
 
-  # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
 
 jobs:
