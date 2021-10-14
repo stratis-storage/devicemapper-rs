@@ -681,7 +681,7 @@ mod tests {
     use std::path::Path;
 
     use crate::{
-        core::errors::Error,
+        core::{errors::Error, DmFlags},
         testing::{test_name, test_with_spec},
     };
 
@@ -873,6 +873,21 @@ mod tests {
     #[test]
     fn loop_test_suspend() {
         test_with_spec(1, test_suspend);
+    }
+
+    fn test_status_noflush(paths: &[&Path]) {
+        assert!(!paths.is_empty());
+
+        let dm = DM::new().unwrap();
+        let tp = minimal_thinpool(&dm, paths[0]);
+
+        tp.status(&dm, DmOptions::default().set_flags(DmFlags::DM_NOFLUSH))
+            .unwrap();
+    }
+
+    #[test]
+    fn loop_test_status_noflush() {
+        test_with_spec(1, test_status_noflush);
     }
 
     #[test]
