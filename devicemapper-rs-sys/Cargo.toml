@@ -10,7 +10,7 @@ homepage = "https://stratis-storage.github.io/"
 repository = "https://github.com/stratis-storage/devicemapper-rs"
 
 [dependencies]
-nix = "0.22"
+nix = "0.22.0"
 
 [build-dependencies.bindgen]
 default_features = false
