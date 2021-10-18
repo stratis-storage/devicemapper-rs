@@ -57,9 +57,11 @@ impl DmOptions {
         let event_nr = u32::from(self.cookie().bits()) << 16;
         let mut hdr: dmi::Struct_dm_ioctl = Default::default();
 
-        hdr.version[0] = dmi::DM_VERSION_MAJOR;
-        hdr.version[1] = dmi::DM_VERSION_MINOR;
-        hdr.version[2] = dmi::DM_VERSION_PATCHLEVEL;
+        // Set version constants to ones that will make Ubuntu::groovy
+        // content.
+        hdr.version[0] = 4;
+        hdr.version[1] = 41;
+        hdr.version[2] = 0;
 
         hdr.flags = clean_flags.bits();
         hdr.event_nr = event_nr;
