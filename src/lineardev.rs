@@ -5,7 +5,7 @@
 use std::{collections::HashSet, fmt, path::PathBuf, str::FromStr};
 
 use crate::{
-    core::{DevId, Device, DeviceInfo, DmName, DmOptions, DmUuid, DM},
+    core::{DevId, Device, DeviceInfo, DmFlags, DmName, DmOptions, DmUuid, DM},
     result::{DmError, DmResult, ErrorEnum},
     shared::{
         device_create, device_exists, device_match, parse_device, parse_value, DmDevice,
@@ -564,7 +564,7 @@ impl LinearDev {
         table: Vec<TargetLine<LinearDevTargetParams>>,
     ) -> DmResult<()> {
         let table = LinearDevTargetTable::new(table);
-        self.suspend(dm, false)?;
+        self.suspend(dm, DmOptions::default().set_flags(DmFlags::DM_NOFLUSH))?;
         self.table_load(dm, &table, DmOptions::default())?;
         self.table = table;
         Ok(())
@@ -806,8 +806,10 @@ mod tests {
         )];
         let mut ld = LinearDev::setup(&dm, &name, None, table).unwrap();
 
-        ld.suspend(&dm, false).unwrap();
-        ld.suspend(&dm, false).unwrap();
+        ld.suspend(&dm, DmOptions::default().set_flags(DmFlags::DM_NOFLUSH))
+            .unwrap();
+        ld.suspend(&dm, DmOptions::default().set_flags(DmFlags::DM_NOFLUSH))
+            .unwrap();
         ld.resume(&dm).unwrap();
         ld.resume(&dm).unwrap();
 

@@ -392,7 +392,7 @@ impl ThinDev {
     /// Set the table for the thin device's target
     pub fn set_table(&mut self, dm: &DM, table: TargetLine<ThinTargetParams>) -> DmResult<()> {
         let table = ThinDevTargetTable::new(table.start, table.length, table.params);
-        self.suspend(dm, false)?;
+        self.suspend(dm, DmOptions::default().set_flags(DmFlags::DM_NOFLUSH))?;
         self.table_load(dm, &table, DmOptions::default())?;
         self.resume(dm)?;
 

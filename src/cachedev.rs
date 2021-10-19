@@ -11,7 +11,7 @@ use std::{
 
 use crate::{
     consts::IEC,
-    core::{DevId, Device, DeviceInfo, DmName, DmOptions, DmUuid, DM},
+    core::{DevId, Device, DeviceInfo, DmFlags, DmName, DmOptions, DmUuid, DM},
     lineardev::{LinearDev, LinearDevTargetParams},
     result::{DmError, DmResult, ErrorEnum},
     shared::{
@@ -619,7 +619,7 @@ impl CacheDev {
         dm: &DM,
         table: Vec<TargetLine<LinearDevTargetParams>>,
     ) -> DmResult<()> {
-        self.suspend(dm, false)?;
+        self.suspend(dm, DmOptions::default().set_flags(DmFlags::DM_NOFLUSH))?;
 
         self.origin_dev.set_table(dm, table)?;
         self.origin_dev.resume(dm)?;
@@ -644,7 +644,7 @@ impl CacheDev {
         dm: &DM,
         table: Vec<TargetLine<LinearDevTargetParams>>,
     ) -> DmResult<()> {
-        self.suspend(dm, false)?;
+        self.suspend(dm, DmOptions::default().set_flags(DmFlags::DM_NOFLUSH))?;
         self.cache_dev.set_table(dm, table)?;
         self.cache_dev.resume(dm)?;
 
@@ -667,7 +667,7 @@ impl CacheDev {
         dm: &DM,
         table: Vec<TargetLine<LinearDevTargetParams>>,
     ) -> DmResult<()> {
-        self.suspend(dm, false)?;
+        self.suspend(dm, DmOptions::default().set_flags(DmFlags::DM_NOFLUSH))?;
         self.meta_dev.set_table(dm, table)?;
         self.meta_dev.resume(dm)?;
 
@@ -1048,8 +1048,12 @@ mod tests {
 
         let dm = DM::new().unwrap();
         let mut cache = minimal_cachedev(&dm, paths);
-        cache.suspend(&dm, false).unwrap();
-        cache.suspend(&dm, false).unwrap();
+        cache
+            .suspend(&dm, DmOptions::default().set_flags(DmFlags::DM_NOFLUSH))
+            .unwrap();
+        cache
+            .suspend(&dm, DmOptions::default().set_flags(DmFlags::DM_NOFLUSH))
+            .unwrap();
         cache.resume(&dm).unwrap();
         cache.resume(&dm).unwrap();
         cache.teardown(&dm).unwrap();
