@@ -5,7 +5,7 @@
 use std::{collections::hash_set::HashSet, fmt, path::PathBuf, str::FromStr};
 
 use crate::{
-    core::{DevId, Device, DeviceInfo, DmName, DmOptions, DmUuid, DM},
+    core::{DevId, Device, DeviceInfo, DmFlags, DmName, DmOptions, DmUuid, DM},
     lineardev::{LinearDev, LinearDevTargetParams},
     result::{DmError, DmResult, ErrorEnum},
     shared::{
@@ -544,7 +544,7 @@ impl ThinPoolDev {
         let mut new_table = self.table.clone();
         new_table.table.params.low_water_mark = low_water_mark;
 
-        self.suspend(dm, false)?;
+        self.suspend(dm, DmOptions::default().set_flags(DmFlags::DM_NOFLUSH))?;
         self.table_load(dm, &new_table, DmOptions::default())?;
 
         self.table = new_table;
@@ -568,7 +568,7 @@ impl ThinPoolDev {
         dm: &DM,
         table: Vec<TargetLine<LinearDevTargetParams>>,
     ) -> DmResult<()> {
-        self.suspend(dm, false)?;
+        self.suspend(dm, DmOptions::default().set_flags(DmFlags::DM_NOFLUSH))?;
         self.meta_dev.set_table(dm, table)?;
         self.meta_dev.resume(dm)?;
 
@@ -590,7 +590,7 @@ impl ThinPoolDev {
         dm: &DM,
         table: Vec<TargetLine<LinearDevTargetParams>>,
     ) -> DmResult<()> {
-        self.suspend(dm, false)?;
+        self.suspend(dm, DmOptions::default().set_flags(DmFlags::DM_NOFLUSH))?;
 
         self.data_dev.set_table(dm, table)?;
         self.data_dev.resume(dm)?;
@@ -863,8 +863,10 @@ mod tests {
 
         let dm = DM::new().unwrap();
         let mut tp = minimal_thinpool(&dm, paths[0]);
-        tp.suspend(&dm, false).unwrap();
-        tp.suspend(&dm, false).unwrap();
+        tp.suspend(&dm, DmOptions::default().set_flags(DmFlags::DM_NOFLUSH))
+            .unwrap();
+        tp.suspend(&dm, DmOptions::default().set_flags(DmFlags::DM_NOFLUSH))
+            .unwrap();
         tp.resume(&dm).unwrap();
         tp.resume(&dm).unwrap();
         tp.teardown(&dm).unwrap();
