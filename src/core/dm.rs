@@ -347,14 +347,15 @@ impl DM {
     /// Note: Possibly surprisingly, returned DeviceInfo's uuid or name field
     /// contains the previous value, not the newly set value.
     pub fn device_rename(&self, old_name: &DmName, new: &DevId<'_>) -> DmResult<DeviceInfo> {
-        let (options, mut data_in) = match *new {
-            DevId::Name(name) => (DmOptions::new(), name.as_bytes().to_vec()),
+        let (options, id_in) = match *new {
+            DevId::Name(name) => (DmOptions::new(), name.as_bytes()),
             DevId::Uuid(uuid) => (
                 DmOptions::new().set_flags(DmFlags::DM_UUID),
-                uuid.as_bytes().to_vec(),
+                uuid.as_bytes(),
             ),
         };
-        data_in.push(b'\0');
+
+        let data_in = [id_in, &[b'\0']].concat();
 
         let mut hdr = options.to_ioctl_hdr(None, DmFlags::DM_UUID)?;
         Self::hdr_set_name(&mut hdr, old_name)?;
