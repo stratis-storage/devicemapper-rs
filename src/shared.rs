@@ -80,7 +80,7 @@ pub trait DmDevice<T: TargetTable> {
     /// Read the devicemapper table
     fn read_kernel_table(dm: &DM, id: &DevId<'_>) -> DmResult<T> {
         let (_, table) =
-            dm.table_status(id, DmOptions::new().set_flags(DmFlags::DM_STATUS_TABLE))?;
+            dm.table_status(id, &DmOptions::new().set_flags(DmFlags::DM_STATUS_TABLE))?;
         T::from_raw_table(&table)
     }
 
@@ -98,8 +98,7 @@ pub trait DmDevice<T: TargetTable> {
 
     /// Suspend I/O on the device. If flush is true, flush the device first.
     fn suspend(&mut self, dm: &DM, flush: bool) -> DmResult<()> {
-        let mut options = DmOptions::new();
-        options.set_flags(if flush {
+        let options = DmOptions::new().set_flags(if flush {
             DmFlags::DM_SUSPEND
         } else {
             DmFlags::DM_SUSPEND | DmFlags::DM_NOFLUSH

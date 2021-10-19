@@ -49,7 +49,7 @@ pub struct DM {
 impl DmOptions {
     /// Generate a header to be used for IOCTL.
     fn to_ioctl_hdr(
-        &self,
+        self,
         id: Option<&DevId<'_>>,
         allowable_flags: DmFlags,
     ) -> DmResult<dmi::Struct_dm_ioctl> {
@@ -347,13 +347,12 @@ impl DM {
     /// Note: Possibly surprisingly, returned DeviceInfo's uuid or name field
     /// contains the previous value, not the newly set value.
     pub fn device_rename(&self, old_name: &DmName, new: &DevId<'_>) -> DmResult<DeviceInfo> {
-        let mut options = DmOptions::new();
-        let mut data_in = match *new {
-            DevId::Name(name) => name.as_bytes().to_vec(),
-            DevId::Uuid(uuid) => {
-                options.set_flags(DmFlags::DM_UUID);
-                uuid.as_bytes().to_vec()
-            }
+        let (options, mut data_in) = match *new {
+            DevId::Name(name) => (DmOptions::new(), name.as_bytes().to_vec()),
+            DevId::Uuid(uuid) => (
+                DmOptions::new().set_flags(DmFlags::DM_UUID),
+                uuid.as_bytes().to_vec(),
+            ),
         };
         data_in.push(b'\0');
 
@@ -1015,7 +1014,7 @@ mod tests {
         assert_matches!(
             DM::new().unwrap().table_status(
                 &DevId::Name(&name),
-                DmOptions::new().set_flags(DmFlags::DM_STATUS_TABLE)
+                &DmOptions::new().set_flags(DmFlags::DM_STATUS_TABLE)
             ),
             Err(DmError::Core(Error::Ioctl(_, _)))
         );
