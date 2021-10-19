@@ -231,7 +231,7 @@ impl DmDevice<ThinPoolDevTargetTable> for ThinPoolDev {
     }
 
     fn teardown(&mut self, dm: &DM) -> DmResult<()> {
-        dm.device_remove(&DevId::Name(self.name()), &DmOptions::new())?;
+        dm.device_remove(&DevId::Name(self.name()), DmOptions::new())?;
         self.data_dev.teardown(dm)?;
         self.meta_dev.teardown(dm)?;
         Ok(())
@@ -445,7 +445,7 @@ impl ThinPoolDev {
         }
 
         let table = ThinPoolDev::gen_default_table(&meta, &data, data_block_size, low_water_mark);
-        let dev_info = device_create(dm, name, uuid, &table, &DmOptions::new())?;
+        let dev_info = device_create(dm, name, uuid, &table, DmOptions::new())?;
 
         Ok(ThinPoolDev {
             dev_info: Box::new(dev_info),
@@ -497,7 +497,7 @@ impl ThinPoolDev {
             device_match(dm, &dev, uuid)?;
             dev
         } else {
-            let dev_info = device_create(dm, name, uuid, &table, &DmOptions::new())?;
+            let dev_info = device_create(dm, name, uuid, &table, DmOptions::new())?;
             ThinPoolDev {
                 dev_info: Box::new(dev_info),
                 meta_dev: meta,
@@ -545,7 +545,7 @@ impl ThinPoolDev {
         new_table.table.params.low_water_mark = low_water_mark;
 
         self.suspend(dm, false)?;
-        self.table_load(dm, &new_table, &DmOptions::default())?;
+        self.table_load(dm, &new_table, DmOptions::default())?;
 
         self.table = new_table;
         Ok(())
@@ -574,7 +574,7 @@ impl ThinPoolDev {
 
         // Reload the table even though it is unchanged.
         // See comment on CacheDev::set_cache_table for reason.
-        self.table_load(dm, self.table(), &DmOptions::default())?;
+        self.table_load(dm, self.table(), DmOptions::default())?;
 
         Ok(())
     }
@@ -597,7 +597,7 @@ impl ThinPoolDev {
 
         let mut table = self.table.clone();
         table.table.length = self.data_dev.size();
-        self.table_load(dm, &table, &DmOptions::default())?;
+        self.table_load(dm, &table, DmOptions::default())?;
 
         self.table = table;
 
@@ -767,9 +767,9 @@ mod tests {
             ),
             Err(DmError::Core(Error::Ioctl(_, _)))
         );
-        dm.device_remove(&DevId::Name(&meta_name), &DmOptions::new())
+        dm.device_remove(&DevId::Name(&meta_name), DmOptions::new())
             .unwrap();
-        dm.device_remove(&DevId::Name(&data_name), &DmOptions::new())
+        dm.device_remove(&DevId::Name(&data_name), DmOptions::new())
             .unwrap();
     }
 
