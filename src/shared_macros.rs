@@ -56,7 +56,7 @@ macro_rules! status {
         get_status(
             &$dm.table_status(
                 &$crate::core::DevId::Name($s.name()),
-                $crate::core::DmOptions::new(),
+                $crate::core::DmOptions::default(),
             )?
             .1,
         )?

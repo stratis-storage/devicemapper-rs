@@ -231,7 +231,7 @@ impl DmDevice<ThinPoolDevTargetTable> for ThinPoolDev {
     }
 
     fn teardown(&mut self, dm: &DM) -> DmResult<()> {
-        dm.device_remove(&DevId::Name(self.name()), DmOptions::new())?;
+        dm.device_remove(&DevId::Name(self.name()), DmOptions::default())?;
         self.data_dev.teardown(dm)?;
         self.meta_dev.teardown(dm)?;
         Ok(())
@@ -445,7 +445,7 @@ impl ThinPoolDev {
         }
 
         let table = ThinPoolDev::gen_default_table(&meta, &data, data_block_size, low_water_mark);
-        let dev_info = device_create(dm, name, uuid, &table, DmOptions::new())?;
+        let dev_info = device_create(dm, name, uuid, &table, DmOptions::default())?;
 
         Ok(ThinPoolDev {
             dev_info: Box::new(dev_info),
@@ -497,7 +497,7 @@ impl ThinPoolDev {
             device_match(dm, &dev, uuid)?;
             dev
         } else {
-            let dev_info = device_create(dm, name, uuid, &table, DmOptions::new())?;
+            let dev_info = device_create(dm, name, uuid, &table, DmOptions::default())?;
             ThinPoolDev {
                 dev_info: Box::new(dev_info),
                 meta_dev: meta,
@@ -767,9 +767,9 @@ mod tests {
             ),
             Err(DmError::Core(Error::Ioctl(_, _)))
         );
-        dm.device_remove(&DevId::Name(&meta_name), DmOptions::new())
+        dm.device_remove(&DevId::Name(&meta_name), DmOptions::default())
             .unwrap();
-        dm.device_remove(&DevId::Name(&data_name), DmOptions::new())
+        dm.device_remove(&DevId::Name(&data_name), DmOptions::default())
             .unwrap();
     }
 

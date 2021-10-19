@@ -530,7 +530,7 @@ impl DmDevice<CacheDevTargetTable> for CacheDev {
     }
 
     fn teardown(&mut self, dm: &DM) -> DmResult<()> {
-        dm.device_remove(&DevId::Name(self.name()), DmOptions::new())?;
+        dm.device_remove(&DevId::Name(self.name()), DmOptions::default())?;
         self.cache_dev.teardown(dm)?;
         self.origin_dev.teardown(dm)?;
         self.meta_dev.teardown(dm)?;
@@ -561,7 +561,7 @@ impl CacheDev {
         }
 
         let table = CacheDev::gen_default_table(&meta, &cache, &origin, cache_block_size);
-        let dev_info = device_create(dm, name, uuid, &table, DmOptions::new())?;
+        let dev_info = device_create(dm, name, uuid, &table, DmOptions::default())?;
 
         Ok(CacheDev {
             dev_info: Box::new(dev_info),
@@ -595,7 +595,7 @@ impl CacheDev {
             device_match(dm, &dev, uuid)?;
             dev
         } else {
-            let dev_info = device_create(dm, name, uuid, &table, DmOptions::new())?;
+            let dev_info = device_create(dm, name, uuid, &table, DmOptions::default())?;
             CacheDev {
                 dev_info: Box::new(dev_info),
                 meta_dev: meta,

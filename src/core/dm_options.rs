@@ -11,14 +11,6 @@ pub struct DmOptions {
 }
 
 impl DmOptions {
-    /// Create a new empty option
-    pub fn new() -> DmOptions {
-        DmOptions {
-            flags: DmFlags::empty(),
-            cookie: DmCookie::empty(),
-        }
-    }
-
     /// Set the DmFlags value for self. Replace the previous value.
     /// Consumes self.
     pub fn set_flags(mut self, flags: DmFlags) -> DmOptions {

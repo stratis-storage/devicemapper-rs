@@ -172,7 +172,7 @@ impl DmDevice<ThinDevTargetTable> for ThinDev {
     }
 
     fn teardown(&mut self, dm: &DM) -> DmResult<()> {
-        dm.device_remove(&DevId::Name(self.name()), DmOptions::new())?;
+        dm.device_remove(&DevId::Name(self.name()), DmOptions::default())?;
         Ok(())
     }
 
@@ -271,7 +271,7 @@ impl ThinDev {
             name,
             uuid,
             &table,
-            DmOptions::new().set_cookie(DmCookie::DM_UDEV_PRIMARY_SOURCE_FLAG),
+            DmOptions::default().set_cookie(DmCookie::DM_UDEV_PRIMARY_SOURCE_FLAG),
         )?;
 
         Ok(ThinDev {
@@ -313,7 +313,7 @@ impl ThinDev {
                 name,
                 uuid,
                 &table,
-                DmOptions::new().set_cookie(DmCookie::DM_UDEV_PRIMARY_SOURCE_FLAG),
+                DmOptions::default().set_cookie(DmCookie::DM_UDEV_PRIMARY_SOURCE_FLAG),
             )?;
             ThinDev {
                 dev_info: Box::new(dev_info),
@@ -336,7 +336,10 @@ impl ThinDev {
         snapshot_thin_id: ThinDevId,
     ) -> DmResult<ThinDev> {
         let source_id = DevId::Name(self.name());
-        dm.device_suspend(&source_id, DmOptions::new().set_flags(DmFlags::DM_SUSPEND))?;
+        dm.device_suspend(
+            &source_id,
+            DmOptions::default().set_flags(DmFlags::DM_SUSPEND),
+        )?;
         message(
             dm,
             thin_pool,
@@ -345,14 +348,14 @@ impl ThinDev {
                 snapshot_thin_id, self.table.table.params.thin_id
             ),
         )?;
-        dm.device_suspend(&source_id, DmOptions::new())?;
+        dm.device_suspend(&source_id, DmOptions::default())?;
         let table = ThinDev::gen_default_table(self.size(), thin_pool.device(), snapshot_thin_id);
         let dev_info = Box::new(device_create(
             dm,
             snapshot_name,
             snapshot_uuid,
             &table,
-            DmOptions::new().set_cookie(DmCookie::DM_UDEV_PRIMARY_SOURCE_FLAG),
+            DmOptions::default().set_cookie(DmCookie::DM_UDEV_PRIMARY_SOURCE_FLAG),
         )?);
         Ok(ThinDev { dev_info, table })
     }

@@ -497,7 +497,7 @@ impl DmDevice<LinearDevTargetTable> for LinearDev {
     }
 
     fn teardown(&mut self, dm: &DM) -> DmResult<()> {
-        dm.device_remove(&DevId::Name(self.name()), DmOptions::new())?;
+        dm.device_remove(&DevId::Name(self.name()), DmOptions::default())?;
         Ok(())
     }
 
@@ -543,7 +543,7 @@ impl LinearDev {
             device_match(dm, &dev, uuid)?;
             dev
         } else {
-            let dev_info = device_create(dm, name, uuid, &table, DmOptions::new())?;
+            let dev_info = device_create(dm, name, uuid, &table, DmOptions::default())?;
             LinearDev {
                 dev_info: Box::new(dev_info),
                 table,
