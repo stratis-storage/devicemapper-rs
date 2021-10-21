@@ -199,7 +199,7 @@ fn dm_test_devices_remove() -> Result<()> {
             .iter()
             .map(|d| &d.0)
         {
-            match get_dm().device_remove(&DevId::Name(n), &DmOptions::new()) {
+            match get_dm().device_remove(&DevId::Name(n), DmOptions::default()) {
                 Ok(_) => progress_made = true,
                 Err(_) => remain.push(n.to_string()),
             }
