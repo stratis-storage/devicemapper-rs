@@ -5,7 +5,7 @@
 use std::{collections::hash_set::HashSet, fmt, path::PathBuf, str::FromStr};
 
 use crate::{
-    core::{DevId, Device, DeviceInfo, DmName, DmOptions, DmUuid, DM},
+    core::{DevId, Device, DeviceInfo, DmFlags, DmName, DmOptions, DmUuid, DM},
     lineardev::{LinearDev, LinearDevTargetParams},
     result::{DmError, DmResult, ErrorEnum},
     shared::{
@@ -544,7 +544,7 @@ impl ThinPoolDev {
         let mut new_table = self.table.clone();
         new_table.table.params.low_water_mark = low_water_mark;
 
-        self.suspend(dm, false)?;
+        self.suspend(dm, DmOptions::default().set_flags(DmFlags::DM_NOFLUSH))?;
         self.table_load(dm, &new_table, DmOptions::default())?;
 
         self.table = new_table;
@@ -553,8 +553,8 @@ impl ThinPoolDev {
 
     /// Get the current status of the thinpool.
     /// Returns an error if there was an error getting the status value.
-    pub fn status(&self, dm: &DM) -> DmResult<ThinPoolStatus> {
-        status!(self, dm)
+    pub fn status(&self, dm: &DM, options: DmOptions) -> DmResult<ThinPoolStatus> {
+        status!(self, dm, options)
     }
 
     /// Set the table for the existing metadata device.
@@ -568,7 +568,7 @@ impl ThinPoolDev {
         dm: &DM,
         table: Vec<TargetLine<LinearDevTargetParams>>,
     ) -> DmResult<()> {
-        self.suspend(dm, false)?;
+        self.suspend(dm, DmOptions::default().set_flags(DmFlags::DM_NOFLUSH))?;
         self.meta_dev.set_table(dm, table)?;
         self.meta_dev.resume(dm)?;
 
@@ -590,7 +590,7 @@ impl ThinPoolDev {
         dm: &DM,
         table: Vec<TargetLine<LinearDevTargetParams>>,
     ) -> DmResult<()> {
-        self.suspend(dm, false)?;
+        self.suspend(dm, DmOptions::default().set_flags(DmFlags::DM_NOFLUSH))?;
 
         self.data_dev.set_table(dm, table)?;
         self.data_dev.resume(dm)?;
@@ -681,7 +681,7 @@ mod tests {
     use std::path::Path;
 
     use crate::{
-        core::errors::Error,
+        core::{errors::Error, DmFlags},
         testing::{test_name, test_with_spec},
     };
 
@@ -695,7 +695,7 @@ mod tests {
 
         let dm = DM::new().unwrap();
         let mut tp = minimal_thinpool(&dm, paths[0]);
-        match tp.status(&dm).unwrap() {
+        match tp.status(&dm, DmOptions::default()).unwrap() {
             ThinPoolStatus::Working(ref status)
                 if status.summary == ThinPoolStatusSummary::Good =>
             {
@@ -799,7 +799,7 @@ mod tests {
         tp.set_data_table(&dm, data_table).unwrap();
         tp.resume(&dm).unwrap();
 
-        match tp.status(&dm).unwrap() {
+        match tp.status(&dm, DmOptions::default()).unwrap() {
             ThinPoolStatus::Working(ref status) => {
                 let usage = &status.usage;
                 assert_eq!(
@@ -840,7 +840,7 @@ mod tests {
         tp.set_meta_table(&dm, meta_table).unwrap();
         tp.resume(&dm).unwrap();
 
-        match tp.status(&dm).unwrap() {
+        match tp.status(&dm, DmOptions::default()).unwrap() {
             ThinPoolStatus::Working(ref status) => {
                 let usage = &status.usage;
                 assert_eq!(usage.total_meta.sectors(), 2u8 * meta_size);
@@ -863,8 +863,10 @@ mod tests {
 
         let dm = DM::new().unwrap();
         let mut tp = minimal_thinpool(&dm, paths[0]);
-        tp.suspend(&dm, false).unwrap();
-        tp.suspend(&dm, false).unwrap();
+        tp.suspend(&dm, DmOptions::default().set_flags(DmFlags::DM_NOFLUSH))
+            .unwrap();
+        tp.suspend(&dm, DmOptions::default().set_flags(DmFlags::DM_NOFLUSH))
+            .unwrap();
         tp.resume(&dm).unwrap();
         tp.resume(&dm).unwrap();
         tp.teardown(&dm).unwrap();
@@ -873,6 +875,21 @@ mod tests {
     #[test]
     fn loop_test_suspend() {
         test_with_spec(1, test_suspend);
+    }
+
+    fn test_status_noflush(paths: &[&Path]) {
+        assert!(!paths.is_empty());
+
+        let dm = DM::new().unwrap();
+        let tp = minimal_thinpool(&dm, paths[0]);
+
+        tp.status(&dm, DmOptions::default().set_flags(DmFlags::DM_NOFLUSH))
+            .unwrap();
+    }
+
+    #[test]
+    fn loop_test_status_noflush() {
+        test_with_spec(1, test_status_noflush);
     }
 
     #[test]

@@ -11,7 +11,7 @@ use std::{
 
 use crate::{
     consts::IEC,
-    core::{DevId, Device, DeviceInfo, DmName, DmOptions, DmUuid, DM},
+    core::{DevId, Device, DeviceInfo, DmFlags, DmName, DmOptions, DmUuid, DM},
     lineardev::{LinearDev, LinearDevTargetParams},
     result::{DmError, DmResult, ErrorEnum},
     shared::{
@@ -619,7 +619,7 @@ impl CacheDev {
         dm: &DM,
         table: Vec<TargetLine<LinearDevTargetParams>>,
     ) -> DmResult<()> {
-        self.suspend(dm, false)?;
+        self.suspend(dm, DmOptions::default().set_flags(DmFlags::DM_NOFLUSH))?;
 
         self.origin_dev.set_table(dm, table)?;
         self.origin_dev.resume(dm)?;
@@ -644,7 +644,7 @@ impl CacheDev {
         dm: &DM,
         table: Vec<TargetLine<LinearDevTargetParams>>,
     ) -> DmResult<()> {
-        self.suspend(dm, false)?;
+        self.suspend(dm, DmOptions::default().set_flags(DmFlags::DM_NOFLUSH))?;
         self.cache_dev.set_table(dm, table)?;
         self.cache_dev.resume(dm)?;
 
@@ -667,7 +667,7 @@ impl CacheDev {
         dm: &DM,
         table: Vec<TargetLine<LinearDevTargetParams>>,
     ) -> DmResult<()> {
-        self.suspend(dm, false)?;
+        self.suspend(dm, DmOptions::default().set_flags(DmFlags::DM_NOFLUSH))?;
         self.meta_dev.set_table(dm, table)?;
         self.meta_dev.resume(dm)?;
 
@@ -727,8 +727,8 @@ impl CacheDev {
     }
 
     /// Get the current status of the cache device.
-    pub fn status(&self, dm: &DM) -> DmResult<CacheDevStatus> {
-        status!(self, dm)
+    pub fn status(&self, dm: &DM, options: DmOptions) -> DmResult<CacheDevStatus> {
+        status!(self, dm, options)
     }
 }
 
@@ -814,7 +814,7 @@ mod tests {
         let dm = DM::new().unwrap();
         let mut cache = minimal_cachedev(&dm, paths);
 
-        match cache.status(&dm).unwrap() {
+        match cache.status(&dm, DmOptions::default()).unwrap() {
             CacheDevStatus::Working(ref status) => {
                 let usage = &status.usage;
 
@@ -899,7 +899,7 @@ mod tests {
         let cache_params = LinearTargetParams::new(dev3, Sectors(0));
         let current_length = cache.meta_dev.size();
 
-        match cache.status(&dm).unwrap() {
+        match cache.status(&dm, DmOptions::default()).unwrap() {
             CacheDevStatus::Working(ref status) => {
                 let usage = &status.usage;
                 assert_eq!(*usage.total_meta * usage.meta_block_size, current_length);
@@ -916,7 +916,7 @@ mod tests {
         assert_matches!(cache.set_meta_table(&dm, table), Ok(_));
         cache.resume(&dm).unwrap();
 
-        match cache.status(&dm).unwrap() {
+        match cache.status(&dm, DmOptions::default()).unwrap() {
             CacheDevStatus::Working(ref status) => {
                 let usage = &status.usage;
                 let assigned_length = current_length + extra_length;
@@ -953,7 +953,7 @@ mod tests {
         let cache_params = LinearTargetParams::new(dev3, Sectors(0));
         let current_length = cache.cache_dev.size();
 
-        match cache.status(&dm).unwrap() {
+        match cache.status(&dm, DmOptions::default()).unwrap() {
             CacheDevStatus::Working(ref status) => {
                 let usage = &status.usage;
                 assert_eq!(*usage.total_cache * usage.cache_block_size, current_length);
@@ -970,7 +970,7 @@ mod tests {
         assert_matches!(cache.set_cache_table(&dm, cache_table.clone()), Ok(_));
         cache.resume(&dm).unwrap();
 
-        match cache.status(&dm).unwrap() {
+        match cache.status(&dm, DmOptions::default()).unwrap() {
             CacheDevStatus::Working(ref status) => {
                 let usage = &status.usage;
                 assert_eq!(
@@ -987,7 +987,7 @@ mod tests {
         assert_matches!(cache.set_cache_table(&dm, cache_table), Ok(_));
         cache.resume(&dm).unwrap();
 
-        match cache.status(&dm).unwrap() {
+        match cache.status(&dm, DmOptions::default()).unwrap() {
             CacheDevStatus::Working(ref status) => {
                 let usage = &status.usage;
                 assert_eq!(*usage.total_cache * usage.cache_block_size, current_length);
@@ -1048,8 +1048,12 @@ mod tests {
 
         let dm = DM::new().unwrap();
         let mut cache = minimal_cachedev(&dm, paths);
-        cache.suspend(&dm, false).unwrap();
-        cache.suspend(&dm, false).unwrap();
+        cache
+            .suspend(&dm, DmOptions::default().set_flags(DmFlags::DM_NOFLUSH))
+            .unwrap();
+        cache
+            .suspend(&dm, DmOptions::default().set_flags(DmFlags::DM_NOFLUSH))
+            .unwrap();
         cache.resume(&dm).unwrap();
         cache.resume(&dm).unwrap();
         cache.teardown(&dm).unwrap();

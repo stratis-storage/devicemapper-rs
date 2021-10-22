@@ -385,14 +385,14 @@ impl ThinDev {
     }
 
     /// Get the current status of the thin device.
-    pub fn status(&self, dm: &DM) -> DmResult<ThinStatus> {
-        status!(self, dm)
+    pub fn status(&self, dm: &DM, options: DmOptions) -> DmResult<ThinStatus> {
+        status!(self, dm, options)
     }
 
     /// Set the table for the thin device's target
     pub fn set_table(&mut self, dm: &DM, table: TargetLine<ThinTargetParams>) -> DmResult<()> {
         let table = ThinDevTargetTable::new(table.start, table.length, table.params);
-        self.suspend(dm, false)?;
+        self.suspend(dm, DmOptions::default().set_flags(DmFlags::DM_NOFLUSH))?;
         self.table_load(dm, &table, DmOptions::default())?;
         self.resume(dm)?;
 
@@ -543,7 +543,7 @@ mod tests {
         assert_eq!(table.params.thin_id, thin_id);
 
         assert_matches!(
-            td.status(&dm).unwrap(),
+            td.status(&dm, DmOptions::default()).unwrap(),
             ThinStatus::Error | ThinStatus::Working(_)
         );
 
@@ -672,7 +672,7 @@ mod tests {
         let dm = DM::new().unwrap();
         let mut tp = minimal_thinpool(&dm, paths[0]);
 
-        let orig_data_usage = match tp.status(&dm).unwrap() {
+        let orig_data_usage = match tp.status(&dm, DmOptions::default()).unwrap() {
             ThinPoolStatus::Working(ref status) => status.usage.used_data,
             ThinPoolStatus::Error => panic!("devicemapper could not obtain thin pool status"),
             ThinPoolStatus::Fail => panic!("failed to get thinpool status"),
@@ -686,7 +686,7 @@ mod tests {
         let mut td = ThinDev::new(&dm, &thin_name, None, td_size, &tp, thin_id).unwrap();
         udev_settle().unwrap();
 
-        let data_usage_1 = match tp.status(&dm).unwrap() {
+        let data_usage_1 = match tp.status(&dm, DmOptions::default()).unwrap() {
             ThinPoolStatus::Working(ref status) => status.usage.used_data,
             ThinPoolStatus::Error => panic!("devicemapper could not obtain thin pool status"),
             ThinPoolStatus::Fail => panic!("failed to get thinpool status"),
@@ -700,7 +700,7 @@ mod tests {
         let mut ss = td.snapshot(&dm, &ss_name, None, &tp, ss_id).unwrap();
         udev_settle().unwrap();
 
-        let data_usage_2 = match tp.status(&dm).unwrap() {
+        let data_usage_2 = match tp.status(&dm, DmOptions::default()).unwrap() {
             ThinPoolStatus::Working(ref status) => status.usage.used_data,
             ThinPoolStatus::Error => panic!("devicemapper could not obtain thin pool status"),
             ThinPoolStatus::Fail => panic!("failed to get thinpool status"),
@@ -730,7 +730,7 @@ mod tests {
         let mut td = ThinDev::new(&dm, &thin_name, None, tp.size(), &tp, thin_id).unwrap();
         udev_settle().unwrap();
 
-        let orig_data_usage = match tp.status(&dm).unwrap() {
+        let orig_data_usage = match tp.status(&dm, DmOptions::default()).unwrap() {
             ThinPoolStatus::Working(ref status) => status.usage.used_data,
             ThinPoolStatus::Error => panic!("devicemapper could not obtain thin pool status"),
             ThinPoolStatus::Fail => panic!("failed to get thinpool status"),
@@ -739,7 +739,7 @@ mod tests {
 
         xfs_create_fs(&td.devnode()).unwrap();
 
-        let data_usage_1 = match tp.status(&dm).unwrap() {
+        let data_usage_1 = match tp.status(&dm, DmOptions::default()).unwrap() {
             ThinPoolStatus::Working(ref status) => status.usage.used_data,
             ThinPoolStatus::Error => panic!("devicemapper could not obtain thin pool status"),
             ThinPoolStatus::Fail => panic!("failed to get thinpool status"),
@@ -773,7 +773,7 @@ mod tests {
         }
         umount2(tmp_dir.path(), MntFlags::MNT_DETACH).unwrap();
 
-        let data_usage_2 = match tp.status(&dm).unwrap() {
+        let data_usage_2 = match tp.status(&dm, DmOptions::default()).unwrap() {
             ThinPoolStatus::Working(ref status) => status.usage.used_data,
             ThinPoolStatus::Error => panic!("devicemapper could not obtain thin pool status"),
             ThinPoolStatus::Fail => panic!("failed to get thinpool status"),
@@ -804,7 +804,7 @@ mod tests {
             ThinDev::new(&dm, &thin_name, None, Sectors(2 * IEC::Mi), &tp, thin_id).unwrap();
         udev_settle().unwrap();
 
-        let orig_data_usage = match tp.status(&dm).unwrap() {
+        let orig_data_usage = match tp.status(&dm, DmOptions::default()).unwrap() {
             ThinPoolStatus::Working(ref status) => status.usage.used_data,
             ThinPoolStatus::Error => panic!("devicemapper could not obtain thin pool status"),
             ThinPoolStatus::Fail => panic!("failed to get thinpool status"),
@@ -813,7 +813,7 @@ mod tests {
 
         xfs_create_fs(&td.devnode()).unwrap();
 
-        let data_usage_1 = match tp.status(&dm).unwrap() {
+        let data_usage_1 = match tp.status(&dm, DmOptions::default()).unwrap() {
             ThinPoolStatus::Working(ref status) => status.usage.used_data,
             ThinPoolStatus::Error => panic!("devicemapper could not obtain thin pool status"),
             ThinPoolStatus::Fail => panic!("failed to get thinpool status"),
@@ -829,7 +829,7 @@ mod tests {
             .unwrap();
         udev_settle().unwrap();
 
-        let data_usage_2 = match tp.status(&dm).unwrap() {
+        let data_usage_2 = match tp.status(&dm, DmOptions::default()).unwrap() {
             ThinPoolStatus::Working(ref status) => status.usage.used_data,
             ThinPoolStatus::Error => panic!("devicemapper could not obtain thin pool status"),
             ThinPoolStatus::Fail => panic!("failed to get thinpool status"),
@@ -841,7 +841,7 @@ mod tests {
         // Setting the uuid of the snapshot filesystem bumps the usage,
         // but does not increase the usage quite as much as establishing
         // the origin.
-        let data_usage_3 = match tp.status(&dm).unwrap() {
+        let data_usage_3 = match tp.status(&dm, DmOptions::default()).unwrap() {
             ThinPoolStatus::Working(ref status) => status.usage.used_data,
             ThinPoolStatus::Error => panic!("devicemapper could not obtain thin pool status"),
             ThinPoolStatus::Fail => panic!("failed to get thinpool status"),
@@ -856,7 +856,7 @@ mod tests {
             ThinDev::new(&dm, &thin_name, None, Sectors(2 * IEC::Gi), &tp, thin_id).unwrap();
         udev_settle().unwrap();
 
-        let data_usage_4 = match tp.status(&dm).unwrap() {
+        let data_usage_4 = match tp.status(&dm, DmOptions::default()).unwrap() {
             ThinPoolStatus::Working(ref status) => status.usage.used_data,
             ThinPoolStatus::Error => panic!("devicemapper could not obtain thin pool status"),
             ThinPoolStatus::Fail => panic!("failed to get thinpool status"),
@@ -865,7 +865,7 @@ mod tests {
 
         xfs_create_fs(&td1.devnode()).unwrap();
 
-        let data_usage_5 = match tp.status(&dm).unwrap() {
+        let data_usage_5 = match tp.status(&dm, DmOptions::default()).unwrap() {
             ThinPoolStatus::Working(ref status) => status.usage.used_data,
             ThinPoolStatus::Error => panic!("devicemapper could not obtain thin pool status"),
             ThinPoolStatus::Fail => panic!("failed to get thinpool status"),

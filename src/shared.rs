@@ -96,15 +96,14 @@ pub trait DmDevice<T: TargetTable> {
     /// The number of sectors available for user data.
     fn size(&self) -> Sectors;
 
-    /// Suspend I/O on the device. If flush is true, flush the device first.
-    fn suspend(&mut self, dm: &DM, flush: bool) -> DmResult<()> {
-        let options = DmOptions::default().set_flags(if flush {
-            DmFlags::DM_SUSPEND
-        } else {
-            DmFlags::DM_SUSPEND | DmFlags::DM_NOFLUSH
-        });
-
-        dm.device_suspend(&DevId::Name(self.name()), options)?;
+    /// Suspend I/O on the device.
+    fn suspend(&mut self, dm: &DM, options: DmOptions) -> DmResult<()> {
+        dm.device_suspend(
+            &DevId::Name(self.name()),
+            DmOptions::default()
+                .set_flags(DmFlags::DM_SUSPEND | options.flags())
+                .set_cookie(options.cookie()),
+        )?;
         Ok(())
     }
 
