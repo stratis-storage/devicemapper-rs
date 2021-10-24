@@ -1,17 +1,25 @@
-devicemapper 0.30.0 (UNRELEASED)
-================================
+devicemapper 0.30.0
+===================
 Recommended Rust toolchain version: 1.55.0
 Lowest supported Rust toolchain version: 1.54.0
 Recommended development release: Fedora 34
 
 - Introduce devicemapper-version based conditional compilation:
   https://github.com/stratis-storage/devicemapper-rs/issues/686
+  https://github.com/stratis-storage/devicemapper-rs/pull/709
   https://github.com/stratis-storage/devicemapper-rs/pull/705
   https://github.com/stratis-storage/devicemapper-rs/pull/703
   https://github.com/stratis-storage/devicemapper-rs/pull/702
   https://github.com/stratis-storage/devicemapper-rs/pull/700
   https://github.com/stratis-storage/devicemapper-rs/pull/699
   https://github.com/stratis-storage/devicemapper-rs/pull/698
+
+- Pass DmOptions parameter to DmDevice::suspend and status() methods:
+  https://github.com/stratis-storage/devicemapper-rs/issues/663
+  https://github.com/stratis-storage/devicemapper-rs/pull/707
+
+- Make DmOptions implement Copy:
+  https://github.com/stratis-storage/devicemapper-rs/pull/710
 
 - Pass DmOptions parameter to Dm::table_load:
   https://github.com/stratis-storage/devicemapper-rs/pull/627
@@ -55,6 +63,7 @@ Recommended development release: Fedora 34
   https://github.com/stratis-storage/devicemapper-rs/pull/674
   https://github.com/stratis-storage/devicemapper-rs/pull/673
   https://github.com/stratis-storage/devicemapper-rs/pull/672
+  https://github.com/stratis-storage/devicemapper-rs/pull/669
   https://github.com/stratis-storage/devicemapper-rs/pull/666
   https://github.com/stratis-storage/devicemapper-rs/pull/662
   https://github.com/stratis-storage/devicemapper-rs/pull/661
