@@ -23,10 +23,10 @@ jobs:
         include:
           # MANDATORY CHECKS USING CURRENT DEVELOPMENT COMPILER
           - components: rustfmt
-            toolchain: 1.55.0  # CURRENT DEVELOPMENT RUST TOOLCHAIN
+            toolchain: 1.56.0  # CURRENT DEVELOPMENT RUST TOOLCHAIN
             task: make -f Makefile travis_fmt
           - components: clippy
-            toolchain: 1.55.0  # CURRENT DEVELOPMENT RUST TOOLCHAIN
+            toolchain: 1.56.0  # CURRENT DEVELOPMENT RUST TOOLCHAIN
             task: make -f Makefile clippy
           # MANDATORY TESTING USING LOWEST SUPPORTED COMPILER
           - components: cargo
