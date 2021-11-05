@@ -1,3 +1,32 @@
+devicemapper 0.30.1
+===================
+Recommended Rust toolchain version: 1.57.0
+Lowest supported Rust toolchain version: 1.54.0
+Recommended development release: Fedora 34
+
+- New release: 0.30.1
+  https://github.com/stratis-storage/devicemapper-rs/pull/714
+
+- Make internal errors module public:
+  https://github.com/stratis-storage/devicemapper-rs/issues/724
+  https://github.com/stratis-storage/devicemapper-rs/pull/726
+
+- Release devicemapper-sys version 0.1.2:
+  https://github.com/stratis-storage/devicemapper-rs/pull/720
+
+- Tidies and Maintenance:
+  https://github.com/stratis-storage/devicemapper-rs/pull/733
+  https://github.com/stratis-storage/devicemapper-rs/pull/732
+  https://github.com/stratis-storage/devicemapper-rs/pull/729
+  https://github.com/stratis-storage/devicemapper-rs/pull/728
+  https://github.com/stratis-storage/devicemapper-rs/pull/725
+  https://github.com/stratis-storage/devicemapper-rs/pull/718
+  https://github.com/stratis-storage/devicemapper-rs/pull/717
+  https://github.com/stratis-storage/devicemapper-rs/pull/715
+  https://github.com/stratis-storage/devicemapper-rs/pull/713
+  https://github.com/stratis-storage/devicemapper-rs/pull/712
+
+
 devicemapper 0.30.0
 ===================
 Recommended Rust toolchain version: 1.55.0
