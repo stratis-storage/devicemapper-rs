@@ -10,7 +10,7 @@ categories = ["os"]
 keywords = ["Linux", "device", "mapper", "libdm", "storage"]
 license = "MPL-2.0"
 edition = "2018"
-exclude = [".gitignore", ".github/*"]
+exclude = [".gitignore", ".github/*", "Makefile"]
 
 [dependencies]
 bitflags = "1.1.0"
