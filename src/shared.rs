@@ -78,7 +78,7 @@ pub trait DmDevice<T: TargetTable> {
     fn equivalent_tables(left: &T, right: &T) -> DmResult<bool>;
 
     /// Read the devicemapper table
-    fn read_kernel_table(dm: &DM, id: &DevId) -> DmResult<T> {
+    fn read_kernel_table(dm: &DM, id: &DevId<'_>) -> DmResult<T> {
         let (_, table) =
             dm.table_status(id, DmOptions::new().set_flags(DmFlags::DM_STATUS_TABLE))?;
         T::from_raw_table(&table)

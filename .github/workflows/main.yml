@@ -5,10 +5,15 @@ name: devicemapper CI
 on:
   push:
     branches: [patch-0.29.2]
+    paths-ignore:
+      - 'CHANGES.txt'
+      - '**/README.md'
   pull_request:
     branches: [patch-0.29.2]
+    paths-ignore:
+      - 'CHANGES.txt'
+      - '**/README.md'
 
-  # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
 
 jobs:
@@ -18,14 +23,14 @@ jobs:
         include:
           # MANDATORY CHECKS USING CURRENT DEVELOPMENT COMPILER
           - components: rustfmt
-            toolchain: 1.53.0
+            toolchain: 1.56.1  # CURRENT DEVELOPMENT RUST TOOLCHAIN
             task: make -f Makefile travis_fmt
           - components: clippy
-            toolchain: 1.53.0
+            toolchain: 1.56.1  # CURRENT DEVELOPMENT RUST TOOLCHAIN
             task: make -f Makefile clippy
           # MANDATORY TESTING USING LOWEST SUPPORTED COMPILER
           - components: cargo
-            toolchain: 1.49.0
+            toolchain: 1.54.0  # LOWEST SUPPORTED RUST TOOLCHAIN
             task: >
               sudo PATH=$GITHUB_WORKSPACE/.cargo/bin:$PATH
               make -f Makefile sudo_test
@@ -99,13 +104,9 @@ jobs:
               SET_LOWER_BOUNDS=./set_lower_bounds
               MANIFEST_PATH=../../Cargo.toml
               make -f ../../Makefile verify-dependency-bounds
-          # yamllint disable rule:line-length
-          - task: |
-              COMPARE_FEDORA_VERSIONS=./compare_fedora_versions MANIFEST_PATH=../../Cargo.toml FEDORA_RELEASE=rawhide IGNORE_ARGS="--ignore-low semver" make -f ../../Makefile check-fedora-versions
-              COMPARE_FEDORA_VERSIONS=./compare_fedora_versions MANIFEST_PATH=../../Cargo.toml FEDORA_RELEASE=f34 make -f ../../Makefile check-fedora-versions
     runs-on: ubuntu-18.04
     container:
-      image: fedora:33  # CURRENT DEVELOPMENT ENVIRONMENT
+      image: fedora:34  # CURRENT DEVELOPMENT ENVIRONMENT
     steps:
       - uses: actions/checkout@v2
       - name: Install dependencies for Fedora
@@ -133,7 +134,7 @@ jobs:
   yamllint:
     runs-on: ubuntu-18.04
     container:
-      image: fedora:33  # CURRENT DEVELOPMENT ENVIRONMENT
+      image: fedora:34  # CURRENT DEVELOPMENT ENVIRONMENT
     steps:
       - uses: actions/checkout@v2
       - name: Install dependencies for Fedora

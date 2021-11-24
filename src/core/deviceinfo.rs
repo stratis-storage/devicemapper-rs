@@ -4,7 +4,7 @@
 
 use std::convert::TryFrom;
 
-use libc::c_char;
+use nix::libc::c_char;
 use semver::Version;
 
 use crate::{

@@ -135,7 +135,7 @@ macro_rules! from_u128 {
 macro_rules! debug_macro {
     ($T:ident) => {
         impl std::fmt::Debug for $T {
-            fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+            fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
                 write!(f, stringify!($T))?;
                 write!(f, "({})", **self)
             }
@@ -146,7 +146,7 @@ macro_rules! debug_macro {
 macro_rules! display {
     ($T:ident, $display_name:expr) => {
         impl std::fmt::Display for $T {
-            fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+            fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
                 write!(f, "{} {}", self.0, $display_name)
             }
         }
@@ -297,8 +297,6 @@ macro_rules! checked_add {
 
 #[cfg(test)]
 mod tests {
-
-    use std::u64;
 
     range_u64!(Units, "units");
 

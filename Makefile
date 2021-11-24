@@ -10,16 +10,7 @@ endif
 
 IGNORE_ARGS ?=
 
-RUST_2018_IDIOMS = -D bare-trait-objects  \
-                   -D ellipsis-inclusive-range-patterns \
-                   -D unused-extern-crates
-
-DENY = -D warnings -D future-incompatible -D unused ${RUST_2018_IDIOMS}
-
-# Clippy-related lints
-CLIPPY_CARGO = -D clippy::cargo_common_metadata \
-               -D clippy::multiple_crate_versions \
-               -D clippy::wildcard_dependencies
+DENY = -D warnings -D future-incompatible -D unused -D rust_2018_idioms -D rust_2018_compatibility -D nonstandard_style
 
 # Clippy allow/deny adjudications for pedantic lints
 #
@@ -85,7 +76,11 @@ sudo_test:
 	RUSTFLAGS="${DENY}" RUST_BACKTRACE=1 RUST_TEST_THREADS=1 cargo test
 
 clippy:
-	RUSTFLAGS="${DENY}" cargo clippy --all-targets --all-features -- -D clippy::needless_borrow ${CLIPPY_CARGO} ${CLIPPY_PEDANTIC}
+	RUSTFLAGS="${DENY}" \
+        cargo clippy --all-targets --all-features -- \
+        -D clippy::cargo \
+        -D clippy::all \
+        ${CLIPPY_PEDANTIC}
 
 docs:
 	cargo doc --no-deps
@@ -96,7 +91,7 @@ yamllint:
 .PHONY:
 	audit
 	build
-	check-fedora-versions:
+	check-fedora-versions
 	clippy
 	docs
 	fmt

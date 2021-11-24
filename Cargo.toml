@@ -1,7 +1,7 @@
 [package]
 name = "devicemapper"
-version = "0.29.3"
-authors = ["Stratis Developers <stratis-devel@lists.fedorahosted.com>"]
+version = "0.29.4"
+authors = ["Stratis Developers <stratis-devel@lists.fedorahosted.org>"]
 description = "A library for using Linux device mapper"
 documentation = "https://docs.rs/devicemapper/"
 repository = "https://github.com/stratis-storage/devicemapper-rs"
@@ -10,14 +10,13 @@ categories = ["os"]
 keywords = ["Linux", "device", "mapper", "libdm", "storage"]
 license = "MPL-2.0"
 edition = "2018"
-exclude = [".gitignore", ".github/*"]
+exclude = [".gitignore", ".github/*", "Makefile"]
 
 [dependencies]
 bitflags = "1.1.0"
 error-chain = "0.12.4"
-libc = "0.2.94"
-nix = "0.20.0"
-semver = "0.11.0"
+nix = "0.22.0"
+semver = "1.0.0"
 serde = "1.0.60"
 
 [dev-dependencies]
@@ -34,4 +33,4 @@ features = ["v4"]
 [build-dependencies.bindgen]
 default_features = false
 features = ["runtime"]
-version = "0.57.0"
+version = "0.59.0"

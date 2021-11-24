@@ -40,7 +40,7 @@ impl ThinTargetParams {
 }
 
 impl fmt::Display for ThinTargetParams {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{} {}", THIN_TARGET_NAME, self.param_str())
     }
 }
@@ -109,7 +109,7 @@ impl ThinDevTargetTable {
 }
 
 impl fmt::Display for ThinDevTargetTable {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let table = &self.table;
         writeln!(f, "{} {} {}", *table.start, *table.length, table.params)
     }
@@ -439,7 +439,7 @@ mod tests {
     // Return a hashmap of key-value pairs for udev entry.
     fn get_udev_db_entry(dev_node_search: &Path) -> Option<HashMap<String, String>> {
         // Takes a libudev device entry and returns the properties as a HashMap.
-        fn device_as_map(device: &libudev::Device) -> HashMap<String, String> {
+        fn device_as_map(device: &libudev::Device<'_>) -> HashMap<String, String> {
             let rc: HashMap<_, _> = device
                 .properties()
                 .map(|i| {

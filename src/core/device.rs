@@ -4,11 +4,8 @@
 
 use std::{fmt, io, path::Path, str::FromStr};
 
-use libc::{dev_t, major, makedev, minor};
-use nix::{
-    errno::Errno,
-    sys::stat::{self, SFlag},
-};
+use nix::libc::{dev_t, major, makedev, minor};
+use nix::sys::stat::{self, SFlag};
 
 use crate::{
     core::errors::ErrorKind,
@@ -28,7 +25,7 @@ pub struct Device {
 
 /// Display format is the device number in "<major>:<minor>" format
 impl fmt::Display for Device {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{}:{}", self.major, self.minor)
     }
 }
@@ -125,7 +122,7 @@ pub fn devnode_to_devno(path: &Path) -> DmResult<Option<u64>> {
                 None
             },
         ),
-        Err(err) if err == nix::Error::Sys(Errno::ENOENT) => Ok(None),
+        Err(err) if err == nix::Error::ENOENT => Ok(None),
         Err(err) => Err(DmError::Core(
             ErrorKind::MetadataIoError(path.to_owned(), io::Error::new(io::ErrorKind::Other, err))
                 .into(),
