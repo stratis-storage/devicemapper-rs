@@ -4,11 +4,11 @@ name: devicemapper cargo CI
 # yamllint disable-line rule:truthy
 on:
   push:
-    branches: [master]
+    branches: [patch-0.29.2]
     paths:
       - '**/Cargo.toml'
   pull_request:
-    branches: [master]
+    branches: [patch-0.29.2]
     paths:
       - '**/Cargo.toml'
 
@@ -23,7 +23,7 @@ jobs:
           # yamllint disable rule:line-length
           - task: |
               COMPARE_FEDORA_VERSIONS=./compare_fedora_versions MANIFEST_PATH=../../Cargo.toml FEDORA_RELEASE=rawhide IGNORE_ARGS="--ignore-category low" make -f ../../Makefile check-fedora-versions
-              COMPARE_FEDORA_VERSIONS=./compare_fedora_versions MANIFEST_PATH=../../Cargo.toml FEDORA_RELEASE=f34 IGNORE_ARGS="--ignore-category low" make -f ../../Makefile check-fedora-versions
+              COMPARE_FEDORA_VERSIONS=./compare_fedora_versions MANIFEST_PATH=../../Cargo.toml FEDORA_RELEASE=f34 IGNORE_ARGS="--ignore-category low --ignore-high bindgen" make -f ../../Makefile check-fedora-versions
     runs-on: ubuntu-18.04
     container:
       image: fedora:34  # CURRENT DEVELOPMENT ENVIRONMENT

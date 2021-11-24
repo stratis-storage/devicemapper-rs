@@ -5,10 +5,10 @@ name: devicemapper dummy CI
 on:
   push:
     branches:
-      - master
+      - patch-0.29.2
   pull_request:
     branches:
-      - master
+      - patch-0.29.2
 
   workflow_dispatch:
 
