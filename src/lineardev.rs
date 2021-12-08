@@ -363,7 +363,7 @@ impl FromStr for LinearDevTargetParams {
     type Err = DmError;
 
     fn from_str(s: &str) -> DmResult<LinearDevTargetParams> {
-        let target_type = s.splitn(2, ' ').next().ok_or_else(|| {
+        let target_type = Some(s.split_once(' ').map_or(s, |x| x.0)).ok_or_else(|| {
             DmError::Dm(
                 ErrorEnum::Invalid,
                 format!("target line string \"{}\" did not contain any values", s),
