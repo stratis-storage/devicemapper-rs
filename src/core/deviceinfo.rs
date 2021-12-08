@@ -22,9 +22,16 @@ use crate::{
 #[derive(Clone, Debug)]
 pub struct DeviceInfo {
     version: Version,
+
+    #[allow(dead_code)]
     data_size: u32,
+
+    #[allow(dead_code)]
     data_start: u32,
+
+    #[allow(dead_code)]
     target_count: u32,
+
     open_count: i32,
     flags: DmFlags,
     event_nr: u32,
