@@ -5,7 +5,7 @@
 use std::{collections::HashSet, fmt, path::PathBuf, str::FromStr};
 
 use crate::{
-    core::{DevId, Device, DeviceInfo, DmFlags, DmName, DmOptions, DmUuid, DM},
+    core::{DevId, Device, DeviceInfo, DmCookie, DmFlags, DmName, DmOptions, DmUuid, DM},
     result::{DmError, DmResult, ErrorEnum},
     shared::{
         device_create, device_exists, device_match, parse_device, parse_value, DmDevice,
@@ -543,7 +543,13 @@ impl LinearDev {
             device_match(dm, &dev, uuid)?;
             dev
         } else {
-            let dev_info = device_create(dm, name, uuid, &table, DmOptions::default())?;
+            let dev_info = device_create(
+                dm,
+                name,
+                uuid,
+                &table,
+                DmOptions::default().set_cookie(DmCookie::DM_UDEV_PRIMARY_SOURCE_FLAG),
+            )?;
             LinearDev {
                 dev_info: Box::new(dev_info),
                 table,
