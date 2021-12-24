@@ -2,11 +2,14 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
+/*! Definition for low level error class for core methods !*/
+
 use std::{self, path::PathBuf};
 
 use crate::core::deviceinfo::DeviceInfo;
 
 #[derive(Clone, Debug)]
+/// Internal error for low-level devicemapper operations
 pub enum Error {
     /// An error returned on failure to create a devicemapper context
     ContextInit(String),
