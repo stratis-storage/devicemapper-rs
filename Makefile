@@ -35,7 +35,6 @@ audit: ${HOME}/.cargo/bin/cargo-audit
 
 tarpaulin: ${HOME}/.cargo/bin/cargo-tarpaulin
 	PATH=${HOME}/.cargo/bin:${PATH}  \
-	RUSTFLAGS="${DENY}" \
 	RUST_BACKTRACE=1 \
 	RUST_TEST_THREADS=1 \
 	cargo tarpaulin -v
