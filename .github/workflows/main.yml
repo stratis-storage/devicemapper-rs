@@ -48,7 +48,7 @@ jobs:
           - components: cargo
             toolchain: stable
             task: make -f Makefile docs
-    runs-on: ubuntu-18.04
+    runs-on: ubuntu-20.04
     steps:
       - uses: actions/checkout@v2
       - uses: actions-rs/toolchain@v1
@@ -66,7 +66,7 @@ jobs:
   android-build:
     env:
       TARGET: aarch64-linux-android
-    runs-on: ubuntu-18.04
+    runs-on: ubuntu-20.04
     container:
       image: docker.io/circleci/android:api-30-ndk
       options: --user 0:0
@@ -88,7 +88,7 @@ jobs:
         run: cargo build --target ${{ env.TARGET }}
 
   musl-checks:
-    runs-on: ubuntu-18.04
+    runs-on: ubuntu-20.04
     container:
       image: alpine
     steps:
@@ -110,7 +110,7 @@ jobs:
               SET_LOWER_BOUNDS=./set_lower_bounds
               MANIFEST_PATH=../../Cargo.toml
               make -f ../../Makefile verify-dependency-bounds
-    runs-on: ubuntu-18.04
+    runs-on: ubuntu-20.04
     container:
       image: fedora:34  # CURRENT DEVELOPMENT ENVIRONMENT
     steps:
@@ -138,7 +138,7 @@ jobs:
 
   # VERIFICATION OF TEST INFRASTRUCTURE
   yamllint:
-    runs-on: ubuntu-18.04
+    runs-on: ubuntu-20.04
     container:
       image: fedora:34  # CURRENT DEVELOPMENT ENVIRONMENT
     steps:
