@@ -530,7 +530,6 @@ impl ThinPoolDev {
                 data_block_size,
                 low_water_mark,
                 vec![
-                    "error_if_no_space".to_owned(),
                     "no_discard_passdown".to_owned(),
                     "skip_block_zeroing".to_owned(),
                 ],
@@ -601,6 +600,40 @@ impl ThinPoolDev {
 
         self.table = table;
 
+        Ok(())
+    }
+
+    /// Default behavior for devicemapper thin pools is to queue requests if
+    /// the thin pool is out of space to allow time for the thin pool to extend.
+    /// This behavior can be changed by adding the feature argument
+    /// `error_if_no_space` to the devicemapper table.
+    ///
+    /// This method will toggle between erroring and queueing on out-of-space
+    /// conditions. If the behavior is to queue, this method will change it to
+    /// erroring and vice versa.
+    pub fn toggle_no_space_behavior(&mut self, dm: &DM) -> DmResult<()> {
+        self.suspend(dm, DmOptions::default().set_flags(DmFlags::DM_NOFLUSH))?;
+
+        let mut table = self.table().clone();
+        if table
+            .table
+            .params
+            .feature_args
+            .contains("error_if_no_space")
+        {
+            table.table.params.feature_args.remove("error_if_no_space");
+        } else {
+            table
+                .table
+                .params
+                .feature_args
+                .insert("error_if_no_space".to_string());
+        }
+
+        self.table_load(dm, &table, DmOptions::default())?;
+        self.table = table;
+
+        self.resume(dm)?;
         Ok(())
     }
 }
