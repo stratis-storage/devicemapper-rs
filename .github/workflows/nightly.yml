@@ -23,11 +23,6 @@ jobs:
           - components: clippy
             toolchain: stable
             task: make -f Makefile clippy
-          - components: cargo
-            toolchain: 1.57.0  # CURRENT DEVELOPMENT RUST TOOLCHAIN
-            task: >
-              sudo PATH=$GITHUB_WORKSPACE/.cargo/bin:$PATH
-              make -f Makefile tarpaulin
     runs-on: ubuntu-20.04
     steps:
       - uses: actions/checkout@v2
@@ -42,6 +37,28 @@ jobs:
           sudo apt-get -y install libdevmapper-dev
       - name: Test ${{ matrix.task }} on ${{ matrix.toolchain }} toolchain
         run: ${{ matrix.task }}
+
+  tarpaulin:
+    strategy:
+      matrix:
+        include:
+          - toolchain: 1.57.0  # CURRENT DEVELOPMENT RUST TOOLCHAIN
+    runs-on: ubuntu-20.04
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions-rs/toolchain@v1
+        with:
+          components: cargo
+          toolchain: ${{ matrix.toolchain }}
+          override: true
+      - name: Install dependencies
+        run: |
+          sudo apt-get -q update
+          sudo apt-get -y install libdevmapper-dev
+      - name: Set toolchain override with sudo
+        run: sudo /home/runner/.cargo/bin/rustup override set ${{ matrix.toolchain }}  # yamllint disable rule:line-length
+      - name: Run all tests on ${{ matrix.toolchain }} toolchain
+        run: sudo PATH=$GITHUB_WORKSPACE/.cargo/bin:$PATH make -f Makefile tarpaulin  # yamllint disable rule:line-length
 
   checks-with-ci-repo:
     strategy:
