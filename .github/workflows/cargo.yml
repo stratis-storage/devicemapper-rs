@@ -23,9 +23,9 @@ jobs:
           # yamllint disable rule:line-length
           - task: |
               COMPARE_FEDORA_VERSIONS=./compare_fedora_versions MANIFEST_PATH=../../Cargo.toml FEDORA_RELEASE=rawhide IGNORE_ARGS="--ignore-category low" make -f ../../Makefile check-fedora-versions
-              COMPARE_FEDORA_VERSIONS=./compare_fedora_versions MANIFEST_PATH=../../Cargo.toml FEDORA_RELEASE=f34 IGNORE_ARGS="--ignore-category low" make -f ../../Makefile check-fedora-versions
-              COMPARE_FEDORA_VERSIONS=./compare_fedora_versions MANIFEST_PATH=../../devicemapper-rs-sys/Cargo.toml FEDORA_RELEASE=rawhide IGNORE_ARGS="--ignore-category low" make -f ../../Makefile check-fedora-versions-sys
-              COMPARE_FEDORA_VERSIONS=./compare_fedora_versions MANIFEST_PATH=../../devicemapper-rs-sys/Cargo.toml FEDORA_RELEASE=f34 IGNORE_ARGS="--ignore-category low --ignore-high bindgen" make -f ../../Makefile check-fedora-versions-sys
+              COMPARE_FEDORA_VERSIONS=./compare_fedora_versions MANIFEST_PATH=../../Cargo.toml FEDORA_RELEASE=f34 IGNORE_ARGS="--ignore-category low --ignore-missing=devicemapper-sys" make -f ../../Makefile check-fedora-versions
+              COMPARE_FEDORA_VERSIONS=./compare_fedora_versions MANIFEST_PATH=../../devicemapper-rs-sys/Cargo.toml FEDORA_RELEASE=rawhide IGNORE_ARGS="--ignore-category low" make -f ../../Makefile check-fedora-versions
+              COMPARE_FEDORA_VERSIONS=./compare_fedora_versions MANIFEST_PATH=../../devicemapper-rs-sys/Cargo.toml FEDORA_RELEASE=f34 IGNORE_ARGS="--ignore-category low" make -f ../../Makefile check-fedora-versions
     runs-on: ubuntu-20.04
     container:
       image: fedora:34  # CURRENT DEVELOPMENT ENVIRONMENT
