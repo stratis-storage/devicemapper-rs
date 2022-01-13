@@ -36,8 +36,7 @@ audit: ${HOME}/.cargo/bin/cargo-audit
 tarpaulin: ${HOME}/.cargo/bin/cargo-tarpaulin
 	PATH=${HOME}/.cargo/bin:${PATH}  \
 	RUST_BACKTRACE=1 \
-	RUST_TEST_THREADS=1 \
-	cargo tarpaulin -v
+	cargo tarpaulin -v -- --test-threads=1
 
 SET_LOWER_BOUNDS ?=
 test-set-lower-bounds:
