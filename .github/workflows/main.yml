@@ -36,17 +36,16 @@ jobs:
             task: >
               sudo PATH=$GITHUB_WORKSPACE/.cargo/bin:$PATH
               make -f Makefile sudo_test
-          # MANDATORY TESTING ON STABLE
           - components: cargo
-            toolchain: stable
+            toolchain: 1.57.0  # CURRENT DEVELOPMENT RUST TOOLCHAIN
             task: make -f Makefile build
           - components: cargo
-            toolchain: stable
+            toolchain: 1.57.0  # CURRENT DEVELOPMENT RUST TOOLCHAIN
             task: >
               sudo PATH=$GITHUB_WORKSPACE/.cargo/bin:$PATH
               make -f Makefile sudo_test
           - components: cargo
-            toolchain: stable
+            toolchain: 1.57.0  # CURRENT DEVELOPMENT RUST TOOLCHAIN
             task: make -f Makefile docs
     runs-on: ubuntu-20.04
     steps:
@@ -79,7 +78,7 @@ jobs:
       - uses: actions-rs/toolchain@v1
         with:
           components: cargo
-          toolchain: stable
+          toolchain: 1.57.0  # CURRENT DEVELOPMENT RUST TOOLCHAIN
           target: x86_64-unknown-linux-gnu
           override: true
       - name: Add Android target

@@ -15,10 +15,8 @@ jobs:
     strategy:
       matrix:
         include:
-          # Run "cargo audit" on rust stable. Make it an allowed failure. It
-          # should be an advisory and should not gate our development.
           - components: cargo
-            toolchain: stable
+            toolchain: 1.57.0  # CURRENT DEVELOPMENT RUST TOOLCHAIN
             task: make -f Makefile audit
           # Allowed because a failure may occur after a new Rust stable
           # version is released.
