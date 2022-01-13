@@ -23,14 +23,12 @@ jobs:
     strategy:
       matrix:
         include:
-          # MANDATORY CHECKS USING CURRENT DEVELOPMENT COMPILER
           - components: rustfmt
             toolchain: 1.57.0  # CURRENT DEVELOPMENT RUST TOOLCHAIN
             task: make -f Makefile travis_fmt
           - components: clippy
             toolchain: 1.57.0  # CURRENT DEVELOPMENT RUST TOOLCHAIN
             task: make -f Makefile clippy
-          # MANDATORY TESTING USING LOWEST SUPPORTED COMPILER
           - components: cargo
             toolchain: 1.54.0  # LOWEST SUPPORTED RUST TOOLCHAIN
             task: >
