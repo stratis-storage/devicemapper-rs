@@ -23,32 +23,19 @@ jobs:
     strategy:
       matrix:
         include:
-          # MANDATORY CHECKS USING CURRENT DEVELOPMENT COMPILER
           - components: rustfmt
             toolchain: 1.57.0  # CURRENT DEVELOPMENT RUST TOOLCHAIN
             task: make -f Makefile travis_fmt
           - components: clippy
             toolchain: 1.57.0  # CURRENT DEVELOPMENT RUST TOOLCHAIN
             task: make -f Makefile clippy
-          # MANDATORY TESTING USING LOWEST SUPPORTED COMPILER
           - components: cargo
-            toolchain: 1.54.0  # LOWEST SUPPORTED RUST TOOLCHAIN
-            task: >
-              sudo PATH=$GITHUB_WORKSPACE/.cargo/bin:$PATH
-              make -f Makefile sudo_test
-          # MANDATORY TESTING ON STABLE
-          - components: cargo
-            toolchain: stable
+            toolchain: 1.57.0  # CURRENT DEVELOPMENT RUST TOOLCHAIN
             task: make -f Makefile build
           - components: cargo
-            toolchain: stable
-            task: >
-              sudo PATH=$GITHUB_WORKSPACE/.cargo/bin:$PATH
-              make -f Makefile sudo_test
-          - components: cargo
-            toolchain: stable
+            toolchain: 1.57.0  # CURRENT DEVELOPMENT RUST TOOLCHAIN
             task: make -f Makefile docs
-    runs-on: ubuntu-18.04
+    runs-on: ubuntu-20.04
     steps:
       - uses: actions/checkout@v2
       - uses: actions-rs/toolchain@v1
@@ -63,10 +50,33 @@ jobs:
       - name: Test ${{ matrix.task }} on ${{ matrix.toolchain }} toolchain
         run: ${{ matrix.task }}
 
+  tests-with-sudo:
+    strategy:
+      matrix:
+        include:
+          - toolchain: 1.54.0  # LOWEST SUPPORTED RUST TOOLCHAIN
+          - toolchain: 1.57.0  # CURRENT DEVELOPMENT RUST TOOLCHAIN
+    runs-on: ubuntu-20.04
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions-rs/toolchain@v1
+        with:
+          components: cargo
+          toolchain: ${{ matrix.toolchain }}
+          override: true
+      - name: Install dependencies
+        run: |
+          sudo apt-get -q update
+          sudo apt-get -y install libdevmapper-dev
+      - name: Set toolchain override with sudo
+        run: sudo /home/runner/.cargo/bin/rustup override set ${{ matrix.toolchain }}  # yamllint disable rule:line-length
+      - name: Run all tests on ${{ matrix.toolchain }} toolchain
+        run: sudo PATH=$GITHUB_WORKSPACE/.cargo/bin:$PATH make -f Makefile sudo_test  # yamllint disable rule:line-length
+
   android-build:
     env:
       TARGET: aarch64-linux-android
-    runs-on: ubuntu-18.04
+    runs-on: ubuntu-20.04
     container:
       image: docker.io/circleci/android:api-30-ndk
       options: --user 0:0
@@ -79,7 +89,7 @@ jobs:
       - uses: actions-rs/toolchain@v1
         with:
           components: cargo
-          toolchain: stable
+          toolchain: 1.57.0  # CURRENT DEVELOPMENT RUST TOOLCHAIN
           target: x86_64-unknown-linux-gnu
           override: true
       - name: Add Android target
@@ -88,7 +98,7 @@ jobs:
         run: cargo build --target ${{ env.TARGET }}
 
   musl-checks:
-    runs-on: ubuntu-18.04
+    runs-on: ubuntu-20.04
     container:
       image: alpine
     steps:
@@ -110,7 +120,7 @@ jobs:
               SET_LOWER_BOUNDS=./set_lower_bounds
               MANIFEST_PATH=../../Cargo.toml
               make -f ../../Makefile verify-dependency-bounds
-    runs-on: ubuntu-18.04
+    runs-on: ubuntu-20.04
     container:
       image: fedora:34  # CURRENT DEVELOPMENT ENVIRONMENT
     steps:
@@ -138,7 +148,7 @@ jobs:
 
   # VERIFICATION OF TEST INFRASTRUCTURE
   yamllint:
-    runs-on: ubuntu-18.04
+    runs-on: ubuntu-20.04
     container:
       image: fedora:34  # CURRENT DEVELOPMENT ENVIRONMENT
     steps:

@@ -15,22 +15,15 @@ jobs:
     strategy:
       matrix:
         include:
-          # Run "cargo audit" on rust stable. Make it an allowed failure. It
-          # should be an advisory and should not gate our development.
           - components: cargo
-            toolchain: stable
+            toolchain: 1.57.0  # CURRENT DEVELOPMENT RUST TOOLCHAIN
             task: make -f Makefile audit
           # Allowed because a failure may occur after a new Rust stable
           # version is released.
           - components: clippy
             toolchain: stable
             task: make -f Makefile clippy
-          - components: cargo
-            toolchain: 1.57.0  # CURRENT DEVELOPMENT RUST TOOLCHAIN
-            task: >
-              sudo PATH=$GITHUB_WORKSPACE/.cargo/bin:$PATH
-              make -f Makefile tarpaulin
-    runs-on: ubuntu-18.04
+    runs-on: ubuntu-20.04
     steps:
       - uses: actions/checkout@v2
       - uses: actions-rs/toolchain@v1
@@ -45,6 +38,28 @@ jobs:
       - name: Test ${{ matrix.task }} on ${{ matrix.toolchain }} toolchain
         run: ${{ matrix.task }}
 
+  tarpaulin:
+    strategy:
+      matrix:
+        include:
+          - toolchain: 1.57.0  # CURRENT DEVELOPMENT RUST TOOLCHAIN
+    runs-on: ubuntu-20.04
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions-rs/toolchain@v1
+        with:
+          components: cargo
+          toolchain: ${{ matrix.toolchain }}
+          override: true
+      - name: Install dependencies
+        run: |
+          sudo apt-get -q update
+          sudo apt-get -y install libdevmapper-dev
+      - name: Set toolchain override with sudo
+        run: sudo /home/runner/.cargo/bin/rustup override set ${{ matrix.toolchain }}  # yamllint disable rule:line-length
+      - name: Run all tests on ${{ matrix.toolchain }} toolchain
+        run: sudo PATH=$GITHUB_WORKSPACE/.cargo/bin:$PATH make -f Makefile tarpaulin  # yamllint disable rule:line-length
+
   checks-with-ci-repo:
     strategy:
       matrix:
@@ -55,7 +70,7 @@ jobs:
               COMPARE_FEDORA_VERSIONS=./compare_fedora_versions MANIFEST_PATH=../../Cargo.toml FEDORA_RELEASE=f34 make -f ../../Makefile check-fedora-versions
               COMPARE_FEDORA_VERSIONS=./compare_fedora_versions MANIFEST_PATH=../../devicemapper-rs-sys/Cargo.toml FEDORA_RELEASE=rawhide make -f ../../Makefile check-fedora-versions-sys
               COMPARE_FEDORA_VERSIONS=./compare_fedora_versions MANIFEST_PATH=../../devicemapper-rs-sys/Cargo.toml FEDORA_RELEASE=f34 IGNORE_ARGS="--ignore-high bindgen" make -f ../../Makefile check-fedora-versions-sys
-    runs-on: ubuntu-18.04
+    runs-on: ubuntu-20.04
     container:
       image: fedora:34  # CURRENT DEVELOPMENT ENVIRONMENT
     steps:
