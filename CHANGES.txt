@@ -1,3 +1,20 @@
+devicemapper 0.31.0
+===================
+Recommended Rust toolchain version: 1.58.0
+Lowest supported Rust toolchain version: 1.54.0
+Recommended development release: Fedora 34
+
+- Allow specifying features args when setting up a thinpool device:
+  https://github.com/stratis-storage/devicemapper-rs/pull/731
+
+- Tidies and Maintenance:
+  https://github.com/stratis-storage/devicemapper-rs/pull/739
+  https://github.com/stratis-storage/devicemapper-rs/pull/738
+  https://github.com/stratis-storage/devicemapper-rs/pull/737
+  https://github.com/stratis-storage/devicemapper-rs/pull/736
+  https://github.com/stratis-storage/devicemapper-rs/pull/734
+
+
 devicemapper 0.30.1
 ===================
 Recommended Rust toolchain version: 1.57.0
