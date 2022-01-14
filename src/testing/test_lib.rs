@@ -84,7 +84,7 @@ fn execute_cmd(cmd: &mut Command) -> DmResult<()> {
     match cmd.output() {
         Err(err) => Err(DmError::Dm(
             ErrorEnum::Error,
-            format!("cmd: {:?}, error '{}'", cmd, err.to_string()),
+            format!("cmd: {:?}, error '{}'", cmd, err),
         )),
         Ok(result) => {
             if result.status.success() {

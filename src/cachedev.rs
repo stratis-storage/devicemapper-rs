@@ -210,7 +210,7 @@ impl TargetTable for CacheDevTargetTable {
         Ok(CacheDevTargetTable::new(
             Sectors(line.0),
             Sectors(line.1),
-            format!("{} {}", line.2.to_string(), line.3).parse::<CacheTargetParams>()?,
+            format!("{} {}", line.2, line.3).parse::<CacheTargetParams>()?,
         ))
     }
 
