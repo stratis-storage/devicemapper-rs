@@ -1,0 +1,1 @@
+make fmt-ci && make build && make test && make clippy || exit 1

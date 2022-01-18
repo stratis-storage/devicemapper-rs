@@ -57,9 +57,11 @@ check-fedora-versions: test-compare-fedora-versions
 
 fmt:
 	cargo fmt
+	cd devicemapper-rs-sys && cargo fmt
 
-travis_fmt:
+fmt-ci:
 	cargo fmt -- --check
+	cd devicemapper-rs-sys && cargo fmt -- --check
 
 build:
 	RUSTFLAGS="${DENY}" cargo build
@@ -79,6 +81,11 @@ clippy:
         -D clippy::cargo \
         -D clippy::all \
         ${CLIPPY_PEDANTIC}
+	cd devicemapper-rs-sys && RUSTFLAGS="${DENY}" \
+        cargo clippy --all-targets --all-features -- \
+        -D clippy::cargo \
+        -D clippy::all \
+        ${CLIPPY_PEDANTIC}
 
 docs:
 	cargo doc --no-deps
@@ -94,11 +101,11 @@ yamllint:
 	clippy
 	docs
 	fmt
+	fmt-ci
 	sudo_test
 	test
 	test-compare-fedora-versions
 	test-set-lower-bounds
-	travis_fmt
 	tree
 	verify-dependency-bounds
 	yamllint
