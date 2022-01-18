@@ -25,7 +25,7 @@ jobs:
         include:
           - components: rustfmt
             toolchain: 1.57.0  # CURRENT DEVELOPMENT RUST TOOLCHAIN
-            task: make -f Makefile travis_fmt
+            task: make -f Makefile fmt-ci
           - components: clippy
             toolchain: 1.57.0  # CURRENT DEVELOPMENT RUST TOOLCHAIN
             task: make -f Makefile clippy
