@@ -143,11 +143,7 @@ impl DM {
         // zero out the rest
         let cap = v.capacity();
         v.resize(cap, 0);
-        let mut hdr = unsafe {
-            (v.as_mut_ptr() as *mut dmi::Struct_dm_ioctl)
-                .as_mut()
-                .expect("pointer to own structure v can not be NULL")
-        };
+        let mut hdr = unsafe { &mut *(v.as_mut_ptr() as *mut dmi::Struct_dm_ioctl) };
         let op = request_code_readwrite!(dmi::DM_IOCTL, ioctl, size_of::<dmi::Struct_dm_ioctl>());
         loop {
             #[cfg(target_os = "android")]
@@ -178,11 +174,7 @@ impl DM {
 
             // v.resize() may move the buffer if the requested increase doesn't fit in continuous
             // memory.  Update hdr to the possibly new address.
-            hdr = unsafe {
-                (v.as_mut_ptr() as *mut dmi::Struct_dm_ioctl)
-                    .as_mut()
-                    .expect("pointer to own structure v can not be NULL")
-            };
+            hdr = unsafe { &mut *(v.as_mut_ptr() as *mut dmi::Struct_dm_ioctl) };
             hdr.data_size = v.len() as u32;
         }
 
@@ -547,11 +539,7 @@ impl DM {
             Ok(vec![])
         } else {
             let result = &data_out[..];
-            let target_deps = unsafe {
-                (result.as_ptr() as *const dmi::Struct_dm_target_deps)
-                    .as_ref()
-                    .expect("pointer to own structure result can not be NULL")
-            };
+            let target_deps = unsafe { &*(result.as_ptr() as *const dmi::Struct_dm_target_deps) };
 
             let dev_slc = unsafe {
                 slice::from_raw_parts(
@@ -589,11 +577,7 @@ impl DM {
 
             for _ in 0..count {
                 let result = &buf[next_off..];
-                let targ = unsafe {
-                    (result.as_ptr() as *const dmi::Struct_dm_target_spec)
-                        .as_ref()
-                        .expect("assume all parsing succeeds")
-                };
+                let targ = unsafe { &*(result.as_ptr() as *const dmi::Struct_dm_target_spec) };
 
                 let target_type = str_from_c_str(&targ.target_type)
                     .ok_or_else(|| {
@@ -680,11 +664,7 @@ impl DM {
             let mut result = &data_out[..];
 
             loop {
-                let tver = unsafe {
-                    (result.as_ptr() as *const dmi::Struct_dm_target_versions)
-                        .as_ref()
-                        .expect("pointer to own structure result can not be NULL")
-                };
+                let tver = unsafe { &*(result.as_ptr() as *const dmi::Struct_dm_target_versions) };
 
                 let name =
                     str_from_byte_slice(&result[size_of::<dmi::Struct_dm_target_versions>()..])
