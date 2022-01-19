@@ -546,6 +546,7 @@ impl DmDevice<CacheDevTargetTable> for CacheDev {
 impl CacheDev {
     /// Construct a new CacheDev with the given data and meta devs.
     /// Returns an error if the device is already known to the kernel.
+    #[allow(clippy::too_many_arguments)]
     pub fn new(
         dm: &DM,
         name: &DmName,
@@ -554,6 +555,7 @@ impl CacheDev {
         cache: LinearDev,
         origin: LinearDev,
         cache_block_size: Sectors,
+        create_options: DmOptions,
     ) -> DmResult<CacheDev> {
         if device_exists(dm, name)? {
             let err_msg = format!("cachedev {} already exists", name);
@@ -561,7 +563,7 @@ impl CacheDev {
         }
 
         let table = CacheDev::gen_default_table(&meta, &cache, &origin, cache_block_size);
-        let dev_info = device_create(dm, name, uuid, &table, DmOptions::default())?;
+        let dev_info = device_create(dm, name, uuid, &table, create_options)?;
 
         Ok(CacheDev {
             dev_info: Box::new(dev_info),
@@ -573,6 +575,7 @@ impl CacheDev {
     }
 
     /// Set up a cache device from the given metadata and data devices.
+    #[allow(clippy::too_many_arguments)]
     pub fn setup(
         dm: &DM,
         name: &DmName,
@@ -581,6 +584,7 @@ impl CacheDev {
         cache: LinearDev,
         origin: LinearDev,
         cache_block_size: Sectors,
+        create_options: DmOptions,
     ) -> DmResult<CacheDev> {
         let table = CacheDev::gen_default_table(&meta, &cache, &origin, cache_block_size);
         let dev = if device_exists(dm, name)? {
@@ -595,7 +599,7 @@ impl CacheDev {
             device_match(dm, &dev, uuid)?;
             dev
         } else {
-            let dev_info = device_create(dm, name, uuid, &table, DmOptions::default())?;
+            let dev_info = device_create(dm, name, uuid, &table, create_options)?;
             CacheDev {
                 dev_info: Box::new(dev_info),
                 meta_dev: meta,
@@ -762,7 +766,7 @@ pub fn minimal_cachedev(dm: &DM, paths: &[&Path]) -> CacheDev {
         meta_length,
         LinearDevTargetParams::Linear(meta_params),
     )];
-    let meta = LinearDev::setup(dm, &meta_name, None, meta_table).unwrap();
+    let meta = LinearDev::setup(dm, &meta_name, None, meta_table, DmOptions::default()).unwrap();
 
     let cache_name = test_name("cache-cache").expect("valid format");
     let cache_offset = meta_length;
@@ -773,7 +777,7 @@ pub fn minimal_cachedev(dm: &DM, paths: &[&Path]) -> CacheDev {
         cache_length,
         LinearDevTargetParams::Linear(cache_params),
     )];
-    let cache = LinearDev::setup(dm, &cache_name, None, cache_table).unwrap();
+    let cache = LinearDev::setup(dm, &cache_name, None, cache_table, DmOptions::default()).unwrap();
 
     let dev2_size = blkdev_size(&OpenOptions::new().read(true).open(paths[1]).unwrap()).sectors();
     let dev2 = Device::from(devnode_to_devno(paths[1]).unwrap().unwrap());
@@ -785,7 +789,8 @@ pub fn minimal_cachedev(dm: &DM, paths: &[&Path]) -> CacheDev {
         dev2_size,
         LinearDevTargetParams::Linear(origin_params),
     )];
-    let origin = LinearDev::setup(dm, &origin_name, None, origin_table).unwrap();
+    let origin =
+        LinearDev::setup(dm, &origin_name, None, origin_table, DmOptions::default()).unwrap();
 
     CacheDev::new(
         dm,
@@ -795,6 +800,7 @@ pub fn minimal_cachedev(dm: &DM, paths: &[&Path]) -> CacheDev {
         cache,
         origin,
         MIN_CACHE_BLOCK_SIZE,
+        DmOptions::default(),
     )
     .unwrap()
 }

@@ -532,6 +532,7 @@ impl LinearDev {
         name: &DmName,
         uuid: Option<&DmUuid>,
         table: Vec<TargetLine<LinearDevTargetParams>>,
+        create_options: DmOptions,
     ) -> DmResult<LinearDev> {
         let table = LinearDevTargetTable::new(table);
         let dev = if device_exists(dm, name)? {
@@ -543,7 +544,7 @@ impl LinearDev {
             device_match(dm, &dev, uuid)?;
             dev
         } else {
-            let dev_info = device_create(dm, name, uuid, &table, DmOptions::default())?;
+            let dev_info = device_create(dm, name, uuid, &table, create_options)?;
             LinearDev {
                 dev_info: Box::new(dev_info),
                 table,
@@ -600,6 +601,7 @@ mod tests {
                 &test_name("new").expect("valid format"),
                 None,
                 vec![],
+                DmOptions::default(),
             ),
             Err(_)
         );
@@ -618,7 +620,7 @@ mod tests {
             Sectors(1),
             LinearDevTargetParams::Linear(params),
         )];
-        let mut ld = LinearDev::setup(&dm, &name, None, table).unwrap();
+        let mut ld = LinearDev::setup(&dm, &name, None, table, DmOptions::default()).unwrap();
 
         assert_matches!(ld.set_table(&dm, vec![]), Err(_));
         ld.resume(&dm).unwrap();
@@ -638,7 +640,7 @@ mod tests {
             Sectors(1),
             LinearDevTargetParams::Linear(params),
         )];
-        let mut ld = LinearDev::setup(&dm, &name, None, table).unwrap();
+        let mut ld = LinearDev::setup(&dm, &name, None, table, DmOptions::default()).unwrap();
 
         ld.set_name(&dm, &name).unwrap();
         assert_eq!(ld.name(), &*name);
@@ -659,7 +661,7 @@ mod tests {
             Sectors(1),
             LinearDevTargetParams::Linear(params),
         )];
-        let mut ld = LinearDev::setup(&dm, &name, None, table).unwrap();
+        let mut ld = LinearDev::setup(&dm, &name, None, table, DmOptions::default()).unwrap();
 
         let new_name = test_name("new_name").expect("valid format");
         ld.set_name(&dm, &new_name).unwrap();
@@ -693,7 +695,7 @@ mod tests {
         ];
         let range: Sectors = table.iter().map(|s| s.length).sum();
         let count = table.len();
-        let mut ld = LinearDev::setup(&dm, &name, None, table).unwrap();
+        let mut ld = LinearDev::setup(&dm, &name, None, table, DmOptions::default()).unwrap();
 
         let table = LinearDev::read_kernel_table(&dm, &DevId::Name(ld.name()))
             .unwrap()
@@ -733,7 +735,8 @@ mod tests {
                 )
             })
             .collect::<Vec<_>>();
-        let mut ld = LinearDev::setup(&dm, &name, None, table.clone()).unwrap();
+        let mut ld =
+            LinearDev::setup(&dm, &name, None, table.clone(), DmOptions::default()).unwrap();
 
         let loaded_table = LinearDev::read_kernel_table(&dm, &DevId::Name(ld.name())).unwrap();
         assert!(
@@ -757,15 +760,22 @@ mod tests {
             Sectors(1),
             LinearDevTargetParams::Linear(params),
         )];
-        let mut ld = LinearDev::setup(&dm, &name, None, table.clone()).unwrap();
+        let mut ld =
+            LinearDev::setup(&dm, &name, None, table.clone(), DmOptions::default()).unwrap();
         let params2 = LinearTargetParams::new(dev, Sectors(1));
         let table2 = vec![TargetLine::new(
             Sectors(0),
             Sectors(1),
             LinearDevTargetParams::Linear(params2),
         )];
-        assert_matches!(LinearDev::setup(&dm, &name, None, table2), Err(_));
-        assert_matches!(LinearDev::setup(&dm, &name, None, table), Ok(_));
+        assert_matches!(
+            LinearDev::setup(&dm, &name, None, table2, DmOptions::default()),
+            Err(_)
+        );
+        assert_matches!(
+            LinearDev::setup(&dm, &name, None, table, DmOptions::default()),
+            Ok(_)
+        );
         ld.teardown(&dm).unwrap();
     }
 
@@ -783,8 +793,9 @@ mod tests {
             Sectors(1),
             LinearDevTargetParams::Linear(params),
         )];
-        let mut ld = LinearDev::setup(&dm, &name, None, table.clone()).unwrap();
-        let ld2 = LinearDev::setup(&dm, &ersatz, None, table);
+        let mut ld =
+            LinearDev::setup(&dm, &name, None, table.clone(), DmOptions::default()).unwrap();
+        let ld2 = LinearDev::setup(&dm, &ersatz, None, table, DmOptions::default());
         assert_matches!(ld2, Ok(_));
 
         ld2.unwrap().teardown(&dm).unwrap();
@@ -804,7 +815,7 @@ mod tests {
             Sectors(1),
             LinearDevTargetParams::Linear(params),
         )];
-        let mut ld = LinearDev::setup(&dm, &name, None, table).unwrap();
+        let mut ld = LinearDev::setup(&dm, &name, None, table, DmOptions::default()).unwrap();
 
         ld.suspend(&dm, DmOptions::default().set_flags(DmFlags::DM_NOFLUSH))
             .unwrap();
