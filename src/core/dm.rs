@@ -18,7 +18,7 @@ use crate::{
     core::{
         device::Device,
         deviceinfo::DeviceInfo,
-        dm_flags::DmFlags,
+        dm_flags::{DmCookie, DmFlags},
         dm_ioctl as dmi,
         dm_options::DmOptions,
         errors,
@@ -54,7 +54,11 @@ impl DmOptions {
         allowable_flags: DmFlags,
     ) -> DmResult<dmi::Struct_dm_ioctl> {
         let clean_flags = allowable_flags & self.flags();
-        let event_nr = u32::from(self.cookie().bits()) << 16;
+
+        // Every ioctl is a primary source of udev events; this flag should
+        // always be set when an ioctl is sent.
+        let event_nr =
+            u32::from(self.cookie().bits() | DmCookie::DM_UDEV_PRIMARY_SOURCE_FLAG.bits()) << 16;
         let mut hdr: dmi::Struct_dm_ioctl = Default::default();
 
         hdr.version[0] = dmi::DM_VERSION_MAJOR;
