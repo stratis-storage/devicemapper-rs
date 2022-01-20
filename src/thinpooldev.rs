@@ -476,6 +476,7 @@ impl ThinPoolDev {
     /// on the metadata device. If the metadata is corrupted, subsequent
     /// errors will result, so it is expected that the metadata is
     /// well-formed and consistent with the data on the data device.
+    #[allow(clippy::too_many_arguments)]
     pub fn setup(
         dm: &DM,
         name: &DmName,
@@ -484,8 +485,10 @@ impl ThinPoolDev {
         data: LinearDev,
         data_block_size: Sectors,
         low_water_mark: DataBlocks,
+        feature_args: Vec<String>,
     ) -> DmResult<ThinPoolDev> {
-        let table = ThinPoolDev::gen_default_table(&meta, &data, data_block_size, low_water_mark);
+        let table =
+            ThinPoolDev::gen_table(&meta, &data, data_block_size, low_water_mark, feature_args);
         let dev = if device_exists(dm, name)? {
             let dev_info = dm.device_info(&DevId::Name(name))?;
             let dev = ThinPoolDev {
@@ -514,12 +517,12 @@ impl ThinPoolDev {
     /// where the thin-pool-specific string has the format:
     /// <meta maj:min> <data maj:min> <block size> <low water mark>
     /// There is exactly one entry in the table.
-    /// Various defaults are hard coded in the method.
-    fn gen_default_table(
+    fn gen_table(
         meta: &LinearDev,
         data: &LinearDev,
         data_block_size: Sectors,
         low_water_mark: DataBlocks,
+        feature_args: Vec<String>,
     ) -> ThinPoolDevTargetTable {
         ThinPoolDevTargetTable::new(
             Sectors::default(),
@@ -529,12 +532,33 @@ impl ThinPoolDev {
                 data.device(),
                 data_block_size,
                 low_water_mark,
-                vec![
-                    "error_if_no_space".to_owned(),
-                    "no_discard_passdown".to_owned(),
-                    "skip_block_zeroing".to_owned(),
-                ],
+                feature_args,
             ),
+        )
+    }
+
+    /// Generate a table to be passed to DM. The format of the table
+    /// entries is:
+    /// <start sec (0)> <length> "thin-pool" <thin-pool-specific string>
+    /// where the thin-pool-specific string has the format:
+    /// <meta maj:min> <data maj:min> <block size> <low water mark>
+    /// There is exactly one entry in the table.
+    /// Various defaults are hard coded in the method.
+    fn gen_default_table(
+        meta: &LinearDev,
+        data: &LinearDev,
+        data_block_size: Sectors,
+        low_water_mark: DataBlocks,
+    ) -> ThinPoolDevTargetTable {
+        Self::gen_table(
+            meta,
+            data,
+            data_block_size,
+            low_water_mark,
+            vec![
+                "no_discard_passdown".to_owned(),
+                "skip_block_zeroing".to_owned(),
+            ],
         )
     }
 
@@ -600,6 +624,66 @@ impl ThinPoolDev {
         self.table_load(dm, &table, DmOptions::default())?;
 
         self.table = table;
+
+        Ok(())
+    }
+
+    /// Default behavior for devicemapper thin pools is to queue requests if
+    /// the thin pool is out of space to allow time for the thin pool to extend.
+    /// This behavior can be changed by adding the feature argument
+    /// `error_if_no_space` to the devicemapper table.
+    ///
+    /// This method will add `error_if_no_space` from the devicemapper table
+    /// if it is not present.
+    pub fn error_if_no_space(&mut self, dm: &DM) -> DmResult<()> {
+        self.suspend(dm, DmOptions::default().set_flags(DmFlags::DM_NOFLUSH))?;
+
+        let mut table = self.table().clone();
+        if !table
+            .table
+            .params
+            .feature_args
+            .contains("error_if_no_space")
+        {
+            table
+                .table
+                .params
+                .feature_args
+                .insert("error_if_no_space".to_string());
+
+            self.table_load(dm, &table, DmOptions::default())?;
+            self.table = table;
+
+            self.resume(dm)?;
+        }
+
+        Ok(())
+    }
+
+    /// Default behavior for devicemapper thin pools is to queue requests if
+    /// the thin pool is out of space to allow time for the thin pool to extend.
+    /// This behavior can be changed by adding the feature argument
+    /// `error_if_no_space` to the devicemapper table.
+    ///
+    /// This method will remove `error_if_no_space` from the devicemapper table
+    /// if it is present.
+    pub fn queue_if_no_space(&mut self, dm: &DM) -> DmResult<()> {
+        self.suspend(dm, DmOptions::default().set_flags(DmFlags::DM_NOFLUSH))?;
+
+        let mut table = self.table().clone();
+        if table
+            .table
+            .params
+            .feature_args
+            .contains("error_if_no_space")
+        {
+            table.table.params.feature_args.remove("error_if_no_space");
+
+            self.table_load(dm, &table, DmOptions::default())?;
+            self.table = table;
+
+            self.resume(dm)?;
+        }
 
         Ok(())
     }
