@@ -58,7 +58,7 @@ impl DmOptions {
         // Every ioctl is a primary source of udev events; this flag should
         // always be set when an ioctl is sent.
         let event_nr =
-            u32::from(self.cookie().bits() | DmCookie::DM_UDEV_PRIMARY_SOURCE_FLAG.bits()) << 16;
+            u32::from((self.cookie() | DmCookie::DM_UDEV_PRIMARY_SOURCE_FLAG).bits()) << 16;
         let mut hdr: dmi::Struct_dm_ioctl = Default::default();
 
         hdr.version[0] = dmi::DM_VERSION_MAJOR;
