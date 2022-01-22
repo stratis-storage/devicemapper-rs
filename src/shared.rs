@@ -139,8 +139,9 @@ pub fn device_create<T: TargetTable>(
     uuid: Option<&DmUuid>,
     table: &T,
     suspend_options: DmOptions,
+    create_options: DmOptions,
 ) -> DmResult<DeviceInfo> {
-    dm.device_create(name, uuid, DmOptions::default())?;
+    dm.device_create(name, uuid, create_options)?;
 
     let id = DevId::Name(name);
     let dev_info = match dm.table_load(&id, &table.to_raw_table(), DmOptions::default()) {

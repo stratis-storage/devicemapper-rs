@@ -563,7 +563,7 @@ impl CacheDev {
         }
 
         let table = CacheDev::gen_default_table(&meta, &cache, &origin, cache_block_size);
-        let dev_info = device_create(dm, name, uuid, &table, create_options)?;
+        let dev_info = device_create(dm, name, uuid, &table, DmOptions::default(), create_options)?;
 
         Ok(CacheDev {
             dev_info: Box::new(dev_info),
@@ -599,7 +599,8 @@ impl CacheDev {
             device_match(dm, &dev, uuid)?;
             dev
         } else {
-            let dev_info = device_create(dm, name, uuid, &table, create_options)?;
+            let dev_info =
+                device_create(dm, name, uuid, &table, DmOptions::default(), create_options)?;
             CacheDev {
                 dev_info: Box::new(dev_info),
                 meta_dev: meta,

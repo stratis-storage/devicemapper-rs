@@ -267,7 +267,7 @@ impl ThinDev {
 
         let thin_pool_device = thin_pool.device();
         let table = ThinDev::gen_default_table(length, thin_pool_device, thin_id);
-        let dev_info = device_create(dm, name, uuid, &table, create_options)?;
+        let dev_info = device_create(dm, name, uuid, &table, DmOptions::default(), create_options)?;
 
         Ok(ThinDev {
             dev_info: Box::new(dev_info),
@@ -304,7 +304,8 @@ impl ThinDev {
             device_match(dm, &dev, uuid)?;
             dev
         } else {
-            let dev_info = device_create(dm, name, uuid, &table, create_options)?;
+            let dev_info =
+                device_create(dm, name, uuid, &table, DmOptions::default(), create_options)?;
             ThinDev {
                 dev_info: Box::new(dev_info),
                 table,
@@ -346,6 +347,7 @@ impl ThinDev {
             snapshot_name,
             snapshot_uuid,
             &table,
+            DmOptions::default(),
             create_options,
         )?);
         Ok(ThinDev { dev_info, table })
