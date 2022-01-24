@@ -12,7 +12,7 @@ keywords = ["storage", "devicemapper"]
 categories = ["os"]
 
 [dependencies]
-nix = "0.22.0"
+nix = "0.23.0"
 
 [build-dependencies.bindgen]
 default_features = false
