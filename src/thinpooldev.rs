@@ -430,6 +430,7 @@ impl ThinPoolDev {
     /// Returns an error if the device is already known to the kernel.
     /// Returns an error if data_block_size is not within required range.
     /// Precondition: the metadata device does not contain any pool metadata.
+    #[allow(clippy::too_many_arguments)]
     pub fn new(
         dm: &DM,
         name: &DmName,
@@ -438,13 +439,15 @@ impl ThinPoolDev {
         data: LinearDev,
         data_block_size: Sectors,
         low_water_mark: DataBlocks,
+        feature_args: Vec<String>,
     ) -> DmResult<ThinPoolDev> {
         if device_exists(dm, name)? {
             let err_msg = format!("thinpooldev {} already exists", name);
             return Err(DmError::Dm(ErrorEnum::Invalid, err_msg));
         }
 
-        let table = ThinPoolDev::gen_default_table(&meta, &data, data_block_size, low_water_mark);
+        let table =
+            ThinPoolDev::gen_table(&meta, &data, data_block_size, low_water_mark, feature_args);
         let dev_info = device_create(dm, name, uuid, &table, DmOptions::default())?;
 
         Ok(ThinPoolDev {
@@ -534,31 +537,6 @@ impl ThinPoolDev {
                 low_water_mark,
                 feature_args,
             ),
-        )
-    }
-
-    /// Generate a table to be passed to DM. The format of the table
-    /// entries is:
-    /// <start sec (0)> <length> "thin-pool" <thin-pool-specific string>
-    /// where the thin-pool-specific string has the format:
-    /// <meta maj:min> <data maj:min> <block size> <low water mark>
-    /// There is exactly one entry in the table.
-    /// Various defaults are hard coded in the method.
-    fn gen_default_table(
-        meta: &LinearDev,
-        data: &LinearDev,
-        data_block_size: Sectors,
-        low_water_mark: DataBlocks,
-    ) -> ThinPoolDevTargetTable {
-        Self::gen_table(
-            meta,
-            data,
-            data_block_size,
-            low_water_mark,
-            vec![
-                "no_discard_passdown".to_owned(),
-                "skip_block_zeroing".to_owned(),
-            ],
         )
     }
 
@@ -756,6 +734,10 @@ pub fn minimal_thinpool(dm: &DM, path: &Path) -> ThinPoolDev {
         data,
         MIN_DATA_BLOCK_SIZE,
         DataBlocks(1),
+        vec![
+            "no_discard_passdown".to_owned(),
+            "skip_block_zeroing".to_owned(),
+        ],
     )
     .unwrap()
 }
@@ -847,7 +829,11 @@ mod tests {
                 meta,
                 data,
                 MIN_DATA_BLOCK_SIZE / 2u64,
-                DataBlocks(1)
+                DataBlocks(1),
+                vec![
+                    "no_discard_passdown".to_owned(),
+                    "skip_block_zeroing".to_owned()
+                ],
             ),
             Err(DmError::Core(Error::Ioctl(_, _)))
         );
