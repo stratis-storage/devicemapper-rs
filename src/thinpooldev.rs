@@ -614,8 +614,6 @@ impl ThinPoolDev {
     /// This method will add `error_if_no_space` from the devicemapper table
     /// if it is not present.
     pub fn error_if_no_space(&mut self, dm: &DM) -> DmResult<()> {
-        self.suspend(dm, DmOptions::default().set_flags(DmFlags::DM_NOFLUSH))?;
-
         let mut table = self.table().clone();
         if !table
             .table
@@ -629,6 +627,7 @@ impl ThinPoolDev {
                 .feature_args
                 .insert("error_if_no_space".to_string());
 
+            self.suspend(dm, DmOptions::default().set_flags(DmFlags::DM_NOFLUSH))?;
             self.table_load(dm, &table, DmOptions::default())?;
             self.table = table;
 
@@ -646,8 +645,6 @@ impl ThinPoolDev {
     /// This method will remove `error_if_no_space` from the devicemapper table
     /// if it is present.
     pub fn queue_if_no_space(&mut self, dm: &DM) -> DmResult<()> {
-        self.suspend(dm, DmOptions::default().set_flags(DmFlags::DM_NOFLUSH))?;
-
         let mut table = self.table().clone();
         if table
             .table
@@ -657,6 +654,7 @@ impl ThinPoolDev {
         {
             table.table.params.feature_args.remove("error_if_no_space");
 
+            self.suspend(dm, DmOptions::default().set_flags(DmFlags::DM_NOFLUSH))?;
             self.table_load(dm, &table, DmOptions::default())?;
             self.table = table;
 
