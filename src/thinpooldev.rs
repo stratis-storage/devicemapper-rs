@@ -663,6 +663,122 @@ impl ThinPoolDev {
 
         Ok(())
     }
+
+    /// Default behavior for devicemapper thin pools is to zero newly allocated
+    /// data blocks. This behavior can be changed by adding the feature argument
+    /// `skip_block_zeroing` to the devicemapper table.
+    ///
+    /// This method will add `skip_block_zeroing` from the devicemapper table
+    /// if it is not present.
+    pub fn skip_block_zeroing(&mut self, dm: &DM) -> DmResult<()> {
+        let mut table = self.table().clone();
+        if !table
+            .table
+            .params
+            .feature_args
+            .contains("skip_block_zeroing")
+        {
+            table
+                .table
+                .params
+                .feature_args
+                .insert("skip_block_zeroing".to_string());
+
+            self.suspend(dm, DmOptions::default().set_flags(DmFlags::DM_NOFLUSH))?;
+            self.table_load(dm, &table, DmOptions::default())?;
+            self.table = table;
+
+            self.resume(dm)?;
+        }
+
+        Ok(())
+    }
+
+    /// Default behavior for devicemapper thin pools is to zero newly allocated
+    /// data blocks. This behavior can be changed by adding the feature argument
+    /// `skip_block_zeroing` to the devicemapper table.
+    ///
+    /// This method will remove `skip_block_zeroing` from the devicemapper table
+    /// if it is present.
+    pub fn require_block_zeroing(&mut self, dm: &DM) -> DmResult<()> {
+        let mut table = self.table().clone();
+        if table
+            .table
+            .params
+            .feature_args
+            .contains("error_if_no_space")
+        {
+            table.table.params.feature_args.remove("skip_block_zeroing");
+
+            self.suspend(dm, DmOptions::default().set_flags(DmFlags::DM_NOFLUSH))?;
+            self.table_load(dm, &table, DmOptions::default())?;
+            self.table = table;
+
+            self.resume(dm)?;
+        }
+
+        Ok(())
+    }
+
+    /// Default behavior for devicemapper thin pools is to pass down discards.
+    /// This behavior can be changed by adding the feature argument
+    /// `no_discard_passdown` to the devicemapper table.
+    ///
+    /// This method will add `no_discard_passdown` to the devicemapper table
+    /// if it is not present.
+    pub fn no_discard_passdown(&mut self, dm: &DM) -> DmResult<()> {
+        let mut table = self.table().clone();
+        if !table
+            .table
+            .params
+            .feature_args
+            .contains("no_discard_passdown")
+        {
+            table
+                .table
+                .params
+                .feature_args
+                .insert("no_discard_passdown".to_string());
+
+            self.suspend(dm, DmOptions::default().set_flags(DmFlags::DM_NOFLUSH))?;
+            self.table_load(dm, &table, DmOptions::default())?;
+            self.table = table;
+
+            self.resume(dm)?;
+        }
+
+        Ok(())
+    }
+
+    /// Default behavior for devicemapper thin pools is to pass down discards.
+    /// This behavior can be changed by adding the feature argument
+    /// `no_discard_passdown` to the devicemapper table.
+    ///
+    /// This method will remove `no_discard_passdown` from the devicemapper
+    /// table if it is present.
+    pub fn discard_passdown(&mut self, dm: &DM) -> DmResult<()> {
+        let mut table = self.table().clone();
+        if table
+            .table
+            .params
+            .feature_args
+            .contains("no_discard_passdown")
+        {
+            table
+                .table
+                .params
+                .feature_args
+                .remove("no_discard_passdown");
+
+            self.suspend(dm, DmOptions::default().set_flags(DmFlags::DM_NOFLUSH))?;
+            self.table_load(dm, &table, DmOptions::default())?;
+            self.table = table;
+
+            self.resume(dm)?;
+        }
+
+        Ok(())
+    }
 }
 
 #[cfg(test)]
