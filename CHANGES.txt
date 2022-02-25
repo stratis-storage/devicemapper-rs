@@ -1,3 +1,46 @@
+devicemapper 0.32.1
+===================
+Recommended Rust toolchain version: 1.62.0
+Lowest supported Rust toolchain version: 1.58.1
+Recommended development release: Fedora 36
+
+- Expose TargetTable and TargetParams:
+  https://github.com/stratis-storage/devicemapper-rs/issues/747
+  https://github.com/stratis-storage/devicemapper-rs/pull/750
+
+- Add a proper list of categories to the Cargo.toml file:
+  https://github.com/stratis-storage/devicemapper-rs/pull/751
+
+- Release devicemapper-sys version 0.1.3:
+  https://github.com/stratis-storage/devicemapper-rs/pull/771
+
+- Set a per-command ioctl version in device-mapper header:
+  https://github.com/stratis-storage/devicemapper-rs/issues/769
+  https://github.com/stratis-storage/devicemapper-rs/pull/772
+  https://github.com/stratis-storage/devicemapper-rs/pull/770
+
+- Increase nix dependency version to 0.24.0:
+  https://github.com/stratis-storage/devicemapper-rs/pull/758
+
+- Increase uuid dependency version to 1.0.0:
+  https://github.com/stratis-storage/devicemapper-rs/pull/760
+
+- Tidies and Maintenance:
+  https://github.com/stratis-storage/devicemapper-rs/pull/767
+  https://github.com/stratis-storage/devicemapper-rs/pull/765
+  https://github.com/stratis-storage/devicemapper-rs/pull/764
+  https://github.com/stratis-storage/devicemapper-rs/pull/763
+  https://github.com/stratis-storage/devicemapper-rs/pull/761
+  https://github.com/stratis-storage/devicemapper-rs/pull/759
+  https://github.com/stratis-storage/devicemapper-rs/pull/757
+  https://github.com/stratis-storage/devicemapper-rs/pull/756
+  https://github.com/stratis-storage/devicemapper-rs/pull/755
+  https://github.com/stratis-storage/devicemapper-rs/pull/754
+  https://github.com/stratis-storage/devicemapper-rs/pull/753
+  https://github.com/stratis-storage/devicemapper-rs/pull/752
+  https://github.com/stratis-storage/devicemapper-rs/pull/748
+
+
 devicemapper 0.32.0
 ===================
 Recommended Rust toolchain version: 1.58.1
