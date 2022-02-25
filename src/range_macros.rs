@@ -313,7 +313,7 @@ mod tests {
 
         // Test Ord, PartialOrd
         assert!(Units::default() < Units(1));
-        assert!(!(Units(1) < Units::default()));
+        assert!(Units(1) >= Units::default());
 
         // Test Copy
         let z = Units(3);
