@@ -58,6 +58,7 @@ impl<T: TargetParams> TargetLine<T> {
     }
 }
 
+/// Manages a target's table
 pub trait TargetTable: Clone + fmt::Debug + fmt::Display + Eq + PartialEq + Sized {
     /// Constructs a table from a raw table returned by DM::table_status()
     fn from_raw_table(table: &[(u64, u64, String, String)]) -> DmResult<Self>;
