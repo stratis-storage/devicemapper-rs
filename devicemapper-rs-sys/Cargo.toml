@@ -9,7 +9,7 @@ documentation = "https://docs.rs/devicemapper-rs-sys"
 homepage = "https://stratis-storage.github.io/"
 repository = "https://github.com/stratis-storage/devicemapper-rs"
 keywords = ["storage", "devicemapper"]
-categories = ["os"]
+categories = ["os::linux-apis", "external-ffi-bindings"]
 
 [dependencies]
 nix = "0.23.0"
