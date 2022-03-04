@@ -123,7 +123,9 @@ pub use crate::{
         LinearTargetParams,
     },
     result::{DmError, DmResult, ErrorEnum},
-    shared::{device_exists, DmDevice, TargetLine, TargetType, TargetTypeBuf},
+    shared::{
+        device_exists, DmDevice, TargetLine, TargetParams, TargetTable, TargetType, TargetTypeBuf,
+    },
     thindev::{ThinDev, ThinDevWorkingStatus, ThinStatus},
     thindevid::ThinDevId,
     thinpooldev::{
