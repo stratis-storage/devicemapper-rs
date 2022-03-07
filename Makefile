@@ -12,12 +12,6 @@ IGNORE_ARGS ?=
 
 DENY = -D warnings -D future-incompatible -D unused -D rust_2018_idioms -D rust_2018_compatibility -D nonstandard_style
 
-# Clippy allow/deny adjudications for pedantic lints
-#
-# Allows represent lints we fail but which we may
-# conclude are helpful at some time.
-CLIPPY_PEDANTIC = -A clippy::upper_case_acronyms
-
 ${HOME}/.cargo/bin/cargo-tree:
 	cargo install cargo-tree
 
@@ -79,13 +73,11 @@ clippy:
 	RUSTFLAGS="${DENY}" \
         cargo clippy --all-targets --all-features -- \
         -D clippy::cargo \
-        -D clippy::all \
-        ${CLIPPY_PEDANTIC}
+        -D clippy::all
 	cd devicemapper-rs-sys && RUSTFLAGS="${DENY}" \
         cargo clippy --all-targets --all-features -- \
         -D clippy::cargo \
-        -D clippy::all \
-        ${CLIPPY_PEDANTIC}
+        -D clippy::all
 
 docs:
 	cargo doc --no-deps
