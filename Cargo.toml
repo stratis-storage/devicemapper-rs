@@ -14,7 +14,7 @@ exclude = [".gitignore", ".github/*", "Makefile"]
 
 [dependencies]
 bitflags = "1.1.0"
-nix = "0.23.0"
+nix = "0.24.0"
 semver = "1.0.0"
 serde = "1.0.60"
 
