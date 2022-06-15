@@ -26,7 +26,7 @@ matches = "0.1.8"
 tempfile = "3.0.2"
 
 [dev-dependencies.uuid]
-version = "0.8.0"
+version = "1.0.0"
 features = ["v4"]
 
 [dependencies.devicemapper-sys]
