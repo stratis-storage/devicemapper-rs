@@ -559,17 +559,10 @@ impl DM {
 
     /// Parse a device's table. The table value is in buf, count indicates the
     /// expected number of lines.
-    /// Panics if there is an error parsing the table.
     /// Trims trailing white space off final entry on each line. This
     /// canonicalization makes checking identity of tables easier.
     /// Postcondition: The length of the next to last entry in any tuple is
     /// no more than 16 characters.
-    // Justification: If the ioctl succeeded, the data is correct and
-    // complete. An error in parsing can only result from a change in the
-    // kernel. We rely on DM's interface versioning system. Kernel changes
-    // will either be backwards-compatible, or will increment
-    // DM_VERSION_MAJOR.  Since calls made with a non-matching major version
-    // will fail, this protects against callers parsing unknown formats.
     fn parse_table_status(count: u32, buf: &[u8]) -> DmResult<Vec<(u64, u64, String, String)>> {
         let mut targets = Vec::new();
         if !buf.is_empty() {
