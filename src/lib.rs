@@ -119,8 +119,8 @@ pub use crate::{
     },
     consts::IEC,
     core::{
-        devnode_to_devno, errors, DevId, Device, DeviceInfo, DmCookie, DmFlags, DmName, DmNameBuf,
-        DmOptions, DmUuid, DmUuidBuf, DM,
+        devnode_to_devno, errors, DevId, Device, DeviceInfo, DmFlags, DmName, DmNameBuf, DmOptions,
+        DmUdevFlags, DmUuid, DmUuidBuf, DM,
     },
     lineardev::{
         FlakeyTargetParams, LinearDev, LinearDevTargetParams, LinearDevTargetTable,

@@ -54,7 +54,7 @@ impl DmOptions {
         allowable_flags: DmFlags,
     ) -> DmResult<dmi::Struct_dm_ioctl> {
         let clean_flags = allowable_flags & self.flags();
-        let event_nr = u32::from(self.cookie().bits()) << 16;
+        let event_nr = u32::from(self.udev_flags().bits()) << 16;
         let mut hdr: dmi::Struct_dm_ioctl = devicemapper_sys::dm_ioctl {
             flags: clean_flags.bits(),
             event_nr,

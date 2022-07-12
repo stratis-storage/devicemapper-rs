@@ -1,13 +1,13 @@
 // This Source Code Form is subject to the terms of the Mozilla Public
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
-use crate::core::dm_flags::{DmCookie, DmFlags};
+use crate::core::dm_flags::{DmFlags, DmUdevFlags};
 
 /// Encapsulates options for device mapper calls
 #[derive(Clone, Copy, Debug, Default)]
 pub struct DmOptions {
     flags: DmFlags,
-    cookie: DmCookie,
+    udev_flags: DmUdevFlags,
 }
 
 impl DmOptions {
@@ -18,10 +18,10 @@ impl DmOptions {
         self
     }
 
-    /// Set the DmCookie value for self. Replace the previous value.
+    /// Set the DmUdevFlags value for self. Replace the previous value.
     /// Consumes self.
-    pub fn set_cookie(mut self, cookie: DmCookie) -> DmOptions {
-        self.cookie = cookie;
+    pub fn set_udev_flags(mut self, udev_flags: DmUdevFlags) -> DmOptions {
+        self.udev_flags = udev_flags;
         self
     }
 
@@ -30,8 +30,8 @@ impl DmOptions {
         self.flags
     }
 
-    /// Retrieve the cookie value (used for input in upper 16 bits of event_nr header field).
-    pub fn cookie(&self) -> DmCookie {
-        self.cookie
+    /// Retrieve the cookie flags (used for input in upper 16 bits of event_nr header field).
+    pub fn udev_flags(&self) -> DmUdevFlags {
+        self.udev_flags
     }
 }

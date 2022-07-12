@@ -103,7 +103,7 @@ pub trait DmDevice<T: TargetTable> {
             &DevId::Name(self.name()),
             DmOptions::default()
                 .set_flags(DmFlags::DM_SUSPEND | options.flags())
-                .set_cookie(options.cookie()),
+                .set_udev_flags(options.udev_flags()),
         )?;
         Ok(())
     }

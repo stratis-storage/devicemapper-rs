@@ -18,7 +18,7 @@ pub use self::{
     device::{devnode_to_devno, Device},
     deviceinfo::DeviceInfo,
     dm::DM,
-    dm_flags::{DmCookie, DmFlags},
+    dm_flags::{DmFlags, DmUdevFlags},
     dm_options::DmOptions,
     types::{DevId, DmName, DmNameBuf, DmUuid, DmUuidBuf},
 };

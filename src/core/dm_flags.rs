@@ -53,7 +53,7 @@ bitflags! {
     /// https://sourceware.org/git/?p=lvm2.git;a=blob;f=libdm/libdevmapper.h#l3627
     /// for complete information about the meaning of the flags.
     #[derive(Default)]
-    pub struct DmCookie: dmi::__u16 {
+    pub struct DmUdevFlags: dmi::__u16 {
         #[allow(clippy::identity_op)]
         /// Disables basic device-mapper udev rules that create symlinks in /dev/<DM_DIR>
         /// directory.
