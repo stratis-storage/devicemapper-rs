@@ -21,6 +21,7 @@ use crate::{
         dm_flags::DmFlags,
         dm_ioctl as dmi,
         dm_options::DmOptions,
+        dm_udev_sync::{UdevSync, UdevSyncAction},
         errors,
         types::{DevId, DmName, DmNameBuf, DmUuid},
         util::{
@@ -54,7 +55,7 @@ impl DmOptions {
         allowable_flags: DmFlags,
     ) -> DmResult<dmi::Struct_dm_ioctl> {
         let clean_flags = allowable_flags & self.flags();
-        let event_nr = u32::from(self.udev_flags().bits()) << 16;
+        let event_nr = self.udev_flags().bits() << dmi::DM_UDEV_FLAGS_SHIFT;
         let mut hdr: dmi::Struct_dm_ioctl = devicemapper_sys::dm_ioctl {
             flags: clean_flags.bits(),
             event_nr,
@@ -120,6 +121,10 @@ impl DM {
         hdr.version[1] = ioctl_version.1;
         hdr.version[2] = ioctl_version.2;
 
+        // Begin udev sync transaction and set DM_UDEV_PRIMARY_SOURCE_FLAG
+        // if ioctl command generates uevents.
+        let sync = UdevSync::begin(hdr, ioctl)?;
+
         let data_size = cmp::max(
             MIN_BUF_SIZE,
             size_of::<dmi::Struct_dm_ioctl>() + in_data.map_or(0, |x| x.len()),
@@ -148,6 +153,8 @@ impl DM {
             if let Err(err) = unsafe {
                 convert_ioctl_res!(nix_ioctl(self.file.as_raw_fd(), op, buffer.as_mut_ptr()))
             } {
+                // Cancel udev sync and clean up semaphore
+                sync.cancel();
                 return Err(DmError::Core(errors::Error::Ioctl(
                     op as u8,
                     DeviceInfo::new(*hdr).ok().map(Box::new),
@@ -174,6 +181,8 @@ impl DM {
 
         let data_end = cmp::max(buffer_hdr.data_size, buffer_hdr.data_start);
 
+        // Synchronize with udev event processing
+        sync.end(buffer_hdr.flags)?;
         Ok((
             DeviceInfo::try_from(*buffer_hdr)?,
             buffer[buffer_hdr.data_start as usize..data_end as usize].to_vec(),
