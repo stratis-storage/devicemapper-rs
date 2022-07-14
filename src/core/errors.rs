@@ -39,6 +39,9 @@ pub enum Error {
 
     /// An error returned on general IO failure
     GeneralIo(String),
+
+    /// An error synchronizing with udev
+    UdevSync(String),
 }
 
 impl std::fmt::Display for Error {
@@ -65,6 +68,9 @@ impl std::fmt::Display for Error {
             ),
             Error::GeneralIo(err) => {
                 write!(f, "failed to perform operation due to IO error: {err}")
+            }
+            Error::UdevSync(err) => {
+                write!(f, "failed to perform udev sync operation: {}", err)
             }
         }
     }
