@@ -55,12 +55,12 @@ impl DmOptions {
     ) -> DmResult<dmi::Struct_dm_ioctl> {
         let clean_flags = allowable_flags & self.flags();
         let event_nr = u32::from(self.cookie().bits()) << 16;
-        let mut hdr: dmi::Struct_dm_ioctl = Default::default();
-
-        hdr.flags = clean_flags.bits();
-        hdr.event_nr = event_nr;
-
-        hdr.data_start = size_of::<dmi::Struct_dm_ioctl>() as u32;
+        let mut hdr: dmi::Struct_dm_ioctl = devicemapper_sys::dm_ioctl {
+            flags: clean_flags.bits(),
+            event_nr,
+            data_start: size_of::<dmi::Struct_dm_ioctl>() as u32,
+            ..Default::default()
+        };
 
         if let Some(id) = id {
             match id {
