@@ -647,6 +647,7 @@ impl DM {
 
     /// Returns a list of each loaded target type with its name, and
     /// version broken into major, minor, and patchlevel.
+    #[cfg(devicemapper41supported)]
     pub fn list_versions(&self) -> DmResult<Vec<(String, u32, u32, u32)>> {
         let mut hdr = DmOptions::default().to_ioctl_hdr(None, DmFlags::empty())?;
 
@@ -684,6 +685,7 @@ impl DM {
     /// Send a message to the device specified by id and the sector
     /// specified by sector. If sending to the whole device, set sector to
     /// None.
+    #[cfg(devicemapper42supported)]
     pub fn target_msg(
         &self,
         id: &DevId<'_>,
