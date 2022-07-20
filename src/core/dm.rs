@@ -57,10 +57,6 @@ impl DmOptions {
         let event_nr = u32::from(self.cookie().bits()) << 16;
         let mut hdr: dmi::Struct_dm_ioctl = Default::default();
 
-        hdr.version[0] = dmi::DM_VERSION_MAJOR;
-        hdr.version[1] = dmi::DM_VERSION_MINOR;
-        hdr.version[2] = dmi::DM_VERSION_PATCHLEVEL;
-
         hdr.flags = clean_flags.bits();
         hdr.event_nr = event_nr;
 
@@ -116,13 +112,11 @@ impl DM {
         hdr: &mut dmi::Struct_dm_ioctl,
         in_data: Option<&[u8]>,
     ) -> DmResult<Vec<u8>> {
-        // Create in-buf by copying hdr and any in-data into a linear
-        // Vec v.  'hdr_slc' also aliases hdr as a &[u8], used first
-        // to copy the hdr into v, and later to update the
-        // possibly-modified hdr.
+        let ioctl_version = dmi::ioctl_to_version(ioctl);
+        hdr.version[0] = ioctl_version.0;
+        hdr.version[1] = ioctl_version.1;
+        hdr.version[2] = ioctl_version.2;
 
-        // Start with a large buffer to make BUFFER_FULL rare. Libdm
-        // does this too.
         hdr.data_size = cmp::max(
             MIN_BUF_SIZE,
             size_of::<dmi::Struct_dm_ioctl>() + in_data.map_or(0, |x| x.len()),
