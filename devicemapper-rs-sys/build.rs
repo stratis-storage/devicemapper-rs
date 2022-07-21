@@ -8,7 +8,15 @@ use bindgen::Builder;
 
 fn main() {
     let bindings = Builder::default()
-        .header("dm-ioctl.h")
+        .header("dm.h")
+        .allowlist_var("DM.*")
+        .allowlist_type("__u16")
+        .allowlist_type("dm_ioctl")
+        .allowlist_type("dm_name_list")
+        .allowlist_type("dm_target_deps")
+        .allowlist_type("dm_target_msg")
+        .allowlist_type("dm_target_spec")
+        .allowlist_type("dm_target_versions")
         .derive_debug(true)
         .derive_default(true)
         .generate()
