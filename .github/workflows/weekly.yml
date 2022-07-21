@@ -30,13 +30,3 @@ jobs:
         run: python --version
       - name: ${{ matrix.task }}
         run: ${{ matrix.task }}
-
-  container_dm_version:
-    runs-on: ubuntu-20.04
-    container:
-      image: fedora:34  # LOWEST DEVELOPMENT ENVIRONMENT
-    steps:
-      - name: Install dependencies for Fedora
-        run: dnf install -y device-mapper
-      - name: Check dmsetup version on this container
-        run: dmsetup --version
