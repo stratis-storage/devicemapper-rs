@@ -15,7 +15,7 @@ use tempfile::{self, TempDir};
 
 use crate::{
     consts::IEC,
-    testing::test_lib::clean_up,
+    testing::{logger::init_logger, test_lib::clean_up},
     units::{Bytes, Sectors, SECTOR_SIZE},
 };
 
@@ -117,6 +117,7 @@ pub fn test_with_spec<F>(count: u8, test: F)
 where
     F: Fn(&[&Path]) + panic::RefUnwindSafe,
 {
+    init_logger();
     clean_up().unwrap();
 
     let tmpdir = tempfile::Builder::new()

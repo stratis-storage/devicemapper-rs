@@ -16,9 +16,11 @@ exclude = [".clippy.toml", ".githooks/*", ".gitignore", ".github/*", "Makefile"]
 [dependencies]
 bitflags = "1.1.0"
 nix = "0.26.0"
+env_logger="0.9.0"
 semver = "1.0.0"
 serde = "1.0.60"
 lazy_static = "1.2.0"
+log = "0.4.14"
 
 [dev-dependencies]
 assert_matches = "1.5.0"

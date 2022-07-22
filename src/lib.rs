@@ -71,6 +71,8 @@ extern crate bitflags;
 extern crate nix;
 #[macro_use]
 extern crate lazy_static;
+#[macro_use]
+extern crate log;
 
 /// Range macros
 #[macro_use]
