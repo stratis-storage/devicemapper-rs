@@ -584,6 +584,9 @@ mod tests {
         // Create the XFS FS on top of the thin device
         xfs_create_fs(&td.devnode(), Some(uuid)).unwrap();
 
+        // Synchronize with udev processing triggered by xfs_create_fs()
+        udev_settle().unwrap();
+
         validate(&uuid, &td.devnode());
 
         // Teardown the thindev, then set it back up and make sure all is well with udev
