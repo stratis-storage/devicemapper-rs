@@ -829,18 +829,12 @@ mod tests {
                     cache.table.table.params.cache_block_size
                 );
 
-                // No data means no cache blocks used
-                assert_eq!(usage.used_cache, DataBlocks(0));
-
                 let performance = &status.performance;
 
-                // No activity should mean all performance data is 0
-                assert_eq!(performance.read_hits, 0);
-                assert_eq!(performance.read_misses, 0);
+                // No write activity should mean all write performance data is 0
                 assert_eq!(performance.write_hits, 0);
                 assert_eq!(performance.write_misses, 0);
                 assert_eq!(performance.demotions, 0);
-                assert_eq!(performance.promotions, 0);
                 assert_eq!(performance.dirty, 0);
 
                 // The current defaults for configuration values
