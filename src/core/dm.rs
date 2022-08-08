@@ -11,7 +11,8 @@ use std::{
     slice, str,
 };
 
-use nix::libc::ioctl as nix_ioctl;
+use nix::{errno, libc::ioctl as nix_ioctl};
+use retry::{delay::Fixed, retry_with_index, Error as RetryError, OperationResult};
 use semver::Version;
 
 use crate::{
@@ -41,6 +42,12 @@ const DM_CTL_PATH: &str = "/dev/device-mapper";
 
 /// Start with a large buffer to make BUFFER_FULL rare. Libdm does this too.
 const MIN_BUF_SIZE: usize = 16 * 1024;
+
+/// Number of device remove retry attempts
+const DM_REMOVE_RETRIES: usize = 5;
+
+/// Delay between remove attempts
+const DM_REMOVE_MSLEEP_DELAY: u64 = 200;
 
 /// Context needed for communicating with devicemapper.
 pub struct DM {
@@ -333,6 +340,38 @@ impl DM {
             .map(|(hdr, _)| hdr)
     }
 
+    fn try_device_remove(
+        &self,
+        id: &DevId<'_>,
+        options: DmOptions,
+    ) -> OperationResult<DeviceInfo, DmError> {
+        let mut hdr = match options.to_ioctl_hdr(Some(id), DmFlags::DM_DEFERRED_REMOVE) {
+            Ok(hdr) => hdr,
+            Err(err) => {
+                return OperationResult::Err(err);
+            }
+        };
+
+        match self.do_ioctl(dmi::DM_DEV_REMOVE_CMD as u8, &mut hdr, None) {
+            Err(err) => {
+                if let DmError::Core(errors::Error::Ioctl(op, hdr_in, hdr_out, errno)) = err {
+                    if *errno == errno::Errno::EBUSY {
+                        OperationResult::Retry(DmError::Core(errors::Error::Ioctl(
+                            op, hdr_in, hdr_out, errno,
+                        )))
+                    } else {
+                        OperationResult::Err(DmError::Core(errors::Error::Ioctl(
+                            op, hdr_in, hdr_out, errno,
+                        )))
+                    }
+                } else {
+                    OperationResult::Err(err)
+                }
+            }
+            Ok((deviceinfo, _)) => OperationResult::Ok(deviceinfo),
+        }
+    }
+
     /// Remove a DM device and its mapping tables.
     ///
     /// If `DM_DEFERRED_REMOVE` is set, the request for an in-use
@@ -341,11 +380,22 @@ impl DM {
     ///
     /// Valid flags: `DM_DEFERRED_REMOVE`
     pub fn device_remove(&self, id: &DevId<'_>, options: DmOptions) -> DmResult<DeviceInfo> {
-        let mut hdr = options.to_ioctl_hdr(Some(id), DmFlags::DM_DEFERRED_REMOVE)?;
-
         debug!("Removing device {}", id);
-        self.do_ioctl(dmi::DM_DEV_REMOVE_CMD as u8, &mut hdr, None)
-            .map(|(hdr, _)| hdr)
+        match retry_with_index(
+            Fixed::from_millis(DM_REMOVE_MSLEEP_DELAY).take(DM_REMOVE_RETRIES - 1),
+            |i| {
+                debug!("Device remove attempt {} of {}", i, DM_REMOVE_RETRIES);
+                self.try_device_remove(id, options)
+            },
+        ) {
+            Ok(deviceinfo) => Ok(deviceinfo),
+            Err(err) => match err {
+                RetryError::Operation { error, .. } => Err(error),
+                _ => Err(DmError::Core(errors::Error::UdevSync(
+                    "Error retrying ioctl".to_string(),
+                ))),
+            },
+        }
     }
 
     /// Change a DM device's name OR set the device's uuid for the first time.
