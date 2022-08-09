@@ -11,6 +11,7 @@ mod dm_flags;
 mod dm_ioctl;
 mod dm_options;
 pub mod errors;
+mod sysvsem;
 mod types;
 mod util;
 
