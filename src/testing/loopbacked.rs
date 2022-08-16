@@ -3,7 +3,6 @@
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 use std::{
-    convert::TryInto,
     fs::OpenOptions,
     io::{self, Seek, SeekFrom, Write},
     os::unix::io::AsRawFd,
