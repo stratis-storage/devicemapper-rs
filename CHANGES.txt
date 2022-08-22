@@ -1,3 +1,17 @@
+devicemapper 0.32.2
+===================
+Recommended Rust toolchain version: 1.63.0
+Lowest supported Rust toolchain version: 1.62.1
+Recommended development release: Fedora 36
+
+- Tidies and Maintenance:
+  https://github.com/stratis-storage/devicemapper-rs/pull/780
+  https://github.com/stratis-storage/devicemapper-rs/pull/779
+  https://github.com/stratis-storage/devicemapper-rs/pull/777
+  https://github.com/stratis-storage/devicemapper-rs/pull/776
+  https://github.com/stratis-storage/devicemapper-rs/pull/775
+
+
 devicemapper 0.32.1
 ===================
 Recommended Rust toolchain version: 1.62.0
