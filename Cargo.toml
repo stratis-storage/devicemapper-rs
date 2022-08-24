@@ -9,7 +9,7 @@ readme = "README.md"
 categories = ["os::linux-apis", "api-bindings"]
 keywords = ["Linux", "device", "mapper", "libdm", "storage"]
 license = "MPL-2.0"
-edition = "2018"
+edition = "2021"
 exclude = [".clippy.toml", ".githooks/*", ".gitignore", ".github/*", "Makefile"]
 
 [dependencies]

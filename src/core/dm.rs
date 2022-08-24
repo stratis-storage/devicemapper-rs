@@ -4,7 +4,6 @@
 
 use std::{
     cmp,
-    convert::TryInto,
     fs::File,
     io::{Cursor, Read, Write},
     mem::size_of,

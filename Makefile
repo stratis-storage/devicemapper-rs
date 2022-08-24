@@ -10,7 +10,7 @@ endif
 
 IGNORE_ARGS ?=
 
-DENY = -D warnings -D future-incompatible -D unused -D rust_2018_idioms -D rust_2021_compatibility -D nonstandard_style
+DENY = -D warnings -D future-incompatible -D unused -D rust_2018_idioms -D nonstandard_style
 
 ${HOME}/.cargo/bin/cargo-tree:
 	cargo install cargo-tree
