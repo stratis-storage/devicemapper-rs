@@ -210,12 +210,12 @@ impl DmDevice<ThinPoolDevTargetTable> for ThinPoolDev {
     ) -> DmResult<bool> {
         let left = &left.table;
         let right = &right.table;
+
         Ok(left.start == right.start
             && left.length == right.length
             && left.params.metadata_dev == right.params.metadata_dev
             && left.params.data_dev == right.params.data_dev
-            && left.params.data_block_size == right.params.data_block_size
-            && left.params.feature_args == right.params.feature_args)
+            && left.params.data_block_size == right.params.data_block_size)
     }
 
     fn name(&self) -> &DmName {
