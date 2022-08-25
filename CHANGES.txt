@@ -4,6 +4,12 @@ Recommended Rust toolchain version: 1.63.0
 Lowest supported Rust toolchain version: 1.62.1
 Recommended development release: Fedora 36
 
+- Update to edition 2021:
+  https://github.com/stratis-storage/devicemapper-rs/pull/766
+
+- Do not use feature_args for thinpool equivalence:
+  https://github.com/stratis-storage/devicemapper-rs/pull/783
+
 - Tidies and Maintenance:
   https://github.com/stratis-storage/devicemapper-rs/pull/780
   https://github.com/stratis-storage/devicemapper-rs/pull/779
