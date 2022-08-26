@@ -2,7 +2,7 @@
 name = "devicemapper-sys"
 version = "0.1.3"
 authors = ["Stratis Developers <stratis-devel@lists.fedorahosted.org>"]
-edition = "2018"
+edition = "2021"
 description = "Low level bindings for devicemapper"
 license = "MPL-2.0"
 documentation = "https://docs.rs/devicemapper-rs-sys"
