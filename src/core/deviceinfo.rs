@@ -80,6 +80,9 @@ impl TryFrom<dmi::Struct_dm_ioctl> for DeviceInfo {
 }
 
 impl DeviceInfo {
+    /// Parses a DM ioctl structure.
+    ///
+    /// Equivalent to `DeviceInfo::try_from(hdr)`.
     pub fn new(hdr: dmi::Struct_dm_ioctl) -> DmResult<Self> {
         DeviceInfo::try_from(hdr)
     }
