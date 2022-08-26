@@ -25,9 +25,7 @@ tree: ${HOME}/.cargo/bin/cargo-tree
 	PATH=${HOME}/.cargo/bin:${PATH} cargo tree
 
 audit: ${HOME}/.cargo/bin/cargo-audit
-        # --ignore=RUSTSEC-2021-0139 is required due to old loopdev dependency
-	PATH=${HOME}/.cargo/bin:${PATH} cargo audit -D warnings \
-        --ignore=RUSTSEC-2021-0139
+	PATH=${HOME}/.cargo/bin:${PATH} cargo audit -D warnings
 
 tarpaulin: ${HOME}/.cargo/bin/cargo-tarpaulin
 	PATH=${HOME}/.cargo/bin:${PATH}  \
