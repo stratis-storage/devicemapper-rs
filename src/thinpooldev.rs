@@ -423,12 +423,11 @@ impl FromStr for ThinPoolStatus {
 /// Use DM to create a "thin-pool".  A "thin-pool" is shared space for
 /// other thin provisioned devices to use.
 ///
-/// See section "Setting up a fresh pool device":
-/// https://www.kernel.org/doc/Documentation/device-mapper/thin-provisioning.txt
+/// See section ["Setting up a fresh pool device"](https://docs.kernel.org/admin-guide/device-mapper/thin-provisioning.html#setting-up-a-fresh-pool-device)
 impl ThinPoolDev {
-    /// Construct a new ThinPoolDev with the given data and meta devs.
+    /// Construct a new `ThinPoolDev` with the given data and meta devs.
     /// Returns an error if the device is already known to the kernel.
-    /// Returns an error if data_block_size is not within required range.
+    /// Returns an error if `data_block_size` is not within required range.
     /// Precondition: the metadata device does not contain any pool metadata.
     #[allow(clippy::too_many_arguments)]
     pub fn new(
