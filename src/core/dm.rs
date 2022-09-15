@@ -11,7 +11,7 @@ use std::{
     slice, str,
 };
 
-use nix::libc::ioctl as nix_ioctl;
+use nix::libc::{dev_t, ioctl as nix_ioctl};
 
 use crate::{
     core::{
@@ -58,6 +58,7 @@ impl DmOptions {
             flags: clean_flags.bits(),
             event_nr,
             data_start: size_of::<dmi::Struct_dm_ioctl>() as u32,
+            dev: dev_t::from(self.device()),
             ..Default::default()
         };
 
