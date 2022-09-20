@@ -10,6 +10,8 @@
 
 [API Documentation](https://docs.rs/devicemapper).
 
+[Devicemapper Documentation](https://www.kernel.org/doc/Documentation/device-mapper/)
+
 ### How to contribute
 
 GitHub is used for pull requests and issue tracking.
