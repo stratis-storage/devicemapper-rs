@@ -73,8 +73,16 @@ impl From<Device> for dev_t {
     fn from(dev: Device) -> dev_t {
         #[cfg(target_os = "android")]
         #[allow(unused_unsafe)] // No longer unsafe in libc 0.2.133.
+        #[allow(clippy::useless_conversion)] // Param types u32 in libc 0.2.133
         unsafe {
-            makedev(dev.major as i32, dev.minor as i32)
+            makedev(
+                dev.major
+                    .try_into()
+                    .expect("value is smaller than max positive i32"),
+                dev.minor
+                    .try_into()
+                    .expect("value is smaller than max positive i32"),
+            )
         }
         #[cfg(not(target_os = "android"))]
         #[allow(unused_unsafe)] // No longer unsafe in libc 0.2.133.
