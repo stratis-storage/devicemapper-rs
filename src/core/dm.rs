@@ -191,10 +191,10 @@ impl DM {
     /// Remove all DM devices and tables. Use discouraged other than
     /// for debugging.
     ///
-    /// If DM_DEFERRED_REMOVE is set, the request will succeed for
+    /// If `DM_DEFERRED_REMOVE` is set, the request will succeed for
     /// in-use devices, and they will be removed when released.
     ///
-    /// Valid flags: DM_DEFERRED_REMOVE
+    /// Valid flags: `DM_DEFERRED_REMOVE`
     pub fn remove_all(&self, options: DmOptions) -> DmResult<()> {
         let mut hdr = options.to_ioctl_hdr(None, DmFlags::DM_DEFERRED_REMOVE)?;
 
@@ -277,7 +277,7 @@ impl DM {
 
     /// Create a DM device. It starts out in a "suspended" state.
     ///
-    /// Valid flags: DM_READONLY, DM_PERSISTENT_DEV
+    /// Valid flags: `DM_READONLY`, `DM_PERSISTENT_DEV`
     ///
     /// # Example
     ///
@@ -311,11 +311,11 @@ impl DM {
 
     /// Remove a DM device and its mapping tables.
     ///
-    /// If DM_DEFERRED_REMOVE is set, the request for an in-use
+    /// If `DM_DEFERRED_REMOVE` is set, the request for an in-use
     /// devices will succeed, and it will be removed when no longer
     /// used.
     ///
-    /// Valid flags: DM_DEFERRED_REMOVE
+    /// Valid flags: `DM_DEFERRED_REMOVE`
     pub fn device_remove(&self, id: &DevId<'_>, options: DmOptions) -> DmResult<DeviceInfo> {
         let mut hdr = options.to_ioctl_hdr(Some(id), DmFlags::DM_DEFERRED_REMOVE)?;
 
@@ -326,10 +326,10 @@ impl DM {
 
     /// Change a DM device's name OR set the device's uuid for the first time.
     ///
-    /// Prerequisite: if new == DevId::Name(new_name), old_name != new_name
-    /// Prerequisite: if new == DevId::Uuid(uuid), device's current uuid
-    /// must be "".
-    /// Note: Possibly surprisingly, returned DeviceInfo's uuid or name field
+    /// Prerequisite: if `new == DevId::Name(new_name)`, `old_name != new_name`
+    /// Prerequisite: if `new == DevId::Uuid(uuid)`, device's current uuid
+    /// must be `""`.
+    /// Note: Possibly surprisingly, returned `DeviceInfo`'s uuid or name field
     /// contains the previous value, not the newly set value.
     pub fn device_rename(&self, old_name: &DmName, new: &DevId<'_>) -> DmResult<DeviceInfo> {
         let (options, id_in) = match *new {
@@ -350,18 +350,18 @@ impl DM {
         DeviceInfo::new(hdr)
     }
 
-    /// Suspend or resume a DM device, depending on if DM_SUSPEND flag
+    /// Suspend or resume a DM device, depending on if `DM_SUSPEND` flag
     /// is set or not.
     ///
     /// Resuming a DM device moves a table loaded into the "inactive"
-    /// slot by `table_load()` into the "active" slot.
+    /// slot by [`Self::table_load`] into the "active" slot.
     ///
     /// Will block until pending I/O is completed unless DM_NOFLUSH
     /// flag is given. Will freeze filesystem unless DM_SKIP_LOCKFS
     /// flags is given. Additional I/O to a suspended device will be
     /// held until it is resumed.
     ///
-    /// Valid flags: DM_SUSPEND, DM_NOFLUSH, DM_SKIP_LOCKFS
+    /// Valid flags: `DM_SUSPEND`, `DM_NOFLUSH`, `DM_SKIP_LOCKFS`
     ///
     /// # Example
     ///
@@ -398,7 +398,7 @@ impl DM {
     /// Wait for a device to report an event.
     ///
     /// Once an event occurs, this function behaves just like
-    /// `table_status`, see that function for more details.
+    /// [`Self::table_status`], see that function for more details.
     ///
     /// This interface is not very friendly to monitoring multiple devices.
     /// Events are also exported via uevents, that method may be preferable.
@@ -419,14 +419,13 @@ impl DM {
 
     /// Load targets for a device into its inactive table slot.
     ///
-    /// `targets` is an array of (sector_start, sector_length, type, params).
+    /// `targets` is an array of `(sector_start, sector_length, type, params)`.
     ///
-    /// `params` are target-specific, please see [Linux kernel documentation]
-    /// https://git.kernel.org/cgit/linux/kernel/git/torvalds/linux.git/tree/ ->
-    /// Documentation/device-mapper
+    /// `params` are target-specific, please see the
+    /// [Linux kernel documentation for Device Mapper](https://docs.kernel.org/admin-guide/device-mapper/index.html)
     /// for more.
     ///
-    /// `options` Valid flags: DM_READ_ONLY, DM_SECURE_DATA
+    /// `options` Valid flags: `DM_READ_ONLY`, `DM_SECURE_DATA`
     ///
     /// # Example
     ///

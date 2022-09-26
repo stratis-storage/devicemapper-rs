@@ -192,20 +192,18 @@ impl FlakeyTargetParams {
 
 impl fmt::Display for FlakeyTargetParams {
     /// Generate params to be passed to DM.  The format of the params is:
-    /// <dev path> <offset> <up interval> <down interval> \
-    ///   [<num_features> [<feature arguments>]]
     ///
-    /// Table parameters
-    /// ----------------
-    ///  <dev path> <offset> <up interval> <down interval> \
-    ///    [<num_features> [<feature arguments>]]
+    /// ```plain
+    /// <dev path> <offset> <up interval> <down interval> [<num_features> [<feature arguments>]]
+    /// ```
     ///
     /// Mandatory parameters:
-    ///    <dev path>: Full pathname to the underlying block-device, or a
+    ///
+    /// * `<dev path>`: Full pathname to the underlying block-device, or a
     ///                "major:minor" device-number.
-    ///    <offset>: Starting sector within the device.
-    ///    <up interval>: Number of seconds device is available.
-    ///    <down interval>: Number of seconds device returns errors.
+    /// * `<offset>`: Starting sector within the device.
+    /// * `<up interval>`: Number of seconds device is available.
+    /// * `<down interval>`: Number of seconds device returns errors.
     ///
     /// Optional feature parameters:
     ///  If no feature parameters are present, during the periods of
