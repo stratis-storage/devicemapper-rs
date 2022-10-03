@@ -421,10 +421,6 @@ impl DM {
     ///
     /// `targets` is an array of `(sector_start, sector_length, type, params)`.
     ///
-    /// `params` are target-specific, please see the
-    /// [Linux kernel documentation for Device Mapper](https://docs.kernel.org/admin-guide/device-mapper/index.html)
-    /// for more.
-    ///
     /// `options` Valid flags: `DM_READ_ONLY`, `DM_SECURE_DATA`
     ///
     /// # Example
