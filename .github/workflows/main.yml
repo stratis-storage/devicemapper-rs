@@ -37,7 +37,7 @@ jobs:
             task: make -f Makefile docs
     runs-on: ubuntu-20.04
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - uses: actions-rs/toolchain@v1
         with:
           components: ${{ matrix.components }}
@@ -58,7 +58,7 @@ jobs:
           - toolchain: 1.64.0  # CURRENT DEVELOPMENT RUST TOOLCHAIN
     runs-on: ubuntu-20.04
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - uses: actions-rs/toolchain@v1
         with:
           components: cargo
@@ -81,7 +81,7 @@ jobs:
       image: docker.io/circleci/android:api-30-ndk
       options: --user 0:0
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - name: Install dependencies
         run: |
           sudo apt-get -q update
@@ -102,7 +102,7 @@ jobs:
     container:
       image: alpine
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - name: Set up edge repos
         # yamllint disable rule:line-length
         run: |
@@ -129,7 +129,7 @@ jobs:
     container:
       image: fedora:36  # CURRENT DEVELOPMENT ENVIRONMENT
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - name: Install dependencies for Fedora
         run: >
           dnf install -y
@@ -157,7 +157,7 @@ jobs:
     container:
       image: fedora:36  # CURRENT DEVELOPMENT ENVIRONMENT
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - name: Install dependencies for Fedora
         run: dnf install -y make yamllint
       - name: Run yamllint
