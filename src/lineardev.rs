@@ -231,7 +231,7 @@ impl FromStr for FlakeyTargetParams {
                                 let err_msg = "corrupt_bio_byte takes 4 parameters";
                                 DmError::Dm(ErrorEnum::Invalid, err_msg.to_string())
                             })
-                            .and_then(|s| parse_value::<u64>(*s, "offset"))?;
+                            .and_then(|s| parse_value::<u64>(s, "offset"))?;
 
                         let direction = vals_iter
                             .next()
@@ -239,7 +239,7 @@ impl FromStr for FlakeyTargetParams {
                                 let err_msg = "corrupt_bio_byte takes 4 parameters";
                                 DmError::Dm(ErrorEnum::Invalid, err_msg.to_string())
                             })
-                            .and_then(|s| parse_value::<Direction>(*s, "direction"))?;
+                            .and_then(|s| parse_value::<Direction>(s, "direction"))?;
 
                         let value = vals_iter
                             .next()
@@ -247,7 +247,7 @@ impl FromStr for FlakeyTargetParams {
                                 let err_msg = "corrupt_bio_byte takes 4 parameters";
                                 DmError::Dm(ErrorEnum::Invalid, err_msg.to_string())
                             })
-                            .and_then(|s| parse_value::<u8>(*s, "value"))?;
+                            .and_then(|s| parse_value::<u8>(s, "value"))?;
 
                         let flags = vals_iter
                             .next()
@@ -255,7 +255,7 @@ impl FromStr for FlakeyTargetParams {
                                 let err_msg = "corrupt_bio_byte takes 4 parameters";
                                 DmError::Dm(ErrorEnum::Invalid, err_msg.to_string())
                             })
-                            .and_then(|s| parse_value::<u64>(*s, "flags"))?;
+                            .and_then(|s| parse_value::<u64>(s, "flags"))?;
 
                         result.push(FeatureArg::CorruptBioByte(offset, direction, value, flags));
                     }
