@@ -414,7 +414,6 @@ impl ThinDev {
 mod tests {
 
     use std::{
-        collections::HashMap,
         fs::{canonicalize, OpenOptions},
         io::Write,
         path::Path,
@@ -439,22 +438,8 @@ mod tests {
 
     const MIN_THIN_DEV_SIZE: Sectors = Sectors(1);
 
-    // Return a hashmap of key-value pairs for udev entry.
-    fn get_udev_db_entry(dev_node_search: &Path) -> Option<HashMap<String, String>> {
-        // Takes a libudev device entry and returns the properties as a HashMap.
-        fn device_as_map(device: &libudev::Device) -> HashMap<String, String> {
-            let rc: HashMap<_, _> = device
-                .properties()
-                .map(|i| {
-                    (
-                        String::from(i.name().to_str().unwrap()),
-                        String::from(i.value().to_str().unwrap()),
-                    )
-                })
-                .collect();
-            rc
-        }
-
+    // Locates a udev db entry via its device node
+    fn get_udev_db_entry(dev_node_search: &Path) -> Option<libudev::Device> {
         let context = libudev::Context::new().unwrap();
         let mut enumerator = libudev::Enumerator::new(&context).unwrap();
         enumerator.match_subsystem("block").unwrap();
@@ -463,7 +448,6 @@ mod tests {
             .scan_devices()
             .unwrap()
             .find(|x| x.devnode().map_or(false, |d| dev_node_search == d))
-            .map(|dev| device_as_map(&dev))
     }
 
     /// Verify that specifying a size of 0 Sectors will cause a failure.
@@ -598,7 +582,7 @@ mod tests {
             // Check the udev db to see what it's showing for the device, make sure SYSTEMD_READY=0
             // is not present
             let entry = get_udev_db_entry(devnode).unwrap();
-            assert!(!entry.contains_key("SYSTEMD_READY"));
+            assert_eq!(entry.property_value("SYSTEMD_READY"), None)
         }
 
         // Set the FS with devnode to a new auto generated UUID
