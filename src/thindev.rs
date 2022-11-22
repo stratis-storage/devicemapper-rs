@@ -442,7 +442,7 @@ mod tests {
     // Return a hashmap of key-value pairs for udev entry.
     fn get_udev_db_entry(dev_node_search: &Path) -> Option<HashMap<String, String>> {
         // Takes a libudev device entry and returns the properties as a HashMap.
-        fn device_as_map(device: &libudev::Device<'_>) -> HashMap<String, String> {
+        fn device_as_map(device: &libudev::Device) -> HashMap<String, String> {
             let rc: HashMap<_, _> = device
                 .properties()
                 .map(|i| {
