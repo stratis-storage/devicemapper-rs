@@ -110,6 +110,10 @@ impl DM {
         hdr: &mut dmi::Struct_dm_ioctl,
         in_data: Option<&[u8]>,
     ) -> DmResult<Vec<u8>> {
+        let op = request_code_readwrite!(dmi::DM_IOCTL, ioctl, size_of::<dmi::Struct_dm_ioctl>());
+        #[cfg(target_os = "android")]
+        let op = op as i32;
+
         let ioctl_version = dmi::ioctl_to_version(ioctl);
         hdr.version[0] = ioctl_version.0;
         hdr.version[1] = ioctl_version.1;
@@ -136,10 +140,8 @@ impl DM {
         let cap = buffer.capacity();
         buffer.resize(cap, 0);
         let mut hdr = unsafe { &mut *(buffer.as_mut_ptr() as *mut dmi::Struct_dm_ioctl) };
-        let op = request_code_readwrite!(dmi::DM_IOCTL, ioctl, size_of::<dmi::Struct_dm_ioctl>());
+
         loop {
-            #[cfg(target_os = "android")]
-            let op = op as i32;
             if let Err(err) = unsafe {
                 convert_ioctl_res!(nix_ioctl(self.file.as_raw_fd(), op, buffer.as_mut_ptr()))
             } {
