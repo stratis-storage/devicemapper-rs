@@ -102,9 +102,8 @@ impl DM {
         &self.file
     }
 
-    // Give this a filled-in header and optionally add'l stuff.
-    // Does the ioctl and maybe returns stuff. Handles BUFFER_FULL flag.
-    //
+    // Make the ioctl call specified by the given ioctl number.
+    // Set the required DM version to the lowest that supports the given ioctl.
     fn do_ioctl(
         &self,
         ioctl: u8,
