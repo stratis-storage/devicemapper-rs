@@ -870,7 +870,7 @@ mod tests {
                     "skip_block_zeroing".to_owned()
                 ],
             ),
-            Err(DmError::Core(Error::Ioctl(_, _)))
+            Err(DmError::Core(Error::Ioctl(_, _, _, _)))
         );
         dm.device_remove(&DevId::Name(&meta_name), DmOptions::default())
             .unwrap();

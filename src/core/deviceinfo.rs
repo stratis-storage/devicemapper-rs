@@ -27,8 +27,7 @@ pub struct DeviceInfo {
     #[allow(dead_code)]
     data_start: u32,
 
-    #[allow(dead_code)]
-    target_count: u32,
+    pub(super) target_count: u32,
 
     open_count: i32,
     flags: DmFlags,
