@@ -119,7 +119,7 @@ impl DM {
             MIN_BUF_SIZE,
             size_of::<dmi::Struct_dm_ioctl>() + in_data.map_or(0, |x| x.len()),
         ) as u32;
-        let mut v: Vec<u8> = Vec::with_capacity(hdr.data_size as usize);
+        let mut buffer: Vec<u8> = Vec::with_capacity(hdr.data_size as usize);
 
         let hdr_slc = unsafe {
             let len = hdr.data_start as usize;
@@ -127,22 +127,22 @@ impl DM {
             slice::from_raw_parts_mut(ptr, len)
         };
 
-        v.extend_from_slice(hdr_slc);
+        buffer.extend_from_slice(hdr_slc);
         if let Some(in_data) = in_data {
-            v.extend(in_data.iter().cloned());
+            buffer.extend(in_data.iter().cloned());
         }
 
         // zero out the rest
-        let cap = v.capacity();
-        v.resize(cap, 0);
-        let mut hdr = unsafe { &mut *(v.as_mut_ptr() as *mut dmi::Struct_dm_ioctl) };
+        let cap = buffer.capacity();
+        buffer.resize(cap, 0);
+        let mut hdr = unsafe { &mut *(buffer.as_mut_ptr() as *mut dmi::Struct_dm_ioctl) };
         let op = request_code_readwrite!(dmi::DM_IOCTL, ioctl, size_of::<dmi::Struct_dm_ioctl>());
         loop {
             #[cfg(target_os = "android")]
             let op = op as i32;
-            if let Err(err) =
-                unsafe { convert_ioctl_res!(nix_ioctl(self.file.as_raw_fd(), op, v.as_mut_ptr())) }
-            {
+            if let Err(err) = unsafe {
+                convert_ioctl_res!(nix_ioctl(self.file.as_raw_fd(), op, buffer.as_mut_ptr()))
+            } {
                 return Err(DmError::Core(errors::Error::Ioctl(
                     DeviceInfo::new(*hdr).ok().map(Box::new),
                     Box::new(err),
@@ -158,24 +158,24 @@ impl DM {
             // If the size of the buffer is already as large as can be possibly
             // expressed in hdr.data_size field, return an error. Never allow
             // the size to exceed u32::MAX.
-            let len = v.len();
+            let len = buffer.len();
             if len == u32::MAX as usize {
                 return Err(DmError::Core(errors::Error::IoctlResultTooLarge));
             }
-            v.resize((len as u32).saturating_mul(2) as usize, 0);
+            buffer.resize((len as u32).saturating_mul(2) as usize, 0);
 
-            // v.resize() may move the buffer if the requested increase doesn't fit in continuous
+            // buffer.resize() may move the buffer if the requested increase doesn't fit in continuous
             // memory.  Update hdr to the possibly new address.
-            hdr = unsafe { &mut *(v.as_mut_ptr() as *mut dmi::Struct_dm_ioctl) };
-            hdr.data_size = v.len() as u32;
+            hdr = unsafe { &mut *(buffer.as_mut_ptr() as *mut dmi::Struct_dm_ioctl) };
+            hdr.data_size = buffer.len() as u32;
         }
 
         // hdr possibly modified so copy back
-        hdr_slc.clone_from_slice(&v[..hdr.data_start as usize]);
+        hdr_slc.clone_from_slice(&buffer[..hdr.data_start as usize]);
 
         // Return header data section.
         let new_data_off = cmp::max(hdr.data_start, hdr.data_size);
-        Ok(v[hdr.data_start as usize..new_data_off as usize].to_vec())
+        Ok(buffer[hdr.data_start as usize..new_data_off as usize].to_vec())
     }
 
     /// Devicemapper version information: Major, Minor, and patchlevel versions.
