@@ -23,7 +23,12 @@ pub enum Error {
     /// An error returned exclusively by DM methods.
     /// This error is initiated in DM::do_ioctl and returned by
     /// numerous wrapper methods.
-    Ioctl(Option<Box<DeviceInfo>>, Box<nix::Error>),
+    Ioctl(
+        u8,
+        Option<Box<DeviceInfo>>,
+        Option<Box<DeviceInfo>>,
+        Box<nix::Error>,
+    ),
 
     /// An error returned when the response exceeds the maximum possible
     /// size of the ioctl buffer.
@@ -43,10 +48,10 @@ impl std::fmt::Display for Error {
                 write!(f, "DM context not initialized due to IO error: {}", err)
             }
             Error::InvalidArgument(err) => write!(f, "invalid argument: {}", err),
-            Error::Ioctl(hdr, err) => write!(
+            Error::Ioctl(op, hdr_in, hdr_out, err) => write!(
                 f,
-                "low-level ioctl error due to nix error; header result: {:?}, error: {}",
-                hdr, err
+                "low-level ioctl error due to nix error; ioctl number: {}, input header: {:?}, header result: {:?}, error: {}",
+                op, hdr_in, hdr_out, err
             ),
             Error::IoctlResultTooLarge => write!(
                 f,
@@ -69,7 +74,7 @@ impl std::fmt::Display for Error {
 impl std::error::Error for Error {
     fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
         match self {
-            Error::Ioctl(_, err) => Some(err),
+            Error::Ioctl(_, _, _, err) => Some(err),
             _ => None,
         }
     }
