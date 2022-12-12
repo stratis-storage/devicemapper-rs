@@ -148,7 +148,7 @@ impl DM {
                     Box::new(err),
                 )));
             }
-            // If DM was able to write the requested data into the provided buffer, break the loop
+
             if (hdr.flags & DmFlags::DM_BUFFER_FULL.bits()) == 0 {
                 break;
             }
