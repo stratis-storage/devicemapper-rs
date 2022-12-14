@@ -697,14 +697,8 @@ mod tests {
             .unwrap()
             .table;
         assert_eq!(table.len(), count);
-        match table[0].params {
-            LinearDevTargetParams::Linear(ref device) => assert_eq!(device.device, dev),
-            _ => panic!("unexpected param type"),
-        }
-        match table[1].params {
-            LinearDevTargetParams::Linear(ref device) => assert_eq!(device.device, dev),
-            _ => panic!("unexpected param type"),
-        }
+        assert_matches!(table[0].params, LinearDevTargetParams::Linear(ref device) if device.device == dev);
+        assert_matches!(table[1].params, LinearDevTargetParams::Linear(ref device) if device.device == dev);
 
         assert_eq!(
             blkdev_size(&OpenOptions::new().read(true).open(ld.devnode()).unwrap()).sectors(),
