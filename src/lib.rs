@@ -108,7 +108,7 @@ mod testing;
 /// More useful test output for match cases
 #[cfg(test)]
 #[macro_use]
-extern crate matches;
+extern crate assert_matches;
 
 pub use crate::{
     cachedev::{

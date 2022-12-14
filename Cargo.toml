@@ -21,10 +21,10 @@ serde = "1.0.60"
 lazy_static = "1.2.0"
 
 [dev-dependencies]
+assert_matches = "1.5.0"
 libmount = "0.1.11"
 libudev = "0.2.0"
 loopdev = "0.4.0"
-matches = "0.1.8"
 tempfile = "3.0.2"
 
 [dev-dependencies.uuid]
