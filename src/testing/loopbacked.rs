@@ -60,7 +60,7 @@ impl LoopTestDev {
         // Wipe one MiB at the start of the device. Devicemapper data may be
         // left on the device even after a teardown.
         wipe_sectors(
-            &ld.path().unwrap(),
+            ld.path().unwrap(),
             Sectors(0),
             Bytes(u128::from(IEC::Mi)).sectors(),
         )
