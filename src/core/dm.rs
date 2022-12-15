@@ -226,7 +226,7 @@ impl DM {
                     (device.name.as_ptr() as *const u8).offset_from(device as *const _ as *const u8)
                 } as usize;
 
-                let dm_name = str_from_byte_slice(&result[name_offset as usize..])
+                let dm_name = str_from_byte_slice(&result[name_offset..])
                     .map(|s| s.to_owned())
                     .ok_or_else(|| {
                         DmError::Dm(
