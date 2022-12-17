@@ -780,11 +780,14 @@ mod tests {
 
         let devices = dm.list_test_devices().unwrap();
 
-        assert_eq!(
-            devices.iter().map(|x| x.0.as_ref()).collect::<Vec<_>>(),
-            vec![&*name]
-        );
-        assert_eq!(devices[0].2.unwrap_or(0), 0);
+        assert_eq!(devices.len(), 1);
+
+        if dm.version().unwrap().1 >= 37 {
+            assert_matches!(devices.first().expect("len is 1"), (nm, _, Some(0)) if nm == &name);
+        } else {
+            assert_matches!(devices.first().expect("len is 1"), (nm, _, None) if nm == &name);
+        }
+
         dm.device_remove(&DevId::Name(&name), DmOptions::default())
             .unwrap();
     }
@@ -795,7 +798,10 @@ mod tests {
         let dm = DM::new().unwrap();
         let name = test_name("example-dev").expect("is valid DM name");
         let result = dm.device_create(&name, None, DmOptions::default()).unwrap();
+
         assert_eq!(result.name(), Some(&*name));
+        assert_eq!(result.uuid(), None);
+
         dm.device_remove(&DevId::Name(&name), DmOptions::default())
             .unwrap();
     }
@@ -809,8 +815,10 @@ mod tests {
         let result = dm
             .device_create(&name, Some(&uuid), DmOptions::default())
             .unwrap();
+
         assert_eq!(result.name(), Some(&*name));
-        assert_eq!(result.uuid().unwrap(), &*uuid);
+        assert_eq!(result.uuid(), Some(&*uuid));
+
         dm.device_remove(&DevId::Name(&name), DmOptions::default())
             .unwrap();
     }
@@ -828,7 +836,7 @@ mod tests {
 
         assert_matches!(
             dm.device_rename(&name, &DevId::Uuid(&new_uuid)),
-            Err(DmError::Core(Error::Ioctl(_, _, _, _)))
+            Err(DmError::Core(Error::Ioctl(op, _, _, err))) if err == Box::new(nix::errno::Errno::EINVAL) && op == dmi::DM_DEV_RENAME_CMD as u8
         );
 
         dm.device_remove(&DevId::Name(&name), DmOptions::default())
@@ -837,6 +845,7 @@ mod tests {
 
     #[test]
     /// Verify that resetting uuid to same uuid fails.
+    /// Since a device with that UUID already exists, the UUID can not be used.
     fn sudo_test_rename_uuid_id() {
         let dm = DM::new().unwrap();
         let name = test_name("example-dev").expect("is valid DM name");
@@ -845,7 +854,7 @@ mod tests {
             .unwrap();
         assert_matches!(
             dm.device_rename(&name, &DevId::Uuid(&uuid)),
-            Err(DmError::Core(Error::Ioctl(_, _, _, _)))
+            Err(DmError::Core(Error::Ioctl(op, _, _, err))) if err == Box::new(nix::errno::Errno::EBUSY) && op == dmi::DM_DEV_RENAME_CMD as u8
         );
 
         dm.device_remove(&DevId::Name(&name), DmOptions::default())
@@ -874,7 +883,7 @@ mod tests {
 
     #[test]
     /// Test that device rename to same name fails.
-    /// This is unfortunate, but appears to be true.
+    /// Since a device with that name already exists, the name can not be used.
     fn sudo_test_rename_id() {
         let dm = DM::new().unwrap();
         let name = test_name("example-dev").expect("is valid DM name");
@@ -882,7 +891,7 @@ mod tests {
 
         assert_matches!(
             dm.device_rename(&name, &DevId::Name(&name)),
-            Err(DmError::Core(Error::Ioctl(_, _, _, _)))
+            Err(DmError::Core(Error::Ioctl(op, _, _, err))) if err == Box::new(nix::errno::Errno::EBUSY) && op == dmi::DM_DEV_RENAME_CMD as u8
         );
 
         dm.device_remove(&DevId::Name(&name), DmOptions::default())
@@ -903,14 +912,19 @@ mod tests {
 
         assert_matches!(
             dm.device_info(&DevId::Name(&name)),
-            Err(DmError::Core(Error::Ioctl(_, _, _, _)))
+            Err(DmError::Core(Error::Ioctl(_, _, _, err))) if err == Box::new(nix::errno::Errno::ENXIO)
         );
 
         assert_matches!(dm.device_info(&DevId::Name(&new_name)), Ok(_));
 
         let devices = dm.list_test_devices().unwrap();
         assert_eq!(devices.len(), 1);
-        assert_eq!(devices[0].0.as_ref(), &*new_name);
+
+        if dm.version().unwrap().1 >= 37 {
+            assert_matches!(devices.first().expect("len is 1"), (nm, _, Some(0)) if nm == &new_name);
+        } else {
+            assert_matches!(devices.first().expect("len is 1"), (nm, _, None) if nm == &new_name);
+        }
 
         let third_name = test_name("example-dev-3").expect("is valid DM name");
         dm.device_create(&third_name, None, DmOptions::default())
@@ -918,7 +932,7 @@ mod tests {
 
         assert_matches!(
             dm.device_rename(&new_name, &DevId::Name(&third_name)),
-            Err(DmError::Core(Error::Ioctl(_, _, _, _)))
+            Err(DmError::Core(Error::Ioctl(op, _, _, err))) if err == Box::new(nix::errno::Errno::EBUSY) && op == dmi::DM_DEV_RENAME_CMD as u8
         );
 
         dm.device_remove(&DevId::Name(&third_name), DmOptions::default())
@@ -936,19 +950,19 @@ mod tests {
                 &test_name("old_name").expect("is valid DM name"),
                 &DevId::Name(&new_name)
             ),
-            Err(DmError::Core(Error::Ioctl(_, _, _, _)))
+            Err(DmError::Core(Error::Ioctl(op, _, _, err))) if err == Box::new(nix::errno::Errno::ENXIO) && op == dmi::DM_DEV_RENAME_CMD as u8
         );
     }
 
     #[test]
-    /// Removing a device that does not exist yields an error, unfortunately.
+    /// Removing a device that does not exist yields an error.
     fn sudo_test_remove_non_existant() {
         assert_matches!(
             DM::new().unwrap().device_remove(
                 &DevId::Name(&test_name("junk").expect("is valid DM name")),
                 DmOptions::default()
             ),
-            Err(DmError::Core(Error::Ioctl(_, _, _, _)))
+            Err(DmError::Core(Error::Ioctl(op, _, _, err))) if err == Box::new(nix::errno::Errno::ENXIO) && op == dmi::DM_DEV_REMOVE_CMD as u8
         );
     }
 
@@ -975,7 +989,7 @@ mod tests {
                 &DevId::Name(&test_name("junk").expect("is valid DM name")),
                 DmOptions::default()
             ),
-            Err(DmError::Core(Error::Ioctl(_, _, _, _)))
+            Err(DmError::Core(Error::Ioctl(_, _, _, err))) if err == Box::new(nix::errno::Errno::ENXIO)
         );
     }
 
@@ -988,7 +1002,7 @@ mod tests {
                 &DevId::Name(&name),
                 DmOptions::default().set_flags(DmFlags::DM_STATUS_TABLE)
             ),
-            Err(DmError::Core(Error::Ioctl(_, _, _, _)))
+            Err(DmError::Core(Error::Ioctl(_, _, _, err))) if err == Box::new(nix::errno::Errno::ENXIO)
         );
     }
 
@@ -1004,11 +1018,11 @@ mod tests {
         dm.device_create(&name, Some(&uuid), DmOptions::default())
             .unwrap();
 
-        let status = dm
+        let (hdr_out, status) = dm
             .table_status(&DevId::Name(&name), DmOptions::default())
             .unwrap();
-        assert!(status.1.is_empty());
-        assert_eq!(status.0.uuid(), Some(&*uuid));
+        assert!(status.is_empty());
+        assert_eq!(hdr_out.uuid(), Some(&*uuid));
         dm.device_remove(&DevId::Name(&name), DmOptions::default())
             .unwrap();
     }
@@ -1020,7 +1034,7 @@ mod tests {
         let name = test_name("example_dev").expect("is valid DM name");
         assert_matches!(
             DM::new().unwrap().device_info(&DevId::Name(&name)),
-            Err(DmError::Core(Error::Ioctl(_, _, _, _)))
+            Err(DmError::Core(Error::Ioctl(op, _, _, err))) if err == Box::new(nix::errno::Errno::ENXIO) && op == dmi::DM_DEV_STATUS_CMD as u8
         );
     }
 
@@ -1039,19 +1053,19 @@ mod tests {
             .unwrap();
         assert_matches!(
             dm.device_create(&name, Some(&uuid), DmOptions::default()),
-            Err(DmError::Core(Error::Ioctl(_, _, _, _)))
+            Err(DmError::Core(Error::Ioctl(op, _, _, err))) if err == Box::new(nix::errno::Errno::EBUSY) && op == dmi::DM_DEV_CREATE_CMD as u8
         );
         assert_matches!(
             dm.device_create(&name, None, DmOptions::default()),
-            Err(DmError::Core(Error::Ioctl(_, _, _, _)))
+            Err(DmError::Core(Error::Ioctl(op, _, _, err))) if err == Box::new(nix::errno::Errno::EBUSY) && op == dmi::DM_DEV_CREATE_CMD as u8
         );
         assert_matches!(
             dm.device_create(&name, Some(&uuid_alt), DmOptions::default()),
-            Err(DmError::Core(Error::Ioctl(_, _, _, _)))
+            Err(DmError::Core(Error::Ioctl(op, _, _, err))) if err == Box::new(nix::errno::Errno::EBUSY) && op == dmi::DM_DEV_CREATE_CMD as u8
         );
         assert_matches!(
             dm.device_create(&name_alt, Some(&uuid), DmOptions::default()),
-            Err(DmError::Core(Error::Ioctl(_, _, _, _)))
+            Err(DmError::Core(Error::Ioctl(op, _, _, err))) if err == Box::new(nix::errno::Errno::EBUSY) && op == dmi::DM_DEV_CREATE_CMD as u8
         );
         dm.device_remove(&DevId::Name(&name), DmOptions::default())
             .unwrap();
