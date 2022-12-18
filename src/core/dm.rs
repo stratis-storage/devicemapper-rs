@@ -12,6 +12,7 @@ use std::{
 };
 
 use nix::libc::ioctl as nix_ioctl;
+use semver::Version;
 
 use crate::{
     core::{
@@ -226,6 +227,8 @@ impl DM {
         let mut hdr = DmOptions::default().to_ioctl_hdr(None, DmFlags::empty())?;
         let (hdr_out, data_out) = self.do_ioctl(dmi::DM_LIST_DEVICES_CMD as u8, &mut hdr, None)?;
 
+        let event_nr_set = hdr_out.version() >= &Version::new(4, 37, 0);
+
         let mut devs = Vec::new();
         if !data_out.is_empty() {
             let mut result = &data_out[..];
@@ -255,27 +258,23 @@ impl DM {
                 // DM version supports it.
                 // Should match offset calc in kernel's
                 // drivers/md/dm-ioctl.c:list_devices
-                let event_nr = {
-                    match hdr_out.version().minor {
-                        0..=36 => None,
-                        _ => {
-                            // offsetof "name" in Struct_dm_name_list.
-                            let offset =
-                                align_to(name_offset + dm_name.len() + 1, size_of::<u64>());
-                            let nr = u32::from_ne_bytes(
-                                result[offset..offset + size_of::<u32>()]
-                                    .try_into()
-                                    .map_err(|_| {
-                                        DmError::Dm(
-                                            ErrorEnum::Invalid,
-                                            "Incorrectly sized slice for u32".to_string(),
-                                        )
-                                    })?,
-                            );
+                let event_nr = if event_nr_set {
+                    // offsetof "name" in Struct_dm_name_list.
+                    let offset = align_to(name_offset + dm_name.len() + 1, size_of::<u64>());
+                    let nr = u32::from_ne_bytes(
+                        result[offset..offset + size_of::<u32>()]
+                            .try_into()
+                            .map_err(|_| {
+                                DmError::Dm(
+                                    ErrorEnum::Invalid,
+                                    "Incorrectly sized slice for u32".to_string(),
+                                )
+                            })?,
+                    );
 
-                            Some(nr)
-                        }
-                    }
+                    Some(nr)
+                } else {
+                    None
                 };
 
                 devs.push((DmNameBuf::new(dm_name)?, device.dev.into(), event_nr));
