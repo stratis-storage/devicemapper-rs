@@ -786,7 +786,7 @@ mod tests {
     #[test]
     /// Verify that list_devices finds all the devices created.
     fn sudo_test_list_devices_many() {
-        let num_devices_to_create = 500;
+        let num_devices_to_create = 1000;
         let dm = DM::new().unwrap();
 
         for i in 0..num_devices_to_create {
@@ -796,7 +796,7 @@ mod tests {
 
         let devices = dm.list_test_devices().unwrap();
 
-        assert_eq!(devices.len(), 100);
+        assert_eq!(devices.len(), num_devices_to_create);
         for i in 0..num_devices_to_create {
             let name = test_name(&format!("example-dev-{}", i)).expect("is valid DM name");
             dm.device_remove(&DevId::Name(&name), DmOptions::default())
