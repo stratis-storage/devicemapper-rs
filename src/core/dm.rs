@@ -163,13 +163,15 @@ impl DM {
             if len == u32::MAX as usize {
                 return Err(DmError::Core(errors::Error::IoctlResultTooLarge));
             }
+
+            v = v.clone();
+
             v.resize((len as u32).saturating_mul(2) as usize, 0);
 
             // v.resize() may move the buffer if the requested increase doesn't fit in continuous
             // memory.  Update hdr to the possibly new address.
             hdr = unsafe { &mut *(v.as_mut_ptr() as *mut dmi::Struct_dm_ioctl) };
             hdr.data_size = v.len() as u32;
-            panic!("new loop");
         }
 
         // hdr possibly modified so copy back
