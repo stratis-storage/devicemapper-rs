@@ -262,6 +262,8 @@ impl DM {
                     }
                 };
 
+                assert!(event_nr.is_some());
+
                 devs.push((DmNameBuf::new(dm_name)?, device.dev.into(), event_nr));
 
                 if device.next == 0 {
