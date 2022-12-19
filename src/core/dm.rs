@@ -786,7 +786,7 @@ mod tests {
     #[test]
     /// Verify that list_devices finds all the devices created.
     fn sudo_test_list_devices_many() {
-        let num_devices_to_create = 100;
+        let num_devices_to_create = 500;
         let dm = DM::new().unwrap();
 
         for i in 0..num_devices_to_create {
