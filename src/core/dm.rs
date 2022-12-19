@@ -169,6 +169,7 @@ impl DM {
             // memory.  Update hdr to the possibly new address.
             hdr = unsafe { &mut *(v.as_mut_ptr() as *mut dmi::Struct_dm_ioctl) };
             hdr.data_size = v.len() as u32;
+            panic!("new loop");
         }
 
         // hdr possibly modified so copy back
