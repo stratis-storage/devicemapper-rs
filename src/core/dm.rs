@@ -164,7 +164,11 @@ impl DM {
                 return Err(DmError::Core(errors::Error::IoctlResultTooLarge));
             }
 
-            v = v.clone();
+            let temp = v.clone();
+
+            v.clear();
+
+            v = temp;
 
             v.resize((len as u32).saturating_mul(2) as usize, 0);
 
