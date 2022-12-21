@@ -438,18 +438,6 @@ mod tests {
 
     const MIN_THIN_DEV_SIZE: Sectors = Sectors(1);
 
-    // Locates a udev db entry via its device node
-    fn get_udev_db_entry(dev_node_search: &Path) -> Option<libudev::Device> {
-        let context = libudev::Context::new().unwrap();
-        let mut enumerator = libudev::Enumerator::new(&context).unwrap();
-        enumerator.match_subsystem("block").unwrap();
-
-        enumerator
-            .scan_devices()
-            .unwrap()
-            .find(|x| x.devnode().map_or(false, |d| dev_node_search == d))
-    }
-
     /// Verify that specifying a size of 0 Sectors will cause a failure.
     fn test_zero_size(paths: &[&Path]) {
         assert!(!paths.is_empty());
@@ -564,25 +552,15 @@ mod tests {
     /// Test thin device create, load, and snapshot and make sure that all is well with udev
     /// db and symlink generation.
     fn test_udev_userspace(paths: &[&Path]) {
-        // Make sure we are meeting all our expectations in user space with regards to udev
-        // handling.
+        // Confirm tht the correct symlink has been constructed.
         fn validate(path_uuid: &Uuid, devnode: &Path) {
             udev_settle().unwrap();
 
             // Make sure the uuid symlink was created
             let symlink = PathBuf::from(format!("/dev/disk/by-uuid/{}", path_uuid));
-
             assert!(symlink.exists());
 
-            // Make sure the symlink points to devnode
-            let uuid_sym = canonicalize(symlink).unwrap();
-
-            assert_eq!(*devnode, uuid_sym);
-
-            // Check the udev db to see what it's showing for the device, make sure SYSTEMD_READY=0
-            // is not present
-            let entry = get_udev_db_entry(devnode).unwrap();
-            assert_eq!(entry.property_value("SYSTEMD_READY"), None)
+            assert_eq!(*devnode, canonicalize(symlink).unwrap());
         }
 
         // Set the FS with devnode to a new auto generated UUID
