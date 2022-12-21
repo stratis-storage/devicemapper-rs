@@ -172,11 +172,9 @@ impl DM {
             buffer.resize((len as u32).saturating_mul(2) as usize, 0);
         }
 
-        let data_end = cmp::max(buffer_hdr.data_size, buffer_hdr.data_start);
-
         Ok((
             DeviceInfo::try_from(*buffer_hdr)?,
-            buffer[buffer_hdr.data_start as usize..data_end as usize].to_vec(),
+            buffer[buffer_hdr.data_start as usize..buffer_hdr.data_size as usize].to_vec(),
         ))
     }
 
