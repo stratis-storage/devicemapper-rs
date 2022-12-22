@@ -632,11 +632,10 @@ mod tests {
         let mut td = ThinDev::new(&dm, &id, None, tp.size(), &tp, thin_id).unwrap();
         udev_settle().unwrap();
 
-        // Create the XFS FS on top of the thin device
-        xfs_create_fs(&td.devnode(), None).unwrap();
+        let uuid = Uuid::new_v4();
 
-        // Travis CI is old doesn't support setting uuid during FS creation.
-        let uuid = set_new_fs_uuid(&td.devnode());
+        // Create the XFS FS on top of the thin device
+        xfs_create_fs(&td.devnode(), Some(uuid)).unwrap();
 
         validate(&uuid, &td.devnode());
 
