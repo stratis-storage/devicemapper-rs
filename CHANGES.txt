@@ -1,3 +1,38 @@
+devicemapper 0.32.3
+===================
+Recommended Rust toolchain version: 1.65.0
+Lowest supported Rust toolchain version: 1.62.1
+Recommended development release: Fedora 37
+
+- Expose DeviceInfo struct:
+  https://github.com/stratis-storage/devicemapper-rs/pull/787
+
+- Fix a code defect that could result in an ill-formed ioctl message header:
+  https://github.com/stratis-storage/devicemapper-rs/pull/806
+
+- Increase bindgen dependency version specification to 0.63:
+  https://github.com/stratis-storage/devicemapper-rs/pull/804
+
+- Tidies and Maintenance:
+  https://github.com/stratis-storage/devicemapper-rs/pull/812
+  https://github.com/stratis-storage/devicemapper-rs/pull/810
+  https://github.com/stratis-storage/devicemapper-rs/pull/807
+  https://github.com/stratis-storage/devicemapper-rs/pull/802
+  https://github.com/stratis-storage/devicemapper-rs/pull/800
+  https://github.com/stratis-storage/devicemapper-rs/pull/799
+  https://github.com/stratis-storage/devicemapper-rs/pull/798
+  https://github.com/stratis-storage/devicemapper-rs/pull/797
+  https://github.com/stratis-storage/devicemapper-rs/pull/796
+  https://github.com/stratis-storage/devicemapper-rs/pull/795
+  https://github.com/stratis-storage/devicemapper-rs/pull/794
+  https://github.com/stratis-storage/devicemapper-rs/pull/793
+  https://github.com/stratis-storage/devicemapper-rs/pull/791
+  https://github.com/stratis-storage/devicemapper-rs/pull/788
+  https://github.com/stratis-storage/devicemapper-rs/pull/786
+  https://github.com/stratis-storage/devicemapper-rs/pull/785
+  https://github.com/stratis-storage/devicemapper-rs/pull/778
+
+
 devicemapper 0.32.2
 ===================
 Recommended Rust toolchain version: 1.63.0
