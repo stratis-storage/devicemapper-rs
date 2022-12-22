@@ -633,7 +633,7 @@ mod tests {
         udev_settle().unwrap();
 
         // Create the XFS FS on top of the thin device
-        xfs_create_fs(&td.devnode()).unwrap();
+        xfs_create_fs(&td.devnode(), None).unwrap();
 
         // Travis CI is old doesn't support setting uuid during FS creation.
         let uuid = set_new_fs_uuid(&td.devnode());
@@ -737,7 +737,7 @@ mod tests {
         };
         assert_eq!(orig_data_usage, DataBlocks(0));
 
-        xfs_create_fs(&td.devnode()).unwrap();
+        xfs_create_fs(&td.devnode(), None).unwrap();
 
         let data_usage_1 = match tp.status(&dm, DmOptions::default()).unwrap() {
             ThinPoolStatus::Working(ref status) => status.usage.used_data,
@@ -811,7 +811,7 @@ mod tests {
         };
         assert_eq!(orig_data_usage, DataBlocks(0));
 
-        xfs_create_fs(&td.devnode()).unwrap();
+        xfs_create_fs(&td.devnode(), None).unwrap();
 
         let data_usage_1 = match tp.status(&dm, DmOptions::default()).unwrap() {
             ThinPoolStatus::Working(ref status) => status.usage.used_data,
@@ -863,7 +863,7 @@ mod tests {
         };
         assert_eq!(data_usage_4, data_usage_3);
 
-        xfs_create_fs(&td1.devnode()).unwrap();
+        xfs_create_fs(&td1.devnode(), None).unwrap();
 
         let data_usage_5 = match tp.status(&dm, DmOptions::default()).unwrap() {
             ThinPoolStatus::Working(ref status) => status.usage.used_data,

@@ -102,9 +102,18 @@ fn execute_cmd(cmd: &mut Command) -> DmResult<()> {
     }
 }
 
-/// Generate an XFS FS, does not specify UUID as that's not supported on version in Travis
-pub fn xfs_create_fs(devnode: &Path) -> DmResult<()> {
-    execute_cmd(Command::new("mkfs.xfs").arg("-f").arg("-q").arg(devnode))
+/// Generate an XFS FS
+pub fn xfs_create_fs(devnode: &Path, uuid: Option<Uuid>) -> DmResult<()> {
+    let mut command = Command::new("mkfs.xfs");
+    command.arg("-f");
+    command.arg("-q");
+    command.arg(devnode);
+
+    if let Some(uuid) = uuid {
+        command.arg("-m");
+        command.arg(format!("uuid={}", uuid));
+    }
+    execute_cmd(&mut command)
 }
 
 /// Set a UUID for a XFS volume.
