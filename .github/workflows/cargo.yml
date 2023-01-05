@@ -46,7 +46,7 @@ jobs:
           COMPARE_FEDORA_VERSIONS=./compare_fedora_versions MANIFEST_PATH=../../devicemapper-rs-sys/Cargo.toml FEDORA_RELEASE=f37 IGNORE_ARGS="--ignore-category low" make -f ../../Makefile check-fedora-versions
           COMPARE_FEDORA_VERSIONS=./compare_fedora_versions MANIFEST_PATH=../../devicemapper-rs-sys/Cargo.toml FEDORA_RELEASE=f36 IGNORE_ARGS="--ignore-category low" make -f ../../Makefile check-fedora-versions
           # main
-          COMPARE_FEDORA_VERSIONS=./compare_fedora_versions MANIFEST_PATH=../../Cargo.toml FEDORA_RELEASE=rawhide IGNORE_ARGS="--ignore-category" make -f ../../Makefile check-fedora-versions
+          COMPARE_FEDORA_VERSIONS=./compare_fedora_versions MANIFEST_PATH=../../Cargo.toml FEDORA_RELEASE=rawhide IGNORE_ARGS="--ignore-category low" make -f ../../Makefile check-fedora-versions
           COMPARE_FEDORA_VERSIONS=./compare_fedora_versions MANIFEST_PATH=../../Cargo.toml FEDORA_RELEASE=f37 IGNORE_ARGS="--ignore-category low" make -f ../../Makefile check-fedora-versions
           COMPARE_FEDORA_VERSIONS=./compare_fedora_versions MANIFEST_PATH=../../Cargo.toml FEDORA_RELEASE=f36 IGNORE_ARGS="--ignore-category low" make -f ../../Makefile check-fedora-versions
         working-directory: ./ci/dependency_management
