@@ -441,7 +441,7 @@ impl ThinPoolDev {
         feature_args: Vec<String>,
     ) -> DmResult<ThinPoolDev> {
         if device_exists(dm, name)? {
-            let err_msg = format!("thinpooldev {} already exists", name);
+            let err_msg = format!("thinpooldev {name} already exists");
             return Err(DmError::Dm(ErrorEnum::Invalid, err_msg));
         }
 
@@ -813,7 +813,7 @@ mod tests {
                     DataBlocks(tp.data_dev().size() / tp.data_block_size())
                 );
             }
-            status => panic!("unexpected thinpool status: {:?}", status),
+            status => panic!("unexpected thinpool status: {status:?}"),
         }
 
         let table = ThinPoolDev::read_kernel_table(&dm, &DevId::Name(tp.name()))

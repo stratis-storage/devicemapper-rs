@@ -104,7 +104,7 @@ impl FromStr for Direction {
         } else if s == "w" {
             Ok(Direction::Writes)
         } else {
-            let err_msg = format!("Expected r or w, found {}", s);
+            let err_msg = format!("Expected r or w, found {s}");
             Err(DmError::Dm(ErrorEnum::Invalid, err_msg))
         }
     }
@@ -145,11 +145,9 @@ impl fmt::Display for FeatureArg {
         match self {
             FeatureArg::DropWrites => write!(f, "drop_writes"),
             FeatureArg::ErrorWrites => write!(f, "error_writes"),
-            FeatureArg::CorruptBioByte(offset, direction, value, flags) => write!(
-                f,
-                "corrupt_bio_byte {} {} {} {}",
-                offset, direction, value, flags
-            ),
+            FeatureArg::CorruptBioByte(offset, direction, value, flags) => {
+                write!(f, "corrupt_bio_byte {offset} {direction} {value} {flags}")
+            }
         }
     }
 }
@@ -260,7 +258,7 @@ impl FromStr for FlakeyTargetParams {
                         result.push(FeatureArg::CorruptBioByte(offset, direction, value, flags));
                     }
                     x => {
-                        let err_msg = format!("{} is an unrecognized feature parameter", x);
+                        let err_msg = format!("{x} is an unrecognized feature parameter");
                         return Err(DmError::Dm(ErrorEnum::Invalid, err_msg));
                     }
                 }
@@ -364,7 +362,7 @@ impl FromStr for LinearDevTargetParams {
         let target_type = Some(s.split_once(' ').map_or(s, |x| x.0)).ok_or_else(|| {
             DmError::Dm(
                 ErrorEnum::Invalid,
-                format!("target line string \"{}\" did not contain any values", s),
+                format!("target line string \"{s}\" did not contain any values"),
             )
         })?;
         if target_type == FLAKEY_TARGET_NAME {
@@ -378,7 +376,7 @@ impl FromStr for LinearDevTargetParams {
         } else {
             Err(DmError::Dm(
                 ErrorEnum::Invalid,
-                format!("unexpected target type \"{}\"", target_type),
+                format!("unexpected target type \"{target_type}\""),
             ))
         }
     }

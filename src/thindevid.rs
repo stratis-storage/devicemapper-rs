@@ -28,7 +28,7 @@ impl ThinDevId {
         } else {
             Err(DmError::Dm(
                 ErrorEnum::Invalid,
-                format!("argument {} unrepresentable in 24 bits", value),
+                format!("argument {value} unrepresentable in 24 bits"),
             ))
         }
     }

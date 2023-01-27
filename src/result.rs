@@ -45,8 +45,8 @@ impl From<errors::Error> for DmError {
 impl fmt::Display for DmError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match *self {
-            DmError::Core(ref err) => write!(f, "DM Core error: {}", err),
-            DmError::Dm(ref err, ref msg) => write!(f, "DM error: {}: {}", err, msg),
+            DmError::Core(ref err) => write!(f, "DM Core error: {err}"),
+            DmError::Dm(ref err, ref msg) => write!(f, "DM error: {err}: {msg}"),
         }
     }
 }

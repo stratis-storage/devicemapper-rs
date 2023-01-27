@@ -52,10 +52,7 @@ impl FromStr for ThinTargetParams {
         let vals = s.split(' ').collect::<Vec<_>>();
         let len = vals.len();
         if !(3..=4).contains(&len) {
-            let err_msg = format!(
-                "expected 3 or 4 values in params string \"{}\", found {}",
-                s, len
-            );
+            let err_msg = format!("expected 3 or 4 values in params string \"{s}\", found {len}");
             return Err(DmError::Dm(ErrorEnum::Invalid, err_msg));
         }
 
@@ -257,7 +254,7 @@ impl ThinDev {
         thin_pool: &ThinPoolDev,
         thin_id: ThinDevId,
     ) -> DmResult<ThinDev> {
-        message(dm, thin_pool, &format!("create_thin {}", thin_id))?;
+        message(dm, thin_pool, &format!("create_thin {thin_id}"))?;
 
         if device_exists(dm, name)? {
             let err_msg = "Uncreated device should not be known to kernel";
@@ -405,7 +402,7 @@ impl ThinDev {
     pub fn destroy(&mut self, dm: &DM, thin_pool: &ThinPoolDev) -> DmResult<()> {
         let thin_id = self.table.table.params.thin_id;
         self.teardown(dm)?;
-        message(dm, thin_pool, &format!("delete {}", thin_id))?;
+        message(dm, thin_pool, &format!("delete {thin_id}"))?;
         Ok(())
     }
 }
@@ -557,7 +554,7 @@ mod tests {
             udev_settle().unwrap();
 
             // Make sure the uuid symlink was created
-            let symlink = PathBuf::from(format!("/dev/disk/by-uuid/{}", path_uuid));
+            let symlink = PathBuf::from(format!("/dev/disk/by-uuid/{path_uuid}"));
             assert!(symlink.exists());
 
             assert_eq!(*devnode, canonicalize(symlink).unwrap());
@@ -721,7 +718,7 @@ mod tests {
         .unwrap();
 
         for i in 0..100 {
-            let file_path = tmp_dir.path().join(format!("devicemapper_test{}.txt", i));
+            let file_path = tmp_dir.path().join(format!("devicemapper_test{i}.txt"));
             writeln!(
                 &OpenOptions::new()
                     .create(true)
