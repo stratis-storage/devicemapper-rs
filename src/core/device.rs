@@ -36,7 +36,7 @@ impl FromStr for Device {
     fn from_str(s: &str) -> Result<Device, DmError> {
         let vals = s.split(':').collect::<Vec<_>>();
         if vals.len() != 2 {
-            let err_msg = format!("value \"{}\" split into wrong number of fields", s);
+            let err_msg = format!("value \"{s}\" split into wrong number of fields");
             return Err(DmError::Core(errors::Error::InvalidArgument(err_msg)));
         }
         let major = vals[0].parse::<u32>().map_err(|_| {

@@ -165,8 +165,7 @@ pub fn device_match<T: TargetTable, D: DmDevice<T>>(
     let device_table = dev.table();
     if !D::equivalent_tables(&kernel_table, device_table)? {
         let err_msg = format!(
-            "Specified new table \"{:?}\" does not match kernel table \"{:?}\"",
-            device_table, kernel_table
+            "Specified new table \"{device_table:?}\" does not match kernel table \"{kernel_table:?}\""
         );
 
         return Err(DmError::Dm(ErrorEnum::Invalid, err_msg));
@@ -197,7 +196,7 @@ pub fn parse_device(val: &str, desc: &str) -> DmResult<Device> {
             .ok_or_else(|| {
                 DmError::Dm(
                     ErrorEnum::Invalid,
-                    format!("Failed to parse \"{}\" from input \"{}\"", desc, val),
+                    format!("Failed to parse \"{desc}\" from input \"{val}\""),
                 )
             })?
             .into()
@@ -215,10 +214,7 @@ where
     val.parse::<T>().map_err(|_| {
         DmError::Dm(
             ErrorEnum::Invalid,
-            format!(
-                "Failed to parse value for \"{}\" from input \"{}\"",
-                desc, val
-            ),
+            format!("Failed to parse value for \"{desc}\" from input \"{val}\""),
         )
     })
 }
@@ -232,8 +228,7 @@ pub fn get_status_line_fields(status_line: &str, number_required: usize) -> DmRe
         return Err(DmError::Dm(
             ErrorEnum::Invalid,
             format!(
-                "Insufficient number of fields for status; requires at least {}, found only {} in status line \"{}\"",
-                number_required, length, status_line
+                "Insufficient number of fields for status; requires at least {number_required}, found only {length} in status line \"{status_line}\""
             ),
         ));
     }
@@ -250,7 +245,7 @@ pub fn get_status(status_lines: &[(u64, u64, String, String)]) -> DmResult<Strin
             format!(
                 "Incorrect number of lines for status; expected 1, found {} in status result \"{}\"",
                 length,
-                status_lines.iter().map(|(s, l, t, v)| format!("{} {} {} {}", s, l, t, v)).collect::<Vec<String>>().join(", ")
+                status_lines.iter().map(|(s, l, t, v)| format!("{s} {l} {t} {v}")).collect::<Vec<String>>().join(", ")
             ),
         ));
     }
@@ -268,8 +263,7 @@ pub fn make_unexpected_value_error(value_index: usize, value: &str, item_name: &
     DmError::Dm(
         ErrorEnum::Invalid,
         format!(
-            "Kernel returned unexpected {}th value \"{}\" for item representing {} in status result",
-            value_index, value, item_name
+            "Kernel returned unexpected {value_index}th value \"{value}\" for item representing {item_name} in status result"
         ),
     )
 }

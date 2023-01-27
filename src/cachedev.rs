@@ -154,7 +154,7 @@ impl TargetParams for CacheTargetParams {
                 self.policy_args.len(),
                 self.policy_args
                     .iter()
-                    .map(|(k, v)| format!("{} {}", k, v))
+                    .map(|(k, v)| format!("{k} {v}"))
                     .collect::<Vec<String>>()
                     .join(" ")
             )
@@ -556,7 +556,7 @@ impl CacheDev {
         cache_block_size: Sectors,
     ) -> DmResult<CacheDev> {
         if device_exists(dm, name)? {
-            let err_msg = format!("cachedev {} already exists", name);
+            let err_msg = format!("cachedev {name} already exists");
             return Err(DmError::Dm(ErrorEnum::Invalid, err_msg));
         }
 
@@ -713,7 +713,7 @@ impl CacheDev {
     fn parse_pairs(start_index: usize, vals: &[&str]) -> DmResult<(usize, Vec<(String, String)>)> {
         let num_pairs: usize = parse_value(vals[start_index], "number of pairs")?;
         if num_pairs % 2 != 0 {
-            let err_msg = format!("Number of args \"{}\" is not even", num_pairs);
+            let err_msg = format!("Number of args \"{num_pairs}\" is not even");
             return Err(DmError::Dm(ErrorEnum::Invalid, err_msg));
         }
         let next_start_index = start_index + num_pairs + 1;
@@ -857,7 +857,7 @@ mod tests {
 
                 assert!(!status.needs_check);
             }
-            status => panic!("unexpected thinpool status: {:?}", status),
+            status => panic!("unexpected thinpool status: {status:?}"),
         }
 
         let table = CacheDev::read_kernel_table(&dm, &DevId::Name(cache.name()))

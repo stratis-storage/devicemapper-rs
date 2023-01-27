@@ -45,13 +45,12 @@ impl std::fmt::Display for Error {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Error::ContextInit(err) => {
-                write!(f, "DM context not initialized due to IO error: {}", err)
+                write!(f, "DM context not initialized due to IO error: {err}")
             }
-            Error::InvalidArgument(err) => write!(f, "invalid argument: {}", err),
+            Error::InvalidArgument(err) => write!(f, "invalid argument: {err}"),
             Error::Ioctl(op, hdr_in, hdr_out, err) => write!(
                 f,
-                "low-level ioctl error due to nix error; ioctl number: {}, input header: {:?}, header result: {:?}, error: {}",
-                op, hdr_in, hdr_out, err
+                "low-level ioctl error due to nix error; ioctl number: {op}, input header: {hdr_in:?}, header result: {hdr_out:?}, error: {err}"
             ),
             Error::IoctlResultTooLarge => write!(
                 f,
@@ -65,7 +64,7 @@ impl std::fmt::Display for Error {
                 err
             ),
             Error::GeneralIo(err) => {
-                write!(f, "failed to perform operation due to IO error: {}", err)
+                write!(f, "failed to perform operation due to IO error: {err}")
             }
         }
     }

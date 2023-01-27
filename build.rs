@@ -11,8 +11,7 @@ static DM_VERSIONS: &[&str] = &["4.1.0", "4.2.0", "4.6.0", "4.37.0", "4.41.0"];
 
 fn main() {
     let version = Version::parse(&format!(
-        "{}.{}.{}",
-        DM_VERSION_MAJOR, DM_VERSION_MINOR, DM_VERSION_PATCHLEVEL
+        "{DM_VERSION_MAJOR}.{DM_VERSION_MINOR}.{DM_VERSION_PATCHLEVEL}"
     ))
     .expect("simple version string is not parseable");
 

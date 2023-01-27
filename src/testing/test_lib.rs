@@ -84,7 +84,7 @@ fn execute_cmd(cmd: &mut Command) -> DmResult<()> {
     match cmd.output() {
         Err(err) => Err(DmError::Dm(
             ErrorEnum::Error,
-            format!("cmd: {:?}, error '{}'", cmd, err),
+            format!("cmd: {cmd:?}, error '{err}'"),
         )),
         Ok(result) => {
             if result.status.success() {
@@ -92,10 +92,7 @@ fn execute_cmd(cmd: &mut Command) -> DmResult<()> {
             } else {
                 let std_out_txt = String::from_utf8_lossy(&result.stdout);
                 let std_err_txt = String::from_utf8_lossy(&result.stderr);
-                let err_msg = format!(
-                    "cmd: {:?} stdout: {} stderr: {}",
-                    cmd, std_out_txt, std_err_txt
-                );
+                let err_msg = format!("cmd: {cmd:?} stdout: {std_out_txt} stderr: {std_err_txt}");
                 Err(DmError::Dm(ErrorEnum::Error, err_msg))
             }
         }
@@ -111,7 +108,7 @@ pub fn xfs_create_fs(devnode: &Path, uuid: Option<Uuid>) -> DmResult<()> {
 
     if let Some(uuid) = uuid {
         command.arg("-m");
-        command.arg(format!("uuid={}", uuid));
+        command.arg(format!("uuid={uuid}"));
     }
     execute_cmd(&mut command)
 }
@@ -121,7 +118,7 @@ pub fn xfs_set_uuid(devnode: &Path, uuid: &Uuid) -> DmResult<()> {
     execute_cmd(
         Command::new("xfs_admin")
             .arg("-U")
-            .arg(format!("{}", uuid))
+            .arg(format!("{uuid}"))
             .arg(devnode),
     )
 }
@@ -233,7 +230,7 @@ fn dm_test_devices_remove() -> Result<()> {
 
         do_while_progress().and_then(|remain| {
             if !remain.is_empty() {
-                let err_msg = format!("Some test-generated DM devices remaining: {:?}", remain);
+                let err_msg = format!("Some test-generated DM devices remaining: {remain:?}");
                 Err(err_msg.into())
             } else {
                 Ok(())
