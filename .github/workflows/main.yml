@@ -24,16 +24,16 @@ jobs:
       matrix:
         include:
           - components: rustfmt
-            toolchain: 1.67.0  # CURRENT DEVELOPMENT RUST TOOLCHAIN
+            toolchain: 1.67.1  # CURRENT DEVELOPMENT RUST TOOLCHAIN
             task: make -f Makefile fmt-ci
           - components: clippy
-            toolchain: 1.67.0  # CURRENT DEVELOPMENT RUST TOOLCHAIN
+            toolchain: 1.67.1  # CURRENT DEVELOPMENT RUST TOOLCHAIN
             task: make -f Makefile clippy
           - components: cargo
-            toolchain: 1.67.0  # CURRENT DEVELOPMENT RUST TOOLCHAIN
+            toolchain: 1.67.1  # CURRENT DEVELOPMENT RUST TOOLCHAIN
             task: make -f Makefile build
           - components: cargo
-            toolchain: 1.67.0  # CURRENT DEVELOPMENT RUST TOOLCHAIN
+            toolchain: 1.67.1  # CURRENT DEVELOPMENT RUST TOOLCHAIN
             task: make -f Makefile docs
     runs-on: ubuntu-20.04
     steps:
@@ -54,7 +54,7 @@ jobs:
       matrix:
         include:
           - toolchain: 1.66.1  # LOWEST SUPPORTED RUST TOOLCHAIN
-          - toolchain: 1.67.0  # CURRENT DEVELOPMENT RUST TOOLCHAIN
+          - toolchain: 1.67.1  # CURRENT DEVELOPMENT RUST TOOLCHAIN
     runs-on: ubuntu-20.04
     steps:
       - uses: actions/checkout@v3
@@ -101,7 +101,7 @@ jobs:
       - uses: dtolnay/rust-toolchain@master
         with:
           components: cargo
-          toolchain: 1.67.0  # CURRENT DEVELOPMENT RUST TOOLCHAIN
+          toolchain: 1.67.1  # CURRENT DEVELOPMENT RUST TOOLCHAIN
       - name: Check out ci repo
         run: git clone https://github.com/stratis-storage/ci.git
       - name: Run ${{ matrix.task }}
