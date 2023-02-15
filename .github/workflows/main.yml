@@ -87,7 +87,7 @@ jobs:
       - uses: dtolnay/rust-toolchain@master
         with:
           components: cargo
-          toolchain: 1.66.1  # CURRENT DEVELOPMENT RUST TOOLCHAIN
+          toolchain: 1.67.1  # CURRENT DEVELOPMENT RUST TOOLCHAIN
           targets: x86_64-unknown-linux-gnu
       - name: Add Android target
         run: rustup target add ${{ env.TARGET }}
