@@ -3,4 +3,5 @@
 #![allow(deref_nullptr)]
 #![allow(clippy::all)]
 
-include!(concat!(env!("OUT_DIR"), "/bindings.rs"));
+include!(concat!(env!("OUT_DIR"), "/dm-bindings.rs"));
+include!(concat!(env!("OUT_DIR"), "/sem-bindings.rs"));

@@ -93,6 +93,7 @@ jobs:
           dnf install -y
           clang
           curl
+          device-mapper-devel
           git
           make
           openssl-devel

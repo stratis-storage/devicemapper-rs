@@ -5,7 +5,7 @@
 use std::{fmt, path::PathBuf, str::FromStr};
 
 use crate::{
-    core::{DevId, Device, DeviceInfo, DmCookie, DmFlags, DmName, DmOptions, DmUuid, DM},
+    core::{DevId, Device, DeviceInfo, DmFlags, DmName, DmOptions, DmUuid, DM},
     result::{DmError, DmResult, ErrorEnum},
     shared::{
         device_create, device_exists, device_match, get_status, get_status_line_fields, message,
@@ -263,13 +263,7 @@ impl ThinDev {
 
         let thin_pool_device = thin_pool.device();
         let table = ThinDev::gen_default_table(length, thin_pool_device, thin_id);
-        let dev_info = device_create(
-            dm,
-            name,
-            uuid,
-            &table,
-            DmOptions::default().set_cookie(DmCookie::DM_UDEV_PRIMARY_SOURCE_FLAG),
-        )?;
+        let dev_info = device_create(dm, name, uuid, &table, DmOptions::default())?;
 
         Ok(ThinDev {
             dev_info: Box::new(dev_info),
@@ -305,13 +299,7 @@ impl ThinDev {
             device_match(dm, &dev, uuid)?;
             dev
         } else {
-            let dev_info = device_create(
-                dm,
-                name,
-                uuid,
-                &table,
-                DmOptions::default().set_cookie(DmCookie::DM_UDEV_PRIMARY_SOURCE_FLAG),
-            )?;
+            let dev_info = device_create(dm, name, uuid, &table, DmOptions::default())?;
             ThinDev {
                 dev_info: Box::new(dev_info),
                 table,
@@ -352,7 +340,7 @@ impl ThinDev {
             snapshot_name,
             snapshot_uuid,
             &table,
-            DmOptions::default().set_cookie(DmCookie::DM_UDEV_PRIMARY_SOURCE_FLAG),
+            DmOptions::default(),
         )?);
         Ok(ThinDev { dev_info, table })
     }
@@ -595,6 +583,9 @@ mod tests {
 
         // Create the XFS FS on top of the thin device
         xfs_create_fs(&td.devnode(), Some(uuid)).unwrap();
+
+        // Synchronize with udev processing triggered by xfs_create_fs()
+        udev_settle().unwrap();
 
         validate(&uuid, &td.devnode());
 

@@ -10,7 +10,9 @@ mod dm;
 mod dm_flags;
 mod dm_ioctl;
 mod dm_options;
+mod dm_udev_sync;
 pub mod errors;
+mod sysvsem;
 mod types;
 mod util;
 
@@ -18,7 +20,7 @@ pub use self::{
     device::{devnode_to_devno, Device},
     deviceinfo::DeviceInfo,
     dm::DM,
-    dm_flags::{DmCookie, DmFlags},
+    dm_flags::{DmFlags, DmUdevFlags},
     dm_options::DmOptions,
     types::{DevId, DmName, DmNameBuf, DmUuid, DmUuidBuf},
 };
