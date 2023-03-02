@@ -35,11 +35,11 @@ version = "1.0.0"
 features = ["v4"]
 
 [dependencies.devicemapper-sys]
-version = "0.1.0"
+version = "0.1.5"
 path = "./devicemapper-rs-sys"
 
 [build-dependencies.devicemapper-sys]
-version = "0.1.0"
+version = "0.1.5"
 path = "./devicemapper-rs-sys"
 
 [build-dependencies]
