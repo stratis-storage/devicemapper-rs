@@ -18,14 +18,20 @@ use crate::{
 
 const THIN_TARGET_NAME: &str = "thin";
 
+/// Struct representing params for a thin target
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ThinTargetParams {
+    /// Thin pool for the given thin device
     pub pool: Device,
+    /// Thin ID
     pub thin_id: ThinDevId,
+    /// Optional block device outside of pool to be treated as a read-only snapshot
+    /// origin
     pub external_origin_dev: Option<Device>,
 }
 
 impl ThinTargetParams {
+    /// Create a new ThinTargetParams struct
     pub fn new(
         pool: Device,
         thin_id: ThinDevId,
@@ -92,12 +98,15 @@ impl TargetParams for ThinTargetParams {
     }
 }
 
+/// A target table for a thin device.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ThinDevTargetTable {
+    /// The device's table
     pub table: TargetLine<ThinTargetParams>,
 }
 
 impl ThinDevTargetTable {
+    /// Make a new ThinDevTargetTable from required input
     pub fn new(start: Sectors, length: Sectors, params: ThinTargetParams) -> ThinDevTargetTable {
         ThinDevTargetTable {
             table: TargetLine::new(start, length, params),

@@ -30,18 +30,27 @@ pub const MAX_CACHE_BLOCK_SIZE: Sectors = Sectors(2 * IEC::Mi); // 1 GiB
 
 const CACHE_TARGET_NAME: &str = "cache";
 
+/// Struct representing params for a cache target
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct CacheTargetParams {
+    /// Cache metadata device
     pub meta: Device,
+    /// Cache device
     pub cache: Device,
+    /// Origin device with data to be cached
     pub origin: Device,
+    /// Cache block size
     pub cache_block_size: Sectors,
+    /// Feature arguments
     pub feature_args: HashSet<String>,
+    /// IO policy
     pub policy: String,
+    /// IO policy arguments
     pub policy_args: HashMap<String, String>,
 }
 
 impl CacheTargetParams {
+    /// Create a new CacheTargetParams struct
     pub fn new(
         meta: Device,
         cache: Device,
@@ -177,12 +186,15 @@ impl TargetParams for CacheTargetParams {
     }
 }
 
+/// A target table for a cache device.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct CacheDevTargetTable {
+    /// The device's table
     pub table: TargetLine<CacheTargetParams>,
 }
 
 impl CacheDevTargetTable {
+    /// Make a new CacheDevTargetTable from the required input
     pub fn new(start: Sectors, length: Sectors, params: CacheTargetParams) -> CacheDevTargetTable {
         CacheDevTargetTable {
             table: TargetLine::new(start, length, params),
