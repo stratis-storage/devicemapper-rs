@@ -114,8 +114,8 @@ extern crate assert_matches;
 
 pub use crate::{
     cachedev::{
-        CacheDev, CacheDevPerformance, CacheDevStatus, CacheDevUsage, CacheDevWorkingStatus,
-        MAX_CACHE_BLOCK_SIZE, MIN_CACHE_BLOCK_SIZE,
+        CacheDev, CacheDevPerformance, CacheDevStatus, CacheDevTargetTable, CacheDevUsage,
+        CacheDevWorkingStatus, CacheTargetParams, MAX_CACHE_BLOCK_SIZE, MIN_CACHE_BLOCK_SIZE,
     },
     consts::IEC,
     core::{
@@ -130,11 +130,11 @@ pub use crate::{
     shared::{
         device_exists, DmDevice, TargetLine, TargetParams, TargetTable, TargetType, TargetTypeBuf,
     },
-    thindev::{ThinDev, ThinDevWorkingStatus, ThinStatus},
+    thindev::{ThinDev, ThinDevTargetTable, ThinDevWorkingStatus, ThinStatus, ThinTargetParams},
     thindevid::ThinDevId,
     thinpooldev::{
-        ThinPoolDev, ThinPoolNoSpacePolicy, ThinPoolStatus, ThinPoolStatusSummary, ThinPoolUsage,
-        ThinPoolWorkingStatus,
+        ThinPoolDev, ThinPoolDevTargetTable, ThinPoolNoSpacePolicy, ThinPoolStatus,
+        ThinPoolStatusSummary, ThinPoolTargetParams, ThinPoolUsage, ThinPoolWorkingStatus,
     },
     units::{Bytes, DataBlocks, MetaBlocks, Sectors, SECTOR_SIZE},
 };

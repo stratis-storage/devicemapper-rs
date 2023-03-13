@@ -24,16 +24,23 @@ use crate::core::devnode_to_devno;
 
 const THINPOOL_TARGET_NAME: &str = "thin-pool";
 
+/// Struct representing params for a thin pool target
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ThinPoolTargetParams {
+    /// Thin pool metadata device
     pub metadata_dev: Device,
+    /// Thin pool data device
     pub data_dev: Device,
+    /// Block size for allocations within the thin pool
     pub data_block_size: Sectors,
+    /// Amount of free space left at which to trigger the low water mark
     pub low_water_mark: DataBlocks,
+    /// Feature arguments
     pub feature_args: HashSet<String>,
 }
 
 impl ThinPoolTargetParams {
+    /// Create a new ThinPoolTargetParams struct
     pub fn new(
         metadata_dev: Device,
         data_dev: Device,
@@ -136,12 +143,15 @@ impl TargetParams for ThinPoolTargetParams {
     }
 }
 
+/// A target table for a thin pool device.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ThinPoolDevTargetTable {
+    /// The device's table
     pub table: TargetLine<ThinPoolTargetParams>,
 }
 
 impl ThinPoolDevTargetTable {
+    /// Make a new ThinPoolDevTargetTable from a suitable vec
     pub fn new(
         start: Sectors,
         length: Sectors,
