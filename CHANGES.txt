@@ -1,3 +1,18 @@
+devicemapper 0.33.2
+===================
+Recommended Rust toolchain version: 1.68.0
+Lowest supported Rust toolchain version: 1.66.1
+Recommended development release: Fedora 37
+
+- Expose target table related structs:
+  https://github.com/stratis-storage/devicemapper-rs/pull/839
+
+- Tidies and Maintenance:
+  https://github.com/stratis-storage/devicemapper-rs/pull/842
+  https://github.com/stratis-storage/devicemapper-rs/pull/841
+  https://github.com/stratis-storage/devicemapper-rs/pull/838
+
+
 devicemapper 0.33.1
 ===================
 Recommended Rust toolchain version: 1.67.1
