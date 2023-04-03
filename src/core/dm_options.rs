@@ -34,4 +34,13 @@ impl DmOptions {
     pub fn udev_flags(&self) -> DmUdevFlags {
         self.udev_flags
     }
+
+    /// Set default udev flags for a private (internal) device.
+    pub fn private() -> DmOptions {
+        DmOptions::default().set_udev_flags(
+            DmUdevFlags::DM_UDEV_DISABLE_SUBSYSTEM_RULES_FLAG
+                | DmUdevFlags::DM_UDEV_DISABLE_DISK_RULES_FLAG
+                | DmUdevFlags::DM_UDEV_DISABLE_OTHER_RULES_FLAG,
+        )
+    }
 }
