@@ -539,7 +539,7 @@ impl LinearDev {
             device_match(dm, &dev, uuid)?;
             dev
         } else {
-            let dev_info = device_create(dm, name, uuid, &table, DmOptions::default())?;
+            let dev_info = device_create(dm, name, uuid, &table, DmOptions::private())?;
             LinearDev {
                 dev_info: Box::new(dev_info),
                 table,
