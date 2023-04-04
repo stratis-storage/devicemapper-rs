@@ -1,3 +1,16 @@
+devicemapper 0.33.3
+===================
+Recommended Rust toolchain version: 1.68.0
+Lowest supported Rust toolchain version: 1.66.1
+Recommended development release: Fedora 37
+
+- Send udev options to make cache, linear, and thinpool devs private:
+  https://github.com/stratis-storage/devicemapper-rs/pull/845
+
+- Increase env_logger dependency lower bound to 0.10.0:
+  https://github.com/stratis-storage/devicemapper-rs/pull/844
+
+
 devicemapper 0.33.2
 ===================
 Recommended Rust toolchain version: 1.68.0
