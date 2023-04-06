@@ -12,6 +12,8 @@ IGNORE_ARGS ?=
 
 DENY = -D warnings -D future-incompatible -D unused -D rust_2018_idioms -D nonstandard_style
 
+CLIPPY_DENY = -D clippy::all -D clippy::cargo -A clippy::multiple-crate-versions
+
 ${HOME}/.cargo/bin/cargo-tree:
 	cargo install cargo-tree
 
@@ -72,12 +74,10 @@ sudo_test:
 clippy:
 	RUSTFLAGS="${DENY}" \
         cargo clippy --all-targets --all-features -- \
-        -D clippy::cargo \
-        -D clippy::all
+        ${CLIPPY_DENY}
 	cd devicemapper-rs-sys && RUSTFLAGS="${DENY}" \
         cargo clippy --all-targets --all-features -- \
-        -D clippy::cargo \
-        -D clippy::all
+        ${CLIPPY_DENY}
 
 docs:
 	cargo doc --no-deps
