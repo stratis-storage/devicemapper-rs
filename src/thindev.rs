@@ -169,6 +169,11 @@ impl DmDevice<ThinDevTargetTable> for ThinDev {
         name!(self)
     }
 
+    fn resume(&mut self, dm: &DM) -> DmResult<()> {
+        dm.device_suspend(&DevId::Name(self.name()), DmOptions::default())?;
+        Ok(())
+    }
+
     fn size(&self) -> Sectors {
         self.table.table.length
     }
