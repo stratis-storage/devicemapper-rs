@@ -90,7 +90,7 @@ pub trait DmDevice<T: TargetTable> {
 
     /// Resume I/O on the device.
     fn resume(&mut self, dm: &DM) -> DmResult<()> {
-        dm.device_suspend(&DevId::Name(self.name()), DmOptions::default())?;
+        dm.device_suspend(&DevId::Name(self.name()), DmOptions::private())?;
         Ok(())
     }
 
