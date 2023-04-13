@@ -1,3 +1,16 @@
+devicemapper 0.33.4
+===================
+Recommended Rust toolchain version: 1.68.0
+Lowest supported Rust toolchain version: 1.66.1
+Recommended development release: Fedora 37
+
+- Make CacheDev, LinearDev, and ThinPoolDev private on resume():
+  https://github.com/stratis-storage/devicemapper-rs/pull/850
+
+- Tidies and Maintenance:
+  https://github.com/stratis-storage/devicemapper-rs/pull/849
+
+
 devicemapper 0.33.3
 ===================
 Recommended Rust toolchain version: 1.68.0
