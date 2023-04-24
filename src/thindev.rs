@@ -169,8 +169,12 @@ impl DmDevice<ThinDevTargetTable> for ThinDev {
         name!(self)
     }
 
-    fn resume(&mut self, dm: &DM) -> DmResult<()> {
-        dm.device_suspend(&DevId::Name(self.name()), DmOptions::default())?;
+    fn resume(&mut self, dm: &DM, options: Option<DmOptions>) -> DmResult<()> {
+        let options = match options {
+            Some(options) => options,
+            None => DmOptions::default(),
+        };
+        dm.device_suspend(&DevId::Name(self.name()), options)?;
         Ok(())
     }
 
@@ -409,7 +413,7 @@ impl ThinDev {
         let table = ThinDevTargetTable::new(table.start, table.length, table.params);
         self.suspend(dm, DmOptions::default().set_flags(DmFlags::DM_NOFLUSH))?;
         self.table_load(dm, &table, DmOptions::default())?;
-        self.resume(dm)?;
+        self.resume(dm, Some(DmOptions::default()))?;
 
         self.table = table;
         Ok(())

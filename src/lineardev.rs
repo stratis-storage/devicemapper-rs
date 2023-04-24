@@ -623,7 +623,7 @@ mod tests {
         let mut ld = LinearDev::setup(&dm, &name, None, table, None).unwrap();
 
         assert_matches!(ld.set_table(&dm, vec![]), Err(_));
-        ld.resume(&dm).unwrap();
+        ld.resume(&dm, None).unwrap();
         ld.teardown(&dm).unwrap();
     }
 
@@ -806,8 +806,8 @@ mod tests {
             .unwrap();
         ld.suspend(&dm, DmOptions::default().set_flags(DmFlags::DM_NOFLUSH))
             .unwrap();
-        ld.resume(&dm).unwrap();
-        ld.resume(&dm).unwrap();
+        ld.resume(&dm, None).unwrap();
+        ld.resume(&dm, None).unwrap();
 
         ld.teardown(&dm).unwrap();
     }

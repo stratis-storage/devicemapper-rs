@@ -646,7 +646,7 @@ impl CacheDev {
         self.suspend(dm, DmOptions::default().set_flags(DmFlags::DM_NOFLUSH))?;
 
         self.origin_dev.set_table(dm, table)?;
-        self.origin_dev.resume(dm)?;
+        self.origin_dev.resume(dm, None)?;
 
         let mut table = self.table.clone();
         table.table.length = self.origin_dev.size();
@@ -670,7 +670,7 @@ impl CacheDev {
     ) -> DmResult<()> {
         self.suspend(dm, DmOptions::default().set_flags(DmFlags::DM_NOFLUSH))?;
         self.cache_dev.set_table(dm, table)?;
-        self.cache_dev.resume(dm)?;
+        self.cache_dev.resume(dm, None)?;
 
         // Reload the table, even though it is unchanged. Otherwise, we
         // suffer from whacky smq bug documented in the following PR:
@@ -693,7 +693,7 @@ impl CacheDev {
     ) -> DmResult<()> {
         self.suspend(dm, DmOptions::default().set_flags(DmFlags::DM_NOFLUSH))?;
         self.meta_dev.set_table(dm, table)?;
-        self.meta_dev.resume(dm)?;
+        self.meta_dev.resume(dm, None)?;
 
         // Reload the table, even though it is unchanged. Otherwise, we
         // suffer from whacky smq bug documented in the following PR:
@@ -933,7 +933,7 @@ mod tests {
             LinearDevTargetParams::Linear(cache_params),
         ));
         assert_matches!(cache.set_meta_table(&dm, table), Ok(_));
-        cache.resume(&dm).unwrap();
+        cache.resume(&dm, None).unwrap();
 
         match cache.status(&dm, DmOptions::default()).unwrap() {
             CacheDevStatus::Working(ref status) => {
@@ -987,7 +987,7 @@ mod tests {
             LinearDevTargetParams::Linear(cache_params),
         ));
         assert_matches!(cache.set_cache_table(&dm, cache_table.clone()), Ok(_));
-        cache.resume(&dm).unwrap();
+        cache.resume(&dm, None).unwrap();
 
         match cache.status(&dm, DmOptions::default()).unwrap() {
             CacheDevStatus::Working(ref status) => {
@@ -1004,7 +1004,7 @@ mod tests {
         cache_table.pop();
 
         assert_matches!(cache.set_cache_table(&dm, cache_table), Ok(_));
-        cache.resume(&dm).unwrap();
+        cache.resume(&dm, None).unwrap();
 
         match cache.status(&dm, DmOptions::default()).unwrap() {
             CacheDevStatus::Working(ref status) => {
@@ -1047,7 +1047,7 @@ mod tests {
         ));
 
         cache.set_origin_table(&dm, origin_table).unwrap();
-        cache.resume(&dm).unwrap();
+        cache.resume(&dm, None).unwrap();
 
         let origin_size = origin_size + dev3_size;
         assert_eq!(cache.origin_dev.size(), origin_size);
@@ -1073,8 +1073,8 @@ mod tests {
         cache
             .suspend(&dm, DmOptions::default().set_flags(DmFlags::DM_NOFLUSH))
             .unwrap();
-        cache.resume(&dm).unwrap();
-        cache.resume(&dm).unwrap();
+        cache.resume(&dm, None).unwrap();
+        cache.resume(&dm, None).unwrap();
         cache.teardown(&dm).unwrap();
     }
 

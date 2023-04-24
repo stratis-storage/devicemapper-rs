@@ -591,7 +591,7 @@ impl ThinPoolDev {
     ) -> DmResult<()> {
         self.suspend(dm, DmOptions::default().set_flags(DmFlags::DM_NOFLUSH))?;
         self.meta_dev.set_table(dm, table)?;
-        self.meta_dev.resume(dm)?;
+        self.meta_dev.resume(dm, None)?;
 
         // Reload the table even though it is unchanged.
         // See comment on CacheDev::set_cache_table for reason.
@@ -614,7 +614,7 @@ impl ThinPoolDev {
         self.suspend(dm, DmOptions::default().set_flags(DmFlags::DM_NOFLUSH))?;
 
         self.data_dev.set_table(dm, table)?;
-        self.data_dev.resume(dm)?;
+        self.data_dev.resume(dm, None)?;
 
         let mut table = self.table.clone();
         table.table.length = self.data_dev.size();
@@ -638,7 +638,7 @@ impl ThinPoolDev {
             self.table_load(dm, &table, DmOptions::default())?;
             self.table = table;
 
-            self.resume(dm)?;
+            self.resume(dm, None)?;
         }
 
         Ok(())
@@ -653,7 +653,7 @@ impl ThinPoolDev {
             self.table_load(dm, &table, DmOptions::default())?;
             self.table = table;
 
-            self.resume(dm)?;
+            self.resume(dm, None)?;
         }
 
         Ok(())
@@ -926,7 +926,7 @@ mod tests {
             LinearDevTargetParams::Linear(data_params),
         ));
         tp.set_data_table(&dm, data_table).unwrap();
-        tp.resume(&dm).unwrap();
+        tp.resume(&dm, None).unwrap();
 
         match tp.status(&dm, DmOptions::default()).unwrap() {
             ThinPoolStatus::Working(ref status) => {
@@ -967,7 +967,7 @@ mod tests {
             LinearDevTargetParams::Linear(meta_params),
         ));
         tp.set_meta_table(&dm, meta_table).unwrap();
-        tp.resume(&dm).unwrap();
+        tp.resume(&dm, None).unwrap();
 
         match tp.status(&dm, DmOptions::default()).unwrap() {
             ThinPoolStatus::Working(ref status) => {
@@ -996,8 +996,8 @@ mod tests {
             .unwrap();
         tp.suspend(&dm, DmOptions::default().set_flags(DmFlags::DM_NOFLUSH))
             .unwrap();
-        tp.resume(&dm).unwrap();
-        tp.resume(&dm).unwrap();
+        tp.resume(&dm, None).unwrap();
+        tp.resume(&dm, None).unwrap();
         tp.teardown(&dm).unwrap();
     }
 
