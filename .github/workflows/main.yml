@@ -85,7 +85,7 @@ jobs:
               make -f ../../Makefile verify-dependency-bounds
     runs-on: ubuntu-20.04
     container:
-      image: fedora:37  # CURRENT DEVELOPMENT ENVIRONMENT
+      image: fedora:38  # CURRENT DEVELOPMENT ENVIRONMENT
     steps:
       - uses: actions/checkout@v3
       - name: Install dependencies for Fedora
@@ -113,7 +113,7 @@ jobs:
   yamllint:
     runs-on: ubuntu-20.04
     container:
-      image: fedora:37  # CURRENT DEVELOPMENT ENVIRONMENT
+      image: fedora:38  # CURRENT DEVELOPMENT ENVIRONMENT
     steps:
       - uses: actions/checkout@v3
       - name: Install dependencies for Fedora
