@@ -913,7 +913,7 @@ mod tests {
 
         assert_matches!(
             dm.device_rename(&name, &DevId::Uuid(&new_uuid)),
-            Err(DmError::Core(Error::Ioctl(op, _, _, err))) if err == Box::new(nix::errno::Errno::EINVAL) && op == dmi::DM_DEV_RENAME_CMD as u8
+            Err(DmError::Core(Error::Ioctl(op, _, _, err))) if *err == nix::errno::Errno::EINVAL && op == dmi::DM_DEV_RENAME_CMD as u8
         );
 
         dm.device_remove(&DevId::Name(&name), DmOptions::default())
@@ -931,7 +931,7 @@ mod tests {
             .unwrap();
         assert_matches!(
             dm.device_rename(&name, &DevId::Uuid(&uuid)),
-            Err(DmError::Core(Error::Ioctl(op, _, _, err))) if err == Box::new(nix::errno::Errno::EBUSY) && op == dmi::DM_DEV_RENAME_CMD as u8
+            Err(DmError::Core(Error::Ioctl(op, _, _, err))) if *err == nix::errno::Errno::EBUSY && op == dmi::DM_DEV_RENAME_CMD as u8
         );
 
         dm.device_remove(&DevId::Name(&name), DmOptions::default())
@@ -968,7 +968,7 @@ mod tests {
 
         assert_matches!(
             dm.device_rename(&name, &DevId::Name(&name)),
-            Err(DmError::Core(Error::Ioctl(op, _, _, err))) if err == Box::new(nix::errno::Errno::EBUSY) && op == dmi::DM_DEV_RENAME_CMD as u8
+            Err(DmError::Core(Error::Ioctl(op, _, _, err))) if *err == nix::errno::Errno::EBUSY && op == dmi::DM_DEV_RENAME_CMD as u8
         );
 
         dm.device_remove(&DevId::Name(&name), DmOptions::default())
@@ -989,7 +989,7 @@ mod tests {
 
         assert_matches!(
             dm.device_info(&DevId::Name(&name)),
-            Err(DmError::Core(Error::Ioctl(_, _, _, err))) if err == Box::new(nix::errno::Errno::ENXIO)
+            Err(DmError::Core(Error::Ioctl(_, _, _, err))) if *err == nix::errno::Errno::ENXIO
         );
 
         assert_matches!(dm.device_info(&DevId::Name(&new_name)), Ok(_));
@@ -1009,7 +1009,7 @@ mod tests {
 
         assert_matches!(
             dm.device_rename(&new_name, &DevId::Name(&third_name)),
-            Err(DmError::Core(Error::Ioctl(op, _, _, err))) if err == Box::new(nix::errno::Errno::EBUSY) && op == dmi::DM_DEV_RENAME_CMD as u8
+            Err(DmError::Core(Error::Ioctl(op, _, _, err))) if *err == nix::errno::Errno::EBUSY && op == dmi::DM_DEV_RENAME_CMD as u8
         );
 
         dm.device_remove(&DevId::Name(&third_name), DmOptions::default())
@@ -1027,7 +1027,7 @@ mod tests {
                 &test_name("old_name").expect("is valid DM name"),
                 &DevId::Name(&new_name)
             ),
-            Err(DmError::Core(Error::Ioctl(op, _, _, err))) if err == Box::new(nix::errno::Errno::ENXIO) && op == dmi::DM_DEV_RENAME_CMD as u8
+            Err(DmError::Core(Error::Ioctl(op, _, _, err))) if *err == nix::errno::Errno::ENXIO && op == dmi::DM_DEV_RENAME_CMD as u8
         );
     }
 
@@ -1039,7 +1039,7 @@ mod tests {
                 &DevId::Name(&test_name("junk").expect("is valid DM name")),
                 DmOptions::default()
             ),
-            Err(DmError::Core(Error::Ioctl(op, _, _, err))) if err == Box::new(nix::errno::Errno::ENXIO) && op == dmi::DM_DEV_REMOVE_CMD as u8
+            Err(DmError::Core(Error::Ioctl(op, _, _, err))) if *err == nix::errno::Errno::ENXIO && op == dmi::DM_DEV_REMOVE_CMD as u8
         );
     }
 
@@ -1066,7 +1066,7 @@ mod tests {
                 &DevId::Name(&test_name("junk").expect("is valid DM name")),
                 DmOptions::default()
             ),
-            Err(DmError::Core(Error::Ioctl(_, _, _, err))) if err == Box::new(nix::errno::Errno::ENXIO)
+            Err(DmError::Core(Error::Ioctl(_, _, _, err))) if *err == nix::errno::Errno::ENXIO
         );
     }
 
@@ -1079,7 +1079,7 @@ mod tests {
                 &DevId::Name(&name),
                 DmOptions::default().set_flags(DmFlags::DM_STATUS_TABLE)
             ),
-            Err(DmError::Core(Error::Ioctl(_, _, _, err))) if err == Box::new(nix::errno::Errno::ENXIO)
+            Err(DmError::Core(Error::Ioctl(_, _, _, err))) if *err == nix::errno::Errno::ENXIO
         );
     }
 
@@ -1111,7 +1111,7 @@ mod tests {
         let name = test_name("example_dev").expect("is valid DM name");
         assert_matches!(
             DM::new().unwrap().device_info(&DevId::Name(&name)),
-            Err(DmError::Core(Error::Ioctl(op, _, _, err))) if err == Box::new(nix::errno::Errno::ENXIO) && op == dmi::DM_DEV_STATUS_CMD as u8
+            Err(DmError::Core(Error::Ioctl(op, _, _, err))) if *err == nix::errno::Errno::ENXIO && op == dmi::DM_DEV_STATUS_CMD as u8
         );
     }
 
@@ -1130,19 +1130,19 @@ mod tests {
             .unwrap();
         assert_matches!(
             dm.device_create(&name, Some(&uuid), DmOptions::default()),
-            Err(DmError::Core(Error::Ioctl(op, _, _, err))) if err == Box::new(nix::errno::Errno::EBUSY) && op == dmi::DM_DEV_CREATE_CMD as u8
+            Err(DmError::Core(Error::Ioctl(op, _, _, err))) if *err == nix::errno::Errno::EBUSY && op == dmi::DM_DEV_CREATE_CMD as u8
         );
         assert_matches!(
             dm.device_create(&name, None, DmOptions::default()),
-            Err(DmError::Core(Error::Ioctl(op, _, _, err))) if err == Box::new(nix::errno::Errno::EBUSY) && op == dmi::DM_DEV_CREATE_CMD as u8
+            Err(DmError::Core(Error::Ioctl(op, _, _, err))) if *err == nix::errno::Errno::EBUSY && op == dmi::DM_DEV_CREATE_CMD as u8
         );
         assert_matches!(
             dm.device_create(&name, Some(&uuid_alt), DmOptions::default()),
-            Err(DmError::Core(Error::Ioctl(op, _, _, err))) if err == Box::new(nix::errno::Errno::EBUSY) && op == dmi::DM_DEV_CREATE_CMD as u8
+            Err(DmError::Core(Error::Ioctl(op, _, _, err))) if *err == nix::errno::Errno::EBUSY && op == dmi::DM_DEV_CREATE_CMD as u8
         );
         assert_matches!(
             dm.device_create(&name_alt, Some(&uuid), DmOptions::default()),
-            Err(DmError::Core(Error::Ioctl(op, _, _, err))) if err == Box::new(nix::errno::Errno::EBUSY) && op == dmi::DM_DEV_CREATE_CMD as u8
+            Err(DmError::Core(Error::Ioctl(op, _, _, err))) if *err == nix::errno::Errno::EBUSY && op == dmi::DM_DEV_CREATE_CMD as u8
         );
         dm.device_remove(&DevId::Name(&name), DmOptions::default())
             .unwrap();
