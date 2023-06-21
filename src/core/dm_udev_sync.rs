@@ -31,9 +31,11 @@ pub mod sync_semaphore {
         IPC_RMID,
     };
 
+    use nix::unistd::{access, AccessFlags};
+
     use rand::Rng;
     use retry::{delay::NoDelay, retry, OperationResult};
-    use std::io;
+    use std::{io, path::Path};
 
     use crate::core::sysvsem::seminfo;
 
@@ -97,6 +99,15 @@ pub mod sync_semaphore {
                 }
             }
         }
+    }
+
+    const UDEV_SOCKET_PATH: &str = "/run/udev/control";
+
+    fn udev_running() -> bool {
+        matches!(
+            access(Path::new(UDEV_SOCKET_PATH), AccessFlags::F_OK),
+            Ok(())
+        )
     }
 
     /// Allocate or retrieve a SysV semaphore set identifier
@@ -291,6 +302,12 @@ pub mod sync_semaphore {
         /// Allocate a SysV semaphore according to the device-mapper udev cookie
         /// protocol and set the initial state of the semaphore counter.
         fn begin(hdr: &mut dmi::Struct_dm_ioctl, ioctl: u8) -> DmResult<Self> {
+            if !udev_running() {
+                return Err(DmError::Core(errors::Error::UdevSync(
+                    "Udev daemon is not running: unable to create devices.".to_string(),
+                )));
+            }
+
             match ioctl as u32 {
                 dmi::DM_DEV_REMOVE_CMD | dmi::DM_DEV_RENAME_CMD | dmi::DM_DEV_SUSPEND_CMD
                     if *SYSV_SEM_SUPPORTED && (hdr.flags & DmFlags::DM_SUSPEND.bits()) == 0 => {}
