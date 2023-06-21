@@ -53,7 +53,7 @@ jobs:
     strategy:
       matrix:
         include:
-          - toolchain: 1.66.1  # LOWEST SUPPORTED RUST TOOLCHAIN
+          - toolchain: 1.69.0  # LOWEST SUPPORTED RUST TOOLCHAIN
           - toolchain: 1.70.0  # CURRENT DEVELOPMENT RUST TOOLCHAIN
     runs-on: ubuntu-20.04
     steps:
