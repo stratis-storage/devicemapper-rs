@@ -24,9 +24,6 @@ jobs:
         run: >
           dnf install -y
           make
-          python-unversioned-command
           ${{ matrix.dependencies }}
-      - name: Display Python version
-        run: python --version
       - name: ${{ matrix.task }}
         run: ${{ matrix.task }}
