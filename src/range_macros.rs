@@ -345,7 +345,7 @@ mod tests {
     fn test_summary_operations() {
         // Test Sum
         assert_eq!(
-            vec![Units(2), Units(3)].iter().cloned().sum::<Units>(),
+            [Units(2), Units(3)].iter().cloned().sum::<Units>(),
             Units(5)
         );
     }
