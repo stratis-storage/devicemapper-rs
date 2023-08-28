@@ -16,7 +16,7 @@ jobs:
       matrix:
         include:
           - components: cargo
-            toolchain: 1.71.1  # CURRENT DEVELOPMENT RUST TOOLCHAIN
+            toolchain: 1.72.0  # CURRENT DEVELOPMENT RUST TOOLCHAIN
             task: make -f Makefile audit
           # Allowed because a failure may occur after a new Rust stable
           # version is released.
@@ -41,7 +41,7 @@ jobs:
     strategy:
       matrix:
         include:
-          - toolchain: 1.71.1  # CURRENT DEVELOPMENT RUST TOOLCHAIN
+          - toolchain: 1.72.0  # CURRENT DEVELOPMENT RUST TOOLCHAIN
     runs-on: ubuntu-20.04
     steps:
       - uses: actions/checkout@v3
@@ -77,7 +77,7 @@ jobs:
       - uses: dtolnay/rust-toolchain@master
         with:
           components: cargo
-          toolchain: 1.71.1  # CURRENT DEVELOPMENT RUST TOOLCHAIN
+          toolchain: 1.72.0  # CURRENT DEVELOPMENT RUST TOOLCHAIN
       - name: Check out ci repo
         run: git clone https://github.com/stratis-storage/ci.git
       - name: Run comparisons of version specs with available Fedora packages
