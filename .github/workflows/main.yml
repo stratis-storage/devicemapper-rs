@@ -71,44 +71,6 @@ jobs:
       - name: Run all tests on ${{ matrix.toolchain }} toolchain
         run: sudo PATH=$GITHUB_WORKSPACE/.cargo/bin:$PATH make -f Makefile sudo_test  # yamllint disable rule:line-length
 
-  checks-with-ci-repo:
-    strategy:
-      matrix:
-        include:
-          - task: >
-              SET_LOWER_BOUNDS=./set_lower_bounds
-              MANIFEST_PATH=../../devicemapper-rs-sys/Cargo.toml
-              make -f ../../Makefile verify-dependency-bounds
-          - task: >
-              SET_LOWER_BOUNDS=./set_lower_bounds
-              MANIFEST_PATH=../../Cargo.toml
-              make -f ../../Makefile verify-dependency-bounds
-    runs-on: ubuntu-20.04
-    container:
-      image: fedora:38  # CURRENT DEVELOPMENT ENVIRONMENT
-    steps:
-      - uses: actions/checkout@v3
-      - name: Install dependencies for Fedora
-        run: >
-          dnf install -y
-          clang
-          curl
-          device-mapper-devel
-          git
-          make
-          openssl-devel
-          python-requests
-          python-semantic_version
-      - uses: dtolnay/rust-toolchain@master
-        with:
-          components: cargo
-          toolchain: 1.71.1  # CURRENT DEVELOPMENT RUST TOOLCHAIN
-      - name: Check out ci repo
-        run: git clone https://github.com/stratis-storage/ci.git
-      - name: Run ${{ matrix.task }}
-        run: ${{ matrix.task }}
-        working-directory: ./ci/dependency_management
-
   # VERIFICATION OF TEST INFRASTRUCTURE
   yamllint:
     runs-on: ubuntu-20.04
