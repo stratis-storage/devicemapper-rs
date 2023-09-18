@@ -37,27 +37,6 @@ jobs:
       - name: Test ${{ matrix.task }} on ${{ matrix.toolchain }} toolchain
         run: ${{ matrix.task }}
 
-  tarpaulin:
-    strategy:
-      matrix:
-        include:
-          - toolchain: 1.72.0  # CURRENT DEVELOPMENT RUST TOOLCHAIN
-    runs-on: ubuntu-20.04
-    steps:
-      - uses: actions/checkout@v3
-      - uses: dtolnay/rust-toolchain@master
-        with:
-          components: cargo
-          toolchain: ${{ matrix.toolchain }}
-      - name: Install dependencies
-        run: |
-          sudo apt-get -q update
-          sudo apt-get -y install libdevmapper-dev
-      - name: Set toolchain override with sudo
-        run: sudo /home/runner/.cargo/bin/rustup override set ${{ matrix.toolchain }}  # yamllint disable rule:line-length
-      - name: Run all tests on ${{ matrix.toolchain }} toolchain
-        run: sudo PATH=$GITHUB_WORKSPACE/.cargo/bin:$PATH make -f Makefile tarpaulin  # yamllint disable rule:line-length
-
   checks-with-ci-repo:
     runs-on: ubuntu-20.04
     container:
