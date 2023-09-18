@@ -14,11 +14,8 @@ DENY = -D warnings -D future-incompatible -D unused -D rust_2018_idioms -D nonst
 
 CLIPPY_DENY = -D clippy::all -D clippy::cargo -A clippy::multiple-crate-versions
 
-${HOME}/.cargo/bin/cargo-audit:
-	cargo install cargo-audit
-
-audit: ${HOME}/.cargo/bin/cargo-audit
-	PATH=${HOME}/.cargo/bin:${PATH} cargo audit -D warnings
+audit:
+	cargo audit -D warnings
 
 SET_LOWER_BOUNDS ?=
 test-set-lower-bounds:
