@@ -14,25 +14,8 @@ DENY = -D warnings -D future-incompatible -D unused -D rust_2018_idioms -D nonst
 
 CLIPPY_DENY = -D clippy::all -D clippy::cargo -A clippy::multiple-crate-versions
 
-${HOME}/.cargo/bin/cargo-tree:
-	cargo install cargo-tree
-
-${HOME}/.cargo/bin/cargo-audit:
-	cargo install cargo-audit
-
-${HOME}/.cargo/bin/cargo-tarpaulin:
-	cargo install cargo-tarpaulin
-
-tree: ${HOME}/.cargo/bin/cargo-tree
-	PATH=${HOME}/.cargo/bin:${PATH} cargo tree
-
-audit: ${HOME}/.cargo/bin/cargo-audit
-	PATH=${HOME}/.cargo/bin:${PATH} cargo audit -D warnings
-
-tarpaulin: ${HOME}/.cargo/bin/cargo-tarpaulin
-	PATH=${HOME}/.cargo/bin:${PATH}  \
-	RUST_BACKTRACE=1 \
-	cargo tarpaulin -v -- --test-threads=1
+audit:
+	cargo audit -D warnings
 
 SET_LOWER_BOUNDS ?=
 test-set-lower-bounds:
@@ -98,6 +81,5 @@ yamllint:
 	test
 	test-compare-fedora-versions
 	test-set-lower-bounds
-	tree
 	verify-dependency-bounds
 	yamllint
