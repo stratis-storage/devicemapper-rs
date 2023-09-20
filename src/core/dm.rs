@@ -1020,7 +1020,7 @@ mod tests {
 
     #[test]
     /// Renaming a device that does not exist yields an error.
-    fn sudo_test_rename_non_existant() {
+    fn sudo_test_rename_non_existent() {
         let new_name = test_name("new_name").expect("is valid DM name");
         assert_matches!(
             DM::new().unwrap().device_rename(
@@ -1033,7 +1033,7 @@ mod tests {
 
     #[test]
     /// Removing a device that does not exist yields an error.
-    fn sudo_test_remove_non_existant() {
+    fn sudo_test_remove_non_existent() {
         assert_matches!(
             DM::new().unwrap().device_remove(
                 &DevId::Name(&test_name("junk").expect("is valid DM name")),
@@ -1059,8 +1059,8 @@ mod tests {
     }
 
     #[test]
-    /// Table status on a non-existant name should return an error.
-    fn sudo_test_table_status_non_existant() {
+    /// Table status on a non-existent name should return an error.
+    fn sudo_test_table_status_non_existent() {
         assert_matches!(
             DM::new().unwrap().table_status(
                 &DevId::Name(&test_name("junk").expect("is valid DM name")),
@@ -1071,8 +1071,8 @@ mod tests {
     }
 
     #[test]
-    /// Table status on a non-existant name with TABLE_STATUS flag errors.
-    fn sudo_test_table_status_non_existant_table() {
+    /// Table status on a non-existent name with TABLE_STATUS flag errors.
+    fn sudo_test_table_status_non_existent_table() {
         let name = test_name("junk").expect("is valid DM name");
         assert_matches!(
             DM::new().unwrap().table_status(

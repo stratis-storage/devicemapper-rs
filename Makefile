@@ -17,6 +17,9 @@ CLIPPY_DENY = -D clippy::all -D clippy::cargo -A clippy::multiple-crate-versions
 audit:
 	cargo audit -D warnings
 
+check-typos:
+	typos
+
 SET_LOWER_BOUNDS ?=
 test-set-lower-bounds:
 	echo "Testing that SET_LOWER_BOUNDS environment variable is set to a valid path"
@@ -73,6 +76,7 @@ yamllint:
 	build
 	check-fedora-versions
 	check-fedora-versions-sys
+	check-typos
 	clippy
 	docs
 	fmt

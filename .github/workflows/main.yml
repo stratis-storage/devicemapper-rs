@@ -35,6 +35,9 @@ jobs:
           - components: cargo
             toolchain: 1.72.0  # CURRENT DEVELOPMENT RUST TOOLCHAIN
             task: make -f Makefile docs
+          - components: cargo
+            toolchain: 1.72.0  # CURRENT DEVELOPMENT RUST TOOLCHAIN
+            task: make -f Makefile check-typos
     runs-on: ubuntu-20.04
     steps:
       - uses: actions/checkout@v3
@@ -42,6 +45,9 @@ jobs:
         with:
           components: ${{ matrix.components }}
           toolchain: ${{ matrix.toolchain }}
+      - uses: baptiste0928/cargo-install@v2
+        with:
+          crate: typos-cli
       - name: Install dependencies
         run: |
           sudo apt-get -q update
