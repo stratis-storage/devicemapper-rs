@@ -407,7 +407,7 @@ impl FromStr for ThinPoolStatus {
             "-" => false,
             "needs_check" => true,
             val => {
-                return Err(make_unexpected_value_error(8, val, "needs checK"));
+                return Err(make_unexpected_value_error(8, val, "needs check"));
             }
         };
 
