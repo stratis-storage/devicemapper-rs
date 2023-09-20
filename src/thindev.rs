@@ -551,7 +551,7 @@ mod tests {
     /// Test thin device create, load, and snapshot and make sure that all is well with udev
     /// db and symlink generation.
     fn test_udev_userspace(paths: &[&Path]) {
-        // Confirm tht the correct symlink has been constructed.
+        // Confirm that the correct symlink has been constructed.
         fn validate(path_uuid: &Uuid, devnode: &Path) {
             udev_settle().unwrap();
 

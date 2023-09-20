@@ -189,7 +189,9 @@ pub mod sync_semaphore {
         match semctl(semid, 0, GETVAL, None) {
             Ok(1) => Ok((cookie, semid)),
             _ => {
-                error!("Initalization of udev notification semaphore returned inconsistent value.");
+                error!(
+                    "Initialization of udev notification semaphore returned inconsistent value."
+                );
                 Err(DmError::udev_sync_error_from_os())
             }
         }
