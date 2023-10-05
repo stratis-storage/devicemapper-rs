@@ -126,7 +126,7 @@ pub fn devnode_to_devno(path: &Path) -> DmResult<Option<u64>> {
                 None
             },
         ),
-        Err(err) if err == nix::Error::ENOENT => Ok(None),
+        Err(nix::Error::ENOENT) => Ok(None),
         Err(err) => Err(DmError::Core(errors::Error::MetadataIo(
             path.to_owned(),
             err.to_string(),
