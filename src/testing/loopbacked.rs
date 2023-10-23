@@ -5,7 +5,6 @@
 use std::{
     fs::OpenOptions,
     io::{self, Seek, SeekFrom, Write},
-    os::unix::io::AsRawFd,
     panic,
     path::{Path, PathBuf},
 };
@@ -100,7 +99,7 @@ fn get_devices(count: u8, dir: &TempDir) -> Vec<LoopTestDev> {
             .open(&path)
             .unwrap();
 
-        nix::unistd::ftruncate(f.as_raw_fd(), IEC::Gi as nix::libc::off_t).unwrap();
+        nix::unistd::ftruncate(&f, IEC::Gi as nix::libc::off_t).unwrap();
         f.sync_all().unwrap();
 
         let ltd = LoopTestDev::new(&lc, &path);
