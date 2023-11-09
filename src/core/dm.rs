@@ -384,7 +384,7 @@ impl DM {
         match retry_with_index(
             Fixed::from_millis(DM_REMOVE_MSLEEP_DELAY).take(DM_REMOVE_RETRIES - 1),
             |i| {
-                debug!("Device remove attempt {} of {}", i, DM_REMOVE_RETRIES);
+                trace!("Device remove attempt {} of {}", i, DM_REMOVE_RETRIES);
                 self.try_device_remove(id, options)
             },
         ) {
@@ -469,7 +469,7 @@ impl DM {
     pub fn device_info(&self, id: &DevId<'_>) -> DmResult<DeviceInfo> {
         let mut hdr = DmOptions::default().to_ioctl_hdr(Some(id), DmFlags::empty())?;
 
-        debug!("Retrieving info for {}", id);
+        trace!("Retrieving info for {}", id);
         self.do_ioctl(dmi::DM_DEV_STATUS_CMD as u8, &mut hdr, None)
             .map(|(hdr, _)| hdr)
     }
@@ -489,7 +489,7 @@ impl DM {
     ) -> DmResult<(DeviceInfo, Vec<(u64, u64, String, String)>)> {
         let mut hdr = options.to_ioctl_hdr(Some(id), DmFlags::DM_QUERY_INACTIVE_TABLE)?;
 
-        debug!("Waiting on event for {}", id);
+        trace!("Waiting on event for {}", id);
         let (hdr_out, data_out) = self.do_ioctl(dmi::DM_DEV_WAIT_CMD as u8, &mut hdr, None)?;
 
         let status = DM::parse_table_status(hdr.target_count, &data_out)?;
@@ -577,7 +577,7 @@ impl DM {
         // Flatten targets into a buf
         let data_in = cursor.into_inner();
 
-        debug!("Loading table \"{:?}\" for {}", targets, id);
+        trace!("Loading table \"{:?}\" for {}", targets, id);
         self.do_ioctl(dmi::DM_TABLE_LOAD_CMD as u8, &mut hdr, Some(&data_in))
             .map(|(hdr, _)| hdr)
     }
@@ -586,7 +586,7 @@ impl DM {
     pub fn table_clear(&self, id: &DevId<'_>) -> DmResult<DeviceInfo> {
         let mut hdr = DmOptions::default().to_ioctl_hdr(Some(id), DmFlags::empty())?;
 
-        debug!("Clearing inactive dable for {}", id);
+        trace!("Clearing inactive table for {}", id);
         self.do_ioctl(dmi::DM_TABLE_CLEAR_CMD as u8, &mut hdr, None)
             .map(|(hdr, _)| hdr)
     }
@@ -601,7 +601,7 @@ impl DM {
     pub fn table_deps(&self, id: &DevId<'_>, options: DmOptions) -> DmResult<Vec<Device>> {
         let mut hdr = options.to_ioctl_hdr(Some(id), DmFlags::DM_QUERY_INACTIVE_TABLE)?;
 
-        debug!("Querying dependencies for {}", id);
+        trace!("Querying dependencies for {}", id);
         let (_, data_out) = self.do_ioctl(dmi::DM_TABLE_DEPS_CMD as u8, &mut hdr, None)?;
 
         if data_out.is_empty() {
@@ -707,7 +707,7 @@ impl DM {
             DmFlags::DM_NOFLUSH | DmFlags::DM_STATUS_TABLE | DmFlags::DM_QUERY_INACTIVE_TABLE,
         )?;
 
-        debug!("Retrieving table status for {}", id);
+        trace!("Retrieving table status for {}", id);
         let (hdr_out, data_out) = self.do_ioctl(dmi::DM_TABLE_STATUS_CMD as u8, &mut hdr, None)?;
 
         let status = DM::parse_table_status(hdr_out.target_count, &data_out)?;
@@ -721,7 +721,7 @@ impl DM {
     pub fn list_versions(&self) -> DmResult<Vec<(String, u32, u32, u32)>> {
         let mut hdr = DmOptions::default().to_ioctl_hdr(None, DmFlags::empty())?;
 
-        debug!("Listing loaded target versions");
+        trace!("Listing loaded target versions");
         let (_, data_out) = self.do_ioctl(dmi::DM_LIST_VERSIONS_CMD as u8, &mut hdr, None)?;
 
         let mut targets = Vec::new();
@@ -805,7 +805,7 @@ impl DM {
     pub fn arm_poll(&self) -> DmResult<DeviceInfo> {
         let mut hdr = DmOptions::default().to_ioctl_hdr(None, DmFlags::empty())?;
 
-        debug!("Issuing device-mapper arm poll command");
+        trace!("Issuing device-mapper arm poll command");
         self.do_ioctl(dmi::DM_DEV_ARM_POLL_CMD as u8, &mut hdr, None)
             .map(|(hdr, _)| hdr)
     }
