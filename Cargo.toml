@@ -15,7 +15,7 @@ exclude = [".clippy.toml", ".githooks/*", ".gitignore", ".github/*", "Makefile"]
 
 [dependencies]
 bitflags = "2.3.3"
-nix = "0.26.0"
+nix = {version = "0.27.1", features=["fs", "ioctl", "mount"]}
 env_logger="0.10.0"
 semver = "1.0.0"
 serde = "1.0.60"
