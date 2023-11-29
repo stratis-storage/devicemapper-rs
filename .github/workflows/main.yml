@@ -81,7 +81,7 @@ jobs:
   yamllint:
     runs-on: ubuntu-20.04
     container:
-      image: fedora:38  # CURRENT DEVELOPMENT ENVIRONMENT
+      image: fedora:39  # CURRENT DEVELOPMENT ENVIRONMENT
     steps:
       - uses: actions/checkout@v3
       - name: Install dependencies for Fedora
