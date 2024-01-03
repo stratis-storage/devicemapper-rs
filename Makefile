@@ -8,6 +8,12 @@ else
   MANIFEST_PATH_ARGS = --manifest-path=${MANIFEST_PATH}
 endif
 
+ifeq ($(origin CLIPPY_FIX), undefined)
+  CLIPPY_OPTS = --all-targets --no-deps
+else
+  CLIPPY_OPTS = --fix
+endif
+
 IGNORE_ARGS ?=
 
 DENY = -D warnings -D future-incompatible -D unused -D rust_2018_idioms -D nonstandard_style
@@ -59,10 +65,10 @@ sudo_test:
 
 clippy:
 	RUSTFLAGS="${DENY}" \
-        cargo clippy --all-targets --all-features -- \
+        cargo clippy --all-features ${CLIPPY_OPTS} -- \
         ${CLIPPY_DENY}
 	cd devicemapper-rs-sys && RUSTFLAGS="${DENY}" \
-        cargo clippy --all-targets --all-features -- \
+        cargo clippy --all-features ${CLIPPY_OPTS} -- \
         ${CLIPPY_DENY}
 
 docs:
