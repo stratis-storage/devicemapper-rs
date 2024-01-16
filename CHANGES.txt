@@ -1,3 +1,27 @@
+devicemapper 0.34.1
+===================
+Recommended Rust toolchain version: 1.75.0
+Recommended development release: Fedora 39
+
+- Downgrade some log entries to trace level:
+  https://github.com/stratis-storage/devicemapper-rs/pull/890
+
+- Use loopdev-3 instead of loopdev package:
+  https://github.com/stratis-storage/devicemapper-rs/pull/898
+
+- Increase nix dependency lower bound to 0.27.1:
+  https://github.com/stratis-storage/devicemapper-rs/pull/886
+
+- Tidies and Maintenance:
+  https://github.com/stratis-storage/devicemapper-rs/pull/897
+  https://github.com/stratis-storage/devicemapper-rs/pull/896
+  https://github.com/stratis-storage/devicemapper-rs/pull/895
+  https://github.com/stratis-storage/devicemapper-rs/pull/894
+  https://github.com/stratis-storage/devicemapper-rs/pull/893
+  https://github.com/stratis-storage/devicemapper-rs/pull/892
+  https://github.com/stratis-storage/devicemapper-rs/pull/889
+
+
 devicemapper 0.34.0
 ===================
 Recommended Rust toolchain version: 1.73.0
