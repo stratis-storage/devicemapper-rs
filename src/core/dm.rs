@@ -390,12 +390,7 @@ impl DM {
             },
         ) {
             Ok(deviceinfo) => Ok(deviceinfo),
-            Err(err) => match err {
-                RetryError::Operation { error, .. } => Err(error),
-                _ => Err(DmError::Core(errors::Error::UdevSync(
-                    "Error retrying ioctl".to_string(),
-                ))),
-            },
+            Err(RetryError { error, .. }) => Err(error),
         }
     }
 
