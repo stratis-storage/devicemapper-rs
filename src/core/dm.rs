@@ -381,8 +381,7 @@ impl DM {
     /// Valid flags: `DM_DEFERRED_REMOVE`
     pub fn device_remove(&self, id: &DevId<'_>, options: DmOptions) -> DmResult<DeviceInfo> {
         debug!("Removing device {}", id);
-        #[allow(renamed_and_removed_lints)]
-        #[allow(clippy::blocks_in_if_conditions)]
+        #[allow(clippy::blocks_in_conditions)]
         match retry_with_index(
             Fixed::from_millis(DM_REMOVE_MSLEEP_DELAY).take(DM_REMOVE_RETRIES - 1),
             |i| {
