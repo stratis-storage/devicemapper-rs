@@ -727,6 +727,7 @@ mod tests {
             writeln!(
                 &OpenOptions::new()
                     .create(true)
+                    .truncate(true)
                     .write(true)
                     .open(file_path)
                     .unwrap(),

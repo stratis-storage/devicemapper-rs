@@ -96,6 +96,7 @@ fn get_devices(count: u8, dir: &TempDir) -> Vec<LoopTestDev> {
             .read(true)
             .write(true)
             .create(true)
+            .truncate(true)
             .open(&path)
             .unwrap();
 
