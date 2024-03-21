@@ -69,3 +69,22 @@ impl Sectors {
         MetaBlocks(self / META_BLOCK_SIZE)
     }
 }
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    #[test]
+    fn test_large() {
+        let max_sectors = Sectors(u64::MAX).bytes();
+        let size_sectors = max_sectors.sectors();
+        assert_eq!(size_sectors.bytes(), max_sectors);
+    }
+
+    #[test]
+    fn test_too_large() {
+        let max_bytes = Sectors(u64::MAX).bytes() + Sectors(1).bytes();
+        let sectors = max_bytes.sectors();
+        assert_eq!(sectors, Sectors(0));
+    }
+}
