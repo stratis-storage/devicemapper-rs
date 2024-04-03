@@ -1,0 +1,4 @@
+[default.extend-words]
+# Misidentified as misspelling of "of"
+opf = "opf"
+
