@@ -33,6 +33,8 @@ pub mod sync_semaphore {
 
     use nix::unistd::{access, AccessFlags};
 
+    use once_cell::sync::Lazy;
+
     use rand::Rng;
     use retry::{delay::NoDelay, retry, OperationResult};
     use std::{io, path::Path};
@@ -59,9 +61,7 @@ pub mod sync_semaphore {
         }
     }
 
-    lazy_static! {
-        static ref SYSV_SEM_SUPPORTED: bool = sysv_sem_supported();
-    }
+    static SYSV_SEM_SUPPORTED: Lazy<bool> = Lazy::new(sysv_sem_supported);
 
     /// Test whether the system is configured for SysV semaphore support.
     fn sysv_sem_supported() -> bool {
