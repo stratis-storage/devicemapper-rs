@@ -4,17 +4,19 @@
 
 use std::collections::HashMap;
 
+use once_cell::sync::Lazy;
+
 pub use devicemapper_sys::{
     dm_ioctl as Struct_dm_ioctl, dm_name_list as Struct_dm_name_list,
     dm_target_deps as Struct_dm_target_deps, dm_target_msg as Struct_dm_target_msg,
     dm_target_spec as Struct_dm_target_spec, dm_target_versions as Struct_dm_target_versions, *,
 };
 
-lazy_static! {
-    // Map device-mapper ioctl commands to the minimum ioctl interface version
-    // required. The mapping is based on the _cmd_data_v4 table defined in
-    // libdm/ioctl/libdm-iface.c in the lvm2/libdevmapper sources.
-    static ref IOCTL_VERSIONS: HashMap<u32, (u32, u32, u32)> = HashMap::from([
+// Map device-mapper ioctl commands to the minimum ioctl interface version
+// required. The mapping is based on the _cmd_data_v4 table defined in
+// libdm/ioctl/libdm-iface.c in the lvm2/libdevmapper sources.
+static IOCTL_VERSIONS: Lazy<HashMap<u32, (u32, u32, u32)>> = Lazy::new(|| {
+    HashMap::from([
         (DM_VERSION_CMD, (4, 0, 0)),
         (DM_REMOVE_ALL_CMD, (4, 0, 0)),
         (DM_LIST_DEVICES_CMD, (4, 0, 0)),
@@ -40,8 +42,8 @@ lazy_static! {
         (DM_DEV_ARM_POLL_CMD, (4, 37, 0)),
         #[cfg(devicemapper441supported)]
         (DM_GET_TARGET_VERSION_CMD, (4, 41, 0)),
-    ]);
-}
+    ])
+});
 
 // Map device-mapper ioctl commands to (major, minor, patchlevel)
 // tuple specifying the required kernel ioctl interface version.
