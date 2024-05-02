@@ -3,6 +3,19 @@ name: devicemapper weekly
 
 # yamllint disable-line rule:truthy
 on:
+  push:
+    branches:
+      - master
+    paths-ignore:
+      - 'CHANGES.txt'
+      - '**/README.md'
+  pull_request:
+    branches:
+      - master
+    paths-ignore:
+      - 'CHANGES.txt'
+      - '**/README.md'
+
   schedule:
     - cron: 20 3 * * 2
   workflow_dispatch:
@@ -27,3 +40,35 @@ jobs:
           ${{ matrix.dependencies }}
       - name: ${{ matrix.task }}
         run: ${{ matrix.task }}
+
+  coverage:
+    strategy:
+      matrix:
+        include:
+          - toolchain: 1.73.0  # CURRENT DEVELOPMENT RUST TOOLCHAIN
+    runs-on: ubuntu-20.04
+    steps:
+      - uses: actions/checkout@v3
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          components: cargo
+          toolchain: ${{ matrix.toolchain }}
+      - name: Install dependencies
+        run: |
+          sudo apt-get -q update
+          sudo apt-get -y install libdevmapper-dev
+      - name: Set toolchain override with sudo
+        # yamllint disable rule:line-length
+        run: sudo /home/runner/.cargo/bin/rustup override set ${{ matrix.toolchain }}
+      - name: Install cargo-binutils
+        run: sudo PATH=$GITHUB_WORKSPACE/.cargo/bin:$PATH CARGO_TARGET_X86_64_UNKNOWN_LINUX_GNU_RUNNER='sudo -E' /home/runner/.cargo/bin/cargo install cargo-binutils
+      - name: Add component llvm-tools-preview
+        run: sudo /home/runner/.cargo/bin/rustup component add llvm-tools-preview
+      - name: Run all tests on ${{ matrix.toolchain }} toolchain with profiling
+        run: sudo PATH=$GITHUB_WORKSPACE/.cargo/bin:$PATH PROFILE=1 make -f Makefile sudo_test
+      - name: Merge raw coverage files
+        run: |
+          sudo PATH=$GITHUB_WORKSPACE/.cargo/bin:$PATH CARGO_TARGET_X86_64_UNKNOWN_LINUX_GNU_RUNNER='sudo -E' /root/.cargo/bin/rust-profdata merge --sparse *.profraw -o result.profdata
+          sudo rm *.profraw
+      - name: Generate coverage report
+        run: sudo PATH=$GITHUB_WORKSPACE/.cargo/bin:$PATH CARGO_TARGET_X86_64_UNKNOWN_LINUX_GNU_RUNNER='sudo -E' /root/.cargo/bin/rust-cov report -object $(find target/debug/deps/ -regex ".*devicemapper-[0-9a-f]*") -instr-profile=result.profdata --summary-only

@@ -1,3 +1,8 @@
+ifeq ($(origin PROFILE), undefined)
+else
+  PROFILE_FLAGS = -C instrument-coverage
+endif
+
 ifeq ($(origin FEDORA_RELEASE), undefined)
 else
   FEDORA_RELEASE_ARGS = --release=${FEDORA_RELEASE}
@@ -52,16 +57,16 @@ fmt-ci:
 	cd devicemapper-rs-sys && cargo fmt -- --check
 
 build:
-	RUSTFLAGS="${DENY}" cargo build
+	RUSTFLAGS="${DENY} ${PROFILE_FLAGS}" cargo build
 
 build-tests:
-	RUSTFLAGS="${DENY}" cargo test --no-run
+	RUSTFLAGS="${DENY} ${PROFILE_FLAGS}" cargo test --no-run
 
 test:
-	RUSTFLAGS="${DENY}" RUST_BACKTRACE=1 cargo test -- --skip sudo_ --skip loop_
+	RUSTFLAGS="${DENY} ${PROFILE_FLAGS}" RUST_BACKTRACE=1 cargo test -- --skip sudo_ --skip loop_
 
 sudo_test:
-	RUSTFLAGS="${DENY}" RUST_BACKTRACE=1 RUST_TEST_THREADS=1 CARGO_TARGET_X86_64_UNKNOWN_LINUX_GNU_RUNNER='sudo -E' cargo test
+	RUSTFLAGS="${DENY} ${PROFILE_FLAGS}" RUST_BACKTRACE=1 RUST_TEST_THREADS=1 CARGO_TARGET_X86_64_UNKNOWN_LINUX_GNU_RUNNER='sudo -E' cargo test
 
 clippy:
 	RUSTFLAGS="${DENY}" \
