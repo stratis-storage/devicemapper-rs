@@ -134,10 +134,7 @@ pub mod sync_semaphore {
         semun: Option<semun>,
     ) -> Result<i32, std::io::Error> {
         semctl_cmd_allowed(cmd)?;
-        let semun = match semun {
-            Some(semun) => semun,
-            None => Default::default(),
-        };
+        let semun = semun.unwrap_or_default();
         let r = unsafe { libc_semctl(semid as c_int, semnum as c_int, cmd as c_int, semun) };
         match r {
             i if i < 0 => Err(io::Error::last_os_error()),
