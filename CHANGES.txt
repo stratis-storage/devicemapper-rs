@@ -1,3 +1,30 @@
+devicemapper 0.34.3
+===================
+Recommended Rust toolchain version: 1.79.0
+Recommended development release: Fedora 40
+
+- Use once_cell instead of lazy_static for lazy statics:
+  https://github.com/stratis-storage/devicemapper-rs/pull/917
+
+- Increase nix dependency lower bound to 0.29.0:
+  https://github.com/stratis-storage/devicemapper-rs/pull/922
+
+- Increase tempfile dependency lower bound to 3.4.0:
+  https://github.com/stratis-storage/devicemapper-rs/pull/926
+  https://github.com/stratis-storage/devicemapper-rs/pull/925
+
+- Tidies and Maintenance:
+  https://github.com/stratis-storage/devicemapper-rs/pull/927
+  https://github.com/stratis-storage/devicemapper-rs/pull/923
+  https://github.com/stratis-storage/devicemapper-rs/pull/921
+  https://github.com/stratis-storage/devicemapper-rs/pull/920
+  https://github.com/stratis-storage/devicemapper-rs/pull/919
+  https://github.com/stratis-storage/devicemapper-rs/pull/918
+  https://github.com/stratis-storage/devicemapper-rs/pull/916
+  https://github.com/stratis-storage/devicemapper-rs/pull/915
+  https://github.com/stratis-storage/devicemapper-rs/pull/914
+
+
 devicemapper 0.34.2
 ===================
 Recommended Rust toolchain version: 1.76.0
