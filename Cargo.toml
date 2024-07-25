@@ -44,3 +44,12 @@ path = "./devicemapper-rs-sys"
 
 [build-dependencies]
 semver = "1.0.0"
+
+[lints.rust]
+unexpected_cfgs = { level = "warn", check-cfg = [
+  'cfg(devicemapper41supported)',
+  'cfg(devicemapper42supported)',
+  'cfg(devicemapper437supported)',
+  'cfg(devicemapper441supported)',
+  'cfg(devicemapper46supported)'
+] }
