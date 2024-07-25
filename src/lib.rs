@@ -49,18 +49,18 @@
 //!
 //! 1. Create a `DM`.
 //! 2. Call `DM::list_devices()` and track the `event_nr`s for any DM devices
-//! of interest.
+//!    of interest.
 //! 3. `poll()` on the `DM`'s file descriptor, obtained by calling
-//! `DM::file().as_raw_fd()`.
+//!    `DM::file().as_raw_fd()`.
 //! 4. If the fd indicates activity, first clear the event by calling
-//! `DM::arm_poll()`.  This must be done before event processing to ensure
-//! events are not missed.
+//!    `DM::arm_poll()`.  This must be done before event processing to ensure
+//!    events are not missed.
 //! 5. Process events. Call `DM::list_devices()` again, and compare `event_nr`
-//! returned by the more recent call with `event_nr` values from the earlier
-//! call.  If `event_nr` differs, an event has occurred on that specific
-//! device. Handle the event(s). Update the list of last-seen `event_nr`s.
+//!    returned by the more recent call with `event_nr` values from the earlier
+//!    call.  If `event_nr` differs, an event has occurred on that specific
+//!    device. Handle the event(s). Update the list of last-seen `event_nr`s.
 //! 6. Optionally loop and re-invoke `poll()` on the fd to wait for more
-//! events.
+//!    events.
 
 #![allow(clippy::doc_markdown)]
 #![warn(missing_docs)]
