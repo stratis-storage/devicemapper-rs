@@ -46,10 +46,20 @@ path = "./devicemapper-rs-sys"
 semver = "1.0.0"
 
 [lints.rust]
-unexpected_cfgs = { level = "warn", check-cfg = [
+warnings = { level = "deny" }
+future_incompatible = { level = "deny", priority = 1 }
+unused = { level = "deny", priority = 2}
+rust_2018_idioms = { level = "deny", priority = 3 }
+nonstandard_style = { level = "deny", priority = 4 }
+unexpected_cfgs = { level = "deny", check-cfg = [
   'cfg(devicemapper41supported)',
   'cfg(devicemapper42supported)',
   'cfg(devicemapper437supported)',
   'cfg(devicemapper441supported)',
   'cfg(devicemapper46supported)'
 ] }
+
+[lints.clippy]
+all = { level = "deny" }
+cargo = { level = "deny" , priority = 1}
+multiple-crate-versions = { level = "allow", priority = 2 }
