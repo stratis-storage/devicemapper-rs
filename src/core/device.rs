@@ -23,7 +23,7 @@ pub struct Device {
     pub minor: u32,
 }
 
-/// Display format is the device number in "<major>:<minor>" format
+/// Display format is the device number in `<major>:<minor>` format
 impl fmt::Display for Device {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{}:{}", self.major, self.minor)
