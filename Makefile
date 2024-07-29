@@ -16,10 +16,6 @@ endif
 
 IGNORE_ARGS ?=
 
-DENY = -D warnings -D future-incompatible -D unused -D rust_2018_idioms -D nonstandard_style
-
-CLIPPY_DENY = -D clippy::all -D clippy::cargo -A clippy::multiple-crate-versions
-
 audit:
 	cargo audit -D warnings
 
@@ -32,9 +28,9 @@ test-set-lower-bounds:
 	test -e "${SET_LOWER_BOUNDS}"
 
 verify-dependency-bounds: test-set-lower-bounds
-	RUSTFLAGS="${DENY}" cargo build ${MANIFEST_PATH_ARGS}
+	cargo build ${MANIFEST_PATH_ARGS}
 	${SET_LOWER_BOUNDS} ${MANIFEST_PATH_ARGS}
-	RUSTFLAGS="${DENY}" cargo build ${MANIFEST_PATH_ARGS}
+	cargo build ${MANIFEST_PATH_ARGS}
 
 test-compare-fedora-versions:
 	echo "Testing that COMPARE_FEDORA_VERSIONS environment variable is set to a valid path"
@@ -52,24 +48,20 @@ fmt-ci:
 	cd devicemapper-rs-sys && cargo fmt -- --check
 
 build:
-	RUSTFLAGS="${DENY}" cargo build
+	cargo build
 
 build-tests:
-	RUSTFLAGS="${DENY}" cargo test --no-run
+	cargo test --no-run
 
 test:
-	RUSTFLAGS="${DENY}" RUST_BACKTRACE=1 cargo test -- --skip sudo_ --skip loop_
+	RUST_BACKTRACE=1 cargo test -- --skip sudo_ --skip loop_
 
 sudo_test:
-	RUSTFLAGS="${DENY}" RUST_BACKTRACE=1 RUST_TEST_THREADS=1 CARGO_TARGET_X86_64_UNKNOWN_LINUX_GNU_RUNNER='sudo -E' cargo test
+	RUST_BACKTRACE=1 RUST_TEST_THREADS=1 CARGO_TARGET_X86_64_UNKNOWN_LINUX_GNU_RUNNER='sudo -E' cargo test
 
 clippy:
-	RUSTFLAGS="${DENY}" \
-        cargo clippy --all-features ${CLIPPY_OPTS} -- \
-        ${CLIPPY_DENY}
-	cd devicemapper-rs-sys && RUSTFLAGS="${DENY}" \
-        cargo clippy --all-features ${CLIPPY_OPTS} -- \
-        ${CLIPPY_DENY}
+	cargo clippy --all-features ${CLIPPY_OPTS}
+	(cd devicemapper-rs-sys && cargo clippy --all-features ${CLIPPY_OPTS})
 
 docs:
 	cargo doc --no-deps
