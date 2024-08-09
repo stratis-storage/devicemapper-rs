@@ -34,7 +34,7 @@ jobs:
         run: |
           sudo apt-get -q update
           sudo apt-get -y install libdevmapper-dev
-      - uses: baptiste0928/cargo-install@v2
+      - uses: baptiste0928/cargo-install@v3
         with:
           crate: cargo-audit
       - name: Test ${{ matrix.task }} on ${{ matrix.toolchain }} toolchain
