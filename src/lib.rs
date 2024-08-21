@@ -126,7 +126,8 @@ pub use crate::{
     },
     result::{DmError, DmResult, ErrorEnum},
     shared::{
-        device_exists, DmDevice, TargetLine, TargetParams, TargetTable, TargetType, TargetTypeBuf,
+        device_exists, message, DmDevice, TargetLine, TargetParams, TargetTable, TargetType,
+        TargetTypeBuf,
     },
     thindev::{ThinDev, ThinDevTargetTable, ThinDevWorkingStatus, ThinStatus, ThinTargetParams},
     thindevid::ThinDevId,
