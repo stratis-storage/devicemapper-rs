@@ -410,7 +410,7 @@ impl DM {
             ),
         };
 
-        let data_in = [id_in, &[b'\0']].concat();
+        let data_in = [id_in, b"\0"].concat();
 
         let mut hdr = options.to_ioctl_hdr(None, DmFlags::DM_UUID)?;
         Self::hdr_set_name(&mut hdr, old_name)?;
