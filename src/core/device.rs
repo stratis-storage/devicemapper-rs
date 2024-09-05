@@ -72,9 +72,8 @@ impl From<dev_t> for Device {
 impl From<Device> for dev_t {
     fn from(dev: Device) -> dev_t {
         #[cfg(target_os = "android")]
-        #[allow(unused_unsafe)] // No longer unsafe in libc 0.2.133.
         #[allow(clippy::useless_conversion)] // Param types u32 in libc 0.2.133
-        unsafe {
+        {
             makedev(
                 dev.major
                     .try_into()
@@ -85,10 +84,7 @@ impl From<Device> for dev_t {
             )
         }
         #[cfg(not(target_os = "android"))]
-        #[allow(unused_unsafe)] // No longer unsafe in libc 0.2.133.
-        unsafe {
-            makedev(dev.major, dev.minor)
-        }
+        makedev(dev.major, dev.minor)
     }
 }
 
