@@ -82,7 +82,7 @@ jobs:
       TARGET: aarch64-linux-android
     runs-on: ubuntu-20.04
     container:
-      image: docker.io/circleci/android:api-30-ndk
+      image: docker.io/circleci/android:api-31-ndk
       options: --user 0:0
     steps:
       - uses: actions/checkout@v3
