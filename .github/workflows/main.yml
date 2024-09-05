@@ -77,6 +77,29 @@ jobs:
       - name: Run all tests on ${{ matrix.toolchain }} toolchain
         run: sudo PATH=$GITHUB_WORKSPACE/.cargo/bin:$PATH make -f Makefile sudo_test  # yamllint disable rule:line-length
 
+  android-build:
+    env:
+      TARGET: aarch64-linux-android
+    runs-on: ubuntu-20.04
+    container:
+      image: docker.io/circleci/android:api-30-ndk
+      options: --user 0:0
+    steps:
+      - uses: actions/checkout@v3
+      - name: Install dependencies
+        run: |
+          sudo apt-get -q update
+          sudo apt-get -y install libclang-dev
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          components: cargo
+          toolchain: 1.80.1  # CURRENT DEVELOPMENT RUST TOOLCHAIN
+          targets: x86_64-unknown-linux-gnu
+      - name: Add Android target
+        run: rustup target add ${{ env.TARGET }}
+      - name: Cross compilation build on Android
+        run: cargo build --target ${{ env.TARGET }}
+
   # VERIFICATION OF TEST INFRASTRUCTURE
   yamllint:
     runs-on: ubuntu-20.04
