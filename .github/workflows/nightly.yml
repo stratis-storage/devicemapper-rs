@@ -74,3 +74,17 @@ jobs:
           COMPARE_FEDORA_VERSIONS=./compare_fedora_versions MANIFEST_PATH=../../Cargo.toml FEDORA_RELEASE=f40 make -f ../../Makefile check-fedora-versions
           COMPARE_FEDORA_VERSIONS=./compare_fedora_versions MANIFEST_PATH=../../Cargo.toml FEDORA_RELEASE=f39 make -f ../../Makefile check-fedora-versions
         working-directory: ./ci/dependency_management
+
+  semver-checks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install dependencies
+        run: |
+          sudo apt-get -q update
+          sudo apt-get -y install libdevmapper-dev
+      - name: Do semantic version checks
+        uses: obi1kenobi/cargo-semver-checks-action@v2
+        with:
+          verbose: true
+          rust-toolchain: 1.82.0  # CURRENT DEVELOPMENT RUST TOOLCHAIN
