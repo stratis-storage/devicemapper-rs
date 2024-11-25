@@ -2,6 +2,8 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
+use cfg_if::cfg_if;
+
 use crate::{core::dm_ioctl as dmi, result::DmResult};
 
 pub trait UdevSyncAction {
@@ -527,7 +529,10 @@ pub mod sync_noop {
     }
 }
 
-#[cfg(target_os = "android")]
-pub use self::sync_noop::UdevSync;
-#[cfg(not(target_os = "android"))]
-pub use self::sync_semaphore::UdevSync;
+cfg_if! {
+    if #[cfg(target_os = "android")] {
+        pub use self::sync_noop::UdevSync;
+    } else {
+        pub use self::sync_semaphore::UdevSync;
+    }
+}
