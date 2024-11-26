@@ -1,6 +1,6 @@
 [package]
 name = "devicemapper"
-version = "0.34.4"
+version = "0.34.5"
 authors = ["Stratis Developers <stratis-devel@lists.fedorahosted.org>"]
 description = "A library for using Linux device mapper"
 documentation = "https://docs.rs/devicemapper/"

@@ -1,3 +1,84 @@
+devicemapper 0.34.5
+===================
+Recommended Rust toolchain version: 1.87.0
+Recommended development release: Fedora 41
+
+- devicemapper-rs-sys: Increase bindgen dependency lower bound to 0.71.0;
+  allow default features:
+  https://github.com/stratis-storage/devicemapper-rs/pull/981
+  https://github.com/stratis-storage/devicemapper-rs/pull/975
+
+- Rename lineardev::FeatureArg to FlakeyFeatureArg and export it:
+  https://github.com/stratis-storage/devicemapper-rs/pull/992
+
+- Add feature for disabling cargo metadata:
+  https://github.com/stratis-storage/devicemapper-rs/pull/973
+
+- devicemapper-rs-sys: Use lowest supported Rust as bindgen Rust target:
+  https://github.com/stratis-storage/devicemapper-rs/pull/978
+
+- Release devicemapper-rs-sys v0.3.1;
+  Release devicemapper-rs-sys v0.3.2:
+  https://github.com/stratis-storage/devicemapper-rs/pull/984
+  https://github.com/stratis-storage/devicemapper-rs/pull/953
+
+- devicemapper-rs-sys: Use pkg-config to find header paths in build.rs:
+  https://github.com/stratis-storage/devicemapper-rs/pull/965
+  https://github.com/stratis-storage/devicemapper-rs/pull/952
+
+- Depend on procfs instead of libmount for reading mountinfo:
+  https://github.com/stratis-storage/devicemapper-rs/pull/991
+
+- Increase nix dependency lower bound to 0.30.1:
+  https://github.com/stratis-storage/devicemapper-rs/pull/986
+
+- Increase rand dependency lower bound to 0.9.0:
+  https://github.com/stratis-storage/devicemapper-rs/pull/954
+
+- Increase tempfile dependency lower bound to 3.7.0:
+  https://github.com/stratis-storage/devicemapper-rs/pull/954
+
+- Tidies and Maintenance:
+  https://github.com/stratis-storage/devicemapper-rs/pull/994
+  https://github.com/stratis-storage/devicemapper-rs/pull/989
+  https://github.com/stratis-storage/devicemapper-rs/pull/988
+  https://github.com/stratis-storage/devicemapper-rs/pull/987
+  https://github.com/stratis-storage/devicemapper-rs/pull/985
+  https://github.com/stratis-storage/devicemapper-rs/pull/983
+  https://github.com/stratis-storage/devicemapper-rs/pull/982
+  https://github.com/stratis-storage/devicemapper-rs/pull/980
+  https://github.com/stratis-storage/devicemapper-rs/pull/979
+  https://github.com/stratis-storage/devicemapper-rs/pull/977
+  https://github.com/stratis-storage/devicemapper-rs/pull/976
+  https://github.com/stratis-storage/devicemapper-rs/pull/974
+  https://github.com/stratis-storage/devicemapper-rs/pull/972
+  https://github.com/stratis-storage/devicemapper-rs/pull/971
+  https://github.com/stratis-storage/devicemapper-rs/pull/970
+  https://github.com/stratis-storage/devicemapper-rs/pull/969
+  https://github.com/stratis-storage/devicemapper-rs/pull/968
+  https://github.com/stratis-storage/devicemapper-rs/pull/967
+  https://github.com/stratis-storage/devicemapper-rs/pull/964
+  https://github.com/stratis-storage/devicemapper-rs/pull/962
+  https://github.com/stratis-storage/devicemapper-rs/pull/961
+  https://github.com/stratis-storage/devicemapper-rs/pull/960
+  https://github.com/stratis-storage/devicemapper-rs/pull/959
+  https://github.com/stratis-storage/devicemapper-rs/pull/957
+  https://github.com/stratis-storage/devicemapper-rs/pull/956
+  https://github.com/stratis-storage/devicemapper-rs/pull/955
+  https://github.com/stratis-storage/devicemapper-rs/pull/951
+  https://github.com/stratis-storage/devicemapper-rs/pull/950
+  https://github.com/stratis-storage/devicemapper-rs/pull/949
+  https://github.com/stratis-storage/devicemapper-rs/pull/948
+  https://github.com/stratis-storage/devicemapper-rs/pull/947
+  https://github.com/stratis-storage/devicemapper-rs/pull/946
+  https://github.com/stratis-storage/devicemapper-rs/pull/942
+  https://github.com/stratis-storage/devicemapper-rs/pull/941
+  https://github.com/stratis-storage/devicemapper-rs/pull/940
+  https://github.com/stratis-storage/devicemapper-rs/pull/939
+  https://github.com/stratis-storage/devicemapper-rs/pull/937
+  https://github.com/stratis-storage/devicemapper-rs/pull/936
+
+
 devicemapper 0.34.4
 ===================
 Recommended Rust toolchain version: 1.80.1
