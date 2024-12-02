@@ -41,7 +41,7 @@ pub enum DevId<'a> {
     Uuid(&'a DmUuid),
 }
 
-impl<'a> fmt::Display for DevId<'a> {
+impl fmt::Display for DevId<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match *self {
             DevId::Name(name) => write!(f, "{name}"),
