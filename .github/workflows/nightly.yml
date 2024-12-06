@@ -67,12 +67,12 @@ jobs:
         run: |
           # -sys
           COMPARE_FEDORA_VERSIONS=./compare_fedora_versions MANIFEST_PATH=../../devicemapper-rs-sys/Cargo.toml FEDORA_RELEASE=rawhide make -f ../../Makefile check-fedora-versions
+          COMPARE_FEDORA_VERSIONS=./compare_fedora_versions MANIFEST_PATH=../../devicemapper-rs-sys/Cargo.toml FEDORA_RELEASE=f41 make -f ../../Makefile check-fedora-versions
           COMPARE_FEDORA_VERSIONS=./compare_fedora_versions MANIFEST_PATH=../../devicemapper-rs-sys/Cargo.toml FEDORA_RELEASE=f40 make -f ../../Makefile check-fedora-versions
-          COMPARE_FEDORA_VERSIONS=./compare_fedora_versions MANIFEST_PATH=../../devicemapper-rs-sys/Cargo.toml FEDORA_RELEASE=f39 make -f ../../Makefile check-fedora-versions
           # main
           COMPARE_FEDORA_VERSIONS=./compare_fedora_versions MANIFEST_PATH=../../Cargo.toml FEDORA_RELEASE=rawhide make -f ../../Makefile check-fedora-versions
+          COMPARE_FEDORA_VERSIONS=./compare_fedora_versions MANIFEST_PATH=../../Cargo.toml FEDORA_RELEASE=f41 make -f ../../Makefile check-fedora-versions
           COMPARE_FEDORA_VERSIONS=./compare_fedora_versions MANIFEST_PATH=../../Cargo.toml FEDORA_RELEASE=f40 make -f ../../Makefile check-fedora-versions
-          COMPARE_FEDORA_VERSIONS=./compare_fedora_versions MANIFEST_PATH=../../Cargo.toml FEDORA_RELEASE=f39 make -f ../../Makefile check-fedora-versions
         working-directory: ./ci/dependency_management
 
   semver-checks:
