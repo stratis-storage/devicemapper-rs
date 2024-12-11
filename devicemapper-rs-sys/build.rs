@@ -5,11 +5,27 @@
 use std::{env::var, path::PathBuf};
 
 use bindgen::Builder;
+use pkg_config::{Config, Library};
+
+fn libdevmapper_probe() -> Library {
+    match Config::new().atleast_version("1.02.151").probe("devmapper") {
+        Ok(library) => library,
+        Err(e) => panic!("Suitable version of libdevmapper not found: {}", e),
+    }
+}
 
 fn main() {
+    let libdevmapper = libdevmapper_probe();
     // Generate bindings for dm-ioctl.h and libdevmapper.h
+    // dm-ioctl.h is part of linux-headers/libc and has no pkg-config
     let bindings = Builder::default()
         .header("dm.h")
+        .clang_args(
+            libdevmapper
+                .include_paths
+                .iter()
+                .map(|include| format!("-I{}", include.display())),
+        )
         .allowlist_var("DM.*")
         .allowlist_type("__u16")
         .allowlist_type("dm_ioctl")

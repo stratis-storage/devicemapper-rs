@@ -17,6 +17,9 @@ default-features = false
 features = ["runtime"]
 version = "0.69.0"
 
+[build-dependencies]
+pkg-config = "0.3.31"
+
 [lints.rust]
 warnings = { level = "deny" }
 future_incompatible = { level = "deny", priority = 1 }
