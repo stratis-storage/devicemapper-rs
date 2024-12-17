@@ -1,3 +1,25 @@
+devicemapper 0.34.5 (UNRELEASED)
+================================
+Recommended Rust toolchain version: 1.83.0
+Recommended development release: Fedora 41
+
+- Use pkg-config to find header paths in build.rs:
+  https://github.com/stratis-storage/devicemapper-rs/pull/952
+
+- Tidies and Maintenance:
+  https://github.com/stratis-storage/devicemapper-rs/pull/950
+  https://github.com/stratis-storage/devicemapper-rs/pull/949
+  https://github.com/stratis-storage/devicemapper-rs/pull/948
+  https://github.com/stratis-storage/devicemapper-rs/pull/947
+  https://github.com/stratis-storage/devicemapper-rs/pull/946
+  https://github.com/stratis-storage/devicemapper-rs/pull/942
+  https://github.com/stratis-storage/devicemapper-rs/pull/941
+  https://github.com/stratis-storage/devicemapper-rs/pull/940
+  https://github.com/stratis-storage/devicemapper-rs/pull/939
+  https://github.com/stratis-storage/devicemapper-rs/pull/937
+  https://github.com/stratis-storage/devicemapper-rs/pull/936
+
+
 devicemapper 0.34.4
 ===================
 Recommended Rust toolchain version: 1.80.1
