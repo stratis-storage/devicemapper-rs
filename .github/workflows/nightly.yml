@@ -23,7 +23,7 @@ jobs:
           - components: clippy
             toolchain: stable
             task: make -f Makefile clippy
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@master
@@ -41,7 +41,7 @@ jobs:
         run: ${{ matrix.task }}
 
   checks-with-ci-repo:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     container:
       image: fedora:40  # CURRENT DEVELOPMENT ENVIRONMENT
     steps:

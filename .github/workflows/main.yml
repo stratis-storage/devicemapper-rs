@@ -38,7 +38,7 @@ jobs:
           - components: cargo
             toolchain: 1.84.0  # CURRENT DEVELOPMENT RUST TOOLCHAIN
             task: make -f Makefile check-typos
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@master
@@ -61,7 +61,7 @@ jobs:
         include:
           - toolchain: 1.74.0  # LOWEST SUPPORTED RUST TOOLCHAIN
           - toolchain: 1.84.0  # CURRENT DEVELOPMENT RUST TOOLCHAIN
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@master
@@ -79,7 +79,7 @@ jobs:
 
   # VERIFICATION OF TEST INFRASTRUCTURE
   yamllint:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     container:
       image: fedora:40  # CURRENT DEVELOPMENT ENVIRONMENT
     steps:

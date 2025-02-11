@@ -19,7 +19,7 @@ on:
 
 jobs:
   checks-with-ci-repo:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     container:
       image: fedora:40  # CURRENT DEVELOPMENT ENVIRONMENT
     steps:
