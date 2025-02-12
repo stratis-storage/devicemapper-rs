@@ -149,7 +149,7 @@ pub mod sync_semaphore {
     fn generate_semaphore_cookie() -> OperationResult<(u32, i32), std::io::Error> {
         let mut base_cookie = 0u16;
         while base_cookie == 0 {
-            base_cookie = rand::thread_rng().gen::<u16>();
+            base_cookie = rand::rng().random::<u16>();
         }
         let cookie = dmi::DM_COOKIE_MAGIC << dmi::DM_UDEV_FLAGS_SHIFT | base_cookie as u32;
         match semget(cookie as i32, 1, COOKIE_MODE | IPC_CREAT | IPC_EXCL) {
