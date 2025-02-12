@@ -16,7 +16,7 @@ jobs:
       matrix:
         include:
           - components: cargo
-            toolchain: 1.84.0  # CURRENT DEVELOPMENT RUST TOOLCHAIN
+            toolchain: 1.84.1  # CURRENT DEVELOPMENT RUST TOOLCHAIN
             task: make -f Makefile audit
           # Allowed because a failure may occur after a new Rust stable
           # version is released.
@@ -59,7 +59,7 @@ jobs:
       - uses: dtolnay/rust-toolchain@master
         with:
           components: cargo
-          toolchain: 1.84.0  # CURRENT DEVELOPMENT RUST TOOLCHAIN
+          toolchain: 1.84.1  # CURRENT DEVELOPMENT RUST TOOLCHAIN
       - name: Check out ci repo
         run: git clone https://github.com/stratis-storage/ci.git
       - name: Run comparisons of version specs with available Fedora packages
@@ -87,4 +87,4 @@ jobs:
         uses: obi1kenobi/cargo-semver-checks-action@v2
         with:
           verbose: true
-          rust-toolchain: 1.84.0  # CURRENT DEVELOPMENT RUST TOOLCHAIN
+          rust-toolchain: 1.84.1  # CURRENT DEVELOPMENT RUST TOOLCHAIN
