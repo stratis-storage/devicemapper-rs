@@ -151,7 +151,7 @@ pub mod sync_semaphore {
         while base_cookie == 0 {
             base_cookie = rand::rng().random::<u16>();
         }
-        let cookie = dmi::DM_COOKIE_MAGIC << dmi::DM_UDEV_FLAGS_SHIFT | base_cookie as u32;
+        let cookie = (dmi::DM_COOKIE_MAGIC << dmi::DM_UDEV_FLAGS_SHIFT) | base_cookie as u32;
         match semget(cookie as i32, 1, COOKIE_MODE | IPC_CREAT | IPC_EXCL) {
             Ok(semid) => OperationResult::Ok((cookie, semid)),
             Err(err) => match err.raw_os_error() {
