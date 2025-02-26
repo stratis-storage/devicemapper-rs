@@ -14,6 +14,14 @@ else
   CLIPPY_OPTS = --fix
 endif
 
+ifeq ($(origin MINIMAL), undefined)
+  BUILD = build
+  TEST = test
+else
+  BUILD = minimal-versions build --direct
+  TEST = minimal-versions test --direct
+endif
+
 IGNORE_ARGS ?=
 
 audit:
@@ -21,16 +29,6 @@ audit:
 
 check-typos:
 	typos
-
-SET_LOWER_BOUNDS ?=
-test-set-lower-bounds:
-	echo "Testing that SET_LOWER_BOUNDS environment variable is set to a valid path"
-	test -e "${SET_LOWER_BOUNDS}"
-
-verify-dependency-bounds: test-set-lower-bounds
-	cargo build ${MANIFEST_PATH_ARGS}
-	${SET_LOWER_BOUNDS} ${MANIFEST_PATH_ARGS}
-	cargo build ${MANIFEST_PATH_ARGS}
 
 test-compare-fedora-versions:
 	echo "Testing that COMPARE_FEDORA_VERSIONS environment variable is set to a valid path"
@@ -48,10 +46,10 @@ fmt-ci:
 	cd devicemapper-rs-sys && cargo fmt -- --check
 
 build:
-	cargo build
+	cargo ${BUILD}
 
 build-tests:
-	cargo test --no-run
+	cargo ${TEST} --no-run
 
 test:
 	RUST_BACKTRACE=1 cargo test -- --skip sudo_ --skip loop_
@@ -82,6 +80,4 @@ yamllint:
 	sudo_test
 	test
 	test-compare-fedora-versions
-	test-set-lower-bounds
-	verify-dependency-bounds
 	yamllint
