@@ -58,10 +58,12 @@ impl FromStr for Device {
 
 impl From<dev_t> for Device {
     fn from(val: dev_t) -> Device {
+        #[allow(unused_unsafe)]
         let major = unsafe { major(val) };
         #[cfg(target_os = "android")]
         let major = major as u32;
 
+        #[allow(unused_unsafe)]
         let minor = unsafe { minor(val) };
         #[cfg(target_os = "android")]
         let minor = minor as u32;
