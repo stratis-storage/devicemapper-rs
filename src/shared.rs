@@ -219,6 +219,27 @@ where
     })
 }
 
+/// Obtain a status line from a line containing the target type as its first
+/// entry. Return an error if the line does not have the expected target type.
+/// Precondition: The line's first entry is the target type, followed by a
+/// space, followed by the actual status values.
+pub fn get_status_line<'a, 'b>(
+    status_line: &'a str,
+    expected_target_type: &'b str,
+) -> DmResult<&'a str> {
+    let target_status_pair: Vec<&str> = status_line.splitn(2, ' ').collect();
+    let target_type = target_status_pair[0];
+    if target_type != expected_target_type {
+        let err_msg = format!(
+            "Expected a \"{}\" target entry but found target type \"{}\" in \"{}\"",
+            expected_target_type, target_type, status_line
+        );
+        return Err(DmError::Dm(ErrorEnum::Invalid, err_msg));
+    }
+
+    Ok(target_status_pair[1])
+}
+
 /// Get fields for a single status line.
 /// Return an error if an insufficient number of fields are obtained.
 pub fn get_status_line_fields(status_line: &str, number_required: usize) -> DmResult<Vec<&str>> {
@@ -249,11 +270,10 @@ pub fn get_status(status_lines: &[(u64, u64, String, String)]) -> DmResult<Strin
             ),
         ));
     }
-    Ok(status_lines
+    let line = status_lines
         .first()
-        .expect("if length != 1, already returned")
-        .3
-        .to_owned())
+        .expect("if length != 1, already returned");
+    Ok(format!("{} {}", line.2, line.3))
 }
 
 /// Construct an error when parsing yields an unexpected value.
