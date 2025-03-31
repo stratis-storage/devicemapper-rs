@@ -8,7 +8,11 @@ use bindgen::Builder;
 use pkg_config::{Config, Library};
 
 fn libdevmapper_probe() -> Library {
-    match Config::new().atleast_version("1.02.151").probe("devmapper") {
+    match Config::new()
+        .atleast_version("1.02.151")
+        .cargo_metadata(false)
+        .probe("devmapper")
+    {
         Ok(library) => library,
         Err(e) => panic!("Suitable version of libdevmapper not found: {}", e),
     }
