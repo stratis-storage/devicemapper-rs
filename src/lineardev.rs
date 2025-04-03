@@ -198,7 +198,7 @@ impl fmt::Display for FlakeyTargetParams {
     /// Mandatory parameters:
     ///
     /// * `<dev path>`: Full pathname to the underlying block-device, or a
-    ///                "major:minor" device-number.
+    ///   "major:minor" device-number.
     /// * `<offset>`: Starting sector within the device.
     /// * `<up interval>`: Number of seconds device is available.
     /// * `<down interval>`: Number of seconds device returns errors.
