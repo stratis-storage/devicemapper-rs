@@ -46,6 +46,8 @@ jobs:
       image: fedora:40  # CURRENT DEVELOPMENT ENVIRONMENT
     steps:
       - uses: actions/checkout@v4
+        with:
+          path: devicemapper-rs
       - name: Install dependencies for Fedora
         run: >
           dnf install -y
@@ -61,19 +63,24 @@ jobs:
           components: cargo
           toolchain: 1.86.0  # CURRENT DEVELOPMENT RUST TOOLCHAIN
       - name: Check out ci repo
-        run: git clone https://github.com/stratis-storage/ci.git
-      - name: Run comparisons of version specs with available Fedora packages
+        uses: actions/checkout@v4
+        with:
+          path: ci
+          repository: stratis-storage/ci
+      - name: Run comparison of version specs with -sys package
         # yamllint disable rule:line-length
         run: |
-          # -sys
-          COMPARE_FEDORA_VERSIONS=./compare_fedora_versions MANIFEST_PATH=../../devicemapper-rs-sys/Cargo.toml FEDORA_RELEASE=rawhide make -f ../../Makefile check-fedora-versions
-          COMPARE_FEDORA_VERSIONS=./compare_fedora_versions MANIFEST_PATH=../../devicemapper-rs-sys/Cargo.toml FEDORA_RELEASE=f41 make -f ../../Makefile check-fedora-versions
-          COMPARE_FEDORA_VERSIONS=./compare_fedora_versions MANIFEST_PATH=../../devicemapper-rs-sys/Cargo.toml FEDORA_RELEASE=f40 make -f ../../Makefile check-fedora-versions
-          # main
-          COMPARE_FEDORA_VERSIONS=./compare_fedora_versions MANIFEST_PATH=../../Cargo.toml FEDORA_RELEASE=rawhide make -f ../../Makefile check-fedora-versions
-          COMPARE_FEDORA_VERSIONS=./compare_fedora_versions MANIFEST_PATH=../../Cargo.toml FEDORA_RELEASE=f41 make -f ../../Makefile check-fedora-versions
-          COMPARE_FEDORA_VERSIONS=./compare_fedora_versions MANIFEST_PATH=../../Cargo.toml FEDORA_RELEASE=f40 make -f ../../Makefile check-fedora-versions
-        working-directory: ./ci/dependency_management
+          COMPARE_FEDORA_VERSIONS=$GITHUB_WORKSPACE/ci/dependency_management/compare_fedora_versions FEDORA_RELEASE=rawhide make -f ../Makefile check-fedora-versions
+          COMPARE_FEDORA_VERSIONS=$GITHUB_WORKSPACE/ci/dependency_management/compare_fedora_versions FEDORA_RELEASE=f42 make -f ../Makefile check-fedora-versions
+          COMPARE_FEDORA_VERSIONS=$GITHUB_WORKSPACE/ci/dependency_management/compare_fedora_versions FEDORA_RELEASE=f41 make -f ../Makefile check-fedora-versions
+        working-directory: devicemapper-rs/devicemapper-rs-sys
+      - name: Run comparison of version specs with package
+        # yamllint disable rule:line-length
+        run: |
+          COMPARE_FEDORA_VERSIONS=$GITHUB_WORKSPACE/ci/dependency_management/compare_fedora_versions FEDORA_RELEASE=rawhide make -f Makefile check-fedora-versions
+          COMPARE_FEDORA_VERSIONS=$GITHUB_WORKSPACE/ci/dependency_management/compare_fedora_versions FEDORA_RELEASE=f42 make -f Makefile check-fedora-versions
+          COMPARE_FEDORA_VERSIONS=$GITHUB_WORKSPACE/ci/dependency_management/compare_fedora_versions FEDORA_RELEASE=f41 make -f Makefile check-fedora-versions
+        working-directory: devicemapper-rs
 
   semver-checks:
     runs-on: ubuntu-latest
