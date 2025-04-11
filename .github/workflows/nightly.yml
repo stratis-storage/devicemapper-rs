@@ -53,7 +53,6 @@ jobs:
           dnf install -y
           clang
           curl
-          git
           make
           openssl-devel
           python-requests
