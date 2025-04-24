@@ -15,7 +15,7 @@ categories = ["os::linux-apis", "external-ffi-bindings"]
 [build-dependencies.bindgen]
 default-features = false
 features = ["runtime"]
-version = "0.69.0"
+version = "0.71.0"
 
 [build-dependencies]
 pkg-config = "0.3.31"
