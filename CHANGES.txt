@@ -17,6 +17,13 @@ Recommended development release: Fedora 41
   https://github.com/stratis-storage/devicemapper-rs/pull/954
 
 - Tidies and Maintenance:
+  https://github.com/stratis-storage/devicemapper-rs/pull/974
+  https://github.com/stratis-storage/devicemapper-rs/pull/972
+  https://github.com/stratis-storage/devicemapper-rs/pull/971
+  https://github.com/stratis-storage/devicemapper-rs/pull/970
+  https://github.com/stratis-storage/devicemapper-rs/pull/969
+  https://github.com/stratis-storage/devicemapper-rs/pull/968
+  https://github.com/stratis-storage/devicemapper-rs/pull/967
   https://github.com/stratis-storage/devicemapper-rs/pull/964
   https://github.com/stratis-storage/devicemapper-rs/pull/962
   https://github.com/stratis-storage/devicemapper-rs/pull/961
@@ -25,6 +32,7 @@ Recommended development release: Fedora 41
   https://github.com/stratis-storage/devicemapper-rs/pull/957
   https://github.com/stratis-storage/devicemapper-rs/pull/956
   https://github.com/stratis-storage/devicemapper-rs/pull/955
+  https://github.com/stratis-storage/devicemapper-rs/pull/951
   https://github.com/stratis-storage/devicemapper-rs/pull/950
   https://github.com/stratis-storage/devicemapper-rs/pull/949
   https://github.com/stratis-storage/devicemapper-rs/pull/948
