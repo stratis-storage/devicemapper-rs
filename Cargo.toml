@@ -10,7 +10,7 @@ categories = ["os::linux-apis", "api-bindings"]
 keywords = ["Linux", "device", "mapper", "libdm", "storage"]
 license = "MPL-2.0"
 edition = "2021"
-rust-version = "1.77.0"  # LOWEST SUPPORTED RUST TOOLCHAIN
+rust-version = "1.74.0"  # LOWEST SUPPORTED RUST TOOLCHAIN
 exclude = [".clippy.toml", ".githooks/*", ".gitignore", ".github/*", "Makefile"]
 
 [dependencies]
