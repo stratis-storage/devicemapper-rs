@@ -4,7 +4,7 @@
 
 use std::{env::var, path::PathBuf};
 
-use bindgen::Builder;
+use bindgen::{Builder, RustTarget};
 use pkg_config::{Config, Library};
 
 fn libdevmapper_probe() -> Library {
@@ -23,6 +23,7 @@ fn main() {
     // Generate bindings for dm-ioctl.h and libdevmapper.h
     // dm-ioctl.h is part of linux-headers/libc and has no pkg-config
     let bindings = Builder::default()
+        .rust_target(RustTarget::Stable_1_73)
         .header("dm.h")
         .clang_args(
             libdevmapper
@@ -51,6 +52,7 @@ fn main() {
 
     // Generate bindings for SysV Semaphore IPC
     let bindings = Builder::default()
+        .rust_target(RustTarget::Stable_1_73)
         .header("sem.h")
         .default_macro_constant_type(bindgen::MacroTypeVariation::Signed)
         .allowlist_var("GET.*")
