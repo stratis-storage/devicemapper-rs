@@ -8,11 +8,10 @@ use bindgen::{Builder, RustTarget};
 use pkg_config::{Config, Library};
 
 fn libdevmapper_probe() -> Library {
-    match Config::new()
-        .atleast_version("1.02.151")
-        .cargo_metadata(false)
-        .probe("devmapper")
-    {
+    let mut config = Config::new();
+    #[cfg(feature = "disable_cargo_metadata")]
+    config.cargo_metadata(false);
+    match config.atleast_version("1.02.151").probe("devmapper") {
         Ok(library) => library,
         Err(e) => panic!("Suitable version of libdevmapper not found: {}", e),
     }

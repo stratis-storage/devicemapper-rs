@@ -31,3 +31,6 @@ nonstandard_style = { level = "deny", priority = 4 }
 all = { level = "deny" }
 cargo = { level = "deny" , priority = 1}
 multiple-crate-versions = { level = "allow", priority = 2 }
+
+[features]
+disable_cargo_metadata = []
