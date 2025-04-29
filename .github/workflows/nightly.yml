@@ -93,6 +93,12 @@ jobs:
         run: |
           sudo apt-get -q update
           sudo apt-get -y install libdevmapper-dev
+      - name: Do semantic version checks on devicemapper-rs-sys
+        uses: obi1kenobi/cargo-semver-checks-action@v2
+        with:
+          verbose: true
+          rust-toolchain: 1.86.0  # CURRENT DEVELOPMENT RUST TOOLCHAIN
+          manifest-path: devicemapper-rs-sys
       - name: Do semantic version checks
         uses: obi1kenobi/cargo-semver-checks-action@v2
         with:
