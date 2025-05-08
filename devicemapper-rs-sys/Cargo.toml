@@ -13,8 +13,6 @@ keywords = ["storage", "devicemapper"]
 categories = ["os::linux-apis", "external-ffi-bindings"]
 
 [build-dependencies.bindgen]
-default-features = false
-features = ["runtime"]
 version = "0.71.0"
 
 [build-dependencies]
