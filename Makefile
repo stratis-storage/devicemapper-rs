@@ -3,11 +3,6 @@ else
   FEDORA_RELEASE_ARGS = --release=${FEDORA_RELEASE}
 endif
 
-ifeq ($(origin MANIFEST_PATH), undefined)
-else
-  MANIFEST_PATH_ARGS = --manifest-path=${MANIFEST_PATH}
-endif
-
 ifeq ($(origin CLIPPY_FIX), undefined)
   CLIPPY_OPTS = --all-targets --no-deps
 else
@@ -35,7 +30,7 @@ test-compare-fedora-versions:
 	test -e "${COMPARE_FEDORA_VERSIONS}"
 
 check-fedora-versions: test-compare-fedora-versions
-	${COMPARE_FEDORA_VERSIONS} ${MANIFEST_PATH_ARGS} ${FEDORA_RELEASE_ARGS} ${IGNORE_ARGS}
+	${COMPARE_FEDORA_VERSIONS} ${FEDORA_RELEASE_ARGS} ${IGNORE_ARGS}
 
 fmt:
 	cargo fmt
