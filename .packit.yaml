@@ -1,0 +1,55 @@
+upstream_project_url: https://github.com/stratis-storage/devicemapper
+
+packages:
+  devicemapper-sys:
+    specfile_path: ../distro/rust-devicemapper-sys.spec
+    downstream_package_name: rust-devicemapper-sys
+    actions:
+      post-upstream-clone:
+        - "mkdir ../distro"
+        - "bash -c '(cd ../distro; wget https://src.fedoraproject.org/rpms/rust-devicemapper-sys/raw/rawhide/f/rust-devicemapper-sys.spec https://src.fedoraproject.org/rpms/rust-devicemapper-sys/raw/rawhide/f/rust2rpm.toml)'"
+        - "cargo install cargo-get"
+      create-archive:
+        - "bash -c '(cd devicemapper-rs-sys; cargo package --no-verify)'"
+        - "bash -c '(cd ../distro; rust2rpm devicemapper-sys)'"
+        - "bash -c 'echo \"devicemapper-rs-sys/target/package/devicemapper-sys-$(cd devicemapper-rs-sys; cargo get package.version).crate\"'"
+      get-current-version:
+        - "bash -c '(cd devicemapper-rs-sys; cargo get package.version)'"
+
+  devicemapper:
+    specfile_path: ../distro/rust-devicemapper.spec
+    downstream_package_name: rust-devicemapper
+    actions:
+      post-upstream-clone:
+        - "mkdir ../distro"
+        - "bash -c '(cd ../distro; wget https://src.fedoraproject.org/rpms/rust-devicemapper/raw/rawhide/f/rust-devicemapper.spec)'"
+        - "bash -c '(cd ../distro; wget https://src.fedoraproject.org/rpms/rust-devicemapper/raw/rawhide/f/rust-devicemapper.spec https://src.fedoraproject.org/rpms/rust-devicemapper/raw/rawhide/f/rust2rpm.toml)'"
+        - "cargo install cargo-get"
+      create-archive:
+        - "cargo package --no-verify"
+        - "bash -c '(cd ../distro; rust2rpm devicemapper)'"
+        - "bash -c 'echo \"target/package/devicemapper-$(cargo get package.version).crate\"'"
+      get-current-version:
+        - "cargo get package.version"
+
+srpm_build_deps:
+  - cargo
+  - rust2rpm
+  - rust2rpm-helper
+  - wget2
+  - wget2-wget
+
+jobs:
+  - job: copr_build
+    trigger: pull_request
+    targets:
+      - fedora-all
+
+  - job: copr_build
+    trigger: commit
+    targets:
+      - fedora-all
+
+notifications:
+  pull_request:
+    successful_build: true
