@@ -3,6 +3,17 @@ devicemapper 0.34.5
 Recommended Rust toolchain version: 1.85.0
 Recommended development release: Fedora 41
 
+- devicemapper-rs-sys: Increase bindgen dependency lower bound to 0.71.0;
+  allow default features:
+  https://github.com/stratis-storage/devicemapper-rs/pull/981
+  https://github.com/stratis-storage/devicemapper-rs/pull/975
+
+- Add feature for disabling cargo metadata:
+  https://github.com/stratis-storage/devicemapper-rs/pull/973
+
+- devicemapper-rs-sys: Use lowest supported Rust as bindgen Rust target:
+  https://github.com/stratis-storage/devicemapper-rs/pull/978
+
 - Release devicemapper-rs-sys v0.3.1:
   https://github.com/stratis-storage/devicemapper-rs/pull/953
 
@@ -17,6 +28,9 @@ Recommended development release: Fedora 41
   https://github.com/stratis-storage/devicemapper-rs/pull/954
 
 - Tidies and Maintenance:
+  https://github.com/stratis-storage/devicemapper-rs/pull/982
+  https://github.com/stratis-storage/devicemapper-rs/pull/980
+  https://github.com/stratis-storage/devicemapper-rs/pull/979
   https://github.com/stratis-storage/devicemapper-rs/pull/977
   https://github.com/stratis-storage/devicemapper-rs/pull/976
   https://github.com/stratis-storage/devicemapper-rs/pull/974
