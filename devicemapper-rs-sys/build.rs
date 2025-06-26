@@ -15,7 +15,7 @@ fn libdevmapper_probe() -> Library {
     config.cargo_metadata(false);
     match config.atleast_version("1.02.151").probe("devmapper") {
         Ok(library) => library,
-        Err(e) => panic!("Suitable version of libdevmapper not found: {}", e),
+        Err(e) => panic!("Suitable version of libdevmapper not found: {e}"),
     }
 }
 
