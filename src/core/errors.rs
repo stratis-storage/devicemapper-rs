@@ -70,7 +70,7 @@ impl std::fmt::Display for Error {
                 write!(f, "failed to perform operation due to IO error: {err}")
             }
             Error::UdevSync(err) => {
-                write!(f, "failed to perform udev sync operation: {}", err)
+                write!(f, "failed to perform udev sync operation: {err}")
             }
         }
     }
