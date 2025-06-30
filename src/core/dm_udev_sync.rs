@@ -173,15 +173,15 @@ pub mod sync_semaphore {
         let (cookie, semid) = match retry(NoDelay.take(4), generate_semaphore_cookie) {
             Ok((cookie, semid)) => (cookie, semid),
             Err(err) => {
-                error!("Failed to generate udev notification semaphore: {}", err);
+                error!("Failed to generate udev notification semaphore: {err}");
                 return Err(DmError::Core(errors::Error::UdevSync(err.to_string())));
             }
         };
         let sem_arg: semun = semun { val: 1 };
         if let Err(err) = semctl(semid, 0, SETVAL, Some(sem_arg)) {
-            error!("Failed to initialize udev notification semaphore: {}", err);
+            error!("Failed to initialize udev notification semaphore: {err}");
             if let Err(err2) = notify_sem_destroy(cookie, semid) {
-                error!("Failed to clean up udev notification semaphore: {}", err2);
+                error!("Failed to clean up udev notification semaphore: {err2}");
             }
             return Err(DmError::Core(errors::Error::UdevSync(err.to_string())));
         }
@@ -204,10 +204,7 @@ pub mod sync_semaphore {
     /// notification semaphore.
     fn notify_sem_destroy(cookie: u32, semid: i32) -> DmResult<()> {
         if let Err(err) = semctl(semid, 0, IPC_RMID, None) {
-            error!(
-                "Failed to remove udev synchronization semaphore {} for cookie {}",
-                semid, cookie
-            );
+            error!("Failed to remove udev synchronization semaphore {semid} for cookie {cookie}");
             return Err(DmError::Core(errors::Error::UdevSync(err.to_string())));
         };
         Ok(())
@@ -225,8 +222,7 @@ pub mod sync_semaphore {
         match r {
             i if i < 0 => {
                 error!(
-                    "Failed to increment udev synchronization semaphore {} for cookie {}",
-                    semid, cookie
+                    "Failed to increment udev synchronization semaphore {semid} for cookie {cookie}"
                 );
                 Err(DmError::udev_sync_error_from_os())
             }
@@ -246,8 +242,7 @@ pub mod sync_semaphore {
         match r {
             i if i < 0 => {
                 error!(
-                    "Failed to decrement udev synchronization semaphore {} for cookie {}",
-                    semid, cookie
+                    "Failed to decrement udev synchronization semaphore {semid} for cookie {cookie}"
                 );
                 Err(DmError::udev_sync_error_from_os())
             }
@@ -270,7 +265,7 @@ pub mod sync_semaphore {
                 cookie, err
             );
             if let Err(err2) = notify_sem_destroy(cookie, semid) {
-                error!("Failed to clean up udev notification semaphore: {}", err2);
+                error!("Failed to clean up udev notification semaphore: {err2}");
             }
         }
         let mut sb = sembuf {
@@ -281,10 +276,7 @@ pub mod sync_semaphore {
         let r = unsafe { libc_semop(semid, &mut sb, 1) };
         match r {
             i if i < 0 => {
-                error!(
-                    "Failed to wait on notification semaphore {} for cookie {}",
-                    semid, cookie
-                );
+                error!("Failed to wait on notification semaphore {semid} for cookie {cookie}");
                 Err(DmError::udev_sync_error_from_os())
             }
             _ => Ok(()),
@@ -334,12 +326,9 @@ pub mod sync_semaphore {
             );
 
             if let Err(err) = notify_sem_inc(hdr.event_nr, semid) {
-                error!(
-                    "Failed to set udev notification semaphore initial state: {}",
-                    err
-                );
+                error!("Failed to set udev notification semaphore initial state: {err}");
                 if let Err(err2) = notify_sem_destroy(hdr.event_nr, semid) {
-                    error!("Failed to clean up udev notification semaphore: {}", err2);
+                    error!("Failed to clean up udev notification semaphore: {err2}");
                 }
                 return Err(err);
             }
@@ -358,18 +347,18 @@ pub mod sync_semaphore {
                 let semid = self.semid.expect("active UdevSync must have valid semid");
                 if (flags & DmFlags::DM_UEVENT_GENERATED.bits()) == 0 {
                     if let Err(err) = notify_sem_dec(self.cookie, semid) {
-                        error!("Failed to clear notification semaphore state: {}", err);
+                        error!("Failed to clear notification semaphore state: {err}");
                         if let Err(err2) = notify_sem_destroy(self.cookie, semid) {
-                            error!("Failed to clean up notification semaphore: {}", err2);
+                            error!("Failed to clean up notification semaphore: {err2}");
                         }
                         return Err(err);
                     }
                 }
-                trace!("Waiting on {:?}", self);
+                trace!("Waiting on {self:?}");
                 notify_sem_wait(self.cookie, semid)?;
-                trace!("Destroying {:?}", self);
+                trace!("Destroying {self:?}");
                 if let Err(err) = notify_sem_destroy(self.cookie, semid) {
-                    error!("Failed to clean up notification semaphore: {}", err);
+                    error!("Failed to clean up notification semaphore: {err}");
                 }
             }
             Ok(())
@@ -382,9 +371,9 @@ pub mod sync_semaphore {
         fn cancel(self) {
             if self.is_active() {
                 let semid = self.semid.expect("active UdevSync must have valid semid");
-                trace!("Canceling {:?}", self);
+                trace!("Canceling {self:?}");
                 if let Err(err) = notify_sem_destroy(self.cookie, semid) {
-                    error!("Failed to clean up notification semaphore: {}", err);
+                    error!("Failed to clean up notification semaphore: {err}");
                 }
             }
         }

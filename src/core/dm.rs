@@ -335,7 +335,7 @@ impl DM {
             Self::hdr_set_uuid(&mut hdr, uuid)?;
         }
 
-        debug!("Creating device {} (uuid={:?})", name, uuid);
+        debug!("Creating device {name} (uuid={uuid:?})");
         self.do_ioctl(dmi::DM_DEV_CREATE_CMD as u8, &mut hdr, None)
             .map(|(hdr, _)| hdr)
     }
@@ -380,11 +380,11 @@ impl DM {
     ///
     /// Valid flags: `DM_DEFERRED_REMOVE`
     pub fn device_remove(&self, id: &DevId<'_>, options: DmOptions) -> DmResult<DeviceInfo> {
-        debug!("Removing device {}", id);
+        debug!("Removing device {id}");
         match retry_with_index(
             Fixed::from_millis(DM_REMOVE_MSLEEP_DELAY).take(DM_REMOVE_RETRIES - 1),
             |i| {
-                trace!("Device remove attempt {} of {}", i, DM_REMOVE_RETRIES);
+                trace!("Device remove attempt {i} of {DM_REMOVE_RETRIES}");
                 self.try_device_remove(id, options)
             },
         ) {
@@ -414,7 +414,7 @@ impl DM {
         let mut hdr = options.to_ioctl_hdr(None, DmFlags::DM_UUID)?;
         Self::hdr_set_name(&mut hdr, old_name)?;
 
-        debug!("Renaming device {} to {}", old_name, new);
+        debug!("Renaming device {old_name} to {new}");
         self.do_ioctl(dmi::DM_DEV_RENAME_CMD as u8, &mut hdr, Some(&data_in))
             .map(|(hdr, _)| hdr)
     }
@@ -453,7 +453,7 @@ impl DM {
         } else {
             "Resuming"
         };
-        debug!("{} device {}", action, id);
+        debug!("{action} device {id}");
         self.do_ioctl(dmi::DM_DEV_SUSPEND_CMD as u8, &mut hdr, None)
             .map(|(hdr, _)| hdr)
     }
@@ -464,7 +464,7 @@ impl DM {
     pub fn device_info(&self, id: &DevId<'_>) -> DmResult<DeviceInfo> {
         let mut hdr = DmOptions::default().to_ioctl_hdr(Some(id), DmFlags::empty())?;
 
-        trace!("Retrieving info for {}", id);
+        trace!("Retrieving info for {id}");
         self.do_ioctl(dmi::DM_DEV_STATUS_CMD as u8, &mut hdr, None)
             .map(|(hdr, _)| hdr)
     }
@@ -484,7 +484,7 @@ impl DM {
     ) -> DmResult<(DeviceInfo, Vec<(u64, u64, String, String)>)> {
         let mut hdr = options.to_ioctl_hdr(Some(id), DmFlags::DM_QUERY_INACTIVE_TABLE)?;
 
-        trace!("Waiting on event for {}", id);
+        trace!("Waiting on event for {id}");
         let (hdr_out, data_out) = self.do_ioctl(dmi::DM_DEV_WAIT_CMD as u8, &mut hdr, None)?;
 
         let status = DM::parse_table_status(hdr.target_count, &data_out)?;
@@ -572,7 +572,7 @@ impl DM {
         // Flatten targets into a buf
         let data_in = cursor.into_inner();
 
-        trace!("Loading table \"{:?}\" for {}", targets, id);
+        trace!("Loading table \"{targets:?}\" for {id}");
         self.do_ioctl(dmi::DM_TABLE_LOAD_CMD as u8, &mut hdr, Some(&data_in))
             .map(|(hdr, _)| hdr)
     }
@@ -581,7 +581,7 @@ impl DM {
     pub fn table_clear(&self, id: &DevId<'_>) -> DmResult<DeviceInfo> {
         let mut hdr = DmOptions::default().to_ioctl_hdr(Some(id), DmFlags::empty())?;
 
-        trace!("Clearing inactive table for {}", id);
+        trace!("Clearing inactive table for {id}");
         self.do_ioctl(dmi::DM_TABLE_CLEAR_CMD as u8, &mut hdr, None)
             .map(|(hdr, _)| hdr)
     }
@@ -596,7 +596,7 @@ impl DM {
     pub fn table_deps(&self, id: &DevId<'_>, options: DmOptions) -> DmResult<Vec<Device>> {
         let mut hdr = options.to_ioctl_hdr(Some(id), DmFlags::DM_QUERY_INACTIVE_TABLE)?;
 
-        trace!("Querying dependencies for {}", id);
+        trace!("Querying dependencies for {id}");
         let (_, data_out) = self.do_ioctl(dmi::DM_TABLE_DEPS_CMD as u8, &mut hdr, None)?;
 
         if data_out.is_empty() {
@@ -702,7 +702,7 @@ impl DM {
             DmFlags::DM_NOFLUSH | DmFlags::DM_STATUS_TABLE | DmFlags::DM_QUERY_INACTIVE_TABLE,
         )?;
 
-        trace!("Retrieving table status for {}", id);
+        trace!("Retrieving table status for {id}");
         let (hdr_out, data_out) = self.do_ioctl(dmi::DM_TABLE_STATUS_CMD as u8, &mut hdr, None)?;
 
         let status = DM::parse_table_status(hdr_out.target_count, &data_out)?;
@@ -772,7 +772,7 @@ impl DM {
         data_in.extend(msg.as_bytes());
         data_in.push(b'\0');
 
-        debug!("Sending target message \"{}\" to {}", msg, id);
+        debug!("Sending target message \"{msg}\" to {id}");
         let (hdr_out, data_out) =
             self.do_ioctl(dmi::DM_TARGET_MSG_CMD as u8, &mut hdr, Some(&data_in))?;
 
