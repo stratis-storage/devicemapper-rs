@@ -693,11 +693,15 @@ impl CacheDev {
 
     /// Generate a table to be passed to DM. The format of the table
     /// entries is:
+    /// ```plain
     /// <start sec (0)> <length> "cache" <cache-specific string>
+    /// ```
     /// where the cache-specific string has the format:
+    /// ```plain
     /// <meta maj:min> <cache maj:min> <origin maj:min> <block size>
     /// <#num feature args (1)> writethrough <replacement policy (default)>
     /// <#num policy args (0)>
+    /// ```
     /// There is exactly one entry in the table.
     /// Various defaults are hard coded in the method.
     fn gen_default_table(
