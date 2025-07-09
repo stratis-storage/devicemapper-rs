@@ -23,6 +23,9 @@ Recommended development release: Fedora 41
   https://github.com/stratis-storage/devicemapper-rs/pull/965
   https://github.com/stratis-storage/devicemapper-rs/pull/952
 
+- Increase nix dependency lower bound to 0.30.1:
+  https://github.com/stratis-storage/devicemapper-rs/pull/986
+
 - Increase rand dependency lower bound to 0.9.0:
   https://github.com/stratis-storage/devicemapper-rs/pull/954
 
@@ -30,6 +33,9 @@ Recommended development release: Fedora 41
   https://github.com/stratis-storage/devicemapper-rs/pull/954
 
 - Tidies and Maintenance:
+  https://github.com/stratis-storage/devicemapper-rs/pull/989
+  https://github.com/stratis-storage/devicemapper-rs/pull/988
+  https://github.com/stratis-storage/devicemapper-rs/pull/987
   https://github.com/stratis-storage/devicemapper-rs/pull/985
   https://github.com/stratis-storage/devicemapper-rs/pull/983
   https://github.com/stratis-storage/devicemapper-rs/pull/982
