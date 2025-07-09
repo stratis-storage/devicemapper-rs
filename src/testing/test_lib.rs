@@ -3,13 +3,7 @@
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 use std::{
-    fs::File,
-    io::Read,
-    os::unix::io::AsRawFd,
-    panic::catch_unwind,
-    path::{Path, PathBuf},
-    process::Command,
-    sync::Once,
+    fs::File, os::unix::io::AsRawFd, panic::catch_unwind, path::Path, process::Command, sync::Once,
 };
 
 use nix::mount::{umount2, MntFlags};
@@ -144,7 +138,7 @@ mod cleanup_errors {
     #[derive(Debug)]
     pub enum Error {
         Ioe(std::io::Error),
-        Mnt(libmount::mountinfo::ParseError),
+        Procfs(procfs::ProcError),
         Nix(nix::Error),
         Msg(String),
         Chained(String, Box<Error>),
@@ -159,9 +153,9 @@ mod cleanup_errors {
         }
     }
 
-    impl From<libmount::mountinfo::ParseError> for Error {
-        fn from(err: libmount::mountinfo::ParseError) -> Error {
-            Error::Mnt(err)
+    impl From<procfs::ProcError> for Error {
+        fn from(err: procfs::ProcError) -> Error {
+            Error::Procfs(err)
         }
     }
 
@@ -249,16 +243,13 @@ fn dm_test_devices_remove() -> Result<()> {
 /// Return immediately on the first unmount failure.
 fn dm_test_fs_unmount() -> Result<()> {
     || -> Result<()> {
-        let mut mount_data = String::new();
-        File::open("/proc/self/mountinfo")?.read_to_string(&mut mount_data)?;
-        let parser = libmount::mountinfo::Parser::new(mount_data.as_bytes());
-
-        for mount_point in parser
-            .filter_map(|x| x.ok())
-            .filter_map(|m| m.mount_point.into_owned().into_string().ok())
-            .filter(|mp| mp.contains(DM_TEST_ID))
+        for mount_point in procfs::process::Process::myself()?
+            .mountinfo()?
+            .into_iter()
+            .map(|i| i.mount_point)
+            .filter(|mp| mp.as_path().to_string_lossy().contains(DM_TEST_ID))
         {
-            umount2(&PathBuf::from(mount_point), MntFlags::MNT_DETACH)?;
+            umount2(&mount_point, MntFlags::MNT_DETACH)?;
         }
         Ok(())
     }()
