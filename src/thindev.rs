@@ -361,9 +361,13 @@ impl ThinDev {
 
     /// Generate a table to be passed to DM. The format of the table
     /// entries is:
+    /// ```plain
     /// <start (0)> <length> "thin" <thin device specific string>
+    /// ```
     /// where the thin device specific string has the format:
+    /// ```plain
     /// <thinpool maj:min> <thin_id>
+    /// ```
     /// There is exactly one entry in the table.
     /// Various defaults are hard coded in the method.
     fn gen_default_table(
