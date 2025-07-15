@@ -114,7 +114,7 @@ impl FromStr for Direction {
 /// If no feature parameters are present, during the periods of
 /// unreliability, all I/O returns errors.
 #[derive(Debug, Hash, Clone, Eq, PartialEq)]
-pub enum FeatureArg {
+pub enum FlakeyFeatureArg {
     /// drop_writes:
     ///
     /// All write I/O is silently ignored.
@@ -140,12 +140,12 @@ pub enum FeatureArg {
     CorruptBioByte(u64, Direction, u8, u64),
 }
 
-impl fmt::Display for FeatureArg {
+impl fmt::Display for FlakeyFeatureArg {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            FeatureArg::DropWrites => write!(f, "drop_writes"),
-            FeatureArg::ErrorWrites => write!(f, "error_writes"),
-            FeatureArg::CorruptBioByte(offset, direction, value, flags) => {
+            FlakeyFeatureArg::DropWrites => write!(f, "drop_writes"),
+            FlakeyFeatureArg::ErrorWrites => write!(f, "error_writes"),
+            FlakeyFeatureArg::CorruptBioByte(offset, direction, value, flags) => {
                 write!(f, "corrupt_bio_byte {offset} {direction} {value} {flags}")
             }
         }
@@ -166,7 +166,7 @@ pub struct FlakeyTargetParams {
     /// DM source type is unsigned, so restrict to u32.
     pub down_interval: u32,
     /// Optional feature arguments
-    pub feature_args: HashSet<FeatureArg>,
+    pub feature_args: HashSet<FlakeyFeatureArg>,
 }
 
 impl FlakeyTargetParams {
@@ -176,7 +176,7 @@ impl FlakeyTargetParams {
         start_offset: Sectors,
         up_interval: u32,
         down_interval: u32,
-        feature_args: Vec<FeatureArg>,
+        feature_args: Vec<FlakeyFeatureArg>,
     ) -> FlakeyTargetParams {
         FlakeyTargetParams {
             device,
@@ -215,13 +215,13 @@ impl FromStr for FlakeyTargetParams {
     type Err = DmError;
 
     fn from_str(s: &str) -> DmResult<FlakeyTargetParams> {
-        fn parse_feature_args(vals: &[&str]) -> DmResult<Vec<FeatureArg>> {
+        fn parse_feature_args(vals: &[&str]) -> DmResult<Vec<FlakeyFeatureArg>> {
             let mut vals_iter = vals.iter();
-            let mut result: Vec<FeatureArg> = Vec::new();
+            let mut result: Vec<FlakeyFeatureArg> = Vec::new();
             while let Some(x) = vals_iter.next() {
                 match x {
-                    &"drop_writes" => result.push(FeatureArg::DropWrites),
-                    &"error_writes" => result.push(FeatureArg::ErrorWrites),
+                    &"drop_writes" => result.push(FlakeyFeatureArg::DropWrites),
+                    &"error_writes" => result.push(FlakeyFeatureArg::ErrorWrites),
                     &"corrupt_bio_byte" => {
                         let offset = vals_iter
                             .next()
@@ -255,7 +255,7 @@ impl FromStr for FlakeyTargetParams {
                             })
                             .and_then(|s| parse_value::<u64>(s, "flags"))?;
 
-                        result.push(FeatureArg::CorruptBioByte(offset, direction, value, flags));
+                        result.push(FlakeyFeatureArg::CorruptBioByte(offset, direction, value, flags));
                     }
                     x => {
                         let err_msg = format!("{x} is an unrecognized feature parameter");
@@ -825,7 +825,7 @@ mod tests {
         let result = "flakey 8:32 0 16 2 1 drop_writes"
             .parse::<FlakeyTargetParams>()
             .unwrap();
-        let expected = [FeatureArg::DropWrites]
+        let expected = [FlakeyFeatureArg::DropWrites]
             .iter()
             .cloned()
             .collect::<HashSet<_>>();
@@ -837,7 +837,7 @@ mod tests {
         let result = "flakey 8:32 0 16 2 1 error_writes"
             .parse::<FlakeyTargetParams>()
             .unwrap();
-        let expected = [FeatureArg::ErrorWrites]
+        let expected = [FlakeyFeatureArg::ErrorWrites]
             .iter()
             .cloned()
             .collect::<HashSet<_>>();
@@ -849,7 +849,7 @@ mod tests {
         let result = "flakey 8:32 0 16 2 5 corrupt_bio_byte 32 r 1 0"
             .parse::<FlakeyTargetParams>()
             .unwrap();
-        let expected = [FeatureArg::CorruptBioByte(32, Direction::Reads, 1, 0)]
+        let expected = [FlakeyFeatureArg::CorruptBioByte(32, Direction::Reads, 1, 0)]
             .iter()
             .cloned()
             .collect::<HashSet<_>>();
@@ -861,7 +861,7 @@ mod tests {
         let result = "flakey 8:32 0 16 2 5 corrupt_bio_byte 224 w 0 32"
             .parse::<FlakeyTargetParams>()
             .unwrap();
-        let expected = [FeatureArg::CorruptBioByte(224, Direction::Writes, 0, 32)]
+        let expected = [FlakeyFeatureArg::CorruptBioByte(224, Direction::Writes, 0, 32)]
             .iter()
             .cloned()
             .collect::<HashSet<_>>();
@@ -874,8 +874,8 @@ mod tests {
             .parse::<FlakeyTargetParams>()
             .unwrap();
         let expected = [
-            FeatureArg::CorruptBioByte(32, Direction::Reads, 1, 0),
-            FeatureArg::DropWrites,
+            FlakeyFeatureArg::CorruptBioByte(32, Direction::Reads, 1, 0),
+            FlakeyFeatureArg::DropWrites,
         ]
         .iter()
         .cloned()
@@ -889,8 +889,8 @@ mod tests {
             .parse::<FlakeyTargetParams>()
             .unwrap();
         let expected = [
-            FeatureArg::DropWrites,
-            FeatureArg::CorruptBioByte(32, Direction::Reads, 1, 0),
+            FlakeyFeatureArg::DropWrites,
+            FlakeyFeatureArg::CorruptBioByte(32, Direction::Reads, 1, 0),
         ]
         .iter()
         .cloned()
@@ -903,7 +903,7 @@ mod tests {
         let result = "flakey 8:32 0 16 2 2 error_writes drop_writes"
             .parse::<FlakeyTargetParams>()
             .unwrap();
-        let expected = [FeatureArg::ErrorWrites, FeatureArg::DropWrites]
+        let expected = [FlakeyFeatureArg::ErrorWrites, FlakeyFeatureArg::DropWrites]
             .iter()
             .cloned()
             .collect::<HashSet<_>>();

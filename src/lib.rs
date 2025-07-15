@@ -121,7 +121,7 @@ pub use crate::{
         DmUdevFlags, DmUuid, DmUuidBuf, DM,
     },
     lineardev::{
-        FeatureArg as FlakeyFeatureArg, FlakeyTargetParams, LinearDev, LinearDevTargetParams,
+        FlakeyFeatureArg, FlakeyTargetParams, LinearDev, LinearDevTargetParams,
         LinearDevTargetTable, LinearTargetParams,
     },
     result::{DmError, DmResult, ErrorEnum},
