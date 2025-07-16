@@ -23,6 +23,9 @@ Recommended development release: Fedora 41
   https://github.com/stratis-storage/devicemapper-rs/pull/965
   https://github.com/stratis-storage/devicemapper-rs/pull/952
 
+- Depend on procfs instead of libmount for reading mountinfo:
+  https://github.com/stratis-storage/devicemapper-rs/pull/991
+
 - Increase nix dependency lower bound to 0.30.1:
   https://github.com/stratis-storage/devicemapper-rs/pull/986
 
@@ -33,6 +36,7 @@ Recommended development release: Fedora 41
   https://github.com/stratis-storage/devicemapper-rs/pull/954
 
 - Tidies and Maintenance:
+  https://github.com/stratis-storage/devicemapper-rs/pull/994
   https://github.com/stratis-storage/devicemapper-rs/pull/989
   https://github.com/stratis-storage/devicemapper-rs/pull/988
   https://github.com/stratis-storage/devicemapper-rs/pull/987
