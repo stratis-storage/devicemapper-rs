@@ -255,7 +255,9 @@ impl FromStr for FlakeyTargetParams {
                             })
                             .and_then(|s| parse_value::<u64>(s, "flags"))?;
 
-                        result.push(FlakeyFeatureArg::CorruptBioByte(offset, direction, value, flags));
+                        result.push(FlakeyFeatureArg::CorruptBioByte(
+                            offset, direction, value, flags,
+                        ));
                     }
                     x => {
                         let err_msg = format!("{x} is an unrecognized feature parameter");
@@ -861,10 +863,15 @@ mod tests {
         let result = "flakey 8:32 0 16 2 5 corrupt_bio_byte 224 w 0 32"
             .parse::<FlakeyTargetParams>()
             .unwrap();
-        let expected = [FlakeyFeatureArg::CorruptBioByte(224, Direction::Writes, 0, 32)]
-            .iter()
-            .cloned()
-            .collect::<HashSet<_>>();
+        let expected = [FlakeyFeatureArg::CorruptBioByte(
+            224,
+            Direction::Writes,
+            0,
+            32,
+        )]
+        .iter()
+        .cloned()
+        .collect::<HashSet<_>>();
         assert_eq!(result.feature_args, expected);
     }
 
