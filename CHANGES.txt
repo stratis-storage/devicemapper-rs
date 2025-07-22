@@ -8,6 +8,9 @@ Recommended development release: Fedora 41
   https://github.com/stratis-storage/devicemapper-rs/pull/981
   https://github.com/stratis-storage/devicemapper-rs/pull/975
 
+- Rename lineardev::FeatureArg to FlakeyFeatureArg and export it:
+  https://github.com/stratis-storage/devicemapper-rs/pull/992
+
 - Add feature for disabling cargo metadata:
   https://github.com/stratis-storage/devicemapper-rs/pull/973
 
