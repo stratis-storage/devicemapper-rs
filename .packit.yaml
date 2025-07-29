@@ -43,6 +43,7 @@ jobs:
   - job: copr_build
     trigger: pull_request
     identifier: copr_pull
+    osh_diff_scan_after_copr_build: false
     targets:
       - fedora-all
 
