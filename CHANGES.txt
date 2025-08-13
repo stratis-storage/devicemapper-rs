@@ -1,3 +1,16 @@
+devicemapper 0.34.6
+===================
+
+- Increase lowest supported Rust to 1.77:
+  https://github.com/stratis-storage/devicemapper-rs/pull/998
+
+- Tidies and Maintenance:
+  https://github.com/stratis-storage/devicemapper-rs/pull/1002
+  https://github.com/stratis-storage/devicemapper-rs/pull/999
+  https://github.com/stratis-storage/devicemapper-rs/pull/997
+  https://github.com/stratis-storage/devicemapper-rs/pull/996
+
+
 devicemapper 0.34.5
 ===================
 Recommended Rust toolchain version: 1.87.0
