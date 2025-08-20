@@ -40,7 +40,7 @@ jobs:
             task: make -f Makefile check-typos
     runs-on: ubuntu-22.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - uses: dtolnay/rust-toolchain@master
         with:
           components: ${{ matrix.components }}
@@ -63,7 +63,7 @@ jobs:
           - toolchain: 1.89.0  # CURRENT DEVELOPMENT RUST TOOLCHAIN
     runs-on: ubuntu-22.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - uses: dtolnay/rust-toolchain@master
         with:
           components: cargo
@@ -83,7 +83,7 @@ jobs:
     container:
       image: fedora:41  # CURRENT DEVELOPMENT ENVIRONMENT
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Install dependencies for Fedora
         run: dnf install -y make yamllint
       - name: Run yamllint
