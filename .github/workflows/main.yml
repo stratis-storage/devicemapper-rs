@@ -41,6 +41,8 @@ jobs:
     runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
       - uses: dtolnay/rust-toolchain@master
         with:
           components: ${{ matrix.components }}
@@ -64,6 +66,8 @@ jobs:
     runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
       - uses: dtolnay/rust-toolchain@master
         with:
           components: cargo
@@ -84,6 +88,8 @@ jobs:
       image: fedora:41  # CURRENT DEVELOPMENT ENVIRONMENT
     steps:
       - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
       - name: Install dependencies for Fedora
         run: dnf install -y make yamllint
       - name: Run yamllint
