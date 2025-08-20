@@ -25,9 +25,10 @@ jobs:
     steps:
       - name: Install git for checkout action
         run: dnf install -y git
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           path: devicemapper-rs
+          persist-credentials: false
       - name: Install dependencies for Fedora
         run: >
           dnf install -y
@@ -43,10 +44,11 @@ jobs:
           components: cargo
           toolchain: 1.89.0  # CURRENT DEVELOPMENT RUST TOOLCHAIN
       - name: Check out ci repo
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           path: ci
           repository: stratis-storage/ci
+          persist-credentials: false
       - name: Run comparisons of version specs with -sys package
         # yamllint disable rule:line-length
         run: |
