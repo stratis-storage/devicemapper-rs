@@ -16,7 +16,7 @@ jobs:
       matrix:
         include:
           - components: cargo
-            toolchain: 1.89.0  # CURRENT DEVELOPMENT RUST TOOLCHAIN
+            toolchain: 1.90.0  # CURRENT DEVELOPMENT RUST TOOLCHAIN
             task: make -f Makefile audit
           # Allowed because a failure may occur after a new Rust stable
           # version is released.
@@ -65,7 +65,7 @@ jobs:
       - uses: dtolnay/rust-toolchain@master
         with:
           components: cargo
-          toolchain: 1.89.0  # CURRENT DEVELOPMENT RUST TOOLCHAIN
+          toolchain: 1.90.0  # CURRENT DEVELOPMENT RUST TOOLCHAIN
       - name: Check out ci repo
         uses: actions/checkout@v5
         with:
@@ -103,10 +103,10 @@ jobs:
         uses: obi1kenobi/cargo-semver-checks-action@v2
         with:
           verbose: true
-          rust-toolchain: 1.89.0  # CURRENT DEVELOPMENT RUST TOOLCHAIN
+          rust-toolchain: 1.90.0  # CURRENT DEVELOPMENT RUST TOOLCHAIN
           manifest-path: devicemapper-rs-sys
       - name: Do semantic version checks
         uses: obi1kenobi/cargo-semver-checks-action@v2
         with:
           verbose: true
-          rust-toolchain: 1.89.0  # CURRENT DEVELOPMENT RUST TOOLCHAIN
+          rust-toolchain: 1.90.0  # CURRENT DEVELOPMENT RUST TOOLCHAIN
