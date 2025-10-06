@@ -5,7 +5,7 @@
 use std::{collections::HashSet, fmt, path::PathBuf, str::FromStr};
 
 use crate::{
-    core::{DevId, Device, DeviceInfo, DmFlags, DmName, DmOptions, DmUuid, DM},
+    core::{DevId, Device, DeviceInfo, DmName, DmOptions, DmUuid, DM},
     result::{DmError, DmResult, ErrorEnum},
     shared::{
         device_create, device_exists, device_match, parse_device, parse_value, DmDevice,
@@ -562,7 +562,6 @@ impl LinearDev {
         table: Vec<TargetLine<LinearDevTargetParams>>,
     ) -> DmResult<()> {
         let table = LinearDevTargetTable::new(table);
-        self.suspend(dm, DmOptions::default().set_flags(DmFlags::DM_NOFLUSH))?;
         self.table_load(dm, &table, DmOptions::default())?;
         self.table = table;
         Ok(())
@@ -584,7 +583,7 @@ mod tests {
     use std::{clone::Clone, fs::OpenOptions, path::Path};
 
     use crate::{
-        core::{devnode_to_devno, Device},
+        core::{devnode_to_devno, Device, DmFlags},
         testing::{blkdev_size, test_name, test_with_spec},
     };
 

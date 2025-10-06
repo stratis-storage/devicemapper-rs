@@ -11,7 +11,7 @@ use std::{
 
 use crate::{
     consts::IEC,
-    core::{DevId, Device, DeviceInfo, DmFlags, DmName, DmOptions, DmUuid, DM},
+    core::{DevId, Device, DeviceInfo, DmName, DmOptions, DmUuid, DM},
     lineardev::{LinearDev, LinearDevTargetParams},
     result::{DmError, DmResult, ErrorEnum},
     shared::{
@@ -631,8 +631,6 @@ impl CacheDev {
         dm: &DM,
         table: Vec<TargetLine<LinearDevTargetParams>>,
     ) -> DmResult<()> {
-        self.suspend(dm, DmOptions::default().set_flags(DmFlags::DM_NOFLUSH))?;
-
         self.origin_dev.set_table(dm, table)?;
         self.origin_dev.resume(dm)?;
 
@@ -656,7 +654,6 @@ impl CacheDev {
         dm: &DM,
         table: Vec<TargetLine<LinearDevTargetParams>>,
     ) -> DmResult<()> {
-        self.suspend(dm, DmOptions::default().set_flags(DmFlags::DM_NOFLUSH))?;
         self.cache_dev.set_table(dm, table)?;
         self.cache_dev.resume(dm)?;
 
@@ -679,7 +676,6 @@ impl CacheDev {
         dm: &DM,
         table: Vec<TargetLine<LinearDevTargetParams>>,
     ) -> DmResult<()> {
-        self.suspend(dm, DmOptions::default().set_flags(DmFlags::DM_NOFLUSH))?;
         self.meta_dev.set_table(dm, table)?;
         self.meta_dev.resume(dm)?;
 
@@ -819,7 +815,7 @@ pub fn minimal_cachedev(dm: &DM, paths: &[&Path]) -> CacheDev {
 mod tests {
     use std::path::Path;
 
-    use crate::testing::test_with_spec;
+    use crate::{core::DmFlags, testing::test_with_spec};
 
     use super::*;
 
