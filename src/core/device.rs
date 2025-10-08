@@ -118,7 +118,7 @@ impl Device {
 /// Return None if the device is not a block device; devicemapper is not
 /// interested in other sorts of devices. Return None if the device appears
 /// not to exist.
-pub fn devnode_to_devno(path: &Path) -> DmResult<Option<u64>> {
+pub fn devnode_to_devno(path: &Path) -> DmResult<Option<dev_t>> {
     match stat::stat(path) {
         Ok(metadata) => Ok(
             if metadata.st_mode & SFlag::S_IFMT.bits() == SFlag::S_IFBLK.bits() {
