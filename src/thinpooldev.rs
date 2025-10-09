@@ -5,7 +5,7 @@
 use std::{collections::hash_set::HashSet, fmt, path::PathBuf, str::FromStr};
 
 use crate::{
-    core::{DevId, Device, DeviceInfo, DmFlags, DmName, DmOptions, DmUuid, DM},
+    core::{DevId, Device, DeviceInfo, DmName, DmOptions, DmUuid, DM},
     lineardev::{LinearDev, LinearDevTargetParams},
     result::{DmError, DmResult, ErrorEnum},
     shared::{
@@ -559,7 +559,6 @@ impl ThinPoolDev {
         let mut new_table = self.table.clone();
         new_table.table.params.low_water_mark = low_water_mark;
 
-        self.suspend(dm, DmOptions::default().set_flags(DmFlags::DM_NOFLUSH))?;
         self.table_load(dm, &new_table, DmOptions::default())?;
 
         self.table = new_table;
@@ -583,7 +582,6 @@ impl ThinPoolDev {
         dm: &DM,
         table: Vec<TargetLine<LinearDevTargetParams>>,
     ) -> DmResult<()> {
-        self.suspend(dm, DmOptions::default().set_flags(DmFlags::DM_NOFLUSH))?;
         self.meta_dev.set_table(dm, table)?;
         self.meta_dev.resume(dm)?;
 
@@ -605,8 +603,6 @@ impl ThinPoolDev {
         dm: &DM,
         table: Vec<TargetLine<LinearDevTargetParams>>,
     ) -> DmResult<()> {
-        self.suspend(dm, DmOptions::default().set_flags(DmFlags::DM_NOFLUSH))?;
-
         self.data_dev.set_table(dm, table)?;
         self.data_dev.resume(dm)?;
 
@@ -628,7 +624,6 @@ impl ThinPoolDev {
                 .feature_args
                 .insert(feature_arg.to_string());
 
-            self.suspend(dm, DmOptions::default().set_flags(DmFlags::DM_NOFLUSH))?;
             self.table_load(dm, &table, DmOptions::default())?;
             self.table = table;
 
@@ -643,7 +638,6 @@ impl ThinPoolDev {
         if table.table.params.feature_args.contains(feature_arg) {
             table.table.params.feature_args.remove(feature_arg);
 
-            self.suspend(dm, DmOptions::default().set_flags(DmFlags::DM_NOFLUSH))?;
             self.table_load(dm, &table, DmOptions::default())?;
             self.table = table;
 
