@@ -45,7 +45,7 @@ jobs:
   checks-with-ci-repo:
     runs-on: ubuntu-22.04
     container:
-      image: fedora:41  # CURRENT DEVELOPMENT ENVIRONMENT
+      image: fedora:42  # CURRENT DEVELOPMENT ENVIRONMENT
     steps:
       - name: Install git for checkout action
         run: dnf install -y git
