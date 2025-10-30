@@ -1,10 +1,24 @@
 devicemapper 0.34.6
 ===================
+Recommended Rust toolchain version: 1.90.0
+Recommended development release: Fedora 42
+
+- Increase bindgen dependency lower bound to 0.72.0:
+  https://github.com/stratis-storage/devicemapper-rs/pull/1006
+
+- Remove some suspends from table-loading methods:
+  https://github.com/stratis-storage/devicemapper-rs/issues/1003
+  https://github.com/stratis-storage/devicemapper-rs/pull/1005
+
+- Use dev_t as return value:
+  https://github.com/stratis-storage/devicemapper-rs/pull/1004
 
 - Increase lowest supported Rust to 1.77:
   https://github.com/stratis-storage/devicemapper-rs/pull/998
 
 - Tidies and Maintenance:
+  https://github.com/stratis-storage/devicemapper-rs/pull/1010
+  https://github.com/stratis-storage/devicemapper-rs/pull/1009
   https://github.com/stratis-storage/devicemapper-rs/pull/1002
   https://github.com/stratis-storage/devicemapper-rs/pull/999
   https://github.com/stratis-storage/devicemapper-rs/pull/997
