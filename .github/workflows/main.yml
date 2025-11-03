@@ -24,19 +24,19 @@ jobs:
       matrix:
         include:
           - components: rustfmt
-            toolchain: 1.90.0  # CURRENT DEVELOPMENT RUST TOOLCHAIN
+            toolchain: 1.91.0  # CURRENT DEVELOPMENT RUST TOOLCHAIN
             task: make -f Makefile fmt-ci
           - components: clippy
-            toolchain: 1.90.0  # CURRENT DEVELOPMENT RUST TOOLCHAIN
+            toolchain: 1.91.0  # CURRENT DEVELOPMENT RUST TOOLCHAIN
             task: make -f Makefile clippy
           - components: cargo
-            toolchain: 1.90.0  # CURRENT DEVELOPMENT RUST TOOLCHAIN
+            toolchain: 1.91.0  # CURRENT DEVELOPMENT RUST TOOLCHAIN
             task: make -f Makefile build
           - components: cargo
-            toolchain: 1.90.0  # CURRENT DEVELOPMENT RUST TOOLCHAIN
+            toolchain: 1.91.0  # CURRENT DEVELOPMENT RUST TOOLCHAIN
             task: make -f Makefile docs
           - components: cargo
-            toolchain: 1.90.0  # CURRENT DEVELOPMENT RUST TOOLCHAIN
+            toolchain: 1.91.0  # CURRENT DEVELOPMENT RUST TOOLCHAIN
             task: make -f Makefile check-typos
     runs-on: ubuntu-22.04
     steps:
@@ -62,7 +62,7 @@ jobs:
       matrix:
         include:
           - toolchain: 1.77.0  # LOWEST SUPPORTED RUST TOOLCHAIN
-          - toolchain: 1.90.0  # CURRENT DEVELOPMENT RUST TOOLCHAIN
+          - toolchain: 1.91.0  # CURRENT DEVELOPMENT RUST TOOLCHAIN
     runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v5
