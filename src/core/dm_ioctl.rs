@@ -3,8 +3,7 @@
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 use std::collections::HashMap;
-
-use once_cell::sync::Lazy;
+use std::sync::LazyLock;
 
 pub use devicemapper_sys::{
     dm_ioctl as Struct_dm_ioctl, dm_name_list as Struct_dm_name_list,
@@ -15,7 +14,7 @@ pub use devicemapper_sys::{
 // Map device-mapper ioctl commands to the minimum ioctl interface version
 // required. The mapping is based on the _cmd_data_v4 table defined in
 // libdm/ioctl/libdm-iface.c in the lvm2/libdevmapper sources.
-static IOCTL_VERSIONS: Lazy<HashMap<u32, (u32, u32, u32)>> = Lazy::new(|| {
+static IOCTL_VERSIONS: LazyLock<HashMap<u32, (u32, u32, u32)>> = LazyLock::new(|| {
     HashMap::from([
         (DM_VERSION_CMD, (4, 0, 0)),
         (DM_REMOVE_ALL_CMD, (4, 0, 0)),
