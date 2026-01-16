@@ -93,13 +93,26 @@ impl FromStr for ThinPoolTargetParams {
         let data_block_size = Sectors(parse_value(vals[3], "data block size")?);
         let low_water_mark = DataBlocks(parse_value(vals[4], "low water mark")?);
 
-        let feature_args = if vals.len() == 5 {
-            vec![]
+        let num_feature_args = if vals.len() == 5 {
+            0
         } else {
-            vals[6..6 + parse_value::<usize>(vals[5], "number of feature args")?]
+            parse_value::<usize>(vals[5], "number of feature args")?
+        };
+
+        let feature_args = if num_feature_args == 0 {
+            vec![]
+        } else if vals.as_slice().get(5 + num_feature_args).is_some() {
+            vals[6..6 + num_feature_args]
                 .iter()
                 .map(|x| (*x).to_string())
                 .collect()
+        } else {
+            let err_msg = format!(
+                "Expected {} feature arguments but found {}",
+                vals[5],
+                vals.len() - 6
+            );
+            return Err(DmError::Dm(ErrorEnum::Invalid, err_msg));
         };
 
         Ok(ThinPoolTargetParams::new(
@@ -1019,5 +1032,27 @@ mod tests {
             .parse::<ThinPoolTargetParams>()
             .unwrap();
         assert_eq!(result.feature_args, HashSet::new());
+    }
+
+    #[test]
+    fn test_thinpool_target_params_correct_feature_args() {
+        let result = "thin-pool 42:42 42:43 16 2 2 error_if_no_space skip_block_zeroing"
+            .parse::<ThinPoolTargetParams>()
+            .unwrap();
+        let expected = vec![
+            "error_if_no_space".to_owned(),
+            "skip_block_zeroing".to_owned(),
+        ]
+        .iter()
+        .cloned()
+        .collect::<HashSet<_>>();
+        assert_eq!(result.feature_args, expected);
+    }
+
+    #[test]
+    fn test_thinpool_target_params_incorrect_feature_args() {
+        let result = "thin-pool 42:42 42:43 16 2 3 error_if_no_space skip_block_zeroing"
+            .parse::<ThinPoolTargetParams>();
+        assert_matches!(result, Err(DmError::Dm(ErrorEnum::Invalid, _)));
     }
 }
