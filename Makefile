@@ -60,7 +60,7 @@ docs:
 	cargo doc --no-deps --document-private-items
 
 yamllint:
-	yamllint --strict .github/workflows/*.yml
+	yamllint --strict .github/workflows/*.yml .packit.yaml .yamllint.yaml
 
 .PHONY:
 	audit

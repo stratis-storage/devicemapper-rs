@@ -77,9 +77,9 @@ jobs:
           sudo apt-get -q update
           sudo apt-get -y install libdevmapper-dev
       - name: Set toolchain override with sudo
-        run: sudo /home/runner/.cargo/bin/rustup override set ${{ matrix.toolchain }}  # yamllint disable rule:line-length
+        run: sudo /home/runner/.cargo/bin/rustup override set ${{ matrix.toolchain }}
       - name: Run all tests on ${{ matrix.toolchain }} toolchain
-        run: sudo PATH=$GITHUB_WORKSPACE/.cargo/bin:$PATH make -f Makefile sudo_test  # yamllint disable rule:line-length
+        run: sudo PATH=$GITHUB_WORKSPACE/.cargo/bin:$PATH make -f Makefile sudo_test
 
   # VERIFICATION OF TEST INFRASTRUCTURE
   yamllint:
