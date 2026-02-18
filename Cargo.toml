@@ -14,7 +14,7 @@ rust-version = "1.85.0"  # LOWEST SUPPORTED RUST TOOLCHAIN
 exclude = [".clippy.toml", ".githooks/*", ".gitignore", ".github/*", "Makefile"]
 
 [dependencies.bitflags]
-version = "2.3.3"
+version = "2.4.1"
 
 [dependencies.cfg-if]
 version = "1.0.0"
