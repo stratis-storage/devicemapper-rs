@@ -35,7 +35,7 @@ features=["fs", "ioctl", "mount"]
 
 #[cfg(not(target_os = "android"))]
 [dependencies.rand]
-version = "0.9.0"
+version = "0.10.0"
 
 [dependencies.retry]
 version = "2.0.0"

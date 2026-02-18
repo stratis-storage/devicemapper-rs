@@ -35,7 +35,7 @@ pub mod sync_semaphore {
 
     use nix::unistd::{access, AccessFlags};
 
-    use rand::Rng;
+    use rand::RngExt;
     use retry::{delay::NoDelay, retry, OperationResult};
     use std::{io, path::Path, sync::LazyLock};
 
