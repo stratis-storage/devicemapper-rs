@@ -33,6 +33,7 @@ version = "0.4.14"
 version = "0.31.1"
 features=["fs", "ioctl", "mount"]
 
+#[cfg(not(target_os = "android"))]
 [dependencies.rand]
 version = "0.9.0"
 
