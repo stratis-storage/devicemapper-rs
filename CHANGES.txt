@@ -1,3 +1,32 @@
+devicemapper 0.34.7
+===================
+Recommended Rust toolchain version: 1.93.0
+Recommended development release: Fedora 42
+
+- Emit expected cfg instruction in build.rs:
+  https://github.com/stratis-storage/devicemapper-rs/pull/1030
+  https://github.com/stratis-storage/devicemapper-rs/pull/1029
+  https://github.com/stratis-storage/devicemapper-rs/pull/1028
+
+- Increase rand dependency lower bound to 0.10.0;
+  Increase bitflags dependency lower bound to 2.4.1;
+  Increase serde dependency lower bound to 1.0.166;
+  Increase log dependency lower bound to 0.4.17:
+  https://github.com/stratis-storage/devicemapper-rs/pull/1024
+
+- Increase nix dependency lower bound to 0.31.1:
+  https://github.com/stratis-storage/devicemapper-rs/pull/1023
+
+- Increase lowest supported version of Rust to 1.85:
+  https://github.com/stratis-storage/devicemapper-rs/pull/1020
+
+- Tidies and Maintenance:
+  https://github.com/stratis-storage/devicemapper-rs/pull/1026
+  https://github.com/stratis-storage/devicemapper-rs/pull/1025
+  https://github.com/stratis-storage/devicemapper-rs/pull/1022
+  https://github.com/stratis-storage/devicemapper-rs/pull/1021
+
+
 devicemapper 0.34.6
 ===================
 Recommended Rust toolchain version: 1.92.0
