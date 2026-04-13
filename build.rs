@@ -15,13 +15,16 @@ fn main() {
     ))
     .expect("simple version string is not parseable");
 
-    for ver in DM_VERSIONS.iter().take_while(|ver_string| {
-        let iter_version = Version::parse(ver_string).expect("Could not parse version");
-        version >= iter_version
-    }) {
-        println!(
-            "cargo:rustc-cfg=devicemapper{}supported",
-            ver.split('.').take(2).collect::<Vec<_>>().join("")
+    for ver_string in DM_VERSIONS.iter() {
+        let version_cfg = format!(
+            "devicemapper{}supported",
+            ver_string.split('.').take(2).collect::<Vec<_>>().join("")
         );
+        println!("cargo::rustc-check-cfg=cfg({version_cfg},)");
+
+        let iter_version = Version::parse(ver_string).expect("Could not parse version");
+        if version >= iter_version {
+            println!("cargo:rustc-cfg={version_cfg}");
+        }
     }
 }
