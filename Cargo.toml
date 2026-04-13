@@ -76,13 +76,7 @@ future_incompatible = { level = "deny", priority = 1 }
 unused = { level = "deny", priority = 2}
 rust_2018_idioms = { level = "deny", priority = 3 }
 nonstandard_style = { level = "deny", priority = 4 }
-unexpected_cfgs = { level = "deny", check-cfg = [
-  'cfg(devicemapper41supported)',
-  'cfg(devicemapper42supported)',
-  'cfg(devicemapper437supported)',
-  'cfg(devicemapper441supported)',
-  'cfg(devicemapper46supported)'
-] }
+unexpected_cfgs = { level = "deny", priority = 5}
 
 [lints.clippy]
 all = { level = "deny" }
