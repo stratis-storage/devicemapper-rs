@@ -20,7 +20,7 @@ fn main() {
             "devicemapper{}supported",
             ver_string.split('.').take(2).collect::<Vec<_>>().join("")
         );
-        println!("cargo::rustc-check-cfg=cfg({version_cfg},)");
+        println!("cargo::rustc-check-cfg=cfg({version_cfg})");
 
         let iter_version = Version::parse(ver_string).expect("Could not parse version");
         if version >= iter_version {
