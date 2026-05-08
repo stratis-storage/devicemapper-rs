@@ -1,7 +1,6 @@
 ---
 name: devicemapper nightly
 
-# yamllint disable-line rule:truthy
 on:
   schedule:
     - cron: 0 3 * * *
