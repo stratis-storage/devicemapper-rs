@@ -293,23 +293,46 @@ pub mod sync_semaphore {
         /// Allocate a SysV semaphore according to the device-mapper udev cookie
         /// protocol and set the initial state of the semaphore counter.
         fn begin(hdr: &mut dmi::Struct_dm_ioctl, ioctl: u8) -> DmResult<Self> {
-            if !udev_running() {
-                return Err(DmError::Core(errors::Error::UdevSync(
-                    "Udev daemon is not running: unable to create devices.".to_string(),
-                )));
+            // First check if this ioctl command requires udev synchronization.
+            // Only REMOVE, RENAME, and SUSPEND (non-suspended) operations need it.
+            let requires_sync = matches!(ioctl as u32, dmi::DM_DEV_REMOVE_CMD | dmi::DM_DEV_RENAME_CMD | dmi::DM_DEV_SUSPEND_CMD if *SYSV_SEM_SUPPORTED && (hdr.flags & DmFlags::DM_SUSPEND.bits()) == 0);
+            // If this operation doesn't require udev sync, return immediately
+            if !requires_sync {
+                // Strip any udev flags the caller put in event_nr; without a
+                // semaphore behind them the kernel would otherwise wait for a
+                // udev completion that will never arrive.
+                hdr.event_nr = 0;
+                return Ok(UdevSync {
+                    cookie: 0,
+                    semid: None,
+                });
             }
 
-            match ioctl as u32 {
-                dmi::DM_DEV_REMOVE_CMD | dmi::DM_DEV_RENAME_CMD | dmi::DM_DEV_SUSPEND_CMD
-                    if *SYSV_SEM_SUPPORTED && (hdr.flags & DmFlags::DM_SUSPEND.bits()) == 0 => {}
-                _ => {
-                    return Ok(UdevSync {
-                        cookie: 0,
-                        semid: None,
-                    });
-                }
+            // Check if udev integration has been explicitly disabled via flags.
+            let udev_disabled = {
+                let event_flags = hdr.event_nr >> dmi::DM_UDEV_FLAGS_SHIFT;
+                (event_flags & DmUdevFlags::DM_UDEV_DISABLE_LIBRARY_FALLBACK.bits()) != 0
             };
 
+            // If udev is disabled (via DM_UDEV_DISABLE_LIBRARY_FALLBACK) or udev
+            // daemon is not running, gracefully degrade: skip semaphore allocation,
+            // clear any stale cookie flags from event_nr, and return an inactive
+            // UdevSync. This allows the library to function in environments without
+            // udev (e.g. minimal VMs, containers) without requiring every caller
+            // to explicitly set DM_UDEV_DISABLE_LIBRARY_FALLBACK.
+            if udev_disabled || !udev_running() {
+                // Clear event_nr to prevent sending non-zero cookie flags to the
+                // kernel when we cannot actually perform udev synchronization.
+                // A non-zero event_nr without a matching semaphore would cause the
+                // kernel to wait indefinitely for udevd to process the cookie.
+                hdr.event_nr = 0;
+                return Ok(UdevSync {
+                    cookie: 0,
+                    semid: None,
+                });
+            }
+
+            // Udev sync is required and udev is available, allocate semaphore
             let (base_cookie, semid) = notify_sem_create()?;
 
             // Encode the primary source flag and the random base cookie value into
@@ -478,6 +501,46 @@ pub mod sync_semaphore {
                 DmUdevFlags::DM_UDEV_PRIMARY_SOURCE_FLAG.bits()
             );
             assert!(sync.end(DmFlags::empty().bits()).is_ok());
+        }
+
+        /// Verify that the full no_udev_dm_options() flag combination causes all
+        /// udev-sync commands to return inactive UdevSync. This is an end-to-end
+        /// validation of the use case.
+        #[test]
+        fn test_udevsync_no_udev_options_all_sync_cmds() {
+            let no_udev_flags = DmUdevFlags::DM_UDEV_DISABLE_LIBRARY_FALLBACK
+                | DmUdevFlags::DM_UDEV_DISABLE_SUBSYSTEM_RULES_FLAG
+                | DmUdevFlags::DM_UDEV_DISABLE_DISK_RULES_FLAG
+                | DmUdevFlags::DM_UDEV_DISABLE_OTHER_RULES_FLAG
+                | DmUdevFlags::DM_UDEV_DISABLE_DM_RULES_FLAG;
+
+            let event_nr = no_udev_flags.bits() << dmi::DM_UDEV_FLAGS_SHIFT;
+
+            for ioctl_cmd in [
+                dmi::DM_DEV_REMOVE_CMD as u8,
+                dmi::DM_DEV_RENAME_CMD as u8,
+                dmi::DM_DEV_SUSPEND_CMD as u8, // resume (no DM_SUSPEND flag)
+            ] {
+                let mut hdr: dmi::Struct_dm_ioctl = devicemapper_sys::dm_ioctl {
+                    ..Default::default()
+                };
+                hdr.event_nr = event_nr;
+
+                let sync = UdevSync::begin(&mut hdr, ioctl_cmd).unwrap();
+                assert_eq!(
+                    sync.cookie, 0,
+                    "ioctl {ioctl_cmd}: no_udev flags should produce inactive UdevSync"
+                );
+                assert_eq!(
+                    sync.semid, None,
+                    "ioctl {ioctl_cmd}: no semaphore should be allocated"
+                );
+                assert_eq!(
+                    hdr.event_nr, 0,
+                    "ioctl {ioctl_cmd}: event_nr must be cleared"
+                );
+                assert!(sync.end(DmFlags::empty().bits()).is_ok());
+            }
         }
     }
 }
