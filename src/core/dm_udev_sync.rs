@@ -295,7 +295,9 @@ pub mod sync_semaphore {
         fn begin(hdr: &mut dmi::Struct_dm_ioctl, ioctl: u8) -> DmResult<Self> {
             // First check if this ioctl command requires udev synchronization.
             // Only REMOVE, RENAME, and SUSPEND (non-suspended) operations need it.
-            let requires_sync = matches!(ioctl as u32, dmi::DM_DEV_REMOVE_CMD | dmi::DM_DEV_RENAME_CMD | dmi::DM_DEV_SUSPEND_CMD if *SYSV_SEM_SUPPORTED && (hdr.flags & DmFlags::DM_SUSPEND.bits()) == 0);
+            let requires_sync = dmi::ioctl_uses_udev_cookie(ioctl)
+                && *SYSV_SEM_SUPPORTED
+                && (hdr.flags & DmFlags::DM_SUSPEND.bits()) == 0;
             // If this operation doesn't require udev sync, return immediately
             if !requires_sync {
                 // Strip any udev flags the caller put in event_nr; without a

@@ -129,14 +129,8 @@ impl DM {
         hdr.version[2] = ioctl_version.2;
 
         // Clear event_nr for ioctls that don't support udev cookies to avoid EINVAL
-        match ioctl as u32 {
-            dmi::DM_DEV_REMOVE_CMD | dmi::DM_DEV_RENAME_CMD | dmi::DM_DEV_SUSPEND_CMD => {
-                // These commands support udev event_nr
-            }
-            _ => {
-                // Clear event_nr for commands that don't support udev cookies
-                hdr.event_nr = 0;
-            }
+        if !dmi::ioctl_uses_udev_cookie(ioctl) {
+            hdr.event_nr = 0;
         }
 
         // Begin udev sync transaction and set DM_UDEV_PRIMARY_SOURCE_FLAG
