@@ -1147,4 +1147,66 @@ mod tests {
         dm.device_remove(&DevId::Name(&name), DmOptions::default())
             .unwrap();
     }
+
+    use crate::core::dm_flags::DmUdevFlags;
+
+    /// Build DmOptions that fully disable udev synchronization.
+    /// Setting all DM_UDEV_DISABLE_* flags together with DM_UDEV_DISABLE_LIBRARY_FALLBACK
+    /// tells the kernel and the UdevSync layer to skip udev cookie handling entirely.
+    fn no_udev_dm_options() -> DmOptions {
+        DmOptions::default().set_udev_flags(
+            DmUdevFlags::DM_UDEV_DISABLE_LIBRARY_FALLBACK
+                | DmUdevFlags::DM_UDEV_DISABLE_SUBSYSTEM_RULES_FLAG
+                | DmUdevFlags::DM_UDEV_DISABLE_DISK_RULES_FLAG
+                | DmUdevFlags::DM_UDEV_DISABLE_OTHER_RULES_FLAG
+                | DmUdevFlags::DM_UDEV_DISABLE_DM_RULES_FLAG,
+        )
+    }
+
+    /// The test verifies that DM operations work correctly when udev
+    /// synchronization is fully disabled, simulating the dm-verity device
+    /// creation flow in a no-udev guest VM environment.
+    ///
+    /// It simulates the dm-verity device lifecycle:
+    /// device_create -> table_load -> device_suspend(resume) -> device_info -> device_remove
+    ///
+    /// All operations use no-udev DmOptions. Uses a read-only error target
+    /// (no real block device needed).
+    #[test]
+    fn sudo_test_no_udev_device_lifecycle() {
+        let dm = DM::new().unwrap();
+        let name = test_name("no-udev-lifecycle").expect("is valid DM name");
+        let id = DevId::Name(&name);
+
+        let ro_opts = no_udev_dm_options().set_flags(DmFlags::DM_READONLY);
+        let opts = no_udev_dm_options();
+
+        // Step 1: Create device (read-only, no-udev)
+        let create_info = dm.device_create(&name, None, ro_opts).unwrap();
+        assert_eq!(create_info.name(), Some(&*name));
+
+        // Step 2: Load a trivial error target table
+        let table = vec![(
+            0u64,
+            1024u64, // 512KB in 512-byte sectors
+            "error".into(),
+            "".into(),
+        )];
+        dm.table_load(&id, &table, ro_opts).unwrap();
+
+        // Step 3: Resume device (activate the table)
+        // device_suspend without DM_SUSPEND flag = resume
+        dm.device_suspend(&id, opts).unwrap();
+
+        // Step 4: Verify device is active via device_info
+        // device_info uses DmOptions::default(), but DM_DEV_STATUS_CMD
+        // does not require udev sync, so it works in no-udev environments
+        let info = dm.device_info(&id).unwrap();
+        assert_eq!(info.name(), Some(&*name));
+        // Device should not be suspended after resume
+        assert!(!info.flags().contains(DmFlags::DM_SUSPEND));
+
+        // Step 5: Remove device with no-udev options
+        dm.device_remove(&id, no_udev_dm_options()).unwrap();
+    }
 }
