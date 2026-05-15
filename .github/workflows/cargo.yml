@@ -28,6 +28,10 @@ jobs:
         with:
           path: devicemapper-rs
           persist-credentials: false
+      - uses: actions-rust-lang/setup-rust-toolchain@v1
+        with:
+          components: cargo
+          rust-src-dir: devicemapper-rs
       - name: Install dependencies for Fedora
         run: >
           dnf install -y
@@ -38,10 +42,6 @@ jobs:
           openssl-devel
           python-requests
           python-semantic_version
-      - uses: dtolnay/rust-toolchain@master
-        with:
-          components: cargo
-          toolchain: 1.95.0  # CURRENT DEVELOPMENT RUST TOOLCHAIN
       - name: Check out ci repo
         uses: actions/checkout@v6
         with:
