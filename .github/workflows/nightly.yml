@@ -11,26 +11,14 @@ on:
 jobs:
   allowed_failures:
     continue-on-error: true
-    strategy:
-      matrix:
-        include:
-          - components: cargo
-            toolchain: 1.95.0  # CURRENT DEVELOPMENT RUST TOOLCHAIN
-            task: make -f Makefile audit
-          # Allowed because a failure may occur after a new Rust stable
-          # version is released.
-          - components: clippy
-            toolchain: stable
-            task: make -f Makefile clippy
     runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v6
         with:
           persist-credentials: false
-      - uses: dtolnay/rust-toolchain@master
+      - uses: actions-rust-lang/setup-rust-toolchain@v1
         with:
-          components: ${{ matrix.components }}
-          toolchain: ${{ matrix.toolchain }}
+          components: cargo
       - name: Install dependencies
         run: |
           sudo apt-get -q update
@@ -38,8 +26,8 @@ jobs:
       - uses: baptiste0928/cargo-install@v3
         with:
           crate: cargo-audit
-      - name: Test ${{ matrix.task }} on ${{ matrix.toolchain }} toolchain
-        run: ${{ matrix.task }}
+      - name: Audit check
+        run: make -f Makefile audit
 
   checks-with-ci-repo:
     runs-on: ubuntu-22.04
@@ -52,6 +40,10 @@ jobs:
         with:
           path: devicemapper-rs
           persist-credentials: false
+      - uses: actions-rust-lang/setup-rust-toolchain@v1
+        with:
+          components: cargo
+          rust-src-dir: devicemapper-rs
       - name: Install dependencies for Fedora
         run: >
           dnf install -y
@@ -61,10 +53,6 @@ jobs:
           openssl-devel
           python-requests
           python-semantic_version
-      - uses: dtolnay/rust-toolchain@master
-        with:
-          components: cargo
-          toolchain: 1.95.0  # CURRENT DEVELOPMENT RUST TOOLCHAIN
       - name: Check out ci repo
         uses: actions/checkout@v6
         with:
@@ -98,10 +86,8 @@ jobs:
         uses: obi1kenobi/cargo-semver-checks-action@v2
         with:
           verbose: true
-          rust-toolchain: 1.95.0  # CURRENT DEVELOPMENT RUST TOOLCHAIN
           manifest-path: devicemapper-rs-sys
       - name: Do semantic version checks
         uses: obi1kenobi/cargo-semver-checks-action@v2
         with:
           verbose: true
-          rust-toolchain: 1.95.0  # CURRENT DEVELOPMENT RUST TOOLCHAIN

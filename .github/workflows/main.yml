@@ -23,29 +23,23 @@ jobs:
       matrix:
         include:
           - components: rustfmt
-            toolchain: 1.95.0  # CURRENT DEVELOPMENT RUST TOOLCHAIN
             task: make -f Makefile fmt-ci
           - components: clippy
-            toolchain: 1.95.0  # CURRENT DEVELOPMENT RUST TOOLCHAIN
             task: make -f Makefile clippy
           - components: cargo
-            toolchain: 1.95.0  # CURRENT DEVELOPMENT RUST TOOLCHAIN
             task: make -f Makefile build
           - components: cargo
-            toolchain: 1.95.0  # CURRENT DEVELOPMENT RUST TOOLCHAIN
             task: make -f Makefile docs
           - components: cargo
-            toolchain: 1.95.0  # CURRENT DEVELOPMENT RUST TOOLCHAIN
             task: make -f Makefile check-typos
     runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v6
         with:
           persist-credentials: false
-      - uses: dtolnay/rust-toolchain@master
+      - uses: actions-rust-lang/setup-rust-toolchain@v1
         with:
           components: ${{ matrix.components }}
-          toolchain: ${{ matrix.toolchain }}
       - uses: baptiste0928/cargo-install@v3
         with:
           crate: typos-cli
@@ -53,31 +47,34 @@ jobs:
         run: |
           sudo apt-get -q update
           sudo apt-get -y install libdevmapper-dev
-      - name: Test ${{ matrix.task }} on ${{ matrix.toolchain }} toolchain
+      - name: Test ${{ matrix.task }} on CURRENT DEVELOPMENT RUST TOOLCHAIN
         run: ${{ matrix.task }}
 
   tests-with-sudo:
-    strategy:
-      matrix:
-        include:
-          - toolchain: 1.85.0  # LOWEST SUPPORTED RUST TOOLCHAIN
-          - toolchain: 1.95.0  # CURRENT DEVELOPMENT RUST TOOLCHAIN
     runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v6
         with:
           persist-credentials: false
-      - uses: dtolnay/rust-toolchain@master
+      - uses: actions-rust-lang/setup-rust-toolchain@v1
         with:
           components: cargo
-          toolchain: ${{ matrix.toolchain }}
       - name: Install dependencies
         run: |
           sudo apt-get -q update
           sudo apt-get -y install libdevmapper-dev
+      - name: Run all tests on CURRENT DEVELOPMENT RUST TOOLCHAIN
+        run: sudo PATH=$GITHUB_WORKSPACE/.cargo/bin:$PATH make -f Makefile sudo_test
+      - name: Install toml-cli
+        run: pip install --user toml-cli
+      - name: Get package MSRV
+        id: msrv
+        run: |
+          PATH=${PATH}:/github/home/.local/bin MSRV=$(toml get --toml-path Cargo.toml "package.rust-version")
+          echo "MSRV=$MSRV" >> "$GITHUB_OUTPUT"
       - name: Set toolchain override with sudo
-        run: sudo /home/runner/.cargo/bin/rustup override set ${{ matrix.toolchain }}
-      - name: Run all tests on ${{ matrix.toolchain }} toolchain
+        run: sudo /home/runner/.cargo/bin/rustup override set ${{ steps.msrv.outputs.MSRV }}
+      - name: Run all tests on LOWEST SUPPORTED RUST TOOLCHAIN
         run: sudo PATH=$GITHUB_WORKSPACE/.cargo/bin:$PATH make -f Makefile sudo_test
 
   # VERIFICATION OF TEST INFRASTRUCTURE
