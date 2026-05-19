@@ -54,3 +54,13 @@ pub(crate) fn ioctl_to_version(ioctl: u8) -> (u32, u32, u32) {
         unreachable!("Unknown device-mapper ioctl command: {}", ioctl);
     }
 }
+
+/// Returns true for ioctls whose `event_nr` field carries a udev cookie /
+/// udev flags and is honored by the kernel for udev synchronization.
+#[inline]
+pub(crate) fn ioctl_uses_udev_cookie(ioctl: u8) -> bool {
+    matches!(
+        ioctl as u32,
+        DM_DEV_REMOVE_CMD | DM_DEV_RENAME_CMD | DM_DEV_SUSPEND_CMD
+    )
+}
