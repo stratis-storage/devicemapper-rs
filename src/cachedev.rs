@@ -724,7 +724,7 @@ impl CacheDev {
     /// Parse pairs of arguments from a slice
     fn parse_pairs(start_index: usize, vals: &[&str]) -> DmResult<(usize, Vec<(String, String)>)> {
         let num_pairs: usize = parse_value(vals[start_index], "number of pairs")?;
-        if num_pairs % 2 != 0 {
+        if !num_pairs.is_multiple_of(2) {
             let err_msg = format!("Number of args \"{num_pairs}\" is not even");
             return Err(DmError::Dm(ErrorEnum::Invalid, err_msg));
         }
