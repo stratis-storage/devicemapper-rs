@@ -54,3 +54,27 @@ pub(crate) fn ioctl_to_version(ioctl: u8) -> (u32, u32, u32) {
         unreachable!("Unknown device-mapper ioctl command: {}", ioctl);
     }
 }
+
+/// Returns true for ioctls that use `event_nr` as a udev cookie and
+/// participate in udev synchronization via SysV semaphore.
+#[inline]
+pub(crate) fn ioctl_uses_udev_cookie(ioctl: u8) -> bool {
+    matches!(
+        ioctl as u32,
+        DM_DEV_REMOVE_CMD | DM_DEV_RENAME_CMD | DM_DEV_SUSPEND_CMD
+    )
+}
+
+/// Returns true for ioctls whose `event_nr` header field carries meaningful
+/// input that must not be cleared before the ioctl is issued.
+///
+/// Per the kernel header (`dm_ioctl.h`):
+/// - `DM_SUSPEND`, `DM_DEV_REMOVE`, and `DM_DEV_RENAME` use `event_nr` as a
+///   udev cookie for synchronization (see [`ioctl_uses_udev_cookie`]).
+/// - `DM_DEV_WAIT` uses `event_nr` as an event number input but does not
+///   participate in udev synchronization.
+///   For output, all ioctls return the event number, not the cookie.
+#[inline]
+pub(crate) fn ioctl_uses_event_number(ioctl: u8) -> bool {
+    ioctl_uses_udev_cookie(ioctl) || ioctl as u32 == DM_DEV_WAIT_CMD
+}
