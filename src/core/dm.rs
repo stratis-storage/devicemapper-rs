@@ -128,6 +128,11 @@ impl DM {
         hdr.version[1] = ioctl_version.1;
         hdr.version[2] = ioctl_version.2;
 
+        // Clear event_nr for ioctls that don't use it as input to avoid EINVAL
+        if !dmi::ioctl_uses_event_number(ioctl) {
+            hdr.event_nr = 0;
+        }
+
         // Begin udev sync transaction and set DM_UDEV_PRIMARY_SOURCE_FLAG
         // if ioctl command generates uevents.
         let sync = UdevSync::begin(hdr, ioctl)?;
@@ -816,7 +821,7 @@ impl AsRawFd for DM {
 mod tests {
 
     use crate::{
-        core::errors::Error,
+        core::{dm_flags::DmUdevFlags, errors::Error},
         result::DmError,
         testing::{test_name, test_uuid},
     };
@@ -1141,5 +1146,60 @@ mod tests {
         );
         dm.device_remove(&DevId::Name(&name), DmOptions::default())
             .unwrap();
+    }
+
+    /// DmOptions for no-udev test environments: builds on `DmOptions::private()`
+    /// and additionally disables device-mapper's own udev rules.
+    fn no_udev_dm_options() -> DmOptions {
+        DmOptions::private().set_udev_flags(
+            DmOptions::private().udev_flags() | DmUdevFlags::DM_UDEV_DISABLE_DM_RULES_FLAG,
+        )
+    }
+
+    /// The test verifies that DM operations work correctly when udev
+    /// synchronization is fully disabled, simulating the dm-verity device
+    /// creation flow in a no-udev guest VM environment.
+    ///
+    /// It simulates the dm-verity device lifecycle:
+    /// device_create -> table_load -> device_suspend(resume) -> device_info -> device_remove
+    ///
+    /// All operations use no-udev DmOptions. Uses a read-only error target
+    /// (no real block device needed).
+    #[test]
+    fn sudo_test_no_udev_device_lifecycle() {
+        let dm = DM::new().unwrap();
+        let name = test_name("no-udev-lifecycle").expect("is valid DM name");
+        let id = DevId::Name(&name);
+
+        let ro_opts = no_udev_dm_options().set_flags(DmFlags::DM_READONLY);
+        let opts = no_udev_dm_options();
+
+        // Step 1: Create device (read-only, no-udev)
+        let create_info = dm.device_create(&name, None, ro_opts).unwrap();
+        assert_eq!(create_info.name(), Some(&*name));
+
+        // Step 2: Load a trivial error target table
+        let table = vec![(
+            0u64,
+            1024u64, // 512KB in 512-byte sectors
+            "error".into(),
+            "".into(),
+        )];
+        dm.table_load(&id, &table, ro_opts).unwrap();
+
+        // Step 3: Resume device (activate the table)
+        // device_suspend without DM_SUSPEND flag = resume
+        dm.device_suspend(&id, opts).unwrap();
+
+        // Step 4: Verify device is active via device_info
+        // device_info uses DmOptions::default(), but DM_DEV_STATUS_CMD
+        // does not require udev sync, so it works in no-udev environments
+        let info = dm.device_info(&id).unwrap();
+        assert_eq!(info.name(), Some(&*name));
+        // Device should not be suspended after resume
+        assert!(!info.flags().contains(DmFlags::DM_SUSPEND));
+
+        // Step 5: Remove device with no-udev options
+        dm.device_remove(&id, no_udev_dm_options()).unwrap();
     }
 }

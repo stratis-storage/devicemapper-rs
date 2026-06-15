@@ -293,23 +293,23 @@ pub mod sync_semaphore {
         /// Allocate a SysV semaphore according to the device-mapper udev cookie
         /// protocol and set the initial state of the semaphore counter.
         fn begin(hdr: &mut dmi::Struct_dm_ioctl, ioctl: u8) -> DmResult<Self> {
-            if !udev_running() {
-                return Err(DmError::Core(errors::Error::UdevSync(
-                    "Udev daemon is not running: unable to create devices.".to_string(),
-                )));
+            // Udev sync is only performed for ioctls that use event_nr as a
+            // udev cookie: DM_DEV_REMOVE, DM_DEV_RENAME, and DM_DEV_SUSPEND.
+            // DM_DEV_WAIT also uses event_nr as input (event number), but does
+            // not participate in udev synchronization.
+            if !dmi::ioctl_uses_udev_cookie(ioctl)
+                || !*SYSV_SEM_SUPPORTED
+                || (hdr.flags & DmFlags::DM_SUSPEND.bits()) != 0
+                || !udev_running()
+            {
+                hdr.event_nr = 0;
+                return Ok(UdevSync {
+                    cookie: 0,
+                    semid: None,
+                });
             }
 
-            match ioctl as u32 {
-                dmi::DM_DEV_REMOVE_CMD | dmi::DM_DEV_RENAME_CMD | dmi::DM_DEV_SUSPEND_CMD
-                    if *SYSV_SEM_SUPPORTED && (hdr.flags & DmFlags::DM_SUSPEND.bits()) == 0 => {}
-                _ => {
-                    return Ok(UdevSync {
-                        cookie: 0,
-                        semid: None,
-                    });
-                }
-            };
-
+            // Udev sync is required and udev is available, allocate semaphore
             let (base_cookie, semid) = notify_sem_create()?;
 
             // Encode the primary source flag and the random base cookie value into
@@ -385,7 +385,7 @@ pub mod sync_semaphore {
     #[cfg(test)]
     mod tests {
         use super::*;
-        use crate::core::dm_flags::DmUdevFlags;
+        use crate::{core::dm_flags::DmUdevFlags, DmOptions};
 
         // SysV IPC key value for testing ("DMRS" in ASCII characters)
         const IPC_TEST_KEY: i32 = 0x444d5253;
@@ -478,6 +478,51 @@ pub mod sync_semaphore {
                 DmUdevFlags::DM_UDEV_PRIMARY_SOURCE_FLAG.bits()
             );
             assert!(sync.end(DmFlags::empty().bits()).is_ok());
+        }
+
+        /// DmOptions for no-udev test environments: builds on `DmOptions::private()`
+        /// and additionally disables device-mapper's own udev rules.
+        fn no_udev_dm_options() -> DmOptions {
+            DmOptions::private().set_udev_flags(
+                DmOptions::private().udev_flags() | DmUdevFlags::DM_UDEV_DISABLE_DM_RULES_FLAG,
+            )
+        }
+
+        /// Verify that when udev is not running, all udev-sync commands
+        /// return inactive UdevSync without allocating a semaphore.
+        #[test]
+        fn test_udevsync_no_udev_running_all_sync_cmds() {
+            if udev_running() {
+                // This test validates the !udev_running() path; skip when
+                // udev is actually present (e.g. developer workstations).
+                return;
+            }
+
+            for ioctl_cmd in [
+                dmi::DM_DEV_REMOVE_CMD as u8,
+                dmi::DM_DEV_RENAME_CMD as u8,
+                dmi::DM_DEV_SUSPEND_CMD as u8, // resume (no DM_SUSPEND flag)
+            ] {
+                let mut hdr: dmi::Struct_dm_ioctl = devicemapper_sys::dm_ioctl {
+                    event_nr: no_udev_dm_options().flags().bits() << dmi::DM_UDEV_FLAGS_SHIFT,
+                    ..Default::default()
+                };
+
+                let sync = UdevSync::begin(&mut hdr, ioctl_cmd).unwrap();
+                assert_eq!(
+                    sync.cookie, 0,
+                    "ioctl {ioctl_cmd}: no udev should produce inactive UdevSync"
+                );
+                assert_eq!(
+                    sync.semid, None,
+                    "ioctl {ioctl_cmd}: no semaphore should be allocated"
+                );
+                assert_eq!(
+                    hdr.event_nr, 0,
+                    "ioctl {ioctl_cmd}: event_nr must be cleared"
+                );
+                assert!(sync.end(DmFlags::empty().bits()).is_ok());
+            }
         }
     }
 }
