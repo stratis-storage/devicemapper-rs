@@ -2,6 +2,9 @@ devicemapper 0.34.8
 ===================
 Recommended development release: Fedora 43
 
+- Support dm without udev:
+  https://github.com/stratis-storage/devicemapper-rs/pull/1036
+
 - Increase lowest supported rust toolchain to 1.87.0:
   https://github.com/stratis-storage/devicemapper-rs/pull/1039
 
