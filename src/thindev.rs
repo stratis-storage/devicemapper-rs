@@ -8,8 +8,9 @@ use crate::{
     core::{DevId, Device, DeviceInfo, DmFlags, DmName, DmOptions, DmUuid, DM},
     result::{DmError, DmResult, ErrorEnum},
     shared::{
-        device_create, device_exists, device_match, get_status, get_status_line_fields, message,
-        parse_device, parse_value, DmDevice, TargetLine, TargetParams, TargetTable, TargetTypeBuf,
+        device_create, device_exists, device_match, get_status, get_status_line,
+        get_status_line_fields, message, parse_device, parse_value, DmDevice, TargetLine,
+        TargetParams, TargetTable, TargetTypeBuf,
     },
     thindevid::ThinDevId,
     thinpooldev::ThinPoolDev,
@@ -230,6 +231,8 @@ impl FromStr for ThinStatus {
     type Err = DmError;
 
     fn from_str(status_line: &str) -> DmResult<ThinStatus> {
+        let status_line = get_status_line(status_line, &THIN_TARGET_NAME)?;
+
         if status_line.starts_with("Error") {
             return Ok(ThinStatus::Error);
         }
