@@ -169,8 +169,12 @@ impl DmDevice<ThinDevTargetTable> for ThinDev {
         name!(self)
     }
 
-    fn resume(&mut self, dm: &DM) -> DmResult<()> {
-        dm.device_suspend(&DevId::Name(self.name()), DmOptions::default())?;
+    fn resume(&mut self, dm: &DM, options: Option<DmOptions>) -> DmResult<()> {
+        let options = match options {
+            Some(options) => options,
+            None => DmOptions::default(),
+        };
+        dm.device_suspend(&DevId::Name(self.name()), options)?;
         Ok(())
     }
 
@@ -267,6 +271,7 @@ impl ThinDev {
         length: Sectors,
         thin_pool: &ThinPoolDev,
         thin_id: ThinDevId,
+        create_options: Option<DmOptions>,
     ) -> DmResult<ThinDev> {
         message(dm, thin_pool, &format!("create_thin {thin_id}"))?;
 
@@ -275,9 +280,14 @@ impl ThinDev {
             return Err(DmError::Dm(ErrorEnum::Invalid, err_msg.into()));
         }
 
+        let options = match create_options {
+            Some(options) => options,
+            None => DmOptions::default(),
+        };
+
         let thin_pool_device = thin_pool.device();
         let table = ThinDev::gen_default_table(length, thin_pool_device, thin_id);
-        let dev_info = device_create(dm, name, uuid, &table, DmOptions::default())?;
+        let dev_info = device_create(dm, name, uuid, &table, options)?;
 
         Ok(ThinDev {
             dev_info: Box::new(dev_info),
@@ -301,6 +311,7 @@ impl ThinDev {
         length: Sectors,
         thin_pool: &ThinPoolDev,
         thin_id: ThinDevId,
+        create_options: Option<DmOptions>,
     ) -> DmResult<ThinDev> {
         let thin_pool_device = thin_pool.device();
         let table = ThinDev::gen_default_table(length, thin_pool_device, thin_id);
@@ -313,7 +324,11 @@ impl ThinDev {
             device_match(dm, &dev, uuid)?;
             dev
         } else {
-            let dev_info = device_create(dm, name, uuid, &table, DmOptions::default())?;
+            let options = match create_options {
+                Some(options) => options,
+                None => DmOptions::default(),
+            };
+            let dev_info = device_create(dm, name, uuid, &table, options)?;
             ThinDev {
                 dev_info: Box::new(dev_info),
                 table,
@@ -333,6 +348,7 @@ impl ThinDev {
         snapshot_uuid: Option<&DmUuid>,
         thin_pool: &ThinPoolDev,
         snapshot_thin_id: ThinDevId,
+        create_options: Option<DmOptions>,
     ) -> DmResult<ThinDev> {
         let source_id = DevId::Name(self.name());
         dm.device_suspend(
@@ -347,6 +363,10 @@ impl ThinDev {
                 snapshot_thin_id, self.table.table.params.thin_id
             ),
         )?;
+        let options = match create_options {
+            Some(options) => options,
+            None => DmOptions::default(),
+        };
         dm.device_suspend(&source_id, DmOptions::default())?;
         let table = ThinDev::gen_default_table(self.size(), thin_pool.device(), snapshot_thin_id);
         let dev_info = Box::new(device_create(
@@ -354,7 +374,7 @@ impl ThinDev {
             snapshot_name,
             snapshot_uuid,
             &table,
-            DmOptions::default(),
+            options,
         )?);
         Ok(ThinDev { dev_info, table })
     }
@@ -396,7 +416,7 @@ impl ThinDev {
     pub fn set_table(&mut self, dm: &DM, table: TargetLine<ThinTargetParams>) -> DmResult<()> {
         let table = ThinDevTargetTable::new(table.start, table.length, table.params);
         self.table_load(dm, &table, DmOptions::default())?;
-        self.resume(dm)?;
+        self.resume(dm, Some(DmOptions::default()))?;
 
         self.table = table;
         Ok(())
@@ -454,7 +474,8 @@ mod tests {
                 None,
                 Sectors(0),
                 &tp,
-                ThinDevId::new_u64(0).expect("is below limit")
+                ThinDevId::new_u64(0).expect("is below limit"),
+                None
             ),
             Err(_)
         );
@@ -481,7 +502,8 @@ mod tests {
                 None,
                 td_size,
                 &tp,
-                ThinDevId::new_u64(0).expect("is below limit")
+                ThinDevId::new_u64(0).expect("is below limit"),
+                None
             ),
             Err(DmError::Core(Error::Ioctl(_, _, _, _)))
         );
@@ -505,7 +527,7 @@ mod tests {
         let id = test_name("name").expect("is valid DM name");
 
         let td_size = MIN_THIN_DEV_SIZE;
-        let mut td = ThinDev::new(&dm, &id, None, td_size, &tp, thin_id).unwrap();
+        let mut td = ThinDev::new(&dm, &id, None, td_size, &tp, thin_id, None).unwrap();
 
         udev_settle().unwrap();
 
@@ -528,7 +550,7 @@ mod tests {
 
         // New thindev w/ same id fails.
         assert_matches!(
-            ThinDev::new(&dm, &id, None, td_size, &tp, thin_id),
+            ThinDev::new(&dm, &id, None, td_size, &tp, thin_id, None),
             Err(DmError::Core(Error::Ioctl(_, _, _, _)))
         );
 
@@ -536,15 +558,21 @@ mod tests {
         assert!(device_exists(&dm, &id).unwrap());
 
         // Setting up the just created thin dev succeeds.
-        assert_matches!(ThinDev::setup(&dm, &id, None, td_size, &tp, thin_id), Ok(_));
+        assert_matches!(
+            ThinDev::setup(&dm, &id, None, td_size, &tp, thin_id, None),
+            Ok(_)
+        );
         udev_settle().unwrap();
 
         // Setting up the just created thin dev once more succeeds.
-        assert_matches!(ThinDev::setup(&dm, &id, None, td_size, &tp, thin_id), Ok(_));
+        assert_matches!(
+            ThinDev::setup(&dm, &id, None, td_size, &tp, thin_id, None),
+            Ok(_)
+        );
 
         // Teardown the thindev, then set it back up.
         td.teardown(&dm).unwrap();
-        let mut td = ThinDev::setup(&dm, &id, None, td_size, &tp, thin_id).unwrap();
+        let mut td = ThinDev::setup(&dm, &id, None, td_size, &tp, thin_id, None).unwrap();
         udev_settle().unwrap();
 
         td.destroy(&dm, &tp).unwrap();
@@ -593,7 +621,7 @@ mod tests {
         let thin_id = ThinDevId::new_u64(0).expect("is below limit");
         let id = test_name("udev_test_thin_dev").expect("is valid DM name");
 
-        let mut td = ThinDev::new(&dm, &id, None, tp.size(), &tp, thin_id).unwrap();
+        let mut td = ThinDev::new(&dm, &id, None, tp.size(), &tp, thin_id, None).unwrap();
         udev_settle().unwrap();
 
         let uuid = Uuid::new_v4();
@@ -608,13 +636,13 @@ mod tests {
 
         // Teardown the thindev, then set it back up and make sure all is well with udev
         td.teardown(&dm).unwrap();
-        td = ThinDev::setup(&dm, &id, None, tp.size(), &tp, thin_id).unwrap();
+        td = ThinDev::setup(&dm, &id, None, tp.size(), &tp, thin_id, None).unwrap();
         validate(&uuid, &td.devnode());
 
         // Create a snapshot and make sure we get correct actions in user space WRT udev
         let ss_id = ThinDevId::new_u64(1).expect("is below limit");
         let ss_name = test_name("snap_name").expect("is valid DM name");
-        let mut ss = td.snapshot(&dm, &ss_name, None, &tp, ss_id).unwrap();
+        let mut ss = td.snapshot(&dm, &ss_name, None, &tp, ss_id, None).unwrap();
         udev_settle().unwrap();
 
         let ss_new_uuid = set_new_fs_uuid(&ss.devnode());
@@ -649,7 +677,7 @@ mod tests {
         // Create new ThinDev as source for snapshot
         let thin_id = ThinDevId::new_u64(0).expect("is below limit");
         let thin_name = test_name("name").expect("is valid DM name");
-        let mut td = ThinDev::new(&dm, &thin_name, None, td_size, &tp, thin_id).unwrap();
+        let mut td = ThinDev::new(&dm, &thin_name, None, td_size, &tp, thin_id, None).unwrap();
         udev_settle().unwrap();
 
         let data_usage_1 = match tp.status(&dm, DmOptions::default()).unwrap() {
@@ -663,7 +691,7 @@ mod tests {
         // Create a snapshot of the source
         let ss_id = ThinDevId::new_u64(1).expect("is below limit");
         let ss_name = test_name("snap_name").expect("is valid DM name");
-        let mut ss = td.snapshot(&dm, &ss_name, None, &tp, ss_id).unwrap();
+        let mut ss = td.snapshot(&dm, &ss_name, None, &tp, ss_id, None).unwrap();
         udev_settle().unwrap();
 
         let data_usage_2 = match tp.status(&dm, DmOptions::default()).unwrap() {
@@ -693,7 +721,7 @@ mod tests {
 
         let thin_id = ThinDevId::new_u64(0).expect("is below limit");
         let thin_name = test_name("name").expect("is valid DM name");
-        let mut td = ThinDev::new(&dm, &thin_name, None, tp.size(), &tp, thin_id).unwrap();
+        let mut td = ThinDev::new(&dm, &thin_name, None, tp.size(), &tp, thin_id, None).unwrap();
         udev_settle().unwrap();
 
         let orig_data_usage = match tp.status(&dm, DmOptions::default()).unwrap() {
@@ -767,8 +795,16 @@ mod tests {
 
         let thin_id = ThinDevId::new_u64(0).expect("is below limit");
         let thin_name = test_name("name").expect("is valid DM name");
-        let mut td =
-            ThinDev::new(&dm, &thin_name, None, Sectors(2 * IEC::Mi), &tp, thin_id).unwrap();
+        let mut td = ThinDev::new(
+            &dm,
+            &thin_name,
+            None,
+            Sectors(2 * IEC::Mi),
+            &tp,
+            thin_id,
+            None,
+        )
+        .unwrap();
         udev_settle().unwrap();
 
         let orig_data_usage = match tp.status(&dm, DmOptions::default()).unwrap() {
@@ -792,7 +828,7 @@ mod tests {
         let ss_name = test_name("snap_name").expect("is valid DM name");
         let ss_uuid = test_uuid("snap_uuid").expect("is valid DM uuid");
         let mut ss = td
-            .snapshot(&dm, &ss_name, Some(&ss_uuid), &tp, ss_id)
+            .snapshot(&dm, &ss_name, Some(&ss_uuid), &tp, ss_id, None)
             .unwrap();
         udev_settle().unwrap();
 
@@ -819,8 +855,16 @@ mod tests {
 
         let thin_id = ThinDevId::new_u64(2).expect("is below limit");
         let thin_name = test_name("name1").expect("is valid DM name");
-        let mut td1 =
-            ThinDev::new(&dm, &thin_name, None, Sectors(2 * IEC::Gi), &tp, thin_id).unwrap();
+        let mut td1 = ThinDev::new(
+            &dm,
+            &thin_name,
+            None,
+            Sectors(2 * IEC::Gi),
+            &tp,
+            thin_id,
+            None,
+        )
+        .unwrap();
         udev_settle().unwrap();
 
         let data_usage_4 = match tp.status(&dm, DmOptions::default()).unwrap() {
@@ -857,16 +901,16 @@ mod tests {
         let thin_id = ThinDevId::new_u64(0).expect("is below limit");
         let thin_name = test_name("name").expect("is valid DM name");
 
-        let mut td = ThinDev::new(&dm, &thin_name, None, tp.size(), &tp, thin_id).unwrap();
+        let mut td = ThinDev::new(&dm, &thin_name, None, tp.size(), &tp, thin_id, None).unwrap();
         td.teardown(&dm).unwrap();
 
         // This should work
-        let mut td = ThinDev::setup(&dm, &thin_name, None, tp.size(), &tp, thin_id).unwrap();
+        let mut td = ThinDev::setup(&dm, &thin_name, None, tp.size(), &tp, thin_id, None).unwrap();
         td.destroy(&dm, &tp).unwrap();
 
         // This should fail
         assert_matches!(
-            ThinDev::setup(&dm, &thin_name, None, tp.size(), &tp, thin_id),
+            ThinDev::setup(&dm, &thin_name, None, tp.size(), &tp, thin_id, None),
             Err(DmError::Core(Error::Ioctl(_, _, _, _)))
         );
 
