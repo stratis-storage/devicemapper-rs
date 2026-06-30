@@ -2,7 +2,7 @@
 name = "devicemapper-sys"
 version = "0.3.3"
 authors = ["Stratis Developers <stratis-devel@lists.fedorahosted.org>"]
-edition = "2021"
+edition = "2024"
 rust-version = "1.87.0"  # LOWEST SUPPORTED RUST TOOLCHAIN
 description = "Low level bindings for devicemapper"
 license = "MPL-2.0"
@@ -24,6 +24,7 @@ future_incompatible = { level = "deny", priority = 1 }
 unused = { level = "deny", priority = 2}
 rust_2018_idioms = { level = "deny", priority = 3 }
 nonstandard_style = { level = "deny", priority = 4 }
+rust-2024-compatibility = { level = "deny", priority = 5}
 
 [lints.clippy]
 all = { level = "deny" }
