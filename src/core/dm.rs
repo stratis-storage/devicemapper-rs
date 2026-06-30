@@ -12,7 +12,7 @@ use std::{
 };
 
 use nix::{errno, libc::ioctl as nix_ioctl};
-use retry::{delay::Fixed, retry_with_index, Error as RetryError, OperationResult};
+use retry::{Error as RetryError, OperationResult, delay::Fixed, retry_with_index};
 use semver::Version;
 
 use crate::{

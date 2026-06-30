@@ -17,7 +17,7 @@ mod types;
 mod util;
 
 pub use self::{
-    device::{devnode_to_devno, Device},
+    device::{Device, devnode_to_devno},
     deviceinfo::DeviceInfo,
     dm::DM,
     dm_flags::{DmFlags, DmUdevFlags},

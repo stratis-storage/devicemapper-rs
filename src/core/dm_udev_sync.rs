@@ -16,12 +16,6 @@ pub trait UdevSyncAction {
 #[cfg(not(target_os = "android"))]
 pub mod sync_semaphore {
     use nix::libc::{
-        c_int,
-        key_t,
-        sembuf,
-        semctl as libc_semctl,
-        semget as libc_semget,
-        semop as libc_semop,
         EEXIST,
         ENOMEM,
         ENOSPC,
@@ -31,19 +25,25 @@ pub mod sync_semaphore {
         IPC_EXCL,
         IPC_NOWAIT,
         IPC_RMID,
+        c_int,
+        key_t,
+        sembuf,
+        semctl as libc_semctl,
+        semget as libc_semget,
+        semop as libc_semop,
     };
 
-    use nix::unistd::{access, AccessFlags};
+    use nix::unistd::{AccessFlags, access};
 
     use rand::RngExt;
-    use retry::{delay::NoDelay, retry, OperationResult};
+    use retry::{OperationResult, delay::NoDelay, retry};
     use std::{io, path::Path, sync::LazyLock};
 
     use crate::core::sysvsem::seminfo;
 
     use crate::{
         core::dm_flags::{DmFlags, DmUdevFlags},
-        core::sysvsem::{semun, GETVAL, SEM_INFO, SETVAL},
+        core::sysvsem::{GETVAL, SEM_INFO, SETVAL, semun},
         core::{dm_ioctl as dmi, errors},
         result::{DmError, DmResult},
     };
@@ -385,7 +385,7 @@ pub mod sync_semaphore {
     #[cfg(test)]
     mod tests {
         use super::*;
-        use crate::{core::dm_flags::DmUdevFlags, DmOptions};
+        use crate::{DmOptions, core::dm_flags::DmUdevFlags};
 
         // SysV IPC key value for testing ("DMRS" in ASCII characters)
         const IPC_TEST_KEY: i32 = 0x444d5253;

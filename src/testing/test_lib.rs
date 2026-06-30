@@ -6,11 +6,11 @@ use std::{
     fs::File, os::unix::io::AsRawFd, panic::catch_unwind, path::Path, process::Command, sync::Once,
 };
 
-use nix::mount::{umount2, MntFlags};
+use nix::mount::{MntFlags, umount2};
 use uuid::Uuid;
 
 use crate::{
-    core::{DevId, Device, DmNameBuf, DmOptions, DmUuidBuf, DM},
+    core::{DM, DevId, Device, DmNameBuf, DmOptions, DmUuidBuf},
     result::{DmError, DmResult, ErrorEnum},
     units::Bytes,
 };

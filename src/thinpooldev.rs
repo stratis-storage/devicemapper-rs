@@ -5,13 +5,13 @@
 use std::{collections::hash_set::HashSet, fmt, path::PathBuf, str::FromStr};
 
 use crate::{
-    core::{DevId, Device, DeviceInfo, DmName, DmOptions, DmUuid, DM},
+    core::{DM, DevId, Device, DeviceInfo, DmName, DmOptions, DmUuid},
     lineardev::{LinearDev, LinearDevTargetParams},
     result::{DmError, DmResult, ErrorEnum},
     shared::{
-        device_create, device_exists, device_match, get_status, get_status_line_fields,
-        make_unexpected_value_error, parse_device, parse_value, DmDevice, TargetLine, TargetParams,
-        TargetTable, TargetTypeBuf,
+        DmDevice, TargetLine, TargetParams, TargetTable, TargetTypeBuf, device_create,
+        device_exists, device_match, get_status, get_status_line_fields,
+        make_unexpected_value_error, parse_device, parse_value,
     },
     units::{DataBlocks, MetaBlocks, Sectors},
 };
@@ -790,7 +790,7 @@ mod tests {
     use std::path::Path;
 
     use crate::{
-        core::{errors::Error, DmFlags},
+        core::{DmFlags, errors::Error},
         testing::{test_name, test_with_spec},
     };
 

@@ -13,7 +13,7 @@ use std::{
 };
 
 use crate::{
-    core::{devnode_to_devno, DevId, Device, DeviceInfo, DmFlags, DmName, DmOptions, DmUuid, DM},
+    core::{DM, DevId, Device, DeviceInfo, DmFlags, DmName, DmOptions, DmUuid, devnode_to_devno},
     result::{DmError, DmResult, ErrorEnum},
     units::Sectors,
 };
@@ -245,7 +245,11 @@ pub fn get_status(status_lines: &[(u64, u64, String, String)]) -> DmResult<Strin
             format!(
                 "Incorrect number of lines for status; expected 1, found {} in status result \"{}\"",
                 length,
-                status_lines.iter().map(|(s, l, t, v)| format!("{s} {l} {t} {v}")).collect::<Vec<String>>().join(", ")
+                status_lines
+                    .iter()
+                    .map(|(s, l, t, v)| format!("{s} {l} {t} {v}"))
+                    .collect::<Vec<String>>()
+                    .join(", ")
             ),
         ));
     }

@@ -5,11 +5,11 @@
 use std::{collections::HashSet, fmt, path::PathBuf, str::FromStr};
 
 use crate::{
-    core::{DevId, Device, DeviceInfo, DmName, DmOptions, DmUuid, DM},
+    core::{DM, DevId, Device, DeviceInfo, DmName, DmOptions, DmUuid},
     result::{DmError, DmResult, ErrorEnum},
     shared::{
-        device_create, device_exists, device_match, parse_device, parse_value, DmDevice,
-        TargetLine, TargetParams, TargetTable, TargetTypeBuf,
+        DmDevice, TargetLine, TargetParams, TargetTable, TargetTypeBuf, device_create,
+        device_exists, device_match, parse_device, parse_value,
     },
     units::Sectors,
 };
@@ -583,7 +583,7 @@ mod tests {
     use std::{clone::Clone, fs::OpenOptions, path::Path};
 
     use crate::{
-        core::{devnode_to_devno, Device, DmFlags},
+        core::{Device, DmFlags, devnode_to_devno},
         testing::{blkdev_size, test_name, test_with_spec},
     };
 
