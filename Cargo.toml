@@ -77,7 +77,6 @@ unused = { level = "deny", priority = 2}
 rust_2018_idioms = { level = "deny", priority = 3 }
 nonstandard_style = { level = "deny", priority = 4 }
 rust-2024-compatibility = { level = "allow", priority = 5 }
-edition_2024_expr_fragment_specifier = { level = "allow", priority = 6}
 
 [lints.clippy]
 all = { level = "deny" }
