@@ -25,7 +25,6 @@ unused = { level = "deny", priority = 2}
 rust_2018_idioms = { level = "deny", priority = 3 }
 nonstandard_style = { level = "deny", priority = 4 }
 rust-2024-compatibility = { level = "deny", priority = 5}
-unsafe_op_in_unsafe_fn = { level = "allow", priority = 6}
 
 [lints.clippy]
 all = { level = "deny" }
