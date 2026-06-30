@@ -117,8 +117,8 @@ pub use crate::{
     },
     consts::IEC,
     core::{
-        devnode_to_devno, errors, DevId, Device, DeviceInfo, DmFlags, DmName, DmNameBuf, DmOptions,
-        DmUdevFlags, DmUuid, DmUuidBuf, DM,
+        DM, DevId, Device, DeviceInfo, DmFlags, DmName, DmNameBuf, DmOptions, DmUdevFlags, DmUuid,
+        DmUuidBuf, devnode_to_devno, errors,
     },
     lineardev::{
         FlakeyFeatureArg, FlakeyTargetParams, LinearDev, LinearDevTargetParams,
@@ -126,8 +126,8 @@ pub use crate::{
     },
     result::{DmError, DmResult, ErrorEnum},
     shared::{
-        device_exists, message, DmDevice, TargetLine, TargetParams, TargetTable, TargetType,
-        TargetTypeBuf,
+        DmDevice, TargetLine, TargetParams, TargetTable, TargetType, TargetTypeBuf, device_exists,
+        message,
     },
     thindev::{ThinDev, ThinDevTargetTable, ThinDevWorkingStatus, ThinStatus, ThinTargetParams},
     thindevid::ThinDevId,
@@ -135,5 +135,5 @@ pub use crate::{
         ThinPoolDev, ThinPoolDevTargetTable, ThinPoolNoSpacePolicy, ThinPoolStatus,
         ThinPoolStatusSummary, ThinPoolTargetParams, ThinPoolUsage, ThinPoolWorkingStatus,
     },
-    units::{Bytes, DataBlocks, MetaBlocks, Sectors, SECTOR_SIZE},
+    units::{Bytes, DataBlocks, MetaBlocks, SECTOR_SIZE, Sectors},
 };

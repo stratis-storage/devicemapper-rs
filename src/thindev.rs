@@ -5,11 +5,12 @@
 use std::{fmt, path::PathBuf, str::FromStr};
 
 use crate::{
-    core::{DevId, Device, DeviceInfo, DmFlags, DmName, DmOptions, DmUuid, DM},
+    core::{DM, DevId, Device, DeviceInfo, DmFlags, DmName, DmOptions, DmUuid},
     result::{DmError, DmResult, ErrorEnum},
     shared::{
-        device_create, device_exists, device_match, get_status, get_status_line_fields, message,
-        parse_device, parse_value, DmDevice, TargetLine, TargetParams, TargetTable, TargetTypeBuf,
+        DmDevice, TargetLine, TargetParams, TargetTable, TargetTypeBuf, device_create,
+        device_exists, device_match, get_status, get_status_line_fields, message, parse_device,
+        parse_value,
     },
     thindevid::ThinDevId,
     thinpooldev::ThinPoolDev,
@@ -416,12 +417,12 @@ impl ThinDev {
 mod tests {
 
     use std::{
-        fs::{canonicalize, OpenOptions},
+        fs::{OpenOptions, canonicalize},
         io::Write,
         path::Path,
     };
 
-    use nix::mount::{mount, umount2, MntFlags, MsFlags};
+    use nix::mount::{MntFlags, MsFlags, mount, umount2};
     use uuid::Uuid;
 
     use crate::{
@@ -432,7 +433,7 @@ mod tests {
             blkdev_size, test_name, test_string, test_uuid, test_with_spec, udev_settle,
             xfs_create_fs, xfs_set_uuid,
         },
-        thinpooldev::{minimal_thinpool, ThinPoolStatus},
+        thinpooldev::{ThinPoolStatus, minimal_thinpool},
         units::DataBlocks,
     };
 

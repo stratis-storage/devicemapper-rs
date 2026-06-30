@@ -15,7 +15,7 @@ use tempfile::{self, TempDir};
 use crate::{
     consts::IEC,
     testing::{logger::init_logger, test_lib::clean_up},
-    units::{Bytes, Sectors, SECTOR_SIZE},
+    units::{Bytes, SECTOR_SIZE, Sectors},
 };
 
 /// Write buf at offset length times.
