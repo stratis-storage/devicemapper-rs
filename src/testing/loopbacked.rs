@@ -91,7 +91,7 @@ fn get_devices(count: u8, dir: &TempDir) -> Vec<LoopTestDev> {
     let mut loop_devices = Vec::new();
 
     for index in 0..count {
-        let path = dir.path().join(format!("store{}", &index));
+        let path = dir.path().join(format!("store{}", index));
         let f = OpenOptions::new()
             .read(true)
             .write(true)
