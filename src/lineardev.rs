@@ -456,7 +456,7 @@ impl TargetTable for LinearDevTargetTable {
 }
 
 /// A DM construct of combined Segments
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct LinearDev {
     /// Data about the device
     dev_info: Box<DeviceInfo>,
