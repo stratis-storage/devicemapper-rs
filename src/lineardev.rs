@@ -294,12 +294,23 @@ impl FromStr for FlakeyTargetParams {
         let up_interval = parse_value(vals[3], "up interval")?;
         let down_interval = parse_value(vals[4], "down interval")?;
 
-        let feature_args = if vals.len() == 5 {
-            vec![]
+        let num_feature_args = if vals.len() == 5 {
+            0
         } else {
-            parse_feature_args(
-                &vals[6..6 + parse_value::<usize>(vals[5], "number of feature args")?],
-            )?
+            parse_value::<usize>(vals[5], "number of feature args")?
+        };
+
+        let feature_args = if num_feature_args == 0 {
+            vec![]
+        } else if vals.as_slice().get(5 + num_feature_args).is_some() {
+            parse_feature_args(&vals[6..6 + num_feature_args])?
+        } else {
+            let err_msg = format!(
+                "Expected {} feature arguments but found {}",
+                vals[5],
+                vals.len() - 6
+            );
+            return Err(DmError::Dm(ErrorEnum::Invalid, err_msg));
         };
 
         Ok(FlakeyTargetParams::new(
@@ -914,6 +925,24 @@ mod tests {
             .cloned()
             .collect::<HashSet<_>>();
         assert_eq!(result.feature_args, expected);
+    }
+
+    #[test]
+    fn test_flakey_correct_feature_args_input() {
+        let result = "flakey 8:32 0 16 2 2 error_writes drop_writes"
+            .parse::<FlakeyTargetParams>()
+            .unwrap();
+        let expected = [FeatureArg::ErrorWrites, FeatureArg::DropWrites]
+            .iter()
+            .cloned()
+            .collect::<HashSet<_>>();
+        assert_eq!(result.feature_args, expected);
+    }
+
+    #[test]
+    fn test_flakey_incorrect_feature_args_input() {
+        let result = "flakey 8:32 0 16 2 3 error_writes drop_writes".parse::<FlakeyTargetParams>();
+        assert_matches!(result, Err(DmError::Dm(ErrorEnum::Invalid, _)));
     }
 
     #[test]
