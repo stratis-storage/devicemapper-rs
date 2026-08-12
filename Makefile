@@ -25,6 +25,9 @@ audit:
 check-typos:
 	typos
 
+fix-typos:
+	typos -w
+
 test-compare-fedora-versions:
 	echo "Testing that COMPARE_FEDORA_VERSIONS environment variable is set to a valid path"
 	test -e "${COMPARE_FEDORA_VERSIONS}"
@@ -70,6 +73,7 @@ yamllint:
 	check-typos
 	clippy
 	docs
+	fix-typos
 	fmt
 	fmt-ci
 	sudo_test
