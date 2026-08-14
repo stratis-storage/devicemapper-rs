@@ -64,6 +64,8 @@ docs:
 
 yamllint:
 	yamllint --strict .github/workflows/*.yml .packit.yaml .yamllint.yaml
+	yamllint --strict .packit.yaml
+	yamllint --strict .yamllint.yaml
 
 .PHONY:
 	audit

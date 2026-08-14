@@ -30,8 +30,6 @@ jobs:
             task: make -f Makefile build
           - components: cargo
             task: make -f Makefile docs
-          - components: cargo
-            task: make -f Makefile check-typos
     runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v6
@@ -40,9 +38,6 @@ jobs:
       - uses: actions-rust-lang/setup-rust-toolchain@v1
         with:
           components: ${{ matrix.components }}
-      - uses: baptiste0928/cargo-install@v3
-        with:
-          crate: typos-cli
       - name: Install dependencies
         run: |
           sudo apt-get -q update
@@ -77,16 +72,7 @@ jobs:
       - name: Run all tests on LOWEST SUPPORTED RUST TOOLCHAIN
         run: sudo PATH=$GITHUB_WORKSPACE/.cargo/bin:$PATH make -f Makefile sudo_test
 
-  # VERIFICATION OF TEST INFRASTRUCTURE
-  yamllint:
-    runs-on: ubuntu-22.04
-    container:
-      image: fedora:43  # CURRENT DEVELOPMENT ENVIRONMENT
-    steps:
-      - uses: actions/checkout@v6
-        with:
-          persist-credentials: false
-      - name: Install dependencies for Fedora
-        run: dnf install -y make yamllint
-      - name: Run yamllint
-        run: make -f Makefile yamllint
+  general_checks:
+    uses: stratis-storage/github-actions/.github/workflows/reusable_general.yml@master
+    with:
+      fedora-container-image-number: 43  # CURRENT DEVELOPMENT ENVIRONMENT
