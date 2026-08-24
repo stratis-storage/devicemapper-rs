@@ -59,7 +59,7 @@ jobs:
           sudo apt-get -q update
           sudo apt-get -y install libdevmapper-dev
       - name: Run all tests on CURRENT DEVELOPMENT RUST TOOLCHAIN
-        run: sudo PATH=$GITHUB_WORKSPACE/.cargo/bin:$PATH make -f Makefile sudo_test
+        run: sudo PATH="$GITHUB_WORKSPACE/.cargo/bin:$PATH" make -f Makefile sudo_test
       - name: Install toml-cli
         run: pip install --user toml-cli
       - name: Get package MSRV
@@ -70,7 +70,7 @@ jobs:
       - name: Set toolchain override with sudo
         run: sudo /home/runner/.cargo/bin/rustup override set ${{ steps.msrv.outputs.MSRV }}
       - name: Run all tests on LOWEST SUPPORTED RUST TOOLCHAIN
-        run: sudo PATH=$GITHUB_WORKSPACE/.cargo/bin:$PATH make -f Makefile sudo_test
+        run: sudo PATH="$GITHUB_WORKSPACE/.cargo/bin:$PATH" make -f Makefile sudo_test
 
   general_checks:
     uses: stratis-storage/github-actions/.github/workflows/reusable_general.yml@master
