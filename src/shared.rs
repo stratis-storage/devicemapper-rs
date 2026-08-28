@@ -89,8 +89,12 @@ pub trait DmDevice<T: TargetTable> {
     fn name(&self) -> &DmName;
 
     /// Resume I/O on the device.
-    fn resume(&mut self, dm: &DM) -> DmResult<()> {
-        dm.device_suspend(&DevId::Name(self.name()), DmOptions::private())?;
+    fn resume(&mut self, dm: &DM, options: Option<DmOptions>) -> DmResult<()> {
+        let options = match options {
+            Some(options) => options,
+            None => DmOptions::private(),
+        };
+        dm.device_suspend(&DevId::Name(self.name()), options)?;
         Ok(())
     }
 
