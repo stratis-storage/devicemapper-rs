@@ -106,13 +106,32 @@ impl FromStr for CacheTargetParams {
         let origin_dev = parse_device(vals[3], "origin sub-device for cache target")?;
 
         let block_size = Sectors(parse_value(vals[4], "data block size")?);
-        let num_feature_args: usize = parse_value(vals[5], "number of feature args")?;
+
+        let num_feature_args = if vals.len() == 5 {
+            0
+        } else {
+            parse_value::<usize>(vals[5], "number of feature args")?
+        };
 
         let end_feature_args_index = 6 + num_feature_args;
-        let feature_args: Vec<String> = vals[6..end_feature_args_index]
-            .iter()
-            .map(|x| (*x).to_string())
-            .collect();
+
+        if vals.len() < end_feature_args_index + 2 {
+            let err_msg = format!(
+                "Expected {} feature arguments but found {}",
+                vals[5],
+                vals.len() - 6
+            );
+            return Err(DmError::Dm(ErrorEnum::Invalid, err_msg));
+        }
+
+        let feature_args: Vec<String> = if num_feature_args == 0 {
+            vec![]
+        } else {
+            vals[6..end_feature_args_index]
+                .iter()
+                .map(|x| (*x).to_string())
+                .collect()
+        };
 
         let policy = vals[end_feature_args_index].to_owned();
 
@@ -1068,5 +1087,52 @@ mod tests {
     #[test]
     fn loop_test_suspend() {
         test_with_spec(2, test_suspend);
+    }
+
+    #[test]
+    fn test_cache_target_params_zero() {
+        let result = "cache 42:42 42:43 42:44 16 0 default 0"
+            .parse::<CacheTargetParams>()
+            .unwrap();
+        assert_eq!(result.feature_args, HashSet::new());
+    }
+
+    #[test]
+    fn test_cache_target_params_correct_feature_args() {
+        let result = "cache 42:42 42:43 42:44 16 2 writethrough passthrough default 0"
+            .parse::<CacheTargetParams>()
+            .unwrap();
+        let expected = vec!["writethrough".to_owned(), "passthrough".to_owned()]
+            .iter()
+            .cloned()
+            .collect::<HashSet<_>>();
+        assert_eq!(result.feature_args, expected);
+    }
+
+    #[test]
+    fn test_cache_target_params_missing_1_feature_arg() {
+        let result = "cache 42:42 42:43 42:44 16 3 writethrough passthrough default 0"
+            .parse::<CacheTargetParams>();
+        assert_matches!(result, Err(DmError::Dm(ErrorEnum::Invalid, _)));
+    }
+
+    #[test]
+    fn test_cache_target_params_missing_2_feature_args() {
+        let result = "cache 42:42 42:43 42:44 16 4 writethrough passthrough default 0"
+            .parse::<CacheTargetParams>();
+        assert_matches!(result, Err(DmError::Dm(ErrorEnum::Invalid, _)));
+    }
+
+    #[test]
+    fn test_cache_target_params_missing_3_feature_args() {
+        let result =
+            "cache 42:42 42:43 42:44 16 4 writethrough default 0".parse::<CacheTargetParams>();
+        assert_matches!(result, Err(DmError::Dm(ErrorEnum::Invalid, _)));
+    }
+
+    #[test]
+    fn test_cache_target_params_less_than_8_values() {
+        let result = "cache 42:42 42:43 42:44 16 1 writethrough".parse::<CacheTargetParams>();
+        assert_matches!(result, Err(DmError::Dm(ErrorEnum::Invalid, _)));
     }
 }
