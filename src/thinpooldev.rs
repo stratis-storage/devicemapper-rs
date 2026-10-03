@@ -449,15 +449,20 @@ impl ThinPoolDev {
         data_block_size: Sectors,
         low_water_mark: DataBlocks,
         feature_args: Vec<String>,
+        create_options: Option<DmOptions>,
     ) -> DmResult<ThinPoolDev> {
         if device_exists(dm, name)? {
             let err_msg = format!("thinpooldev {name} already exists");
             return Err(DmError::Dm(ErrorEnum::Invalid, err_msg));
         }
 
+        let options = match create_options {
+            Some(options) => options,
+            None => DmOptions::private(),
+        };
         let table =
             ThinPoolDev::gen_table(&meta, &data, data_block_size, low_water_mark, feature_args);
-        let dev_info = device_create(dm, name, uuid, &table, DmOptions::private())?;
+        let dev_info = device_create(dm, name, uuid, &table, options)?;
 
         Ok(ThinPoolDev {
             dev_info: Box::new(dev_info),
@@ -498,6 +503,7 @@ impl ThinPoolDev {
         data_block_size: Sectors,
         low_water_mark: DataBlocks,
         feature_args: Vec<String>,
+        create_options: Option<DmOptions>,
     ) -> DmResult<ThinPoolDev> {
         let table =
             ThinPoolDev::gen_table(&meta, &data, data_block_size, low_water_mark, feature_args);
@@ -512,7 +518,11 @@ impl ThinPoolDev {
             device_match(dm, &dev, uuid)?;
             dev
         } else {
-            let dev_info = device_create(dm, name, uuid, &table, DmOptions::private())?;
+            let options = match create_options {
+                Some(options) => options,
+                None => DmOptions::private(),
+            };
+            let dev_info = device_create(dm, name, uuid, &table, options)?;
             ThinPoolDev {
                 dev_info: Box::new(dev_info),
                 meta_dev: meta,
@@ -583,7 +593,7 @@ impl ThinPoolDev {
         table: Vec<TargetLine<LinearDevTargetParams>>,
     ) -> DmResult<()> {
         self.meta_dev.set_table(dm, table)?;
-        self.meta_dev.resume(dm)?;
+        self.meta_dev.resume(dm, None)?;
 
         // Reload the table even though it is unchanged.
         // See comment on CacheDev::set_cache_table for reason.
@@ -604,7 +614,7 @@ impl ThinPoolDev {
         table: Vec<TargetLine<LinearDevTargetParams>>,
     ) -> DmResult<()> {
         self.data_dev.set_table(dm, table)?;
-        self.data_dev.resume(dm)?;
+        self.data_dev.resume(dm, None)?;
 
         let mut table = self.table.clone();
         table.table.length = self.data_dev.size();
@@ -627,7 +637,7 @@ impl ThinPoolDev {
             self.table_load(dm, &table, DmOptions::default())?;
             self.table = table;
 
-            self.resume(dm)?;
+            self.resume(dm, None)?;
         }
 
         Ok(())
@@ -641,7 +651,7 @@ impl ThinPoolDev {
             self.table_load(dm, &table, DmOptions::default())?;
             self.table = table;
 
-            self.resume(dm)?;
+            self.resume(dm, None)?;
         }
 
         Ok(())
@@ -752,6 +762,7 @@ pub fn minimal_thinpool(dm: &DM, path: &Path) -> ThinPoolDev {
         &test_name("meta").expect("valid format"),
         None,
         meta_table,
+        None,
     )
     .unwrap();
 
@@ -766,6 +777,7 @@ pub fn minimal_thinpool(dm: &DM, path: &Path) -> ThinPoolDev {
         &test_name("data").expect("valid format"),
         None,
         data_table,
+        None,
     )
     .unwrap();
 
@@ -781,6 +793,7 @@ pub fn minimal_thinpool(dm: &DM, path: &Path) -> ThinPoolDev {
             "no_discard_passdown".to_owned(),
             "skip_block_zeroing".to_owned(),
         ],
+        None,
     )
     .unwrap()
 }
@@ -853,7 +866,7 @@ mod tests {
             MIN_RECOMMENDED_METADATA_SIZE,
             LinearDevTargetParams::Linear(meta_params),
         )];
-        let meta = LinearDev::setup(&dm, &meta_name, None, meta_table).unwrap();
+        let meta = LinearDev::setup(&dm, &meta_name, None, meta_table, None).unwrap();
 
         let data_name = test_name("data").expect("valid format");
         let data_params = LinearTargetParams::new(dev, MIN_RECOMMENDED_METADATA_SIZE);
@@ -862,7 +875,7 @@ mod tests {
             512u64 * MIN_DATA_BLOCK_SIZE,
             LinearDevTargetParams::Linear(data_params),
         )];
-        let data = LinearDev::setup(&dm, &data_name, None, data_table).unwrap();
+        let data = LinearDev::setup(&dm, &data_name, None, data_table, None).unwrap();
 
         assert_matches!(
             ThinPoolDev::new(
@@ -877,6 +890,7 @@ mod tests {
                     "no_discard_passdown".to_owned(),
                     "skip_block_zeroing".to_owned()
                 ],
+                None,
             ),
             Err(DmError::Core(Error::Ioctl(_, _, _, _)))
         );
@@ -910,7 +924,7 @@ mod tests {
             LinearDevTargetParams::Linear(data_params),
         ));
         tp.set_data_table(&dm, data_table).unwrap();
-        tp.resume(&dm).unwrap();
+        tp.resume(&dm, None).unwrap();
 
         match tp.status(&dm, DmOptions::default()).unwrap() {
             ThinPoolStatus::Working(ref status) => {
@@ -951,7 +965,7 @@ mod tests {
             LinearDevTargetParams::Linear(meta_params),
         ));
         tp.set_meta_table(&dm, meta_table).unwrap();
-        tp.resume(&dm).unwrap();
+        tp.resume(&dm, None).unwrap();
 
         match tp.status(&dm, DmOptions::default()).unwrap() {
             ThinPoolStatus::Working(ref status) => {
@@ -980,8 +994,8 @@ mod tests {
             .unwrap();
         tp.suspend(&dm, DmOptions::default().set_flags(DmFlags::DM_NOFLUSH))
             .unwrap();
-        tp.resume(&dm).unwrap();
-        tp.resume(&dm).unwrap();
+        tp.resume(&dm, None).unwrap();
+        tp.resume(&dm, None).unwrap();
         tp.teardown(&dm).unwrap();
     }
 
