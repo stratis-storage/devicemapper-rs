@@ -343,14 +343,14 @@ pub mod sync_semaphore {
         fn end(self, flags: u32) -> DmResult<()> {
             if self.is_active() {
                 let semid = self.semid.expect("active UdevSync must have valid semid");
-                if (flags & DmFlags::DM_UEVENT_GENERATED.bits()) == 0 {
-                    if let Err(err) = notify_sem_dec(self.cookie, semid) {
-                        error!("Failed to clear notification semaphore state: {err}");
-                        if let Err(err2) = notify_sem_destroy(self.cookie, semid) {
-                            error!("Failed to clean up notification semaphore: {err2}");
-                        }
-                        return Err(err);
+                if (flags & DmFlags::DM_UEVENT_GENERATED.bits()) == 0
+                    && let Err(err) = notify_sem_dec(self.cookie, semid)
+                {
+                    error!("Failed to clear notification semaphore state: {err}");
+                    if let Err(err2) = notify_sem_destroy(self.cookie, semid) {
+                        error!("Failed to clean up notification semaphore: {err2}");
                     }
+                    return Err(err);
                 }
                 trace!("Waiting on {self:?}");
                 notify_sem_wait(self.cookie, semid)?;
