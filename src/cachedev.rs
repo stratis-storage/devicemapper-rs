@@ -558,6 +558,7 @@ impl DmDevice<CacheDevTargetTable> for CacheDev {
 impl CacheDev {
     /// Construct a new CacheDev with the given data and meta devs.
     /// Returns an error if the device is already known to the kernel.
+    #[allow(clippy::too_many_arguments)]
     pub fn new(
         dm: &DM,
         name: &DmName,
@@ -566,14 +567,19 @@ impl CacheDev {
         cache: LinearDev,
         origin: LinearDev,
         cache_block_size: Sectors,
+        create_options: Option<DmOptions>,
     ) -> DmResult<CacheDev> {
         if device_exists(dm, name)? {
             let err_msg = format!("cachedev {name} already exists");
             return Err(DmError::Dm(ErrorEnum::Invalid, err_msg));
         }
 
+        let options = match create_options {
+            Some(options) => options,
+            None => DmOptions::private(),
+        };
         let table = CacheDev::gen_default_table(&meta, &cache, &origin, cache_block_size);
-        let dev_info = device_create(dm, name, uuid, &table, DmOptions::private())?;
+        let dev_info = device_create(dm, name, uuid, &table, options)?;
 
         Ok(CacheDev {
             dev_info: Box::new(dev_info),
@@ -585,6 +591,7 @@ impl CacheDev {
     }
 
     /// Set up a cache device from the given metadata and data devices.
+    #[allow(clippy::too_many_arguments)]
     pub fn setup(
         dm: &DM,
         name: &DmName,
@@ -593,6 +600,7 @@ impl CacheDev {
         cache: LinearDev,
         origin: LinearDev,
         cache_block_size: Sectors,
+        create_options: Option<DmOptions>,
     ) -> DmResult<CacheDev> {
         let table = CacheDev::gen_default_table(&meta, &cache, &origin, cache_block_size);
         let dev = if device_exists(dm, name)? {
@@ -607,7 +615,11 @@ impl CacheDev {
             device_match(dm, &dev, uuid)?;
             dev
         } else {
-            let dev_info = device_create(dm, name, uuid, &table, DmOptions::private())?;
+            let options = match create_options {
+                Some(options) => options,
+                None => DmOptions::private(),
+            };
+            let dev_info = device_create(dm, name, uuid, &table, options)?;
             CacheDev {
                 dev_info: Box::new(dev_info),
                 meta_dev: meta,
@@ -632,7 +644,7 @@ impl CacheDev {
         table: Vec<TargetLine<LinearDevTargetParams>>,
     ) -> DmResult<()> {
         self.origin_dev.set_table(dm, table)?;
-        self.origin_dev.resume(dm)?;
+        self.origin_dev.resume(dm, None)?;
 
         let mut table = self.table.clone();
         table.table.length = self.origin_dev.size();
@@ -655,7 +667,7 @@ impl CacheDev {
         table: Vec<TargetLine<LinearDevTargetParams>>,
     ) -> DmResult<()> {
         self.cache_dev.set_table(dm, table)?;
-        self.cache_dev.resume(dm)?;
+        self.cache_dev.resume(dm, None)?;
 
         // Reload the table, even though it is unchanged. Otherwise, we
         // suffer from whacky smq bug documented in the following PR:
@@ -677,7 +689,7 @@ impl CacheDev {
         table: Vec<TargetLine<LinearDevTargetParams>>,
     ) -> DmResult<()> {
         self.meta_dev.set_table(dm, table)?;
-        self.meta_dev.resume(dm)?;
+        self.meta_dev.resume(dm, None)?;
 
         // Reload the table, even though it is unchanged. Otherwise, we
         // suffer from whacky smq bug documented in the following PR:
@@ -774,7 +786,7 @@ pub fn minimal_cachedev(dm: &DM, paths: &[&Path]) -> CacheDev {
         meta_length,
         LinearDevTargetParams::Linear(meta_params),
     )];
-    let meta = LinearDev::setup(dm, &meta_name, None, meta_table).unwrap();
+    let meta = LinearDev::setup(dm, &meta_name, None, meta_table, None).unwrap();
 
     let cache_name = test_name("cache-cache").expect("valid format");
     let cache_offset = meta_length;
@@ -785,7 +797,7 @@ pub fn minimal_cachedev(dm: &DM, paths: &[&Path]) -> CacheDev {
         cache_length,
         LinearDevTargetParams::Linear(cache_params),
     )];
-    let cache = LinearDev::setup(dm, &cache_name, None, cache_table).unwrap();
+    let cache = LinearDev::setup(dm, &cache_name, None, cache_table, None).unwrap();
 
     let dev2_size = blkdev_size(&OpenOptions::new().read(true).open(paths[1]).unwrap()).sectors();
     let dev2 = Device::from(devnode_to_devno(paths[1]).unwrap().unwrap());
@@ -797,7 +809,7 @@ pub fn minimal_cachedev(dm: &DM, paths: &[&Path]) -> CacheDev {
         dev2_size,
         LinearDevTargetParams::Linear(origin_params),
     )];
-    let origin = LinearDev::setup(dm, &origin_name, None, origin_table).unwrap();
+    let origin = LinearDev::setup(dm, &origin_name, None, origin_table, None).unwrap();
 
     CacheDev::new(
         dm,
@@ -807,6 +819,7 @@ pub fn minimal_cachedev(dm: &DM, paths: &[&Path]) -> CacheDev {
         cache,
         origin,
         MIN_CACHE_BLOCK_SIZE,
+        None,
     )
     .unwrap()
 }
@@ -920,7 +933,7 @@ mod tests {
             LinearDevTargetParams::Linear(cache_params),
         ));
         assert_matches!(cache.set_meta_table(&dm, table), Ok(_));
-        cache.resume(&dm).unwrap();
+        cache.resume(&dm, None).unwrap();
 
         match cache.status(&dm, DmOptions::default()).unwrap() {
             CacheDevStatus::Working(ref status) => {
@@ -974,7 +987,7 @@ mod tests {
             LinearDevTargetParams::Linear(cache_params),
         ));
         assert_matches!(cache.set_cache_table(&dm, cache_table.clone()), Ok(_));
-        cache.resume(&dm).unwrap();
+        cache.resume(&dm, None).unwrap();
 
         match cache.status(&dm, DmOptions::default()).unwrap() {
             CacheDevStatus::Working(ref status) => {
@@ -991,7 +1004,7 @@ mod tests {
         cache_table.pop();
 
         assert_matches!(cache.set_cache_table(&dm, cache_table), Ok(_));
-        cache.resume(&dm).unwrap();
+        cache.resume(&dm, None).unwrap();
 
         match cache.status(&dm, DmOptions::default()).unwrap() {
             CacheDevStatus::Working(ref status) => {
@@ -1034,7 +1047,7 @@ mod tests {
         ));
 
         cache.set_origin_table(&dm, origin_table).unwrap();
-        cache.resume(&dm).unwrap();
+        cache.resume(&dm, None).unwrap();
 
         let origin_size = origin_size + dev3_size;
         assert_eq!(cache.origin_dev.size(), origin_size);
@@ -1060,8 +1073,8 @@ mod tests {
         cache
             .suspend(&dm, DmOptions::default().set_flags(DmFlags::DM_NOFLUSH))
             .unwrap();
-        cache.resume(&dm).unwrap();
-        cache.resume(&dm).unwrap();
+        cache.resume(&dm, None).unwrap();
+        cache.resume(&dm, None).unwrap();
         cache.teardown(&dm).unwrap();
     }
 
